@@ -19,12 +19,12 @@
       {
         "id": "pf2e",
         "type": "system",
-        "compatibility": {}
+        "compatibility": {"pf2e"}
       }
     ]
   },
   "esmodules": [
-    "scripts/main.js"
+    "scripts/ethernum.js"
   ],
   "styles": [
     "styles/ethernum.css"
