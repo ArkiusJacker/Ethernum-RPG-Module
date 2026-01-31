@@ -1,0 +1,565 @@
+<div class="ethernum-container ethernum-attributes-tab">
+  <!-- Sistema de Fichas de Éter (FE) - Moeda de Upgrade -->
+  <section class="ethernum-section fe-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-coins"></i> {{localize "ETHERNUM.FE.Title"}}
+    </h2>
+    
+    <div class="ethernum-fe-display">
+      <div class="ethernum-fe-current-display">
+        <label class="ethernum-label">{{localize "ETHERNUM.FE.Current"}}</label>
+        <div class="ethernum-fe-value">
+          {{#if isGM}}
+          <input type="number" class="ethernum-fe-current" value="{{fe.current}}" min="0" />
+          {{else}}
+          <span class="ethernum-fe-readonly">{{fe.current}}</span>
+          {{/if}}
+          <span class="ethernum-fe-label">FE</span>
+        </div>
+      </div>
+      
+      {{#if isGM}}
+      <div class="ethernum-fe-gm-controls">
+        <div class="ethernum-fe-add-section">
+          <label>{{localize "ETHERNUM.FE.AddAmount"}}</label>
+          <div class="ethernum-fe-add-row">
+            <input type="number" class="ethernum-fe-amount" value="100" min="1" />
+            <button type="button" class="ethernum-button ethernum-add-fe">
+              <i class="fas fa-plus"></i> {{localize "ETHERNUM.FE.Add"}}
+            </button>
+          </div>
+        </div>
+      </div>
+      {{/if}}
+      
+      <div class="ethernum-fe-info">
+        <p class="ethernum-info-text">{{localize "ETHERNUM.FE.Description"}}</p>
+        <div class="ethernum-fe-costs-table">
+          <h4>{{localize "ETHERNUM.FE.CostPerLevel"}}</h4>
+          <div class="ethernum-fe-costs-grid">
+            {{#each ranks}}
+            <div class="ethernum-fe-cost-item">
+              <span class="ethernum-fe-rank">{{this}}</span>
+              <span class="ethernum-fe-cost">{{lookup ../feCosts this}} FE</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sistema de Éter (Descanso Longo) -->
+  <section class="ethernum-section ether-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-magic"></i> {{localize "ETHERNUM.Tabs.EtherSystem"}}
+    </h2>
+    
+    <div class="ethernum-ether-display">
+      <div class="ethernum-stat-row">
+        <label class="ethernum-label">{{localize "ETHERNUM.EtherCurrent"}}</label>
+        <div class="ethernum-ether-bar">
+          {{#if etherSystem.etherMax}}
+          <div class="ethernum-ether-bar-fill" style="width: {{multiply (divide etherSystem.etherCurrent etherSystem.etherMax) 100}}%"></div>
+          {{/if}}
+          <div class="ethernum-ether-bar-text">
+            <input type="number" 
+                   class="ethernum-ether-input" 
+                   value="{{etherSystem.etherCurrent}}" 
+                   min="0" 
+                   max="{{etherSystem.etherMax}}" />
+            / {{etherSystem.etherMax}}
+          </div>
+        </div>
+      </div>
+
+      <div class="ethernum-stats-grid">
+        <div class="ethernum-stat-box">
+          <label>{{localize "ETHERNUM.EtherMax"}}</label>
+          <div class="ethernum-stat-value">{{etherSystem.etherMax}}</div>
+        </div>
+        
+        <div class="ethernum-stat-box">
+          <label>{{localize "ETHERNUM.EtherPower"}}</label>
+          <div class="ethernum-stat-value">+{{etherSystem.etherPower}}</div>
+        </div>
+      </div>
+
+      <div class="ethernum-button-row">
+        <button type="button" class="ethernum-button ethernum-recalculate">
+          <i class="fas fa-calculator"></i> {{localize "ETHERNUM.Buttons.Recalculate"}}
+        </button>
+        <button type="button" class="ethernum-button ethernum-long-rest">
+          <i class="fas fa-bed"></i> {{localize "ETHERNUM.Buttons.LongRest"}}
+        </button>
+      </div>
+
+      <div class="ethernum-info-box">
+        <i class="fas fa-info-circle"></i>
+        <span>{{localize "ETHERNUM.LongRestInfo"}}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Atributos de Éter -->
+  <section class="ethernum-section ether-attributes">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-user-shield"></i> {{localize "ETHERNUM.Tabs.EtherAttributes"}}
+    </h2>
+
+    <div class="ethernum-attributes-grid">
+      <!-- Força -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.forca"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.forca.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="forca" 
+                   value="{{etherAttributes.forca.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="forca">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.forca.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Destreza -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.destreza"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.destreza.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="destreza" 
+                   value="{{etherAttributes.destreza.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="destreza">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.destreza.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Constituição -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.constituicao"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.constituicao.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="constituicao" 
+                   value="{{etherAttributes.constituicao.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="constituicao">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.constituicao.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inteligência -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.inteligencia"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.inteligencia.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="inteligencia" 
+                   value="{{etherAttributes.inteligencia.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="inteligencia">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.inteligencia.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sabedoria -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.sabedoria"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.sabedoria.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="sabedoria" 
+                   value="{{etherAttributes.sabedoria.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="sabedoria">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.sabedoria.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carisma -->
+      <div class="ethernum-attribute-card">
+        <div class="ethernum-attr-header">
+          <span class="ethernum-attr-name">{{localize "ETHERNUM.Attribute.carisma"}}</span>
+          <span class="ethernum-attr-rank-badge">{{etherAttributes.carisma.rank}}</span>
+        </div>
+        <div class="ethernum-attr-body">
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Value"}}</label>
+            <input type="number" class="ethernum-attr-value" data-attr="carisma" 
+                   value="{{etherAttributes.carisma.value}}" min="1" max="10" />
+          </div>
+          <div class="ethernum-attr-field">
+            <label>{{localize "ETHERNUM.Rank"}}</label>
+            <select class="ethernum-attr-rank" data-attr="carisma">
+              {{#each ranks}}
+                <option value="{{this}}" {{#if (ethernum-eq this ../etherAttributes.carisma.rank)}}selected{{/if}}>{{this}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sistema de Talentos -->
+  <section class="ethernum-section talents-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-star"></i> {{localize "ETHERNUM.Tabs.Talents"}}
+    </h2>
+
+    <div class="ethernum-talents-description">
+      <p>{{localize "ETHERNUM.TalentsDescription"}}</p>
+      <code>1d20 + {{localize "ETHERNUM.Talent.Name"}} + {{localize "ETHERNUM.TalentRank"}} + {{localize "ETHERNUM.Attribute.Name"}} + {{localize "ETHERNUM.AttributeRank"}}</code>
+      <p class="ethernum-formula-example">{{localize "ETHERNUM.FormulaExample"}}</p>
+    </div>
+
+    <div class="ethernum-talents-grid">
+      <!-- Investigação (INT) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.investigacao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.inteligencia"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="investigacao" 
+                 value="{{talents.investigacao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="investigacao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.investigacao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="investigacao" data-attr="inteligencia" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Percepção (SAB) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.percepcao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.sabedoria"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="percepcao" 
+                 value="{{talents.percepcao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="percepcao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.percepcao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="percepcao" data-attr="sabedoria" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Furtividade (DES) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.furtividade"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.destreza"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="furtividade" 
+                 value="{{talents.furtividade.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="furtividade">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.furtividade.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="furtividade" data-attr="destreza" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Atletismo (FOR) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.atletismo"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.forca"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="atletismo" 
+                 value="{{talents.atletismo.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="atletismo">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.atletismo.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="atletismo" data-attr="forca" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Acrobacia (DES) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.acrobacia"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.destreza"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="acrobacia" 
+                 value="{{talents.acrobacia.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="acrobacia">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.acrobacia.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="acrobacia" data-attr="destreza" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Intimidação (CAR) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.intimidacao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.carisma"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="intimidacao" 
+                 value="{{talents.intimidacao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="intimidacao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.intimidacao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="intimidacao" data-attr="carisma" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Persuasão (CAR) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.persuasao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.carisma"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="persuasao" 
+                 value="{{talents.persuasao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="persuasao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.persuasao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="persuasao" data-attr="carisma" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Enganação (CAR) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.enganacao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.carisma"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="enganacao" 
+                 value="{{talents.enganacao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="enganacao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.enganacao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="enganacao" data-attr="carisma" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Medicina (SAB) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.medicina"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.sabedoria"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="medicina" 
+                 value="{{talents.medicina.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="medicina">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.medicina.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="medicina" data-attr="sabedoria" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sobrevivência (SAB) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.sobrevivencia"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.sabedoria"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="sobrevivencia" 
+                 value="{{talents.sobrevivencia.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="sobrevivencia">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.sobrevivencia.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="sobrevivencia" data-attr="sabedoria" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Arcanismo (INT) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.arcanismo"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.inteligencia"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="arcanismo" 
+                 value="{{talents.arcanismo.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="arcanismo">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.arcanismo.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="arcanismo" data-attr="inteligencia" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Religião (SAB) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.religiao"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.sabedoria"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="religiao" 
+                 value="{{talents.religiao.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="religiao">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.religiao.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="religiao" data-attr="sabedoria" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Natureza (SAB) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.natureza"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.sabedoria"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="natureza" 
+                 value="{{talents.natureza.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="natureza">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.natureza.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="natureza" data-attr="sabedoria" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sociedade (INT) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.sociedade"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.inteligencia"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="sociedade" 
+                 value="{{talents.sociedade.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="sociedade">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.sociedade.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="sociedade" data-attr="inteligencia" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ocultismo (INT) -->
+      <div class="ethernum-talent-card">
+        <div class="ethernum-talent-header">
+          <span class="ethernum-talent-name">{{localize "ETHERNUM.Talent.ocultismo"}}</span>
+          <span class="ethernum-talent-attr">({{localize "ETHERNUM.Attribute.inteligencia"}})</span>
+        </div>
+        <div class="ethernum-talent-body">
+          <input type="number" class="ethernum-talent-value" data-talent="ocultismo" 
+                 value="{{talents.ocultismo.value}}" min="1" max="10" />
+          <select class="ethernum-talent-rank" data-talent="ocultismo">
+            {{#each ranks}}
+              <option value="{{this}}" {{#if (ethernum-eq this ../talents.ocultismo.rank)}}selected{{/if}}>{{this}}</option>
+            {{/each}}
+          </select>
+          <button type="button" class="ethernum-roll-talent" data-talent="ocultismo" data-attr="inteligencia" title="{{localize 'ETHERNUM.Buttons.Roll'}}">
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

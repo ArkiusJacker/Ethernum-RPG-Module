@@ -1,6 +1,7 @@
 /**
  * Ethernum RPG Module - Estilos
  * Sistema de Éter para Pathfinder 2E
+ * Versão 2.0 - Com suporte a Classes de Runa e Sistema de Ranks
  */
 
 /* Container principal */
@@ -125,6 +126,23 @@
   color: #9f4aff;
 }
 
+/* Info Box */
+.ethernum-info-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(159, 74, 255, 0.1);
+  border-left: 3px solid #9f4aff;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-info-box i {
+  color: #9f4aff;
+}
+
 /* Botões */
 .ethernum-button-row {
   display: flex;
@@ -171,6 +189,344 @@
   background: linear-gradient(135deg, #8040ff 0%, #b060ff 100%);
 }
 
+/* ===== SISTEMA DE ATRIBUTOS DE ÉTER ===== */
+.ethernum-attributes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ethernum-attribute-card {
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-dark);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ethernum-attribute-card:hover {
+  border-color: #9f4aff;
+  box-shadow: 0 0 10px rgba(159, 74, 255, 0.2);
+}
+
+.ethernum-attr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #6e2dff 0%, #9f4aff 100%);
+  color: white;
+}
+
+.ethernum-attr-name {
+  font-weight: bold;
+  font-size: 0.95em;
+}
+
+.ethernum-attr-rank-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.ethernum-attr-body {
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.ethernum-attr-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ethernum-attr-field label {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
+.ethernum-attr-value,
+.ethernum-attr-rank {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  text-align: center;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-attr-value:focus,
+.ethernum-attr-rank:focus {
+  outline: none;
+  border-color: #9f4aff;
+  box-shadow: 0 0 5px rgba(159, 74, 255, 0.3);
+}
+
+/* ===== SISTEMA DE TALENTOS ===== */
+.ethernum-talents-description {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.ethernum-talents-description p {
+  margin: 0 0 8px 0;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-talents-description code {
+  display: block;
+  background: rgba(159, 74, 255, 0.1);
+  padding: 8px;
+  border-radius: 3px;
+  font-family: monospace;
+  color: #9f4aff;
+  margin-bottom: 8px;
+}
+
+.ethernum-talents-description .ethernum-formula-example {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  font-style: italic;
+  margin-bottom: 0;
+}
+
+.ethernum-talents-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ethernum-talent-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  padding: 8px;
+  transition: all 0.2s ease;
+}
+
+.ethernum-talent-card:hover {
+  border-color: #9f4aff;
+}
+
+.ethernum-talent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ethernum-talent-name {
+  font-weight: bold;
+  font-size: 0.85em;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-talent-attr {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary);
+}
+
+.ethernum-talent-body {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.ethernum-talent-value {
+  width: 45px;
+  padding: 4px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  text-align: center;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-talent-rank {
+  width: 50px;
+  padding: 4px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  text-align: center;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-roll-talent {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: linear-gradient(135deg, #6e2dff 0%, #9f4aff 100%);
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ethernum-roll-talent:hover {
+  background: linear-gradient(135deg, #8040ff 0%, #b060ff 100%);
+  transform: scale(1.1);
+}
+
+/* ===== SISTEMA DE RUNAS (VERSÃO 2.0) ===== */
+
+/* Controles do GM */
+.ethernum-gm-panel {
+  background: var(--color-bg);
+  border: 1px solid #ff6b35;
+  border-radius: 5px;
+  padding: 15px;
+}
+
+.ethernum-gm-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ethernum-gm-field label {
+  font-weight: bold;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-gm-field select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-gm-hint {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  margin: 0;
+}
+
+/* Grid de Classes de Runa */
+.ethernum-rune-classes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.ethernum-rune-class-card {
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-dark);
+  border-radius: 5px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ethernum-rune-class-card.unlocked {
+  border-color: #4caf50;
+}
+
+.ethernum-rune-class-card.locked {
+  opacity: 0.7;
+  border-color: #e53935;
+}
+
+.ethernum-rune-class-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: linear-gradient(135deg, #6e2dff 0%, #9f4aff 100%);
+  color: white;
+}
+
+.ethernum-rune-class-card.locked .ethernum-rune-class-header {
+  background: linear-gradient(135deg, #666 0%, #888 100%);
+}
+
+.ethernum-rune-class-number {
+  background: rgba(255, 255, 255, 0.2);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+.ethernum-rune-class-name {
+  flex: 1;
+  font-weight: bold;
+  font-size: 0.8em;
+}
+
+.ethernum-unlock-icon {
+  color: #4caf50;
+}
+
+.ethernum-lock-icon {
+  color: #e53935;
+}
+
+.ethernum-rune-class-body {
+  padding: 8px;
+  font-size: 0.75em;
+}
+
+.ethernum-rune-class-body p {
+  margin: 0 0 5px 0;
+  line-height: 1.3;
+}
+
+.ethernum-rune-class-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Override Info */
+.ethernum-override-info {
+  background: rgba(255, 152, 0, 0.1);
+  border: 2px solid #ff9800;
+  border-radius: 5px;
+  padding: 15px;
+}
+
+.ethernum-override-info h3 {
+  margin: 0 0 10px 0;
+  color: #ff9800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ethernum-override-info p {
+  margin: 0 0 10px 0;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-override-info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ethernum-override-info li {
+  margin-bottom: 5px;
+  color: var(--color-text-dark-primary);
+}
+
 /* Sistema de Runas */
 .ethernum-runes-list {
   display: flex;
@@ -191,6 +547,18 @@
   box-shadow: 0 0 10px rgba(159, 74, 255, 0.3);
 }
 
+.ethernum-rune-item.disabled {
+  opacity: 0.6;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Cores por classe de runa */
+.ethernum-rune-item.rune-class-1 { border-left: 4px solid #4caf50; }
+.ethernum-rune-item.rune-class-2 { border-left: 4px solid #2196f3; }
+.ethernum-rune-item.rune-class-3 { border-left: 4px solid #ff9800; }
+.ethernum-rune-item.rune-class-4 { border-left: 4px solid #e91e63; }
+.ethernum-rune-item.rune-class-5 { border-left: 4px solid #9c27b0; }
+
 .ethernum-rune-header {
   display: flex;
   justify-content: space-between;
@@ -198,6 +566,24 @@
   margin-bottom: 10px;
   gap: 10px;
 }
+
+.ethernum-rune-class-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  font-size: 0.9em;
+}
+
+.ethernum-rune-class-badge.class-1 { background: #4caf50; }
+.ethernum-rune-class-badge.class-2 { background: #2196f3; }
+.ethernum-rune-class-badge.class-3 { background: #ff9800; }
+.ethernum-rune-class-badge.class-4 { background: #e91e63; }
+.ethernum-rune-class-badge.class-5 { background: #9c27b0; }
 
 .ethernum-rune-name {
   flex: 1;
@@ -246,6 +632,17 @@
   border-color: #9f4aff;
 }
 
+.ethernum-icon-button.inactive {
+  background: #666;
+  color: #999;
+}
+
+.ethernum-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .ethernum-delete-rune:hover {
   background: #c92a2a;
   color: white;
@@ -292,6 +689,18 @@
   box-shadow: 0 0 5px rgba(159, 74, 255, 0.3);
 }
 
+.ethernum-rune-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ethernum-rune-effect label {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
 .ethernum-rune-description {
   display: flex;
   flex-direction: column;
@@ -307,6 +716,29 @@
 .ethernum-rune-description textarea {
   resize: vertical;
   font-family: inherit;
+}
+
+/* Notices de runa */
+.ethernum-rune-disabled-notice,
+.ethernum-rune-locked-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.ethernum-rune-disabled-notice {
+  background: rgba(102, 102, 102, 0.2);
+  border: 1px solid #666;
+  color: #666;
+}
+
+.ethernum-rune-locked-notice {
+  background: rgba(255, 152, 0, 0.2);
+  border: 1px solid #ff9800;
+  color: #ff9800;
 }
 
 /* Estado vazio */
@@ -362,7 +794,21 @@
 }
 
 /* Responsividade */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .ethernum-attributes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ethernum-talents-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ethernum-rune-classes-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
   .ethernum-stats-grid {
     grid-template-columns: 1fr;
   }
@@ -373,6 +819,18 @@
 
   .ethernum-button-row {
     flex-direction: column;
+  }
+
+  .ethernum-attributes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-talents-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-rune-classes-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -388,6 +846,33 @@
 
 .ethernum-rune-item.equipped {
   animation: ether-pulse 2s ease-in-out infinite;
+}
+
+/* Override Chat Messages */
+.ethernum-override-failure {
+  background: rgba(229, 57, 53, 0.1);
+  border: 2px solid #e53935;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 5px 0;
+}
+
+.ethernum-override-failure h3 {
+  color: #e53935;
+  margin: 0 0 10px 0;
+}
+
+.ethernum-override-success {
+  background: rgba(255, 152, 0, 0.1);
+  border: 2px solid #ff9800;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 5px 0;
+}
+
+.ethernum-override-success h3 {
+  color: #ff9800;
+  margin: 0 0 10px 0;
 }
 
 /* Compatibilidade com tema escuro do PF2E */
@@ -407,4 +892,503 @@
 .pf2e.sheet.actor .ethernum-stat-box {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pf2e.sheet.actor .ethernum-attribute-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pf2e.sheet.actor .ethernum-talent-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pf2e.sheet.actor .ethernum-rune-item {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pf2e.sheet.actor .ethernum-rune-class-card {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ===== SISTEMA DE TRINDADE DE RUNAS (v3.0) ===== */
+
+/* Configuração de DC */
+.ethernum-dc-config {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--color-border-dark);
+}
+
+.ethernum-dc-config h4 {
+  margin: 0 0 10px 0;
+  color: #ff6b35;
+  font-size: 0.95em;
+}
+
+.ethernum-dc-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ethernum-dc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ethernum-dc-item label {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
+.ethernum-dc-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+  text-align: center;
+  font-weight: bold;
+}
+
+.ethernum-dc-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+}
+
+.ethernum-dc-display {
+  margin-top: 5px;
+  font-size: 0.9em;
+  color: #ff6b35;
+}
+
+.ethernum-dc-display .dc-value {
+  font-weight: bold;
+  background: rgba(255, 107, 53, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Container da Trindade */
+.ethernum-trinity-container {
+  background: linear-gradient(135deg, rgba(159, 74, 255, 0.05) 0%, rgba(255, 107, 53, 0.05) 100%);
+  border: 2px solid rgba(159, 74, 255, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.ethernum-trinity-title {
+  margin: 0 0 8px 0;
+  color: #9f4aff;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ethernum-trinity-description {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  margin: 0 0 15px 0;
+}
+
+/* Layout Triangular */
+.ethernum-trinity-triangle {
+  position: relative;
+  min-height: 200px;
+  display: grid;
+  grid-template-areas:
+    ". verb ."
+    "noun center source";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* Conexões visuais do triângulo */
+.ethernum-trinity-triangle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 120px solid transparent;
+  border-right: 120px solid transparent;
+  border-bottom: 180px solid rgba(159, 74, 255, 0.1);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Vértices do triângulo */
+.ethernum-trinity-vertex {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-dark);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ethernum-trinity-vertex:hover {
+  border-color: #9f4aff;
+  box-shadow: 0 0 15px rgba(159, 74, 255, 0.3);
+  transform: scale(1.02);
+}
+
+/* Posicionamento dos vértices */
+.verb-vertex {
+  grid-area: verb;
+  border-color: #ff6b35;
+}
+
+.verb-vertex:hover {
+  border-color: #ff6b35;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+}
+
+.noun-vertex {
+  grid-area: noun;
+  border-color: #2196f3;
+}
+
+.noun-vertex:hover {
+  border-color: #2196f3;
+  box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+}
+
+.source-vertex {
+  grid-area: source;
+  border-color: #e91e63;
+}
+
+.source-vertex:hover {
+  border-color: #e91e63;
+  box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);
+}
+
+/* Label da trindade */
+.ethernum-trinity-label {
+  font-weight: bold;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.verb-vertex .ethernum-trinity-label {
+  color: #ff6b35;
+}
+
+.noun-vertex .ethernum-trinity-label {
+  color: #2196f3;
+}
+
+.source-vertex .ethernum-trinity-label {
+  color: #e91e63;
+}
+
+/* Select da trindade */
+.ethernum-trinity-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 4px;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.ethernum-trinity-select:focus {
+  outline: none;
+  border-color: #9f4aff;
+}
+
+.verb-vertex .ethernum-trinity-select:focus {
+  border-color: #ff6b35;
+}
+
+.noun-vertex .ethernum-trinity-select:focus {
+  border-color: #2196f3;
+}
+
+.source-vertex .ethernum-trinity-select:focus {
+  border-color: #e91e63;
+}
+
+/* Hint da trindade */
+.ethernum-trinity-hint {
+  font-size: 0.7em;
+  color: var(--color-text-dark-secondary);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Centro do triângulo */
+.ethernum-trinity-center {
+  grid-area: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(159, 74, 255, 0.2) 0%, rgba(255, 107, 53, 0.2) 100%);
+  border: 2px dashed #9f4aff;
+  border-radius: 50%;
+  padding: 15px;
+  font-weight: bold;
+  font-size: 0.85em;
+  text-align: center;
+  color: #9f4aff;
+  min-height: 60px;
+  z-index: 1;
+}
+
+/* Optgroup styling */
+.ethernum-trinity-select optgroup {
+  font-weight: bold;
+  color: #9f4aff;
+}
+
+.ethernum-trinity-select option {
+  font-weight: normal;
+  color: var(--color-text-dark-primary);
+}
+
+/* Responsividade para Trinity */
+@media (max-width: 700px) {
+  .ethernum-trinity-triangle {
+    grid-template-areas:
+      "verb"
+      "noun"
+      "source"
+      "center";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    min-height: auto;
+  }
+  
+  .ethernum-trinity-triangle::before {
+    display: none;
+  }
+  
+  .ethernum-dc-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .ethernum-dc-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== SISTEMA DE FICHAS DE ÉTER (FE) ===== */
+
+.fe-system {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(159, 74, 255, 0.05) 100%);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.fe-system .ethernum-section-title i {
+  color: #ffd700;
+}
+
+.ethernum-fe-display {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ethernum-fe-current-display {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.ethernum-fe-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%);
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+}
+
+.ethernum-fe-current {
+  width: 80px;
+  padding: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: center;
+}
+
+.ethernum-fe-readonly {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ethernum-fe-label {
+  font-size: 1em;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* GM Controls para FE */
+.ethernum-fe-gm-controls {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px dashed rgba(255, 215, 0, 0.3);
+}
+
+.ethernum-fe-add-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ethernum-fe-add-section label {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+}
+
+.ethernum-fe-add-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ethernum-fe-amount {
+  width: 100px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 4px;
+  background: var(--color-bg-option);
+}
+
+/* Info box para FE */
+.ethernum-fe-info {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.ethernum-fe-info .ethernum-info-text {
+  margin: 0 0 10px 0;
+  font-size: 0.9em;
+  color: var(--color-text-dark-secondary);
+}
+
+.ethernum-fe-costs-table h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  color: #ffd700;
+}
+
+.ethernum-fe-costs-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+}
+
+.ethernum-fe-cost-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.ethernum-fe-rank {
+  font-weight: bold;
+  color: #ffd700;
+  font-size: 0.9em;
+}
+
+.ethernum-fe-cost {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary);
+}
+
+/* Upgrade buttons */
+.ethernum-upgrade-section {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.ethernum-upgrade-levels {
+  width: 50px;
+  padding: 4px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  text-align: center;
+  font-size: 0.85em;
+}
+
+.ethernum-upgrade-attr,
+.ethernum-upgrade-talent {
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%);
+  border: none;
+  border-radius: 3px;
+  color: rgba(0, 0, 0, 0.8);
+  font-size: 0.75em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ethernum-upgrade-attr:hover,
+.ethernum-upgrade-talent:hover {
+  background: linear-gradient(135deg, #ffb300 0%, #ff9800 100%);
+  transform: scale(1.05);
+}
+
+/* Responsividade para FE */
+@media (max-width: 700px) {
+  .ethernum-fe-costs-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .ethernum-fe-costs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .ethernum-fe-add-row {
+    flex-direction: column;
+  }
+  
+  .ethernum-fe-amount {
+    width: 100%;
+  }
 }

@@ -2,8 +2,10 @@
   "ETHERNUM": {
     "Tabs": {
       "EtherSystem": "Sistema de Éter",
+      "EtherAttributes": "Atributos de Éter",
       "RuneSystem": "Sistema de Runas",
-      "DiceCalculator": "Calculadora de Dados"
+      "DiceCalculator": "Calculadora de Dados",
+      "Talents": "Talentos"
     },
     "EtherCurrent": "Éter Atual",
     "EtherMax": "Éter Máximo",
@@ -11,23 +13,91 @@
     "EtherPower": "Poder de Éter",
     "EtherCost": "Custo de Éter",
     "Description": "Descrição",
+    "Value": "Valor",
+    "Rank": "Rank",
+    "TalentRank": "Rank do Talento",
+    "AttributeRank": "Rank do Atributo",
+    "FormulaExample": "Ex: 1d20 + 5 (Investigação) + 9 (Rank D) + 3 (Inteligência) + 6 (Rank D) = 1d20+23",
+    "LongRestInfo": "O Éter é restaurado apenas com descanso longo. Não há regeneração passiva.",
+    "TalentsDescription": "Os talentos funcionam com o sistema de ranks. Ao fazer um teste, role:",
+    "RankBonusInfo": "Atributos: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20 | Talentos: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25",
+    "FE": {
+      "Title": "Fichas de Éter (FE)",
+      "Current": "FE Atual",
+      "Total": "FE Total (Histórico)",
+      "Add": "Adicionar FE",
+      "AddAmount": "Quantidade a Adicionar",
+      "Description": "Use Fichas de Éter (FE) para melhorar seus atributos e talentos. O custo aumenta conforme o rank sobe. Você pode upar múltiplos níveis de uma vez!",
+      "CostPerLevel": "Custo por Nível (em cada Rank)",
+      "UpgradeLevels": "Níveis para Upar",
+      "Upgrade": "Upar",
+      "NotEnough": "FE insuficiente! Custo: {cost} FE, você tem: {current} FE",
+      "UpgradeSuccess": "Upgrade de {attr} concluído!",
+      "Added": "{amount} FE adicionado! Novo total: {total} FE",
+      "InvalidAmount": "Quantidade inválida de FE",
+      "CostInfo": "Custo por nível: F=100, E=200, D=400, C=800, B=1600, A=3200, S=6400, K=12800",
+      "InvalidParams": "Parâmetros inválidos",
+      "AttributeNotFound": "Atributo não encontrado",
+      "TalentNotFound": "Talento não encontrado"
+    },
     "Buttons": {
       "Recalculate": "Recalcular",
       "Rest": "Descansar",
+      "LongRest": "Descanso Longo",
       "AddRune": "Adicionar Runa",
       "AddFirstRune": "Adicionar Primeira Runa",
       "Equip": "Equipar",
       "Activate": "Ativar",
-      "Delete": "Excluir"
+      "Delete": "Excluir",
+      "Roll": "Rolar",
+      "Enable": "Habilitar",
+      "Disable": "Desabilitar"
+    },
+    "Attribute": {
+      "Name": "Atributo",
+      "forca": "Força",
+      "destreza": "Destreza",
+      "constituicao": "Constituição",
+      "inteligencia": "Inteligência",
+      "sabedoria": "Sabedoria",
+      "carisma": "Carisma"
+    },
+    "Talent": {
+      "Name": "Talento",
+      "investigacao": "Investigação",
+      "percepcao": "Percepção",
+      "furtividade": "Furtividade",
+      "atletismo": "Atletismo",
+      "acrobacia": "Acrobacia",
+      "intimidacao": "Intimidação",
+      "persuasao": "Persuasão",
+      "enganacao": "Enganação",
+      "medicina": "Medicina",
+      "sobrevivencia": "Sobrevivência",
+      "arcanismo": "Arcanismo",
+      "religiao": "Religião",
+      "natureza": "Natureza",
+      "sociedade": "Sociedade",
+      "ocultismo": "Ocultismo"
     },
     "Rune": {
       "Name": "Nome da Runa",
       "NewRune": "Nova Runa",
       "Type": "Tipo",
+      "Class": "Classe",
       "Power": "Poder",
+      "CostType": "Tipo de Custo",
+      "CostTypePlaceholder": "ex: sangue, éter, vida...",
+      "CostValue": "Valor do Custo",
+      "Effect": "Efeito",
+      "EffectPlaceholder": "Descrição do efeito da runa...",
       "NoRunes": "Nenhuma runa criada ainda. Adicione sua primeira runa para começar!",
       "DescriptionPlaceholder": "Descreva os efeitos e propriedades desta runa...",
       "Activated": "Runa Ativada",
+      "DisabledByGM": "Esta runa foi desabilitada pelo Mestre",
+      "ClassLocked": "Classe de runa bloqueada! Use Override para tentar ativar.",
+      "DC": "CD",
+      "CostNote": "NOTA: O sistema de custo de runas será expandido em versões futuras com novos fatores.",
       "Types": {
         "Offensive": "Ofensiva",
         "Defensive": "Defensiva",
@@ -35,32 +105,129 @@
         "Utility": "Utilidade"
       }
     },
+    "RuneTrinity": {
+      "Title": "Trindade da Runa",
+      "Description": "Cada runa é composta por três elementos: Verbo (o que faz), Substantivo (o que afeta) e Fonte (de onde vem o poder).",
+      "Verb": "Verbo",
+      "VerbDescription": "O que a runa FAZ",
+      "Noun": "Substantivo", 
+      "NounDescription": "O que a runa AFETA",
+      "Source": "Fonte",
+      "SourceDescription": "De onde vem o PODER",
+      "SelectVerb": "Selecione um Verbo",
+      "SelectNoun": "Selecione um Substantivo",
+      "SelectSource": "Selecione uma Fonte",
+      "VerbTier": "Tier do Verbo",
+      "Tier1": "Tier 1: Input/Output Básico",
+      "Tier2": "Tier 2: Edição de Código",
+      "Tier3": "Tier 3: Acesso de Administrador"
+    },
+    "RuneClasses": {
+      "Title": "Classes de Runa"
+    },
+    "RuneClass": {
+      "Focus": "Foco",
+      "Cost": "Custo",
+      "Visual": "Visual",
+      "DC": "CD de Dificuldade",
+      "1": {
+        "Name": "Latente",
+        "Focus": "Efeitos passivos, percepção sutil, conexão inicial",
+        "Cost": "Zero ou Mínimo (Passivo)",
+        "Visual": "Runas brilham levemente, quase imperceptíveis"
+      },
+      "2": {
+        "Name": "Tangível",
+        "Focus": "Efeitos físicos diretos, manipulação básica",
+        "Cost": "Baixo (Requer resfriamento curto)",
+        "Visual": "Éter visível, emanações claras"
+      },
+      "3": {
+        "Name": "Dissonante",
+        "Focus": "Alteração de regras locais, distorção da realidade",
+        "Cost": "Médio (Teste de Constituição)",
+        "Visual": "Ambiente distorce, leis físicas tremem"
+      },
+      "4": {
+        "Name": "Crítico",
+        "Focus": "Efeitos permanentes, alterações fundamentais",
+        "Cost": "Alto (Dano na Vida Máxima ou Corrupção)",
+        "Visual": "Ruptura visível na realidade"
+      },
+      "5": {
+        "Name": "Evento Zero",
+        "Focus": "Reescrever a Narrativa/Realidade completamente",
+        "Cost": "Catastrófico (Vida ou Perda do Personagem)",
+        "Visual": "Colapso total - fim de jogo"
+      }
+    },
+    "Override": {
+      "Title": "Override (Quebrar o Vidro)",
+      "Description": "Um personagem pode tentar usar uma Classe de Runa superior em momento de desespero. Mas a Ethernum cobra caro.",
+      "SuccessLabel": "Sucesso no Teste",
+      "SuccessResult": "O braço usado 'queima' (inutilizável até reparo médico avançado) + Exaustão Nível 3",
+      "FailureLabel": "Falha no Teste",
+      "FailureResult": "O Patrocínio entra em colapso. Dano massivo em área ou mutação imediata (Game Over)",
+      "AttemptTitle": "Tentativa de Override",
+      "FailureTitle": "⚠️ OVERRIDE FALHOU!",
+      "FailureDescription": "O Patrocínio entrou em colapso! O personagem sofre consequências catastróficas:",
+      "Consequence1": "Dano massivo em área (explosão de éter)",
+      "Consequence2": "OU mutação imediata - personagem torna-se uma 'Aberração de Éter'",
+      "FailureNotification": "Override FALHOU! Consequências catastróficas aplicadas!",
+      "SuccessTitle": "⚡ OVERRIDE BEM-SUCEDIDO!",
+      "SuccessDescription": "A runa foi ativada com potência máxima, mas com um preço:",
+      "Exhaustion": "Braço usado inutilizável + Exaustão Nível 3",
+      "SuccessNotification": "Override bem-sucedido, mas com consequências severas!"
+    },
+    "GM": {
+      "Controls": "Controles do Mestre",
+      "MaxRuneClass": "Classe Máxima de Runa Permitida",
+      "MaxRuneClassHint": "Define qual classe de runa o jogador pode usar sem precisar de Override.",
+      "ConfigureDCs": "Configurar CDs",
+      "ConfigureDCsHint": "Defina o CD de dificuldade para cada classe de runa."
+    },
     "DiceRoll": {
       "EtherEnhanced": "Rolagem Aprimorada por Éter"
     },
     "Calculator": {
       "Description": "Use o poder do éter para aprimorar suas rolagens de dados do Pathfinder 2E.",
-      "Hint": "As runas equipadas podem ser ativadas a qualquer momento. O poder de éter do seu personagem será automaticamente adicionado às rolagens compatíveis."
+      "Hint": "As runas equipadas podem ser ativadas a qualquer momento. O poder de éter do seu personagem será automaticamente adicionado às rolagens compatíveis.",
+      "TalentRoll": "Rolagem de Talento"
     },
     "Notifications": {
-      "EtherRestored": "Éter totalmente restaurado!"
+      "EtherRestored": "Éter totalmente restaurado!",
+      "LongRestComplete": "Descanso longo completo! Éter totalmente restaurado."
     },
     "Errors": {
       "NoActor": "Nenhum ator selecionado para fazer a rolagem.",
       "InvalidRune": "Runa inválida ou não encontrada.",
-      "NotEnoughEther": "Éter insuficiente para ativar esta runa!"
+      "NotEnoughEther": "Éter insuficiente para ativar esta runa!",
+      "RuneDisabled": "Esta runa está desabilitada pelo Mestre.",
+      "GMOnly": "Apenas o Mestre pode alterar este valor diretamente. Use FE para fazer upgrades."
     },
     "Warnings": {
       "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
     },
     "Settings": {
-      "EtherRegenOnRest": {
-        "Name": "Regeneração de Éter ao Descansar",
-        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem descansar."
+      "LongRestFullRestore": {
+        "Name": "Restauração Total no Descanso Longo",
+        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem fizer um descanso longo."
       },
       "ShowEtherInChat": {
         "Name": "Mostrar Éter no Chat",
         "Hint": "Se ativado, mostra informações de éter nas mensagens de rolagem no chat."
+      },
+      "AllowOverride": {
+        "Name": "Permitir Override",
+        "Hint": "Se ativado, jogadores podem tentar usar runas de classes superiores às permitidas (com consequências)."
+      },
+      "RuneClassDCs": {
+        "Name": "CDs das Classes de Runa",
+        "Hint": "Define o CD de dificuldade para cada classe de runa (1-5)."
+      },
+      "FECostsPerRank": {
+        "Name": "Custos de FE por Rank",
+        "Hint": "Define o custo de FE por nível para cada rank (F-K)."
       }
     }
   }
