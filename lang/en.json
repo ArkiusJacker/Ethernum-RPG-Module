@@ -17,9 +17,10 @@
     "Rank": "Rank",
     "TalentRank": "Talent Rank",
     "AttributeRank": "Attribute Rank",
-    "FormulaExample": "Ex: 1d20 + 5 (Investigation) + 2 (Rank D) + 3 (Intelligence) + 1 (Rank E) = 1d20+11",
+    "FormulaExample": "Ex: 1d20 + 5 (Investigation) + 9 (Rank D) + 3 (Intelligence) + 6 (Rank D) = 1d20+23",
     "LongRestInfo": "Ether is restored only with long rest. There is no passive regeneration.",
     "TalentsDescription": "Talents work with the rank system. When making a check, roll:",
+    "RankBonusInfo": "Attributes: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20 | Talents: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25",
     "Buttons": {
       "Recalculate": "Recalculate",
       "Rest": "Rest",
@@ -70,18 +71,36 @@
       "CostTypePlaceholder": "e.g.: blood, ether, life...",
       "CostValue": "Cost Value",
       "Effect": "Effect",
-      "EffectPlaceholder": "e.g.: explode, heal, protect...",
+      "EffectPlaceholder": "Description of the rune's effect...",
       "NoRunes": "No runes created yet. Add your first rune to get started!",
       "DescriptionPlaceholder": "Describe the effects and properties of this rune...",
       "Activated": "Rune Activated",
       "DisabledByGM": "This rune has been disabled by the Game Master",
       "ClassLocked": "Rune class locked! Use Override to try to activate.",
+      "DC": "DC",
       "Types": {
         "Offensive": "Offensive",
         "Defensive": "Defensive",
         "Support": "Support",
         "Utility": "Utility"
       }
+    },
+    "RuneTrinity": {
+      "Title": "Rune Trinity",
+      "Description": "Each rune is composed of three elements: Verb (what it does), Noun (what it affects) and Source (where the power comes from).",
+      "Verb": "Verb",
+      "VerbDescription": "What the rune DOES",
+      "Noun": "Noun", 
+      "NounDescription": "What the rune AFFECTS",
+      "Source": "Source",
+      "SourceDescription": "Where the POWER comes from",
+      "SelectVerb": "Select a Verb",
+      "SelectNoun": "Select a Noun",
+      "SelectSource": "Select a Source",
+      "VerbTier": "Verb Tier",
+      "Tier1": "Tier 1: Basic Input/Output",
+      "Tier2": "Tier 2: Code Editing",
+      "Tier3": "Tier 3: Admin Access"
     },
     "RuneClasses": {
       "Title": "Rune Classes"
@@ -90,35 +109,36 @@
       "Focus": "Focus",
       "Cost": "Cost",
       "Visual": "Visual",
+      "DC": "Difficulty DC",
       "1": {
-        "Name": "Anchoring (Stability)",
-        "Focus": "Personal Defense, Attribute Buff, Touch Damage",
-        "Cost": "Zero or Minimal (Patron Passive)",
-        "Visual": "Tattoos/runes glow faintly on the skin"
+        "Name": "Latent",
+        "Focus": "Passive effects, subtle perception, initial connection",
+        "Cost": "Zero or Minimal (Passive)",
+        "Visual": "Runes glow faintly, almost imperceptible"
       },
       "2": {
-        "Name": "Projection (Directional)",
-        "Focus": "Ranged Attacks (Single Target), Short-Range Utility",
-        "Cost": "Low (Generates 'Heat', requires short cooldown)",
-        "Visual": "Ether exits the body (smoke, light, sound)"
+        "Name": "Tangible",
+        "Focus": "Direct physical effects, basic manipulation",
+        "Cost": "Low (Requires short cooldown)",
+        "Visual": "Visible ether, clear emanations"
       },
       "3": {
-        "Name": "Manifestation (Environmental)",
-        "Focus": "Area of Effect (AoE), Crowd Control, Terrain Alteration",
-        "Cost": "Medium (Stress damage on failed CON check)",
-        "Visual": "Environment reacts: ground shakes, air temperature changes"
+        "Name": "Dissonant",
+        "Focus": "Local rule alteration, reality distortion",
+        "Cost": "Medium (Constitution check)",
+        "Visual": "Environment distorts, physical laws tremble"
       },
       "4": {
-        "Name": "Disruption (Law Alteration)",
-        "Focus": "Permanent Effects, Temporary Invulnerability, Matter Creation",
-        "Cost": "High (Max HP damage or guaranteed Corruption)",
-        "Visual": "Local physics laws are broken"
+        "Name": "Critical",
+        "Focus": "Permanent effects, fundamental alterations",
+        "Cost": "High (Max HP damage or Corruption)",
+        "Visual": "Visible rupture in reality"
       },
       "5": {
-        "Name": "Event Horizon (Catastrophic)",
-        "Focus": "Rewrite Narrative/Reality",
-        "Cost": "User's life or character loss",
-        "Visual": "End Game - character becomes NPC/Monster"
+        "Name": "Event Zero",
+        "Focus": "Completely rewrite Narrative/Reality",
+        "Cost": "Catastrophic (Life or Character Loss)",
+        "Visual": "Total collapse - end game"
       }
     },
     "Override": {
@@ -142,7 +162,9 @@
     "GM": {
       "Controls": "Game Master Controls",
       "MaxRuneClass": "Maximum Allowed Rune Class",
-      "MaxRuneClassHint": "Defines which rune class the player can use without needing Override."
+      "MaxRuneClassHint": "Defines which rune class the player can use without needing Override.",
+      "ConfigureDCs": "Configure DCs",
+      "ConfigureDCsHint": "Set the difficulty DC for each rune class."
     },
     "DiceRoll": {
       "EtherEnhanced": "Ether-Enhanced Roll"
@@ -177,6 +199,10 @@
       "AllowOverride": {
         "Name": "Allow Override",
         "Hint": "If enabled, players can attempt to use runes of higher classes than allowed (with consequences)."
+      },
+      "RuneClassDCs": {
+        "Name": "Rune Class DCs",
+        "Hint": "Set the difficulty DC for each rune class (1-5)."
       }
     }
   }

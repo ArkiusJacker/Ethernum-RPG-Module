@@ -912,3 +912,288 @@
 .pf2e.sheet.actor .ethernum-rune-class-card {
   background: rgba(0, 0, 0, 0.3);
 }
+
+/* ===== SISTEMA DE TRINDADE DE RUNAS (v3.0) ===== */
+
+/* Configuração de DC */
+.ethernum-dc-config {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--color-border-dark);
+}
+
+.ethernum-dc-config h4 {
+  margin: 0 0 10px 0;
+  color: #ff6b35;
+  font-size: 0.95em;
+}
+
+.ethernum-dc-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ethernum-dc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ethernum-dc-item label {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
+.ethernum-dc-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+  text-align: center;
+  font-weight: bold;
+}
+
+.ethernum-dc-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+}
+
+.ethernum-dc-display {
+  margin-top: 5px;
+  font-size: 0.9em;
+  color: #ff6b35;
+}
+
+.ethernum-dc-display .dc-value {
+  font-weight: bold;
+  background: rgba(255, 107, 53, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Container da Trindade */
+.ethernum-trinity-container {
+  background: linear-gradient(135deg, rgba(159, 74, 255, 0.05) 0%, rgba(255, 107, 53, 0.05) 100%);
+  border: 2px solid rgba(159, 74, 255, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.ethernum-trinity-title {
+  margin: 0 0 8px 0;
+  color: #9f4aff;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ethernum-trinity-description {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  margin: 0 0 15px 0;
+}
+
+/* Layout Triangular */
+.ethernum-trinity-triangle {
+  position: relative;
+  min-height: 200px;
+  display: grid;
+  grid-template-areas:
+    ". verb ."
+    "noun center source";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* Conexões visuais do triângulo */
+.ethernum-trinity-triangle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 120px solid transparent;
+  border-right: 120px solid transparent;
+  border-bottom: 180px solid rgba(159, 74, 255, 0.1);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Vértices do triângulo */
+.ethernum-trinity-vertex {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-dark);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ethernum-trinity-vertex:hover {
+  border-color: #9f4aff;
+  box-shadow: 0 0 15px rgba(159, 74, 255, 0.3);
+  transform: scale(1.02);
+}
+
+/* Posicionamento dos vértices */
+.verb-vertex {
+  grid-area: verb;
+  border-color: #ff6b35;
+}
+
+.verb-vertex:hover {
+  border-color: #ff6b35;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+}
+
+.noun-vertex {
+  grid-area: noun;
+  border-color: #2196f3;
+}
+
+.noun-vertex:hover {
+  border-color: #2196f3;
+  box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+}
+
+.source-vertex {
+  grid-area: source;
+  border-color: #e91e63;
+}
+
+.source-vertex:hover {
+  border-color: #e91e63;
+  box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);
+}
+
+/* Label da trindade */
+.ethernum-trinity-label {
+  font-weight: bold;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.verb-vertex .ethernum-trinity-label {
+  color: #ff6b35;
+}
+
+.noun-vertex .ethernum-trinity-label {
+  color: #2196f3;
+}
+
+.source-vertex .ethernum-trinity-label {
+  color: #e91e63;
+}
+
+/* Select da trindade */
+.ethernum-trinity-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 4px;
+  background: var(--color-bg-option);
+  color: var(--color-text-dark-primary);
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.ethernum-trinity-select:focus {
+  outline: none;
+  border-color: #9f4aff;
+}
+
+.verb-vertex .ethernum-trinity-select:focus {
+  border-color: #ff6b35;
+}
+
+.noun-vertex .ethernum-trinity-select:focus {
+  border-color: #2196f3;
+}
+
+.source-vertex .ethernum-trinity-select:focus {
+  border-color: #e91e63;
+}
+
+/* Hint da trindade */
+.ethernum-trinity-hint {
+  font-size: 0.7em;
+  color: var(--color-text-dark-secondary);
+  text-align: center;
+  font-style: italic;
+}
+
+/* Centro do triângulo */
+.ethernum-trinity-center {
+  grid-area: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(159, 74, 255, 0.2) 0%, rgba(255, 107, 53, 0.2) 100%);
+  border: 2px dashed #9f4aff;
+  border-radius: 50%;
+  padding: 15px;
+  font-weight: bold;
+  font-size: 0.85em;
+  text-align: center;
+  color: #9f4aff;
+  min-height: 60px;
+  z-index: 1;
+}
+
+/* Optgroup styling */
+.ethernum-trinity-select optgroup {
+  font-weight: bold;
+  color: #9f4aff;
+}
+
+.ethernum-trinity-select option {
+  font-weight: normal;
+  color: var(--color-text-dark-primary);
+}
+
+/* Responsividade para Trinity */
+@media (max-width: 700px) {
+  .ethernum-trinity-triangle {
+    grid-template-areas:
+      "verb"
+      "noun"
+      "source"
+      "center";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    min-height: auto;
+  }
+  
+  .ethernum-trinity-triangle::before {
+    display: none;
+  }
+  
+  .ethernum-dc-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .ethernum-dc-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

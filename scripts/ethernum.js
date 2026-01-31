@@ -12,48 +12,86 @@ const ETHERNUM = {
   // Rank progression system: F -> E -> D -> C -> B -> A -> S -> K
   RANKS: ["F", "E", "D", "C", "B", "A", "S", "K"],
   
-  // Rune Classes
+  // Rank bonuses for attributes: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20
+  ATTRIBUTE_RANK_BONUS: {
+    "F": 2, "E": 4, "D": 6, "C": 8, "B": 10, "A": 12, "S": 15, "K": 20
+  },
+  
+  // Rank bonuses for talents: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25
+  TALENT_RANK_BONUS: {
+    "F": 3, "E": 6, "D": 9, "C": 12, "B": 15, "A": 18, "S": 21, "K": 25
+  },
+  
+  // Rune Classes (renamed: Latente, Tangível, Dissonante, Crítico, Evento Zero)
   RUNE_CLASSES: {
     1: {
-      name: "Ancoragem",
-      nameEn: "Anchoring",
+      name: "Latente",
+      nameEn: "Latent",
+      defaultDC: 15,
       cost: "zero",
-      focus: "Defesa Pessoal, Buff de Atributo, Dano ao Toque",
-      visual: "Tatuagens/runas brilham levemente na pele"
+      focus: "Efeitos passivos, percepção sutil, conexão inicial",
+      visual: "Runas brilham levemente, quase imperceptíveis"
     },
     2: {
-      name: "Projeção",
-      nameEn: "Projection",
+      name: "Tangível",
+      nameEn: "Tangible",
+      defaultDC: 20,
       cost: "baixo",
-      focus: "Ataques à Distância (Alvo Único), Utilitário de Curto Alcance",
-      visual: "Éter sai do corpo (fumaça, luz, som)"
+      focus: "Efeitos físicos diretos, manipulação básica",
+      visual: "Éter visível, emanações claras"
     },
     3: {
-      name: "Manifestação",
-      nameEn: "Manifestation",
+      name: "Dissonante",
+      nameEn: "Dissonant",
+      defaultDC: 30,
       cost: "médio",
-      focus: "Área de Efeito (AoE), Controle de Multidão, Alteração de Terreno",
-      visual: "Ambiente reage: chão treme, ar muda temperatura, luzes estouram"
+      focus: "Alteração de regras locais, distorção da realidade",
+      visual: "Ambiente distorce, leis físicas tremem"
     },
     4: {
-      name: "Disrupção",
-      nameEn: "Disruption",
+      name: "Crítico",
+      nameEn: "Critical",
+      defaultDC: 40,
       cost: "alto",
-      focus: "Efeitos Permanentes, Invulnerabilidade Temporária, Criação de Matéria",
-      visual: "Dano direto na Vida Máxima ou Corrupção garantida"
+      focus: "Efeitos permanentes, alterações fundamentais",
+      visual: "Ruptura visível na realidade"
     },
     5: {
-      name: "Horizonte de Eventos",
-      nameEn: "Event Horizon",
+      name: "Evento Zero",
+      nameEn: "Event Zero",
+      defaultDC: 50,
       cost: "catastrófico",
-      focus: "Reescrever a Narrativa/Realidade",
-      visual: "Fim de Jogo - vida do usuário ou perda do personagem"
+      focus: "Reescrever a Narrativa/Realidade completamente",
+      visual: "Colapso total - fim de jogo"
     }
   },
   
   // Min and max rune class constants
   MIN_RUNE_CLASS: 1,
   MAX_RUNE_CLASS: 5,
+  
+  // Rune Trinity System (Verbo + Substantivo + Fonte)
+  RUNE_TRINITY: {
+    // Verbos (O que a runa FAZ) - divididos em Tiers
+    VERBS: {
+      tier1: ["INFLINGIR", "SUSTENTAR", "IDENTIFICAR", "IMBUIR", "TRAVAR", "AGENDAR"],
+      tier2: ["MOLDAR", "ATRAVESSAR", "REFLETIR", "MODIFICAR", "EXECUTAR", "RASTREAR"],
+      tier3: ["DESTRUIR", "DOMINAR", "TRANSPORTAR", "CRIAR", "REESCREVER", "OTIMIZAR"]
+    },
+    // Substantivos (O que a runa AFETA)
+    NOUNS: [
+      "Fogo", "Eletricidade", "Aço", "Corpo", "Mente", "Gelo", "Sombra", "Tempo",
+      "Gravidade", "Natureza", "Luz", "Som", "Ar", "Sangue", "Destino", "Peso",
+      "Velocidade", "Ligação", "Duração", "Destreza", "Ferocidade", "Água", 
+      "Vida", "Madeira", "Percepção"
+    ],
+    // Fontes (De onde vem o PODER)
+    SOURCES: [
+      "Sangue", "Calor", "Dor", "Memória", "Força", "Vigor", "Destreza", 
+      "Velocidade", "Personalidade", "Inteligência", "Sabedoria", "Conhecimento",
+      "Coragem", "Sanidade", "Amor", "Raiva", "Desejo", "Empatia", "Sonho", "Éter"
+    ]
+  },
   
   // Default ether attributes
   DEFAULT_ETHER_ATTRIBUTES: {
@@ -213,6 +251,17 @@ class RuneSystem {
   }
 
   /**
+   * Obtém o CD de dificuldade de uma classe de runa
+   * Pode ser configurado pelo GM ou usar o valor padrão
+   */
+  static getRuneClassDC(runeClass, customDCs = null) {
+    if (customDCs && customDCs[runeClass]) {
+      return customDCs[runeClass];
+    }
+    return ETHERNUM.RUNE_CLASSES[runeClass]?.defaultDC || 15;
+  }
+
+  /**
    * Tenta usar Override (usar runa de classe superior)
    * Retorna o resultado do override
    */
@@ -229,13 +278,15 @@ class RuneSystem {
     // Rolagem de teste de resistência (Constituição)
     const etherAttributes = actor.getFlag(ETHERNUM.MODULE_NAME, "etherAttributes") || ETHERNUM.DEFAULT_ETHER_ATTRIBUTES;
     const conValue = etherAttributes.constituicao?.value || 1;
-    const conRankBonus = ETHERNUM.RANKS.indexOf(etherAttributes.constituicao?.rank || "F");
+    const conRankBonus = ETHERNUM.ATTRIBUTE_RANK_BONUS[etherAttributes.constituicao?.rank || "F"] || 2;
     
-    // DC baseada na classe de runa
-    const dc = 10 + (targetRuneClass * 5);
+    // DC baseada na classe de runa (configurável pelo GM)
+    const customDCs = game.settings?.get(ETHERNUM.MODULE_NAME, "runeClassDCs") || null;
+    const dc = this.getRuneClassDC(targetRuneClass, customDCs);
     
-    // Rola 1d20 + Constituição + Rank
-    const roll = new Roll(`1d20 + ${conValue} + ${conRankBonus}`);
+    // Rola 1d20 + Constituição + Rank Bonus
+    const totalBonus = conValue + conRankBonus;
+    const roll = new Roll(`1d20 + ${totalBonus}`);
     await roll.evaluate({async: true});
     
     const success = roll.total >= dc;
@@ -243,7 +294,7 @@ class RuneSystem {
     // Exibe a rolagem no chat
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({actor: actor}),
-      flavor: `${game.i18n.localize("ETHERNUM.Override.AttemptTitle")} (DC ${dc})`
+      flavor: `${game.i18n.localize("ETHERNUM.Override.AttemptTitle")} (DC ${dc})<br>CON: ${conValue} + ${conRankBonus} (${etherAttributes.constituicao?.rank || "F"})`
     });
     
     return {
@@ -259,18 +310,28 @@ class RuneSystem {
 /**
  * Calculadora de Dados com Sistema de Talentos e Ranks
  * Fórmula: Talento + Rank do Talento + Atributo + Rank do Atributo
+ * Usando os bônus específicos: Atributo (F=2...K=20), Talento (F=3...K=25)
  */
 class EthernumDiceCalculator {
   /**
-   * Converte rank para valor numérico
+   * Converte rank de atributo para bônus numérico
+   * F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20
    */
-  static rankToValue(rank) {
-    return ETHERNUM.RANKS.indexOf(rank || "F");
+  static attributeRankToBonus(rank) {
+    return ETHERNUM.ATTRIBUTE_RANK_BONUS[rank || "F"] || 2;
+  }
+
+  /**
+   * Converte rank de talento para bônus numérico
+   * F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25
+   */
+  static talentRankToBonus(rank) {
+    return ETHERNUM.TALENT_RANK_BONUS[rank || "F"] || 3;
   }
 
   /**
    * Rola dados usando o sistema de talentos
-   * Fórmula: 1d20 + Talento + RankTalento + Atributo + RankAtributo
+   * Fórmula: 1d20 + Talento(valor) + RankTalento(bônus) + Atributo(valor) + RankAtributo(bônus)
    */
   static async rollWithTalent(actor, talentKey, attributeKey, options = {}) {
     if (!actor) {
@@ -285,12 +346,13 @@ class EthernumDiceCalculator {
     const attribute = etherAttributes[attributeKey] || { value: 1, rank: "F" };
 
     const talentValue = talent.value || 1;
-    const talentRank = this.rankToValue(talent.rank);
+    const talentRankBonus = this.talentRankToBonus(talent.rank);
     const attrValue = attribute.value || 1;
-    const attrRank = this.rankToValue(attribute.rank);
+    const attrRankBonus = this.attributeRankToBonus(attribute.rank);
 
-    // Fórmula: 1d20 + talento + rankTalento + atributo + rankAtributo
-    const formula = `1d20 + ${talentValue} + ${talentRank} + ${attrValue} + ${attrRank}`;
+    // Fórmula: 1d20 + talento + rankTalento(bônus) + atributo + rankAtributo(bônus)
+    const totalBonus = talentValue + talentRankBonus + attrValue + attrRankBonus;
+    const formula = `1d20 + ${totalBonus}`;
     
     const roll = new Roll(formula);
     await roll.evaluate({async: true});
@@ -298,8 +360,9 @@ class EthernumDiceCalculator {
     // Monta o flavor text com detalhes
     const flavorParts = [
       game.i18n.localize("ETHERNUM.Calculator.TalentRoll"),
-      `${game.i18n.localize("ETHERNUM.Talent." + talentKey) || talentKey}: ${talentValue} (${talent.rank})`,
-      `${game.i18n.localize("ETHERNUM.Attribute." + attributeKey) || attributeKey}: ${attrValue} (${attribute.rank})`
+      `${game.i18n.localize("ETHERNUM.Talent." + talentKey) || talentKey}: ${talentValue} + ${talentRankBonus} (${talent.rank})`,
+      `${game.i18n.localize("ETHERNUM.Attribute." + attributeKey) || attributeKey}: ${attrValue} + ${attrRankBonus} (${attribute.rank})`,
+      `<strong>Total: 1d20 + ${totalBonus}</strong>`
     ];
 
     await roll.toMessage({
@@ -456,12 +519,32 @@ function registerHandlebarsHelpers() {
     return ETHERNUM.RANKS.indexOf(rank || "F");
   });
 
+  Handlebars.registerHelper('ethernum-attrRankBonus', function(rank) {
+    return ETHERNUM.ATTRIBUTE_RANK_BONUS[rank || "F"] || 2;
+  });
+
+  Handlebars.registerHelper('ethernum-talentRankBonus', function(rank) {
+    return ETHERNUM.TALENT_RANK_BONUS[rank || "F"] || 3;
+  });
+
   Handlebars.registerHelper('ethernum-ranks', function() {
     return ETHERNUM.RANKS;
   });
 
   Handlebars.registerHelper('ethernum-runeClasses', function() {
     return ETHERNUM.RUNE_CLASSES;
+  });
+
+  Handlebars.registerHelper('ethernum-runeTrinity', function() {
+    return ETHERNUM.RUNE_TRINITY;
+  });
+
+  Handlebars.registerHelper('ethernum-verbTier', function(verb) {
+    const trinity = ETHERNUM.RUNE_TRINITY;
+    if (trinity.VERBS.tier1.includes(verb)) return 1;
+    if (trinity.VERBS.tier2.includes(verb)) return 2;
+    if (trinity.VERBS.tier3.includes(verb)) return 3;
+    return 0;
   });
 }
 
@@ -524,6 +607,14 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
   // Carrega as runas
   let runes = actor.getFlag(ETHERNUM.MODULE_NAME, "runes") || [];
 
+  // Carrega CDs customizados das classes de runa
+  let runeClassDCs = {};
+  try {
+    runeClassDCs = game.settings?.get(ETHERNUM.MODULE_NAME, "runeClassDCs") || {};
+  } catch (e) {
+    runeClassDCs = {};
+  }
+
   // Dados para os templates
   const templateData = {
     actor: actor,
@@ -534,7 +625,11 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
     maxRuneClass: maxRuneClass,
     isGM: isGM,
     ranks: ETHERNUM.RANKS,
-    runeClasses: ETHERNUM.RUNE_CLASSES
+    runeClasses: ETHERNUM.RUNE_CLASSES,
+    runeTrinity: ETHERNUM.RUNE_TRINITY,
+    runeClassDCs: runeClassDCs,
+    attributeRankBonus: ETHERNUM.ATTRIBUTE_RANK_BONUS,
+    talentRankBonus: ETHERNUM.TALENT_RANK_BONUS
   };
 
   // Renderiza os templates
@@ -690,7 +785,27 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
     app.render();
   });
 
-  // Adicionar nova runa
+  // GM: Configurar CD de classe de runa
+  html.find('.ethernum-dc-input').change(async (ev) => {
+    if (!isGM) return;
+    const runeClass = $(ev.currentTarget).data('class');
+    const value = parseInt(ev.target.value) || ETHERNUM.RUNE_CLASSES[runeClass]?.defaultDC || 15;
+    
+    // Obtém as DCs atuais
+    let currentDCs = {};
+    try {
+      currentDCs = game.settings.get(ETHERNUM.MODULE_NAME, "runeClassDCs") || {};
+    } catch (e) {
+      currentDCs = {};
+    }
+    
+    // Atualiza a DC da classe específica
+    currentDCs[runeClass] = value;
+    await game.settings.set(ETHERNUM.MODULE_NAME, "runeClassDCs", currentDCs);
+    app.render();
+  });
+
+  // Adicionar nova runa (com sistema de trindade)
   html.find('.ethernum-add-rune').click(async (ev) => {
     ev.preventDefault();
     const currentRunes = actor.getFlag(ETHERNUM.MODULE_NAME, "runes") || [];
@@ -698,7 +813,12 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
       id: foundry.utils.randomID(),
       name: game.i18n.localize("ETHERNUM.Rune.NewRune"),
       runeClass: 1,
-      costType: "ether",
+      // Sistema de Trindade (Verbo + Substantivo + Fonte)
+      verb: "",
+      noun: "",
+      source: "",
+      // Custo e descrição
+      costType: "éter",
       costValue: 0,
       effect: "",
       description: "",
@@ -818,6 +938,22 @@ Hooks.once("init", () => {
     default: true
   });
 
+  // CDs configuráveis por classe de runa
+  game.settings.register(ETHERNUM.MODULE_NAME, "runeClassDCs", {
+    name: "ETHERNUM.Settings.RuneClassDCs.Name",
+    hint: "ETHERNUM.Settings.RuneClassDCs.Hint",
+    scope: "world",
+    config: false, // Configurado via UI própria
+    type: Object,
+    default: {
+      1: 15,
+      2: 20,
+      3: 30,
+      4: 40,
+      5: 50
+    }
+  });
+
   // Torna disponível globalmente
   game.ethernum = {
     EtherSystem,
@@ -828,7 +964,7 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", () => {
-  console.log("Ethernum RPG Module | Sistema de Éter pronto!");
+  console.log("Ethernum RPG Module | Sistema de Éter v3.0 pronto!");
   
   // Verifica se o sistema PF2E está ativo
   if (game.system.id !== "pf2e") {

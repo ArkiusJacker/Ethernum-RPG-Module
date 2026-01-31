@@ -18,6 +18,34 @@
         </select>
       </div>
       <p class="ethernum-gm-hint">{{localize "ETHERNUM.GM.MaxRuneClassHint"}}</p>
+      
+      <!-- Configuração de CDs por Classe -->
+      <div class="ethernum-dc-config">
+        <h4><i class="fas fa-sliders-h"></i> {{localize "ETHERNUM.GM.ConfigureDCs"}}</h4>
+        <div class="ethernum-dc-grid">
+          <div class="ethernum-dc-item">
+            <label>{{localize "ETHERNUM.RuneClass.1.Name"}} CD:</label>
+            <input type="number" class="ethernum-dc-input" data-class="1" value="{{runeClassDCs.1}}" placeholder="15" min="1">
+          </div>
+          <div class="ethernum-dc-item">
+            <label>{{localize "ETHERNUM.RuneClass.2.Name"}} CD:</label>
+            <input type="number" class="ethernum-dc-input" data-class="2" value="{{runeClassDCs.2}}" placeholder="20" min="1">
+          </div>
+          <div class="ethernum-dc-item">
+            <label>{{localize "ETHERNUM.RuneClass.3.Name"}} CD:</label>
+            <input type="number" class="ethernum-dc-input" data-class="3" value="{{runeClassDCs.3}}" placeholder="30" min="1">
+          </div>
+          <div class="ethernum-dc-item">
+            <label>{{localize "ETHERNUM.RuneClass.4.Name"}} CD:</label>
+            <input type="number" class="ethernum-dc-input" data-class="4" value="{{runeClassDCs.4}}" placeholder="40" min="1">
+          </div>
+          <div class="ethernum-dc-item">
+            <label>{{localize "ETHERNUM.RuneClass.5.Name"}} CD:</label>
+            <input type="number" class="ethernum-dc-input" data-class="5" value="{{runeClassDCs.5}}" placeholder="50" min="1">
+          </div>
+        </div>
+        <p class="ethernum-gm-hint">{{localize "ETHERNUM.GM.ConfigureDCsHint"}}</p>
+      </div>
     </div>
   </section>
   {{/if}}
@@ -29,7 +57,7 @@
     </h2>
 
     <div class="ethernum-rune-classes-grid">
-      <!-- Classe 1: Ancoragem -->
+      <!-- Classe 1: Latente -->
       <div class="ethernum-rune-class-card {{#if (ethernum-lte 1 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
         <div class="ethernum-rune-class-header">
           <span class="ethernum-rune-class-number">1</span>
@@ -44,10 +72,11 @@
           <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Focus"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Cost"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Visual"}}</p>
+          <p class="ethernum-dc-display"><strong>CD:</strong> <span class="dc-value">{{runeClassDCs.1}}</span></p>
         </div>
       </div>
 
-      <!-- Classe 2: Projeção -->
+      <!-- Classe 2: Tangível -->
       <div class="ethernum-rune-class-card {{#if (ethernum-lte 2 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
         <div class="ethernum-rune-class-header">
           <span class="ethernum-rune-class-number">2</span>
@@ -62,10 +91,11 @@
           <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Focus"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Cost"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Visual"}}</p>
+          <p class="ethernum-dc-display"><strong>CD:</strong> <span class="dc-value">{{runeClassDCs.2}}</span></p>
         </div>
       </div>
 
-      <!-- Classe 3: Manifestação -->
+      <!-- Classe 3: Dissonante -->
       <div class="ethernum-rune-class-card {{#if (ethernum-lte 3 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
         <div class="ethernum-rune-class-header">
           <span class="ethernum-rune-class-number">3</span>
@@ -80,10 +110,11 @@
           <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Focus"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Cost"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Visual"}}</p>
+          <p class="ethernum-dc-display"><strong>CD:</strong> <span class="dc-value">{{runeClassDCs.3}}</span></p>
         </div>
       </div>
 
-      <!-- Classe 4: Disrupção -->
+      <!-- Classe 4: Crítico -->
       <div class="ethernum-rune-class-card {{#if (ethernum-lte 4 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
         <div class="ethernum-rune-class-header">
           <span class="ethernum-rune-class-number">4</span>
@@ -98,10 +129,11 @@
           <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Focus"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Cost"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Visual"}}</p>
+          <p class="ethernum-dc-display"><strong>CD:</strong> <span class="dc-value">{{runeClassDCs.4}}</span></p>
         </div>
       </div>
 
-      <!-- Classe 5: Horizonte de Eventos -->
+      <!-- Classe 5: Evento Zero -->
       <div class="ethernum-rune-class-card {{#if (ethernum-lte 5 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
         <div class="ethernum-rune-class-header">
           <span class="ethernum-rune-class-number">5</span>
@@ -116,6 +148,7 @@
           <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Focus"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Cost"}}</p>
           <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Visual"}}</p>
+          <p class="ethernum-dc-display"><strong>CD:</strong> <span class="dc-value">{{runeClassDCs.5}}</span></p>
         </div>
       </div>
     </div>
@@ -185,6 +218,131 @@
             </div>
 
             <div class="ethernum-rune-body">
+              <!-- Sistema de Trindade Triangular -->
+              <div class="ethernum-trinity-container">
+                <h4 class="ethernum-trinity-title">
+                  <i class="fas fa-triangle"></i> {{localize "ETHERNUM.RuneTrinity.Title"}}
+                </h4>
+                <p class="ethernum-trinity-description">{{localize "ETHERNUM.RuneTrinity.Description"}}</p>
+                
+                <div class="ethernum-trinity-triangle">
+                  <!-- Vértice Superior: VERBO -->
+                  <div class="ethernum-trinity-vertex verb-vertex">
+                    <div class="ethernum-trinity-label">
+                      <i class="fas fa-bolt"></i> {{localize "ETHERNUM.RuneTrinity.Verb"}}
+                    </div>
+                    <select class="ethernum-rune-input ethernum-trinity-select" 
+                            data-rune-id="{{this.id}}" 
+                            data-field="verb">
+                      <option value="">{{localize "ETHERNUM.RuneTrinity.SelectVerb"}}</option>
+                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier1'}}">
+                        <option value="INFLINGIR" {{#if (ethernum-eq this.verb "INFLINGIR")}}selected{{/if}}>INFLINGIR</option>
+                        <option value="SUSTENTAR" {{#if (ethernum-eq this.verb "SUSTENTAR")}}selected{{/if}}>SUSTENTAR</option>
+                        <option value="IDENTIFICAR" {{#if (ethernum-eq this.verb "IDENTIFICAR")}}selected{{/if}}>IDENTIFICAR</option>
+                        <option value="IMBUIR" {{#if (ethernum-eq this.verb "IMBUIR")}}selected{{/if}}>IMBUIR</option>
+                        <option value="TRAVAR" {{#if (ethernum-eq this.verb "TRAVAR")}}selected{{/if}}>TRAVAR</option>
+                        <option value="AGENDAR" {{#if (ethernum-eq this.verb "AGENDAR")}}selected{{/if}}>AGENDAR</option>
+                      </optgroup>
+                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier2'}}">
+                        <option value="MOLDAR" {{#if (ethernum-eq this.verb "MOLDAR")}}selected{{/if}}>MOLDAR</option>
+                        <option value="ATRAVESSAR" {{#if (ethernum-eq this.verb "ATRAVESSAR")}}selected{{/if}}>ATRAVESSAR</option>
+                        <option value="REFLETIR" {{#if (ethernum-eq this.verb "REFLETIR")}}selected{{/if}}>REFLETIR</option>
+                        <option value="MODIFICAR" {{#if (ethernum-eq this.verb "MODIFICAR")}}selected{{/if}}>MODIFICAR</option>
+                        <option value="EXECUTAR" {{#if (ethernum-eq this.verb "EXECUTAR")}}selected{{/if}}>EXECUTAR</option>
+                        <option value="RASTREAR" {{#if (ethernum-eq this.verb "RASTREAR")}}selected{{/if}}>RASTREAR</option>
+                      </optgroup>
+                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier3'}}">
+                        <option value="DESTRUIR" {{#if (ethernum-eq this.verb "DESTRUIR")}}selected{{/if}}>DESTRUIR</option>
+                        <option value="DOMINAR" {{#if (ethernum-eq this.verb "DOMINAR")}}selected{{/if}}>DOMINAR</option>
+                        <option value="TRANSPORTAR" {{#if (ethernum-eq this.verb "TRANSPORTAR")}}selected{{/if}}>TRANSPORTAR</option>
+                        <option value="CRIAR" {{#if (ethernum-eq this.verb "CRIAR")}}selected{{/if}}>CRIAR</option>
+                        <option value="REESCREVER" {{#if (ethernum-eq this.verb "REESCREVER")}}selected{{/if}}>REESCREVER</option>
+                        <option value="OTIMIZAR" {{#if (ethernum-eq this.verb "OTIMIZAR")}}selected{{/if}}>OTIMIZAR</option>
+                      </optgroup>
+                    </select>
+                    <span class="ethernum-trinity-hint">{{localize "ETHERNUM.RuneTrinity.VerbDescription"}}</span>
+                  </div>
+                  
+                  <!-- Vértice Inferior Esquerdo: SUBSTANTIVO -->
+                  <div class="ethernum-trinity-vertex noun-vertex">
+                    <div class="ethernum-trinity-label">
+                      <i class="fas fa-fire"></i> {{localize "ETHERNUM.RuneTrinity.Noun"}}
+                    </div>
+                    <select class="ethernum-rune-input ethernum-trinity-select" 
+                            data-rune-id="{{this.id}}" 
+                            data-field="noun">
+                      <option value="">{{localize "ETHERNUM.RuneTrinity.SelectNoun"}}</option>
+                      <option value="Fogo" {{#if (ethernum-eq this.noun "Fogo")}}selected{{/if}}>Fogo</option>
+                      <option value="Eletricidade" {{#if (ethernum-eq this.noun "Eletricidade")}}selected{{/if}}>Eletricidade</option>
+                      <option value="Aço" {{#if (ethernum-eq this.noun "Aço")}}selected{{/if}}>Aço</option>
+                      <option value="Corpo" {{#if (ethernum-eq this.noun "Corpo")}}selected{{/if}}>Corpo</option>
+                      <option value="Mente" {{#if (ethernum-eq this.noun "Mente")}}selected{{/if}}>Mente</option>
+                      <option value="Gelo" {{#if (ethernum-eq this.noun "Gelo")}}selected{{/if}}>Gelo</option>
+                      <option value="Sombra" {{#if (ethernum-eq this.noun "Sombra")}}selected{{/if}}>Sombra</option>
+                      <option value="Tempo" {{#if (ethernum-eq this.noun "Tempo")}}selected{{/if}}>Tempo</option>
+                      <option value="Gravidade" {{#if (ethernum-eq this.noun "Gravidade")}}selected{{/if}}>Gravidade</option>
+                      <option value="Natureza" {{#if (ethernum-eq this.noun "Natureza")}}selected{{/if}}>Natureza</option>
+                      <option value="Luz" {{#if (ethernum-eq this.noun "Luz")}}selected{{/if}}>Luz</option>
+                      <option value="Som" {{#if (ethernum-eq this.noun "Som")}}selected{{/if}}>Som</option>
+                      <option value="Ar" {{#if (ethernum-eq this.noun "Ar")}}selected{{/if}}>Ar</option>
+                      <option value="Sangue" {{#if (ethernum-eq this.noun "Sangue")}}selected{{/if}}>Sangue</option>
+                      <option value="Destino" {{#if (ethernum-eq this.noun "Destino")}}selected{{/if}}>Destino</option>
+                      <option value="Peso" {{#if (ethernum-eq this.noun "Peso")}}selected{{/if}}>Peso</option>
+                      <option value="Velocidade" {{#if (ethernum-eq this.noun "Velocidade")}}selected{{/if}}>Velocidade</option>
+                      <option value="Ligação" {{#if (ethernum-eq this.noun "Ligação")}}selected{{/if}}>Ligação</option>
+                      <option value="Duração" {{#if (ethernum-eq this.noun "Duração")}}selected{{/if}}>Duração</option>
+                      <option value="Destreza" {{#if (ethernum-eq this.noun "Destreza")}}selected{{/if}}>Destreza</option>
+                      <option value="Ferocidade" {{#if (ethernum-eq this.noun "Ferocidade")}}selected{{/if}}>Ferocidade</option>
+                      <option value="Água" {{#if (ethernum-eq this.noun "Água")}}selected{{/if}}>Água</option>
+                      <option value="Vida" {{#if (ethernum-eq this.noun "Vida")}}selected{{/if}}>Vida</option>
+                      <option value="Madeira" {{#if (ethernum-eq this.noun "Madeira")}}selected{{/if}}>Madeira</option>
+                      <option value="Percepção" {{#if (ethernum-eq this.noun "Percepção")}}selected{{/if}}>Percepção</option>
+                    </select>
+                    <span class="ethernum-trinity-hint">{{localize "ETHERNUM.RuneTrinity.NounDescription"}}</span>
+                  </div>
+                  
+                  <!-- Vértice Inferior Direito: FONTE -->
+                  <div class="ethernum-trinity-vertex source-vertex">
+                    <div class="ethernum-trinity-label">
+                      <i class="fas fa-tint"></i> {{localize "ETHERNUM.RuneTrinity.Source"}}
+                    </div>
+                    <select class="ethernum-rune-input ethernum-trinity-select" 
+                            data-rune-id="{{this.id}}" 
+                            data-field="source">
+                      <option value="">{{localize "ETHERNUM.RuneTrinity.SelectSource"}}</option>
+                      <option value="Sangue" {{#if (ethernum-eq this.source "Sangue")}}selected{{/if}}>Sangue</option>
+                      <option value="Calor" {{#if (ethernum-eq this.source "Calor")}}selected{{/if}}>Calor</option>
+                      <option value="Dor" {{#if (ethernum-eq this.source "Dor")}}selected{{/if}}>Dor</option>
+                      <option value="Memória" {{#if (ethernum-eq this.source "Memória")}}selected{{/if}}>Memória</option>
+                      <option value="Força" {{#if (ethernum-eq this.source "Força")}}selected{{/if}}>Força</option>
+                      <option value="Vigor" {{#if (ethernum-eq this.source "Vigor")}}selected{{/if}}>Vigor</option>
+                      <option value="Destreza" {{#if (ethernum-eq this.source "Destreza")}}selected{{/if}}>Destreza</option>
+                      <option value="Velocidade" {{#if (ethernum-eq this.source "Velocidade")}}selected{{/if}}>Velocidade</option>
+                      <option value="Personalidade" {{#if (ethernum-eq this.source "Personalidade")}}selected{{/if}}>Personalidade</option>
+                      <option value="Inteligência" {{#if (ethernum-eq this.source "Inteligência")}}selected{{/if}}>Inteligência</option>
+                      <option value="Sabedoria" {{#if (ethernum-eq this.source "Sabedoria")}}selected{{/if}}>Sabedoria</option>
+                      <option value="Conhecimento" {{#if (ethernum-eq this.source "Conhecimento")}}selected{{/if}}>Conhecimento</option>
+                      <option value="Coragem" {{#if (ethernum-eq this.source "Coragem")}}selected{{/if}}>Coragem</option>
+                      <option value="Sanidade" {{#if (ethernum-eq this.source "Sanidade")}}selected{{/if}}>Sanidade</option>
+                      <option value="Amor" {{#if (ethernum-eq this.source "Amor")}}selected{{/if}}>Amor</option>
+                      <option value="Raiva" {{#if (ethernum-eq this.source "Raiva")}}selected{{/if}}>Raiva</option>
+                      <option value="Desejo" {{#if (ethernum-eq this.source "Desejo")}}selected{{/if}}>Desejo</option>
+                      <option value="Empatia" {{#if (ethernum-eq this.source "Empatia")}}selected{{/if}}>Empatia</option>
+                      <option value="Sonho" {{#if (ethernum-eq this.source "Sonho")}}selected{{/if}}>Sonho</option>
+                      <option value="Éter" {{#if (ethernum-eq this.source "Éter")}}selected{{/if}}>Éter</option>
+                    </select>
+                    <span class="ethernum-trinity-hint">{{localize "ETHERNUM.RuneTrinity.SourceDescription"}}</span>
+                  </div>
+                  
+                  <!-- Centro do triângulo - Nome da Runa -->
+                  <div class="ethernum-trinity-center">
+                    {{#if this.verb}}{{this.verb}}{{else}}?{{/if}} + 
+                    {{#if this.noun}}{{this.noun}}{{else}}?{{/if}} + 
+                    {{#if this.source}}{{this.source}}{{else}}?{{/if}}
+                  </div>
+                </div>
+              </div>
+
               <div class="ethernum-rune-stats">
                 <div class="ethernum-rune-stat">
                   <label>{{localize "ETHERNUM.Rune.Class"}}</label>
