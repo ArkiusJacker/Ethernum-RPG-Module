@@ -1,0 +1,265 @@
+<div class="ethernum-container ethernum-runes-tab">
+  <!-- Controles do GM para Classes de Runa -->
+  {{#if isGM}}
+  <section class="ethernum-section gm-controls">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-cog"></i> {{localize "ETHERNUM.GM.Controls"}}
+    </h2>
+    
+    <div class="ethernum-gm-panel">
+      <div class="ethernum-gm-field">
+        <label>{{localize "ETHERNUM.GM.MaxRuneClass"}}</label>
+        <select class="ethernum-max-rune-class">
+          <option value="1" {{#if (ethernum-eq maxRuneClass 1)}}selected{{/if}}>1 - {{localize "ETHERNUM.RuneClass.1.Name"}}</option>
+          <option value="2" {{#if (ethernum-eq maxRuneClass 2)}}selected{{/if}}>2 - {{localize "ETHERNUM.RuneClass.2.Name"}}</option>
+          <option value="3" {{#if (ethernum-eq maxRuneClass 3)}}selected{{/if}}>3 - {{localize "ETHERNUM.RuneClass.3.Name"}}</option>
+          <option value="4" {{#if (ethernum-eq maxRuneClass 4)}}selected{{/if}}>4 - {{localize "ETHERNUM.RuneClass.4.Name"}}</option>
+          <option value="5" {{#if (ethernum-eq maxRuneClass 5)}}selected{{/if}}>5 - {{localize "ETHERNUM.RuneClass.5.Name"}}</option>
+        </select>
+      </div>
+      <p class="ethernum-gm-hint">{{localize "ETHERNUM.GM.MaxRuneClassHint"}}</p>
+    </div>
+  </section>
+  {{/if}}
+
+  <!-- Informação das Classes de Runa -->
+  <section class="ethernum-section rune-classes-info">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-book"></i> {{localize "ETHERNUM.RuneClasses.Title"}}
+    </h2>
+
+    <div class="ethernum-rune-classes-grid">
+      <!-- Classe 1: Ancoragem -->
+      <div class="ethernum-rune-class-card {{#if (ethernum-lte 1 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
+        <div class="ethernum-rune-class-header">
+          <span class="ethernum-rune-class-number">1</span>
+          <span class="ethernum-rune-class-name">{{localize "ETHERNUM.RuneClass.1.Name"}}</span>
+          {{#if (ethernum-lte 1 maxRuneClass)}}
+            <i class="fas fa-unlock ethernum-unlock-icon"></i>
+          {{else}}
+            <i class="fas fa-lock ethernum-lock-icon"></i>
+          {{/if}}
+        </div>
+        <div class="ethernum-rune-class-body">
+          <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Focus"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Cost"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.1.Visual"}}</p>
+        </div>
+      </div>
+
+      <!-- Classe 2: Projeção -->
+      <div class="ethernum-rune-class-card {{#if (ethernum-lte 2 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
+        <div class="ethernum-rune-class-header">
+          <span class="ethernum-rune-class-number">2</span>
+          <span class="ethernum-rune-class-name">{{localize "ETHERNUM.RuneClass.2.Name"}}</span>
+          {{#if (ethernum-lte 2 maxRuneClass)}}
+            <i class="fas fa-unlock ethernum-unlock-icon"></i>
+          {{else}}
+            <i class="fas fa-lock ethernum-lock-icon"></i>
+          {{/if}}
+        </div>
+        <div class="ethernum-rune-class-body">
+          <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Focus"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Cost"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.2.Visual"}}</p>
+        </div>
+      </div>
+
+      <!-- Classe 3: Manifestação -->
+      <div class="ethernum-rune-class-card {{#if (ethernum-lte 3 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
+        <div class="ethernum-rune-class-header">
+          <span class="ethernum-rune-class-number">3</span>
+          <span class="ethernum-rune-class-name">{{localize "ETHERNUM.RuneClass.3.Name"}}</span>
+          {{#if (ethernum-lte 3 maxRuneClass)}}
+            <i class="fas fa-unlock ethernum-unlock-icon"></i>
+          {{else}}
+            <i class="fas fa-lock ethernum-lock-icon"></i>
+          {{/if}}
+        </div>
+        <div class="ethernum-rune-class-body">
+          <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Focus"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Cost"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.3.Visual"}}</p>
+        </div>
+      </div>
+
+      <!-- Classe 4: Disrupção -->
+      <div class="ethernum-rune-class-card {{#if (ethernum-lte 4 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
+        <div class="ethernum-rune-class-header">
+          <span class="ethernum-rune-class-number">4</span>
+          <span class="ethernum-rune-class-name">{{localize "ETHERNUM.RuneClass.4.Name"}}</span>
+          {{#if (ethernum-lte 4 maxRuneClass)}}
+            <i class="fas fa-unlock ethernum-unlock-icon"></i>
+          {{else}}
+            <i class="fas fa-lock ethernum-lock-icon"></i>
+          {{/if}}
+        </div>
+        <div class="ethernum-rune-class-body">
+          <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Focus"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Cost"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.4.Visual"}}</p>
+        </div>
+      </div>
+
+      <!-- Classe 5: Horizonte de Eventos -->
+      <div class="ethernum-rune-class-card {{#if (ethernum-lte 5 maxRuneClass)}}unlocked{{else}}locked{{/if}}">
+        <div class="ethernum-rune-class-header">
+          <span class="ethernum-rune-class-number">5</span>
+          <span class="ethernum-rune-class-name">{{localize "ETHERNUM.RuneClass.5.Name"}}</span>
+          {{#if (ethernum-lte 5 maxRuneClass)}}
+            <i class="fas fa-unlock ethernum-unlock-icon"></i>
+          {{else}}
+            <i class="fas fa-lock ethernum-lock-icon"></i>
+          {{/if}}
+        </div>
+        <div class="ethernum-rune-class-body">
+          <p><strong>{{localize "ETHERNUM.RuneClass.Focus"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Focus"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Cost"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Cost"}}</p>
+          <p><strong>{{localize "ETHERNUM.RuneClass.Visual"}}:</strong> {{localize "ETHERNUM.RuneClass.5.Visual"}}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informação sobre Override -->
+    <div class="ethernum-override-info">
+      <h3><i class="fas fa-exclamation-triangle"></i> {{localize "ETHERNUM.Override.Title"}}</h3>
+      <p>{{localize "ETHERNUM.Override.Description"}}</p>
+      <ul>
+        <li><strong>{{localize "ETHERNUM.Override.SuccessLabel"}}:</strong> {{localize "ETHERNUM.Override.SuccessResult"}}</li>
+        <li><strong>{{localize "ETHERNUM.Override.FailureLabel"}}:</strong> {{localize "ETHERNUM.Override.FailureResult"}}</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Lista de Runas do Personagem -->
+  <section class="ethernum-section rune-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-gem"></i> {{localize "ETHERNUM.Tabs.RuneSystem"}}
+      <button type="button" class="ethernum-button-small ethernum-add-rune">
+        <i class="fas fa-plus"></i> {{localize "ETHERNUM.Buttons.AddRune"}}
+      </button>
+    </h2>
+
+    {{#if runes}}
+      <div class="ethernum-runes-list">
+        {{#each runes}}
+          <div class="ethernum-rune-item {{#if this.equipped}}equipped{{/if}} {{#unless this.active}}disabled{{/unless}} rune-class-{{this.runeClass}}">
+            <div class="ethernum-rune-header">
+              <div class="ethernum-rune-class-badge class-{{this.runeClass}}">{{this.runeClass}}</div>
+              <input type="text" 
+                     class="ethernum-rune-input ethernum-rune-name" 
+                     value="{{this.name}}" 
+                     data-rune-id="{{this.id}}"
+                     data-field="name"
+                     placeholder="{{localize 'ETHERNUM.Rune.Name'}}" />
+              
+              <div class="ethernum-rune-controls">
+                {{#if ../isGM}}
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-toggle-rune-active {{#if this.active}}active{{else}}inactive{{/if}}" 
+                        data-rune-id="{{this.id}}"
+                        title="{{#if this.active}}{{localize 'ETHERNUM.Buttons.Disable'}}{{else}}{{localize 'ETHERNUM.Buttons.Enable'}}{{/if}}">
+                  <i class="fas fa-{{#if this.active}}eye{{else}}eye-slash{{/if}}"></i>
+                </button>
+                {{/if}}
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-equip-rune {{#if this.equipped}}active{{/if}}" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Equip'}}">
+                  <i class="fas fa-{{#if this.equipped}}check-circle{{else}}circle{{/if}}"></i>
+                </button>
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-roll-rune" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Activate'}}"
+                        {{#unless this.active}}disabled{{/unless}}>
+                  <i class="fas fa-dice-d20"></i>
+                </button>
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-delete-rune" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Delete'}}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="ethernum-rune-body">
+              <div class="ethernum-rune-stats">
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.Rune.Class"}}</label>
+                  <select class="ethernum-rune-input" data-rune-id="{{this.id}}" data-field="runeClass">
+                    <option value="1" {{#if (ethernum-eq this.runeClass 1)}}selected{{/if}}>1 - {{localize "ETHERNUM.RuneClass.1.Name"}}</option>
+                    <option value="2" {{#if (ethernum-eq this.runeClass 2)}}selected{{/if}}>2 - {{localize "ETHERNUM.RuneClass.2.Name"}}</option>
+                    <option value="3" {{#if (ethernum-eq this.runeClass 3)}}selected{{/if}}>3 - {{localize "ETHERNUM.RuneClass.3.Name"}}</option>
+                    <option value="4" {{#if (ethernum-eq this.runeClass 4)}}selected{{/if}}>4 - {{localize "ETHERNUM.RuneClass.4.Name"}}</option>
+                    <option value="5" {{#if (ethernum-eq this.runeClass 5)}}selected{{/if}}>5 - {{localize "ETHERNUM.RuneClass.5.Name"}}</option>
+                  </select>
+                </div>
+
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.Rune.CostType"}}</label>
+                  <input type="text" 
+                         class="ethernum-rune-input" 
+                         value="{{this.costType}}" 
+                         data-rune-id="{{this.id}}"
+                         data-field="costType"
+                         placeholder="{{localize 'ETHERNUM.Rune.CostTypePlaceholder'}}" />
+                </div>
+
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.Rune.CostValue"}}</label>
+                  <input type="number" 
+                         class="ethernum-rune-input" 
+                         value="{{this.costValue}}" 
+                         data-rune-id="{{this.id}}"
+                         data-field="costValue"
+                         min="0" />
+                </div>
+              </div>
+
+              <div class="ethernum-rune-effect">
+                <label>{{localize "ETHERNUM.Rune.Effect"}}</label>
+                <input type="text" 
+                       class="ethernum-rune-input" 
+                       value="{{this.effect}}" 
+                       data-rune-id="{{this.id}}"
+                       data-field="effect"
+                       placeholder="{{localize 'ETHERNUM.Rune.EffectPlaceholder'}}" />
+              </div>
+
+              <div class="ethernum-rune-description">
+                <label>{{localize "ETHERNUM.Description"}}</label>
+                <textarea class="ethernum-rune-input" 
+                          data-rune-id="{{this.id}}"
+                          data-field="description"
+                          rows="2"
+                          placeholder="{{localize 'ETHERNUM.Rune.DescriptionPlaceholder'}}">{{this.description}}</textarea>
+              </div>
+
+              {{#unless this.active}}
+              <div class="ethernum-rune-disabled-notice">
+                <i class="fas fa-ban"></i> {{localize "ETHERNUM.Rune.DisabledByGM"}}
+              </div>
+              {{/unless}}
+
+              {{#if (ethernum-gt this.runeClass ../maxRuneClass)}}
+              <div class="ethernum-rune-locked-notice">
+                <i class="fas fa-exclamation-triangle"></i> {{localize "ETHERNUM.Rune.ClassLocked"}}
+              </div>
+              {{/if}}
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="ethernum-empty-state">
+        <i class="fas fa-gem"></i>
+        <p>{{localize "ETHERNUM.Rune.NoRunes"}}</p>
+        <button type="button" class="ethernum-button ethernum-add-rune">
+          <i class="fas fa-plus"></i> {{localize "ETHERNUM.Buttons.AddFirstRune"}}
+        </button>
+      </div>
+    {{/if}}
+  </section>
+</div>

@@ -2,8 +2,10 @@
   "ETHERNUM": {
     "Tabs": {
       "EtherSystem": "Ether System",
+      "EtherAttributes": "Ether Attributes",
       "RuneSystem": "Rune System",
-      "DiceCalculator": "Dice Calculator"
+      "DiceCalculator": "Dice Calculator",
+      "Talents": "Talents"
     },
     "EtherCurrent": "Current Ether",
     "EtherMax": "Maximum Ether",
@@ -11,23 +13,66 @@
     "EtherPower": "Ether Power",
     "EtherCost": "Ether Cost",
     "Description": "Description",
+    "Value": "Value",
+    "Rank": "Rank",
+    "LongRestInfo": "Ether is restored only with long rest. There is no passive regeneration.",
+    "TalentsDescription": "Talents work with the rank system. When making a check, roll:",
     "Buttons": {
       "Recalculate": "Recalculate",
       "Rest": "Rest",
+      "LongRest": "Long Rest",
       "AddRune": "Add Rune",
       "AddFirstRune": "Add First Rune",
       "Equip": "Equip",
       "Activate": "Activate",
-      "Delete": "Delete"
+      "Delete": "Delete",
+      "Roll": "Roll",
+      "Enable": "Enable",
+      "Disable": "Disable"
+    },
+    "Attribute": {
+      "Name": "Attribute",
+      "forca": "Strength",
+      "destreza": "Dexterity",
+      "constituicao": "Constitution",
+      "inteligencia": "Intelligence",
+      "sabedoria": "Wisdom",
+      "carisma": "Charisma"
+    },
+    "Talent": {
+      "Name": "Talent",
+      "investigacao": "Investigation",
+      "percepcao": "Perception",
+      "furtividade": "Stealth",
+      "atletismo": "Athletics",
+      "acrobacia": "Acrobatics",
+      "intimidacao": "Intimidation",
+      "persuasao": "Persuasion",
+      "enganacao": "Deception",
+      "medicina": "Medicine",
+      "sobrevivencia": "Survival",
+      "arcanismo": "Arcana",
+      "religiao": "Religion",
+      "natureza": "Nature",
+      "sociedade": "Society",
+      "ocultismo": "Occultism"
     },
     "Rune": {
       "Name": "Rune Name",
       "NewRune": "New Rune",
       "Type": "Type",
+      "Class": "Class",
       "Power": "Power",
+      "CostType": "Cost Type",
+      "CostTypePlaceholder": "e.g.: blood, ether, life...",
+      "CostValue": "Cost Value",
+      "Effect": "Effect",
+      "EffectPlaceholder": "e.g.: explode, heal, protect...",
       "NoRunes": "No runes created yet. Add your first rune to get started!",
       "DescriptionPlaceholder": "Describe the effects and properties of this rune...",
       "Activated": "Rune Activated",
+      "DisabledByGM": "This rune has been disabled by the Game Master",
+      "ClassLocked": "Rune class locked! Use Override to try to activate.",
       "Types": {
         "Offensive": "Offensive",
         "Defensive": "Defensive",
@@ -35,32 +80,100 @@
         "Utility": "Utility"
       }
     },
+    "RuneClasses": {
+      "Title": "Rune Classes"
+    },
+    "RuneClass": {
+      "Focus": "Focus",
+      "Cost": "Cost",
+      "Visual": "Visual",
+      "1": {
+        "Name": "Anchoring (Stability)",
+        "Focus": "Personal Defense, Attribute Buff, Touch Damage",
+        "Cost": "Zero or Minimal (Patron Passive)",
+        "Visual": "Tattoos/runes glow faintly on the skin"
+      },
+      "2": {
+        "Name": "Projection (Directional)",
+        "Focus": "Ranged Attacks (Single Target), Short-Range Utility",
+        "Cost": "Low (Generates 'Heat', requires short cooldown)",
+        "Visual": "Ether exits the body (smoke, light, sound)"
+      },
+      "3": {
+        "Name": "Manifestation (Environmental)",
+        "Focus": "Area of Effect (AoE), Crowd Control, Terrain Alteration",
+        "Cost": "Medium (Stress damage on failed CON check)",
+        "Visual": "Environment reacts: ground shakes, air temperature changes"
+      },
+      "4": {
+        "Name": "Disruption (Law Alteration)",
+        "Focus": "Permanent Effects, Temporary Invulnerability, Matter Creation",
+        "Cost": "High (Max HP damage or guaranteed Corruption)",
+        "Visual": "Local physics laws are broken"
+      },
+      "5": {
+        "Name": "Event Horizon (Catastrophic)",
+        "Focus": "Rewrite Narrative/Reality",
+        "Cost": "User's life or character loss",
+        "Visual": "End Game - character becomes NPC/Monster"
+      }
+    },
+    "Override": {
+      "Title": "Override (Break the Glass)",
+      "Description": "A character can attempt to use a higher Rune Class in a moment of desperation. But Ethernum charges dearly.",
+      "SuccessLabel": "Test Success",
+      "SuccessResult": "The arm used 'burns' (unusable until advanced medical repair) + Exhaustion Level 3",
+      "FailureLabel": "Test Failure",
+      "FailureResult": "Patronage collapses. Massive area damage or immediate mutation (Game Over)",
+      "AttemptTitle": "Override Attempt",
+      "FailureTitle": "⚠️ OVERRIDE FAILED!",
+      "FailureDescription": "Patronage collapsed! The character suffers catastrophic consequences:",
+      "Consequence1": "Massive area damage (ether explosion)",
+      "Consequence2": "OR immediate mutation - character becomes an 'Ether Aberration'",
+      "FailureNotification": "Override FAILED! Catastrophic consequences applied!",
+      "SuccessTitle": "⚡ OVERRIDE SUCCESSFUL!",
+      "SuccessDescription": "The rune was activated at maximum power, but at a price:",
+      "Exhaustion": "Arm used unusable + Exhaustion Level 3",
+      "SuccessNotification": "Override successful, but with severe consequences!"
+    },
+    "GM": {
+      "Controls": "Game Master Controls",
+      "MaxRuneClass": "Maximum Allowed Rune Class",
+      "MaxRuneClassHint": "Defines which rune class the player can use without needing Override."
+    },
     "DiceRoll": {
       "EtherEnhanced": "Ether-Enhanced Roll"
     },
     "Calculator": {
       "Description": "Use the power of ether to enhance your Pathfinder 2E dice rolls.",
-      "Hint": "Equipped runes can be activated at any time. Your character's ether power will be automatically added to compatible rolls."
+      "Hint": "Equipped runes can be activated at any time. Your character's ether power will be automatically added to compatible rolls.",
+      "TalentRoll": "Talent Roll"
     },
     "Notifications": {
-      "EtherRestored": "Ether fully restored!"
+      "EtherRestored": "Ether fully restored!",
+      "LongRestComplete": "Long rest complete! Ether fully restored."
     },
     "Errors": {
       "NoActor": "No actor selected to make the roll.",
       "InvalidRune": "Invalid or missing rune.",
-      "NotEnoughEther": "Not enough ether to activate this rune!"
+      "NotEnoughEther": "Not enough ether to activate this rune!",
+      "RuneDisabled": "This rune is disabled by the Game Master."
     },
     "Warnings": {
       "NotPF2E": "This module is designed to work with the Pathfinder 2E system. Some features may not be available."
     },
     "Settings": {
-      "EtherRegenOnRest": {
-        "Name": "Ether Regeneration on Rest",
-        "Hint": "If enabled, ether will be fully restored when the character rests."
+      "LongRestFullRestore": {
+        "Name": "Full Restoration on Long Rest",
+        "Hint": "If enabled, ether will be fully restored when the character takes a long rest."
       },
       "ShowEtherInChat": {
         "Name": "Show Ether in Chat",
         "Hint": "If enabled, displays ether information in roll messages in chat."
+      },
+      "AllowOverride": {
+        "Name": "Allow Override",
+        "Hint": "If enabled, players can attempt to use runes of higher classes than allowed (with consequences)."
       }
     }
   }

@@ -2,8 +2,10 @@
   "ETHERNUM": {
     "Tabs": {
       "EtherSystem": "Sistema de Éter",
+      "EtherAttributes": "Atributos de Éter",
       "RuneSystem": "Sistema de Runas",
-      "DiceCalculator": "Calculadora de Dados"
+      "DiceCalculator": "Calculadora de Dados",
+      "Talents": "Talentos"
     },
     "EtherCurrent": "Éter Atual",
     "EtherMax": "Éter Máximo",
@@ -11,23 +13,66 @@
     "EtherPower": "Poder de Éter",
     "EtherCost": "Custo de Éter",
     "Description": "Descrição",
+    "Value": "Valor",
+    "Rank": "Rank",
+    "LongRestInfo": "O Éter é restaurado apenas com descanso longo. Não há regeneração passiva.",
+    "TalentsDescription": "Os talentos funcionam com o sistema de ranks. Ao fazer um teste, role:",
     "Buttons": {
       "Recalculate": "Recalcular",
       "Rest": "Descansar",
+      "LongRest": "Descanso Longo",
       "AddRune": "Adicionar Runa",
       "AddFirstRune": "Adicionar Primeira Runa",
       "Equip": "Equipar",
       "Activate": "Ativar",
-      "Delete": "Excluir"
+      "Delete": "Excluir",
+      "Roll": "Rolar",
+      "Enable": "Habilitar",
+      "Disable": "Desabilitar"
+    },
+    "Attribute": {
+      "Name": "Atributo",
+      "forca": "Força",
+      "destreza": "Destreza",
+      "constituicao": "Constituição",
+      "inteligencia": "Inteligência",
+      "sabedoria": "Sabedoria",
+      "carisma": "Carisma"
+    },
+    "Talent": {
+      "Name": "Talento",
+      "investigacao": "Investigação",
+      "percepcao": "Percepção",
+      "furtividade": "Furtividade",
+      "atletismo": "Atletismo",
+      "acrobacia": "Acrobacia",
+      "intimidacao": "Intimidação",
+      "persuasao": "Persuasão",
+      "enganacao": "Enganação",
+      "medicina": "Medicina",
+      "sobrevivencia": "Sobrevivência",
+      "arcanismo": "Arcanismo",
+      "religiao": "Religião",
+      "natureza": "Natureza",
+      "sociedade": "Sociedade",
+      "ocultismo": "Ocultismo"
     },
     "Rune": {
       "Name": "Nome da Runa",
       "NewRune": "Nova Runa",
       "Type": "Tipo",
+      "Class": "Classe",
       "Power": "Poder",
+      "CostType": "Tipo de Custo",
+      "CostTypePlaceholder": "ex: sangue, éter, vida...",
+      "CostValue": "Valor do Custo",
+      "Effect": "Efeito",
+      "EffectPlaceholder": "ex: explodir, curar, proteger...",
       "NoRunes": "Nenhuma runa criada ainda. Adicione sua primeira runa para começar!",
       "DescriptionPlaceholder": "Descreva os efeitos e propriedades desta runa...",
       "Activated": "Runa Ativada",
+      "DisabledByGM": "Esta runa foi desabilitada pelo Mestre",
+      "ClassLocked": "Classe de runa bloqueada! Use Override para tentar ativar.",
       "Types": {
         "Offensive": "Ofensiva",
         "Defensive": "Defensiva",
@@ -35,32 +80,100 @@
         "Utility": "Utilidade"
       }
     },
+    "RuneClasses": {
+      "Title": "Classes de Runa"
+    },
+    "RuneClass": {
+      "Focus": "Foco",
+      "Cost": "Custo",
+      "Visual": "Visual",
+      "1": {
+        "Name": "Ancoragem (Estabilidade)",
+        "Focus": "Defesa Pessoal, Buff de Atributo, Dano ao Toque",
+        "Cost": "Zero ou Mínimo (Passivo do Patrocínio)",
+        "Visual": "Tatuagens/runas brilham levemente na pele"
+      },
+      "2": {
+        "Name": "Projeção (Direcional)",
+        "Focus": "Ataques à Distância (Alvo Único), Utilitário de Curto Alcance",
+        "Cost": "Baixo (Gera 'Calor', requer resfriamento curto)",
+        "Visual": "O Éter sai do corpo (fumaça, luz, som)"
+      },
+      "3": {
+        "Name": "Manifestação (Ambiental)",
+        "Focus": "Área de Efeito (AoE), Controle de Multidão, Alteração de Terreno",
+        "Cost": "Médio (Dano de 'stress' se falhar em teste de CON)",
+        "Visual": "O ambiente reage: chão treme, ar muda temperatura"
+      },
+      "4": {
+        "Name": "Disrupção (Alteração de Lei)",
+        "Focus": "Efeitos Permanentes, Invulnerabilidade Temporária, Criação de Matéria",
+        "Cost": "Alto (Dano na Vida Máxima ou Corrupção garantida)",
+        "Visual": "As leis da física local são quebradas"
+      },
+      "5": {
+        "Name": "Horizonte de Eventos (Catastrófico)",
+        "Focus": "Reescrever a Narrativa/Realidade",
+        "Cost": "A vida do usuário ou perda do personagem",
+        "Visual": "Fim de Jogo - personagem vira NPC/Monstro"
+      }
+    },
+    "Override": {
+      "Title": "Override (Quebrar o Vidro)",
+      "Description": "Um personagem pode tentar usar uma Classe de Runa superior em momento de desespero. Mas a Ethernum cobra caro.",
+      "SuccessLabel": "Sucesso no Teste",
+      "SuccessResult": "O braço usado 'queima' (inutilizável até reparo médico avançado) + Exaustão Nível 3",
+      "FailureLabel": "Falha no Teste",
+      "FailureResult": "O Patrocínio entra em colapso. Dano massivo em área ou mutação imediata (Game Over)",
+      "AttemptTitle": "Tentativa de Override",
+      "FailureTitle": "⚠️ OVERRIDE FALHOU!",
+      "FailureDescription": "O Patrocínio entrou em colapso! O personagem sofre consequências catastróficas:",
+      "Consequence1": "Dano massivo em área (explosão de éter)",
+      "Consequence2": "OU mutação imediata - personagem torna-se uma 'Aberração de Éter'",
+      "FailureNotification": "Override FALHOU! Consequências catastróficas aplicadas!",
+      "SuccessTitle": "⚡ OVERRIDE BEM-SUCEDIDO!",
+      "SuccessDescription": "A runa foi ativada com potência máxima, mas com um preço:",
+      "Exhaustion": "Braço usado inutilizável + Exaustão Nível 3",
+      "SuccessNotification": "Override bem-sucedido, mas com consequências severas!"
+    },
+    "GM": {
+      "Controls": "Controles do Mestre",
+      "MaxRuneClass": "Classe Máxima de Runa Permitida",
+      "MaxRuneClassHint": "Define qual classe de runa o jogador pode usar sem precisar de Override."
+    },
     "DiceRoll": {
       "EtherEnhanced": "Rolagem Aprimorada por Éter"
     },
     "Calculator": {
       "Description": "Use o poder do éter para aprimorar suas rolagens de dados do Pathfinder 2E.",
-      "Hint": "As runas equipadas podem ser ativadas a qualquer momento. O poder de éter do seu personagem será automaticamente adicionado às rolagens compatíveis."
+      "Hint": "As runas equipadas podem ser ativadas a qualquer momento. O poder de éter do seu personagem será automaticamente adicionado às rolagens compatíveis.",
+      "TalentRoll": "Rolagem de Talento"
     },
     "Notifications": {
-      "EtherRestored": "Éter totalmente restaurado!"
+      "EtherRestored": "Éter totalmente restaurado!",
+      "LongRestComplete": "Descanso longo completo! Éter totalmente restaurado."
     },
     "Errors": {
       "NoActor": "Nenhum ator selecionado para fazer a rolagem.",
       "InvalidRune": "Runa inválida ou não encontrada.",
-      "NotEnoughEther": "Éter insuficiente para ativar esta runa!"
+      "NotEnoughEther": "Éter insuficiente para ativar esta runa!",
+      "RuneDisabled": "Esta runa está desabilitada pelo Mestre."
     },
     "Warnings": {
       "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
     },
     "Settings": {
-      "EtherRegenOnRest": {
-        "Name": "Regeneração de Éter ao Descansar",
-        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem descansar."
+      "LongRestFullRestore": {
+        "Name": "Restauração Total no Descanso Longo",
+        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem fizer um descanso longo."
       },
       "ShowEtherInChat": {
         "Name": "Mostrar Éter no Chat",
         "Hint": "Se ativado, mostra informações de éter nas mensagens de rolagem no chat."
+      },
+      "AllowOverride": {
+        "Name": "Permitir Override",
+        "Hint": "Se ativado, jogadores podem tentar usar runas de classes superiores às permitidas (com consequências)."
       }
     }
   }

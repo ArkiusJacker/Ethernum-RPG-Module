@@ -1,8 +1,8 @@
 {
   "id": "ethernum-rpg-module",
   "title": "Ethernum RPG Module - Sistema de Éter",
-  "description": "Sistema de éter (S.E) para Pathfinder 2E com calculadora de dados, sistema de pontos de éter/mana e sistema de runas.",
-  "version": "1.0.0",
+  "description": "Sistema de éter (S.E) para Pathfinder 2E com calculadora de dados, sistema de descanso longo, sistema de runas com 5 classes e atributos de éter com ranks.",
+  "version": "2.0.0",
   "authors": [
     {
       "name": "ArkiusJacker",
