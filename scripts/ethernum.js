@@ -818,7 +818,7 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
       noun: "",
       source: "",
       // Custo e descrição
-      costType: "éter",
+      costType: "ether",
       costValue: 0,
       effect: "",
       description: "",
