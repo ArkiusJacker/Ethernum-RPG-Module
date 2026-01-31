@@ -35,7 +35,10 @@
       "UpgradeSuccess": "Upgrade of {attr} completed!",
       "Added": "{amount} FE added! New total: {total} FE",
       "InvalidAmount": "Invalid FE amount",
-      "CostInfo": "Cost per level: F=100, E=200, D=400, C=800, B=1600, A=3200, S=6400, K=12800"
+      "CostInfo": "Cost per level: F=100, E=200, D=400, C=800, B=1600, A=3200, S=6400, K=12800",
+      "InvalidParams": "Invalid parameters",
+      "AttributeNotFound": "Attribute not found",
+      "TalentNotFound": "Talent not found"
     },
     "Buttons": {
       "Recalculate": "Recalculate",

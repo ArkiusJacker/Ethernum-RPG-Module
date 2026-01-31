@@ -120,9 +120,9 @@ export class RuneSystem {
   }
 
   /**
-   * Obtém o custo base de uma classe de runa
-   * NOTA: O sistema de custo de runas será expandido em versões futuras.
-   * Novos fatores serão adicionados para determinar o custo de éter.
+   * Gets the base cost of a rune class
+   * NOTE: The rune cost system will be expanded in future versions.
+   * New factors will be added to determine the ether cost.
    */
   static getRuneClassCost(runeClass) {
     const costs = {
@@ -136,8 +136,8 @@ export class RuneSystem {
   }
 
   /**
-   * Obtém o CD de dificuldade de uma classe de runa
-   * Pode ser configurado pelo GM ou usar o valor padrão
+   * Gets the DC of a rune class
+   * Can be configured by GM or use default value
    */
   static getRuneClassDC(runeClass, customDCs = null) {
     if (customDCs && customDCs[runeClass]) {
@@ -243,14 +243,14 @@ export class FESystem {
    */
   static async upgradeAttribute(actor, attrKey, levelsToGain = 1) {
     if (!actor || !attrKey || levelsToGain < 1) {
-      return { success: false, message: "Parâmetros inválidos" };
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
     }
 
     const fe = actor.getFlag(ETHERNUM.MODULE_NAME, "fe") || { ...ETHERNUM.DEFAULT_FE };
     const etherAttributes = actor.getFlag(ETHERNUM.MODULE_NAME, "etherAttributes") || { ...ETHERNUM.DEFAULT_ETHER_ATTRIBUTES };
     
     if (!etherAttributes[attrKey]) {
-      return { success: false, message: "Atributo não encontrado" };
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.AttributeNotFound") };
     }
 
     const attr = etherAttributes[attrKey];
@@ -324,14 +324,14 @@ export class FESystem {
    */
   static async upgradeTalent(actor, talentKey, levelsToGain = 1) {
     if (!actor || !talentKey || levelsToGain < 1) {
-      return { success: false, message: "Parâmetros inválidos" };
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
     }
 
     const fe = actor.getFlag(ETHERNUM.MODULE_NAME, "fe") || { ...ETHERNUM.DEFAULT_FE };
     const talents = actor.getFlag(ETHERNUM.MODULE_NAME, "talents") || { ...ETHERNUM.DEFAULT_TALENTS };
     
     if (!talents[talentKey]) {
-      return { success: false, message: "Talento não encontrado" };
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.TalentNotFound") };
     }
 
     const talent = talents[talentKey];
