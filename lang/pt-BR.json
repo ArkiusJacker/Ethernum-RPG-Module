@@ -21,6 +21,22 @@
     "LongRestInfo": "O Éter é restaurado apenas com descanso longo. Não há regeneração passiva.",
     "TalentsDescription": "Os talentos funcionam com o sistema de ranks. Ao fazer um teste, role:",
     "RankBonusInfo": "Atributos: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20 | Talentos: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25",
+    "FE": {
+      "Title": "Fichas de Éter (FE)",
+      "Current": "FE Atual",
+      "Total": "FE Total (Histórico)",
+      "Add": "Adicionar FE",
+      "AddAmount": "Quantidade a Adicionar",
+      "Description": "Use Fichas de Éter (FE) para melhorar seus atributos e talentos. O custo aumenta conforme o rank sobe. Você pode upar múltiplos níveis de uma vez!",
+      "CostPerLevel": "Custo por Nível (em cada Rank)",
+      "UpgradeLevels": "Níveis para Upar",
+      "Upgrade": "Upar",
+      "NotEnough": "FE insuficiente! Custo: {cost} FE, você tem: {current} FE",
+      "UpgradeSuccess": "Upgrade de {attr} concluído!",
+      "Added": "{amount} FE adicionado! Novo total: {total} FE",
+      "InvalidAmount": "Quantidade inválida de FE",
+      "CostInfo": "Custo por nível: F=100, E=200, D=400, C=800, B=1600, A=3200, S=6400, K=12800"
+    },
     "Buttons": {
       "Recalculate": "Recalcular",
       "Rest": "Descansar",
@@ -78,6 +94,7 @@
       "DisabledByGM": "Esta runa foi desabilitada pelo Mestre",
       "ClassLocked": "Classe de runa bloqueada! Use Override para tentar ativar.",
       "DC": "CD",
+      "CostNote": "NOTA: O sistema de custo de runas será expandido em versões futuras com novos fatores.",
       "Types": {
         "Offensive": "Ofensiva",
         "Defensive": "Defensiva",
@@ -182,7 +199,8 @@
       "NoActor": "Nenhum ator selecionado para fazer a rolagem.",
       "InvalidRune": "Runa inválida ou não encontrada.",
       "NotEnoughEther": "Éter insuficiente para ativar esta runa!",
-      "RuneDisabled": "Esta runa está desabilitada pelo Mestre."
+      "RuneDisabled": "Esta runa está desabilitada pelo Mestre.",
+      "GMOnly": "Apenas o Mestre pode alterar este valor diretamente. Use FE para fazer upgrades."
     },
     "Warnings": {
       "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
@@ -203,6 +221,10 @@
       "RuneClassDCs": {
         "Name": "CDs das Classes de Runa",
         "Hint": "Define o CD de dificuldade para cada classe de runa (1-5)."
+      },
+      "FECostsPerRank": {
+        "Name": "Custos de FE por Rank",
+        "Hint": "Define o custo de FE por nível para cada rank (F-K)."
       }
     }
   }

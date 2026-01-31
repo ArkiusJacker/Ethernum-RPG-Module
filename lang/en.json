@@ -21,6 +21,22 @@
     "LongRestInfo": "Ether is restored only with long rest. There is no passive regeneration.",
     "TalentsDescription": "Talents work with the rank system. When making a check, roll:",
     "RankBonusInfo": "Attributes: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20 | Talents: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25",
+    "FE": {
+      "Title": "Ether Tokens (FE)",
+      "Current": "Current FE",
+      "Total": "Total FE (History)",
+      "Add": "Add FE",
+      "AddAmount": "Amount to Add",
+      "Description": "Use Ether Tokens (FE) to improve your attributes and talents. The cost increases as the rank rises. You can level up multiple times at once!",
+      "CostPerLevel": "Cost per Level (in each Rank)",
+      "UpgradeLevels": "Levels to Upgrade",
+      "Upgrade": "Upgrade",
+      "NotEnough": "Insufficient FE! Cost: {cost} FE, you have: {current} FE",
+      "UpgradeSuccess": "Upgrade of {attr} completed!",
+      "Added": "{amount} FE added! New total: {total} FE",
+      "InvalidAmount": "Invalid FE amount",
+      "CostInfo": "Cost per level: F=100, E=200, D=400, C=800, B=1600, A=3200, S=6400, K=12800"
+    },
     "Buttons": {
       "Recalculate": "Recalculate",
       "Rest": "Rest",
@@ -78,6 +94,7 @@
       "DisabledByGM": "This rune has been disabled by the Game Master",
       "ClassLocked": "Rune class locked! Use Override to try to activate.",
       "DC": "DC",
+      "CostNote": "NOTE: The rune cost system will be expanded in future versions with new factors.",
       "Types": {
         "Offensive": "Offensive",
         "Defensive": "Defensive",
@@ -182,7 +199,8 @@
       "NoActor": "No actor selected to make the roll.",
       "InvalidRune": "Invalid or missing rune.",
       "NotEnoughEther": "Not enough ether to activate this rune!",
-      "RuneDisabled": "This rune is disabled by the Game Master."
+      "RuneDisabled": "This rune is disabled by the Game Master.",
+      "GMOnly": "Only the Game Master can change this value directly. Use FE for upgrades."
     },
     "Warnings": {
       "NotPF2E": "This module is designed to work with the Pathfinder 2E system. Some features may not be available."
@@ -203,6 +221,10 @@
       "RuneClassDCs": {
         "Name": "Rune Class DCs",
         "Hint": "Set the difficulty DC for each rune class (1-5)."
+      },
+      "FECostsPerRank": {
+        "Name": "FE Costs per Rank",
+        "Hint": "Set the FE cost per level for each rank (F-K)."
       }
     }
   }

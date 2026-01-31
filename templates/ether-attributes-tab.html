@@ -1,4 +1,54 @@
 <div class="ethernum-container ethernum-attributes-tab">
+  <!-- Sistema de Fichas de Éter (FE) - Moeda de Upgrade -->
+  <section class="ethernum-section fe-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-coins"></i> {{localize "ETHERNUM.FE.Title"}}
+    </h2>
+    
+    <div class="ethernum-fe-display">
+      <div class="ethernum-fe-current-display">
+        <label class="ethernum-label">{{localize "ETHERNUM.FE.Current"}}</label>
+        <div class="ethernum-fe-value">
+          {{#if isGM}}
+          <input type="number" class="ethernum-fe-current" value="{{fe.current}}" min="0" />
+          {{else}}
+          <span class="ethernum-fe-readonly">{{fe.current}}</span>
+          {{/if}}
+          <span class="ethernum-fe-label">FE</span>
+        </div>
+      </div>
+      
+      {{#if isGM}}
+      <div class="ethernum-fe-gm-controls">
+        <div class="ethernum-fe-add-section">
+          <label>{{localize "ETHERNUM.FE.AddAmount"}}</label>
+          <div class="ethernum-fe-add-row">
+            <input type="number" class="ethernum-fe-amount" value="100" min="1" />
+            <button type="button" class="ethernum-button ethernum-add-fe">
+              <i class="fas fa-plus"></i> {{localize "ETHERNUM.FE.Add"}}
+            </button>
+          </div>
+        </div>
+      </div>
+      {{/if}}
+      
+      <div class="ethernum-fe-info">
+        <p class="ethernum-info-text">{{localize "ETHERNUM.FE.Description"}}</p>
+        <div class="ethernum-fe-costs-table">
+          <h4>{{localize "ETHERNUM.FE.CostPerLevel"}}</h4>
+          <div class="ethernum-fe-costs-grid">
+            {{#each ranks}}
+            <div class="ethernum-fe-cost-item">
+              <span class="ethernum-fe-rank">{{this}}</span>
+              <span class="ethernum-fe-cost">{{lookup ../feCosts this}} FE</span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Sistema de Éter (Descanso Longo) -->
   <section class="ethernum-section ether-system">
     <h2 class="ethernum-section-title">

@@ -1,8 +1,8 @@
 {
   "id": "ethernum-rpg-module",
   "title": "Ethernum RPG Module - Sistema de Éter",
-  "description": "Sistema de éter (S.E) para Pathfinder 2E com calculadora de dados, sistema de descanso longo, sistema de runas com 5 classes (Latente, Tangível, Dissonante, Crítico, Evento Zero), sistema de trindade (Verbo + Substantivo + Fonte) e atributos de éter com ranks e bônus específicos.",
-  "version": "3.0.0",
+  "description": "Sistema de éter (S.E) para Pathfinder 2E com calculadora de dados, sistema de descanso longo, sistema de runas com 5 classes (Latente, Tangível, Dissonante, Crítico, Evento Zero), sistema de trindade (Verbo + Substantivo + Fonte), atributos de éter com ranks e sistema de Fichas de Éter (FE) para upgrades.",
+  "version": "3.1.0",
   "authors": [
     {
       "name": "ArkiusJacker",
@@ -24,7 +24,7 @@
     ]
   },
   "esmodules": [
-    "scripts/ethernum.js"
+    "scripts/main.js"
   ],
   "styles": [
     "styles/ethernum.css"
