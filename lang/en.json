@@ -15,6 +15,9 @@
     "Description": "Description",
     "Value": "Value",
     "Rank": "Rank",
+    "TalentRank": "Talent Rank",
+    "AttributeRank": "Attribute Rank",
+    "FormulaExample": "Ex: 1d20 + 5 (Investigation) + 2 (Rank D) + 3 (Intelligence) + 1 (Rank E) = 1d20+11",
     "LongRestInfo": "Ether is restored only with long rest. There is no passive regeneration.",
     "TalentsDescription": "Talents work with the rank system. When making a check, roll:",
     "Buttons": {

@@ -289,6 +289,14 @@
   border-radius: 3px;
   font-family: monospace;
   color: #9f4aff;
+  margin-bottom: 8px;
+}
+
+.ethernum-talents-description .ethernum-formula-example {
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  font-style: italic;
+  margin-bottom: 0;
 }
 
 .ethernum-talents-grid {

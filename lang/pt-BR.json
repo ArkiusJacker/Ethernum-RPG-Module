@@ -15,6 +15,9 @@
     "Description": "Descrição",
     "Value": "Valor",
     "Rank": "Rank",
+    "TalentRank": "Rank do Talento",
+    "AttributeRank": "Rank do Atributo",
+    "FormulaExample": "Ex: 1d20 + 5 (Investigação) + 2 (Rank D) + 3 (Inteligência) + 1 (Rank E) = 1d20+11",
     "LongRestInfo": "O Éter é restaurado apenas com descanso longo. Não há regeneração passiva.",
     "TalentsDescription": "Os talentos funcionam com o sistema de ranks. Ao fazer um teste, role:",
     "Buttons": {

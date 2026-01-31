@@ -31,7 +31,7 @@ const ETHERNUM = {
     3: {
       name: "Manifestação",
       nameEn: "Manifestation",
-      cost: "medio",
+      cost: "médio",
       focus: "Área de Efeito (AoE), Controle de Multidão, Alteração de Terreno",
       visual: "Ambiente reage: chão treme, ar muda temperatura, luzes estouram"
     },
@@ -45,11 +45,15 @@ const ETHERNUM = {
     5: {
       name: "Horizonte de Eventos",
       nameEn: "Event Horizon",
-      cost: "catastrofico",
+      cost: "catastrófico",
       focus: "Reescrever a Narrativa/Realidade",
       visual: "Fim de Jogo - vida do usuário ou perda do personagem"
     }
   },
+  
+  // Min and max rune class constants
+  MIN_RUNE_CLASS: 1,
+  MAX_RUNE_CLASS: 5,
   
   // Default ether attributes
   DEFAULT_ETHER_ATTRIBUTES: {
@@ -672,7 +676,7 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
   // GM: Alterar classe máxima de runa permitida
   html.find('.ethernum-max-rune-class').change(async (ev) => {
     if (!isGM) return;
-    const value = Math.max(1, Math.min(5, parseInt(ev.target.value) || 1));
+    const value = Math.max(ETHERNUM.MIN_RUNE_CLASS, Math.min(ETHERNUM.MAX_RUNE_CLASS, parseInt(ev.target.value) || ETHERNUM.MIN_RUNE_CLASS));
     await actor.setFlag(ETHERNUM.MODULE_NAME, "maxRuneClass", value);
     
     // Recalcula poder de éter
@@ -768,7 +772,7 @@ Hooks.on("renderActorSheet", async (app, html, data) => {
       if (field === 'costValue' || field === 'runeClass') {
         value = parseInt(value) || 0;
         if (field === 'runeClass') {
-          value = Math.max(1, Math.min(5, value));
+          value = Math.max(ETHERNUM.MIN_RUNE_CLASS, Math.min(ETHERNUM.MAX_RUNE_CLASS, value));
         }
       }
       rune[field] = value;

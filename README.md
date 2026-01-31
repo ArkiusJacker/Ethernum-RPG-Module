@@ -4,27 +4,59 @@
 [![Pathfinder 2E](https://img.shields.io/badge/System-Pathfinder%202E-blue)](https://foundryvtt.com/packages/pf2e/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Sistema de RPG com múltiplas funções para funcionar no Foundry VTT (versões 11-13), criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados aprimorada, e um sistema de runas personalizável.
+Sistema de RPG com múltiplas funções para funcionar no Foundry VTT (versões 11-13), criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## 🌟 Características
+## 🌟 Características Principais
 
-### 📊 Sistema de Éter (S.E)
-- **Atributos Separados**: Sistema de atributos independente que funciona em conjunto com a ficha base do Pathfinder 2E
-- **Cálculo Automático**: O éter máximo é calculado automaticamente com base nos atributos do personagem (Inteligência, Sabedoria e Nível)
-- **Regeneração de Éter**: Sistema de regeneração baseado em Sabedoria e Constituição
-- **Poder de Éter**: Bônus calculado a partir de Inteligência e Carisma que afeta as rolagens
+### 📊 Sistema de Éter (S.E) - Descanso Longo
+- **Restauração por Descanso Longo**: O éter é restaurado apenas através de descanso longo (não há regeneração passiva)
+- **Atributos de Éter Separados**: Sistema de atributos independente com Força, Destreza, Constituição, Inteligência, Sabedoria e Carisma
+- **Sistema de Ranks**: Progressão F → E → D → C → B → A → S → K
+- **Sistema de Pontos**: Valores de 1 a 10 para cada atributo
+- **Cálculo Automático**: O éter máximo e poder de éter são calculados automaticamente
 
-### 🎲 Calculadora de Dados
-- **Integração PF2E + S.E**: Combina os dados do Pathfinder 2E com o sistema de éter para criar rolagens aprimoradas
-- **Bônus de Éter**: Adiciona automaticamente o poder de éter às rolagens compatíveis
-- **Mensagens no Chat**: Exibe rolagens aprimoradas com informações detalhadas no chat
+### 🎲 Calculadora de Dados com Talentos
+- **Fórmula de Rolagem**: `1d20 + Talento + Rank do Talento + Atributo + Rank do Atributo`
+- **15 Talentos**: Investigação, Percepção, Furtividade, Atletismo, Acrobacia, Intimidação, Persuasão, Enganação, Medicina, Sobrevivência, Arcanismo, Religião, Natureza, Sociedade, Ocultismo
+- **Rolagem Rápida**: Botão de dado em cada talento para rolagem imediata
 
-### 💎 Sistema de Runas
-- **Equipamento Personalizável**: Nova categoria de equipamento chamada "Runas"
-- **Tipos de Runas**: Ofensiva, Defensiva, Suporte e Utilidade
-- **Custo de Éter**: Cada runa consome éter ao ser ativada
-- **Poder Configurável**: Defina o poder de cada runa (dados rolados)
-- **Sistema de Recompensas**: Gerencie custos e benefícios das runas
+### 💎 Sistema de Runas com 5 Classes
+
+#### Classe 1: Ancoragem (Estabilidade)
+- **Foco**: Defesa Pessoal, Buff de Atributo, Dano ao Toque
+- **Custo**: Zero ou Mínimo (Passivo do Patrocínio)
+- **Visual**: Tatuagens/runas brilham levemente na pele
+
+#### Classe 2: Projeção (Direcional)
+- **Foco**: Ataques à Distância (Alvo Único), Utilitário de Curto Alcance
+- **Custo**: Baixo (Gera "Calor", requer resfriamento curto)
+- **Visual**: Éter sai do corpo (fumaça, luz, som)
+
+#### Classe 3: Manifestação (Ambiental)
+- **Foco**: Área de Efeito (AoE), Controle de Multidão, Alteração de Terreno
+- **Custo**: Médio (Dano de "stress" se falhar em teste de Constituição)
+- **Visual**: Ambiente reage: chão treme, ar muda temperatura
+
+#### Classe 4: Disrupção (Alteração de Lei)
+- **Foco**: Efeitos Permanentes, Invulnerabilidade Temporária, Criação de Matéria
+- **Custo**: Alto (Dano na Vida Máxima ou Corrupção garantida)
+- **Visual**: As leis da física local são quebradas
+
+#### Classe 5: Horizonte de Eventos (Catastrófico)
+- **Foco**: Reescrever a Narrativa/Realidade
+- **Custo**: A vida do usuário ou perda do personagem
+- **Visual**: Fim de Jogo - personagem vira NPC/Monstro
+
+### ⚡ Sistema de Override
+Personagens podem tentar usar uma Classe de Runa superior em momento de desespero:
+- **Teste de Resistência**: Rolagem de Constituição contra DC baseada na classe da runa
+- **Sucesso**: O braço usado "queima" (inutilizável até reparo médico) + Exaustão Nível 3
+- **Falha**: Colapso do Patrocínio - Dano massivo em área OU mutação (Game Over para o personagem)
+
+### 🔧 Controles do Mestre (GM)
+- **Bloqueio de Classes de Runa**: O GM pode limitar qual classe máxima de runa o jogador pode usar
+- **Ativar/Desativar Runas**: O GM pode desabilitar runas específicas de jogadores
+- **Controle de Progressão**: Libere classes de runa conforme o personagem progride
 
 ## 📥 Instalação
 
@@ -42,36 +74,59 @@ Sistema de RPG com múltiplas funções para funcionar no Foundry VTT (versões 
 
 ## 🎮 Como Usar
 
-### 1. Ativando a Nova Aba
-Após ativar o módulo, abra a ficha de um personagem. Você verá uma nova aba chamada "Sistema de Éter" (ícone de varinha mágica).
+### 1. Abas do Sistema
+Após ativar o módulo, abra a ficha de um personagem. Você verá duas novas abas:
+- **Atributos de Éter** (ícone de escudo): Gerencia atributos, talentos e éter
+- **Sistema de Runas** (ícone de gema): Gerencia runas e classes de runa
 
-### 2. Gerenciando Éter
-- **Éter Atual**: Ajuste manualmente ou use o botão "Descansar" para restaurar ao máximo
-- **Recalcular**: Clique para recalcular os atributos de éter baseados nos atributos atuais do personagem
-- **Regeneração**: Valor calculado automaticamente que indica quanto de éter regenera por descanso
+### 2. Configurando Atributos de Éter
+1. Acesse a aba "Atributos de Éter"
+2. Defina o valor (1-10) e rank (F a K) para cada atributo
+3. O éter máximo será recalculado automaticamente
 
-### 3. Criando Runas
-1. Clique em "Adicionar Runa" na seção de Runas
-2. Nomeie sua runa
-3. Escolha o tipo (Ofensiva, Defensiva, Suporte, Utilidade)
-4. Defina o custo de éter e o poder
-5. Adicione uma descrição detalhada dos efeitos
+### 3. Usando Talentos
+1. Na seção de Talentos, defina o valor e rank de cada talento
+2. Clique no botão de dado ao lado do talento para fazer uma rolagem
+3. A fórmula utilizada é: `1d20 + Talento + Rank + Atributo + Rank`
 
-### 4. Usando Runas
+### 4. Descanso Longo
+- Clique no botão "Descanso Longo" para restaurar todo o éter
+- Não há regeneração passiva - éter só é restaurado com descanso longo
+
+### 5. Criando Runas
+1. Acesse a aba "Sistema de Runas"
+2. Clique em "Adicionar Runa"
+3. Configure:
+   - **Nome**: Nome da runa (ex: "Chama Ardente")
+   - **Classe**: 1 a 5 (define o poder e custo)
+   - **Tipo de Custo**: O que a runa consome (ex: sangue, éter, vida)
+   - **Valor do Custo**: Quantidade adicional de éter consumido
+   - **Efeito**: O que a runa faz (ex: explodir, curar)
+   - **Descrição**: Detalhes adicionais
+
+### 6. Usando Runas
 1. Equipe uma runa clicando no ícone de círculo
 2. Clique no ícone de dado (d20) para ativar a runa
 3. O sistema automaticamente:
+   - Verifica se a classe da runa é permitida
+   - Se for classe bloqueada, tenta Override (com consequências!)
    - Verifica se há éter suficiente
    - Consome o éter necessário
-   - Rola os dados de dano/efeito
+   - Rola os dados de efeito
    - Exibe o resultado no chat
+
+### 7. Controles do GM
+1. O GM vê um painel especial na aba de Runas
+2. Pode definir a classe máxima de runa permitida (1-5)
+3. Pode ativar/desativar runas específicas clicando no ícone de olho
 
 ## ⚙️ Configurações
 
 O módulo oferece as seguintes configurações (acessíveis nas configurações do módulo):
 
-- **Regeneração de Éter ao Descansar**: Se ativado, o éter será totalmente restaurado quando o personagem descansar (padrão: ativado)
+- **Restauração Total no Descanso Longo**: Se ativado, o éter será totalmente restaurado com descanso longo (padrão: ativado)
 - **Mostrar Éter no Chat**: Se ativado, mostra informações de éter nas mensagens de rolagem no chat (padrão: ativado)
+- **Permitir Override**: Se ativado, jogadores podem tentar usar runas de classes superiores às permitidas (padrão: ativado)
 
 ## 🔧 Requisitos
 
