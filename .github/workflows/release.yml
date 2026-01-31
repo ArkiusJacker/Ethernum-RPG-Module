@@ -20,7 +20,7 @@ jobs:
           # Create zip file excluding development files
           zip -r ethernum-rpg-module.zip . \
             -x "*.git*" \
-            -x ".github/*" \
+            -x ".github*" \
             -x ".gitignore"
       
       - name: Upload release assets
