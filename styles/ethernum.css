@@ -1,0 +1,410 @@
+/**
+ * Ethernum RPG Module - Estilos
+ * Sistema de Éter para Pathfinder 2E
+ */
+
+/* Container principal */
+.ethernum-container {
+  padding: 10px;
+  background: var(--color-bg);
+}
+
+/* Seções */
+.ethernum-section {
+  background: var(--color-bg-option);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  margin-bottom: 15px;
+  padding: 15px;
+}
+
+.ethernum-section-title {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-border-dark);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-section-title i {
+  margin-right: 8px;
+  color: #9f4aff;
+}
+
+/* Display de Éter */
+.ethernum-ether-display {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ethernum-stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ethernum-label {
+  font-weight: bold;
+  color: var(--color-text-dark-primary);
+  font-size: 0.9em;
+}
+
+/* Barra de Éter */
+.ethernum-ether-bar {
+  position: relative;
+  height: 40px;
+  background: var(--color-bg);
+  border: 2px solid #9f4aff;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.ethernum-ether-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #6e2dff 0%, #9f4aff 100%);
+  transition: width 0.3s ease;
+}
+
+.ethernum-ether-bar-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  gap: 5px;
+}
+
+.ethernum-ether-input {
+  width: 60px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  color: white;
+  font-weight: bold;
+  padding: 2px 5px;
+}
+
+/* Grid de Estatísticas */
+.ethernum-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ethernum-stat-box {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  padding: 10px;
+  text-align: center;
+}
+
+.ethernum-stat-box label {
+  display: block;
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary);
+  margin-bottom: 5px;
+}
+
+.ethernum-stat-value {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #9f4aff;
+}
+
+/* Botões */
+.ethernum-button-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.ethernum-button {
+  padding: 8px 15px;
+  background: linear-gradient(135deg, #6e2dff 0%, #9f4aff 100%);
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ethernum-button:hover {
+  background: linear-gradient(135deg, #8040ff 0%, #b060ff 100%);
+  box-shadow: 0 0 10px rgba(159, 74, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.ethernum-button:active {
+  transform: translateY(0);
+}
+
+.ethernum-button-small {
+  padding: 5px 10px;
+  font-size: 0.85em;
+  background: linear-gradient(135deg, #6e2dff 0%, #9f4aff 100%);
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ethernum-button-small:hover {
+  background: linear-gradient(135deg, #8040ff 0%, #b060ff 100%);
+}
+
+/* Sistema de Runas */
+.ethernum-runes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ethernum-rune-item {
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-dark);
+  border-radius: 5px;
+  padding: 10px;
+  transition: all 0.3s ease;
+}
+
+.ethernum-rune-item.equipped {
+  border-color: #9f4aff;
+  box-shadow: 0 0 10px rgba(159, 74, 255, 0.3);
+}
+
+.ethernum-rune-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.ethernum-rune-name {
+  flex: 1;
+  font-weight: bold;
+  font-size: 1.1em;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-dark);
+  color: var(--color-text-dark-primary);
+  padding: 5px;
+}
+
+.ethernum-rune-name:focus {
+  outline: none;
+  border-bottom-color: #9f4aff;
+}
+
+.ethernum-rune-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.ethernum-icon-button {
+  width: 32px;
+  height: 32px;
+  background: var(--color-bg-option);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  color: var(--color-text-dark-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ethernum-icon-button:hover {
+  background: var(--color-bg);
+  color: var(--color-text-dark-primary);
+  transform: scale(1.1);
+}
+
+.ethernum-icon-button.active {
+  background: #9f4aff;
+  color: white;
+  border-color: #9f4aff;
+}
+
+.ethernum-delete-rune:hover {
+  background: #c92a2a;
+  color: white;
+  border-color: #c92a2a;
+}
+
+/* Corpo da Runa */
+.ethernum-rune-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ethernum-rune-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ethernum-rune-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ethernum-rune-stat label {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
+.ethernum-rune-input {
+  background: var(--color-bg-option);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  padding: 5px 8px;
+  color: var(--color-text-dark-primary);
+  font-size: 0.9em;
+}
+
+.ethernum-rune-input:focus {
+  outline: none;
+  border-color: #9f4aff;
+  box-shadow: 0 0 5px rgba(159, 74, 255, 0.3);
+}
+
+.ethernum-rune-description {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ethernum-rune-description label {
+  font-size: 0.8em;
+  color: var(--color-text-dark-secondary);
+  font-weight: bold;
+}
+
+.ethernum-rune-description textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Estado vazio */
+.ethernum-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-dark-secondary);
+}
+
+.ethernum-empty-state i {
+  font-size: 3em;
+  margin-bottom: 15px;
+  opacity: 0.5;
+  color: #9f4aff;
+}
+
+.ethernum-empty-state p {
+  margin-bottom: 15px;
+  font-size: 1.1em;
+}
+
+/* Calculadora de Dados */
+.ethernum-calculator-info {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  padding: 15px;
+}
+
+.ethernum-calculator-info p {
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+  color: var(--color-text-dark-primary);
+}
+
+.ethernum-calculator-info p:last-child {
+  margin-bottom: 0;
+}
+
+.ethernum-info-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(159, 74, 255, 0.1);
+  border-left: 3px solid #9f4aff;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.ethernum-info-text i {
+  color: #9f4aff;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .ethernum-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-rune-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-button-row {
+    flex-direction: column;
+  }
+}
+
+/* Animações */
+@keyframes ether-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(159, 74, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(159, 74, 255, 0.8);
+  }
+}
+
+.ethernum-rune-item.equipped {
+  animation: ether-pulse 2s ease-in-out infinite;
+}
+
+/* Compatibilidade com tema escuro do PF2E */
+.pf2e.sheet.actor .ethernum-container {
+  color: var(--text-light);
+}
+
+.pf2e.sheet.actor .ethernum-section {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pf2e.sheet.actor .ethernum-ether-bar {
+  border-color: #9f4aff;
+}
+
+.pf2e.sheet.actor .ethernum-stat-box {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,67 @@
+{
+  "ETHERNUM": {
+    "Tabs": {
+      "EtherSystem": "Sistema de Éter",
+      "RuneSystem": "Sistema de Runas",
+      "DiceCalculator": "Calculadora de Dados"
+    },
+    "EtherCurrent": "Éter Atual",
+    "EtherMax": "Éter Máximo",
+    "EtherRegen": "Regeneração de Éter",
+    "EtherPower": "Poder de Éter",
+    "EtherCost": "Custo de Éter",
+    "Description": "Descrição",
+    "Buttons": {
+      "Recalculate": "Recalcular",
+      "Rest": "Descansar",
+      "AddRune": "Adicionar Runa",
+      "AddFirstRune": "Adicionar Primeira Runa",
+      "Equip": "Equipar",
+      "Activate": "Ativar",
+      "Delete": "Excluir"
+    },
+    "Rune": {
+      "Name": "Nome da Runa",
+      "NewRune": "Nova Runa",
+      "Type": "Tipo",
+      "Power": "Poder",
+      "NoRunes": "Nenhuma runa criada ainda. Adicione sua primeira runa para começar!",
+      "DescriptionPlaceholder": "Descreva os efeitos e propriedades desta runa...",
+      "Activated": "Runa Ativada",
+      "Types": {
+        "Offensive": "Ofensiva",
+        "Defensive": "Defensiva",
+        "Support": "Suporte",
+        "Utility": "Utilidade"
+      }
+    },
+    "DiceRoll": {
+      "EtherEnhanced": "Rolagem Aprimorada por Éter"
+    },
+    "Calculator": {
+      "Description": "Use o poder do éter para aprimorar suas rolagens de dados do Pathfinder 2E.",
+      "Hint": "As runas equipadas podem ser ativadas a qualquer momento. O poder de éter do seu personagem será automaticamente adicionado às rolagens compatíveis."
+    },
+    "Notifications": {
+      "EtherRestored": "Éter totalmente restaurado!"
+    },
+    "Errors": {
+      "NoActor": "Nenhum ator selecionado para fazer a rolagem.",
+      "InvalidRune": "Runa inválida ou não encontrada.",
+      "NotEnoughEther": "Éter insuficiente para ativar esta runa!"
+    },
+    "Warnings": {
+      "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
+    },
+    "Settings": {
+      "EtherRegenOnRest": {
+        "Name": "Regeneração de Éter ao Descansar",
+        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem descansar."
+      },
+      "ShowEtherInChat": {
+        "Name": "Mostrar Éter no Chat",
+        "Hint": "Se ativado, mostra informações de éter nas mensagens de rolagem no chat."
+      }
+    }
+  }
+}

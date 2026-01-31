@@ -1,0 +1,49 @@
+{
+  "id": "ethernum-rpg-module",
+  "title": "Ethernum RPG Module - Sistema de Éter",
+  "description": "Sistema de éter (S.E) para Pathfinder 2E com calculadora de dados, sistema de pontos de éter/mana e sistema de runas.",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "ArkiusJacker",
+      "flags": {}
+    }
+  ],
+  "compatibility": {
+    "minimum": "11",
+    "verified": "12",
+    "maximum": "13"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf2e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
+  "esmodules": [
+    "scripts/ethernum.js"
+  ],
+  "styles": [
+    "styles/ethernum.css"
+  ],
+  "languages": [
+    {
+      "lang": "pt-BR",
+      "name": "Português (Brasil)",
+      "path": "lang/pt-BR.json"
+    },
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "url": "https://github.com/ArkiusJacker/Ethernum-RPG-Module",
+  "manifest": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/latest/download/module.json",
+  "download": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/latest/download/ethernum-rpg-module.zip",
+  "license": "LICENSE",
+  "readme": "README.md"
+}

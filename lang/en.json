@@ -1,0 +1,67 @@
+{
+  "ETHERNUM": {
+    "Tabs": {
+      "EtherSystem": "Ether System",
+      "RuneSystem": "Rune System",
+      "DiceCalculator": "Dice Calculator"
+    },
+    "EtherCurrent": "Current Ether",
+    "EtherMax": "Maximum Ether",
+    "EtherRegen": "Ether Regeneration",
+    "EtherPower": "Ether Power",
+    "EtherCost": "Ether Cost",
+    "Description": "Description",
+    "Buttons": {
+      "Recalculate": "Recalculate",
+      "Rest": "Rest",
+      "AddRune": "Add Rune",
+      "AddFirstRune": "Add First Rune",
+      "Equip": "Equip",
+      "Activate": "Activate",
+      "Delete": "Delete"
+    },
+    "Rune": {
+      "Name": "Rune Name",
+      "NewRune": "New Rune",
+      "Type": "Type",
+      "Power": "Power",
+      "NoRunes": "No runes created yet. Add your first rune to get started!",
+      "DescriptionPlaceholder": "Describe the effects and properties of this rune...",
+      "Activated": "Rune Activated",
+      "Types": {
+        "Offensive": "Offensive",
+        "Defensive": "Defensive",
+        "Support": "Support",
+        "Utility": "Utility"
+      }
+    },
+    "DiceRoll": {
+      "EtherEnhanced": "Ether-Enhanced Roll"
+    },
+    "Calculator": {
+      "Description": "Use the power of ether to enhance your Pathfinder 2E dice rolls.",
+      "Hint": "Equipped runes can be activated at any time. Your character's ether power will be automatically added to compatible rolls."
+    },
+    "Notifications": {
+      "EtherRestored": "Ether fully restored!"
+    },
+    "Errors": {
+      "NoActor": "No actor selected to make the roll.",
+      "InvalidRune": "Invalid or missing rune.",
+      "NotEnoughEther": "Not enough ether to activate this rune!"
+    },
+    "Warnings": {
+      "NotPF2E": "This module is designed to work with the Pathfinder 2E system. Some features may not be available."
+    },
+    "Settings": {
+      "EtherRegenOnRest": {
+        "Name": "Ether Regeneration on Rest",
+        "Hint": "If enabled, ether will be fully restored when the character rests."
+      },
+      "ShowEtherInChat": {
+        "Name": "Show Ether in Chat",
+        "Hint": "If enabled, displays ether information in roll messages in chat."
+      }
+    }
+  }
+}
