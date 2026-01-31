@@ -1,0 +1,167 @@
+<div class="ethernum-container">
+  <!-- Sistema de Éter -->
+  <section class="ethernum-section ether-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-magic"></i> {{localize "ETHERNUM.Tabs.EtherSystem"}}
+    </h2>
+    
+    <div class="ethernum-ether-display">
+      <div class="ethernum-stat-row">
+        <label class="ethernum-label">{{localize "ETHERNUM.EtherCurrent"}}</label>
+        <div class="ethernum-ether-bar">
+          <div class="ethernum-ether-bar-fill" style="width: {{multiply (divide etherSystem.etherCurrent etherSystem.etherMax) 100}}%"></div>
+          <div class="ethernum-ether-bar-text">
+            <input type="number" 
+                   class="ethernum-ether-input" 
+                   value="{{etherSystem.etherCurrent}}" 
+                   min="0" 
+                   max="{{etherSystem.etherMax}}" />
+            / {{etherSystem.etherMax}}
+          </div>
+        </div>
+      </div>
+
+      <div class="ethernum-stats-grid">
+        <div class="ethernum-stat-box">
+          <label>{{localize "ETHERNUM.EtherRegen"}}</label>
+          <div class="ethernum-stat-value">{{etherSystem.etherRegen}}</div>
+        </div>
+        
+        <div class="ethernum-stat-box">
+          <label>{{localize "ETHERNUM.EtherPower"}}</label>
+          <div class="ethernum-stat-value">+{{etherSystem.etherPower}}</div>
+        </div>
+      </div>
+
+      <div class="ethernum-button-row">
+        <button type="button" class="ethernum-button ethernum-recalculate">
+          <i class="fas fa-calculator"></i> {{localize "ETHERNUM.Buttons.Recalculate"}}
+        </button>
+        <button type="button" class="ethernum-button ethernum-rest">
+          <i class="fas fa-bed"></i> {{localize "ETHERNUM.Buttons.Rest"}}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sistema de Runas -->
+  <section class="ethernum-section rune-system">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-gem"></i> {{localize "ETHERNUM.Tabs.RuneSystem"}}
+      <button type="button" class="ethernum-button-small ethernum-add-rune">
+        <i class="fas fa-plus"></i> {{localize "ETHERNUM.Buttons.AddRune"}}
+      </button>
+    </h2>
+
+    {{#if runes}}
+      <div class="ethernum-runes-list">
+        {{#each runes}}
+          <div class="ethernum-rune-item {{#if this.equipped}}equipped{{/if}}">
+            <div class="ethernum-rune-header">
+              <input type="text" 
+                     class="ethernum-rune-input ethernum-rune-name" 
+                     value="{{this.name}}" 
+                     data-rune-id="{{this.id}}"
+                     data-field="name"
+                     placeholder="{{localize 'ETHERNUM.Rune.Name'}}" />
+              
+              <div class="ethernum-rune-controls">
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-equip-rune {{#if this.equipped}}active{{/if}}" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Equip'}}">
+                  <i class="fas fa-{{#if this.equipped}}check-circle{{else}}circle{{/if}}"></i>
+                </button>
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-roll-rune" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Activate'}}">
+                  <i class="fas fa-dice-d20"></i>
+                </button>
+                <button type="button" 
+                        class="ethernum-icon-button ethernum-delete-rune" 
+                        data-rune-id="{{this.id}}"
+                        title="{{localize 'ETHERNUM.Buttons.Delete'}}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="ethernum-rune-body">
+              <div class="ethernum-rune-stats">
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.Rune.Type"}}</label>
+                  <select class="ethernum-rune-input" data-rune-id="{{this.id}}" data-field="type">
+                    <option value="ofensiva" {{#if (ethernum-eq this.type "ofensiva")}}selected{{/if}}>
+                      {{localize "ETHERNUM.Rune.Types.Offensive"}}
+                    </option>
+                    <option value="defensiva" {{#if (ethernum-eq this.type "defensiva")}}selected{{/if}}>
+                      {{localize "ETHERNUM.Rune.Types.Defensive"}}
+                    </option>
+                    <option value="suporte" {{#if (ethernum-eq this.type "suporte")}}selected{{/if}}>
+                      {{localize "ETHERNUM.Rune.Types.Support"}}
+                    </option>
+                    <option value="utilidade" {{#if (ethernum-eq this.type "utilidade")}}selected{{/if}}>
+                      {{localize "ETHERNUM.Rune.Types.Utility"}}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.EtherCost"}}</label>
+                  <input type="number" 
+                         class="ethernum-rune-input" 
+                         value="{{this.etherCost}}" 
+                         data-rune-id="{{this.id}}"
+                         data-field="etherCost"
+                         min="0" />
+                </div>
+
+                <div class="ethernum-rune-stat">
+                  <label>{{localize "ETHERNUM.Rune.Power"}}</label>
+                  <input type="number" 
+                         class="ethernum-rune-input" 
+                         value="{{this.power}}" 
+                         data-rune-id="{{this.id}}"
+                         data-field="power"
+                         min="0" />
+                </div>
+              </div>
+
+              <div class="ethernum-rune-description">
+                <label>{{localize "ETHERNUM.Description"}}</label>
+                <textarea class="ethernum-rune-input" 
+                          data-rune-id="{{this.id}}"
+                          data-field="description"
+                          rows="2"
+                          placeholder="{{localize 'ETHERNUM.Rune.DescriptionPlaceholder'}}">{{this.description}}</textarea>
+              </div>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="ethernum-empty-state">
+        <i class="fas fa-gem"></i>
+        <p>{{localize "ETHERNUM.Rune.NoRunes"}}</p>
+        <button type="button" class="ethernum-button ethernum-add-rune">
+          <i class="fas fa-plus"></i> {{localize "ETHERNUM.Buttons.AddFirstRune"}}
+        </button>
+      </div>
+    {{/if}}
+  </section>
+
+  <!-- Calculadora de Dados -->
+  <section class="ethernum-section dice-calculator">
+    <h2 class="ethernum-section-title">
+      <i class="fas fa-calculator"></i> {{localize "ETHERNUM.Tabs.DiceCalculator"}}
+    </h2>
+    
+    <div class="ethernum-calculator-info">
+      <p>{{localize "ETHERNUM.Calculator.Description"}}</p>
+      <p class="ethernum-info-text">
+        <i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Calculator.Hint"}}
+      </p>
+    </div>
+  </section>
+</div>
