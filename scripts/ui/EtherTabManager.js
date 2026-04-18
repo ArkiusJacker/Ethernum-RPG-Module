@@ -1,11 +1,15 @@
 import { ETHERNUM } from '../config.js';
 import { EtherSystem, FESystem, EthernumDiceCalculator } from '../systems.js';
 
+// Persiste qual aba Ethernum estava ativa por ator entre re-renders.
+// actor.setFlag() no PF2E v8 (ApplicationV2) dispara re-render automático;
+// sem esse mapa, a aba reseta para o estado nativo a cada interação.
+const _activeEthernumTab = new Map();
+
 export class EtherTabManager {
   static async render(app, html) {
     if (app.actor?.type !== "character") return;
 
-    // ApplicationV2 (PF2E v8) passes HTMLElement; Application passes jQuery
     const $html = html instanceof jQuery ? html : $(html);
 
     const nav = $html.find('.sheet-navigation');
@@ -37,8 +41,22 @@ export class EtherTabManager {
       <div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>
     `);
 
-    this._activateTabSwitching($html);
+    this._activateTabSwitching($html, actor.id);
+
+    // Restaura a aba que estava ativa antes do re-render
+    const savedTab = _activeEthernumTab.get(actor.id);
+    if (savedTab) this._showTab($html, savedTab);
+
     this._activateListeners(app, $html, actor, isGM);
+  }
+
+  static _showTab($html, tab) {
+    const $body = $html.find('.sheet-body');
+    $html.find('.sheet-navigation .item').removeClass('active').attr('aria-selected', 'false');
+    $html.find(`.sheet-navigation [data-tab="${tab}"]`).addClass('active').attr('aria-selected', 'true');
+    $body.find('.sheet-content').hide();
+    $body.find('.ethernum-content').hide();
+    $body.find(`.ethernum-content[data-ethernum-tab="${tab}"]`).show();
   }
 
   static _buildTemplateData(actor, isGM) {
@@ -83,7 +101,7 @@ export class EtherTabManager {
     });
   }
 
-  static _activateTabSwitching($html) {
+  static _activateTabSwitching($html, actorId) {
     const $body = $html.find('.sheet-body');
     const $sheetContent = $body.find('.sheet-content');
 
@@ -91,16 +109,12 @@ export class EtherTabManager {
       ev.preventDefault();
       ev.stopPropagation();
       const tab = $(ev.currentTarget).data('tab');
-
-      $html.find('.sheet-navigation .item').removeClass('active').attr('aria-selected', 'false');
-      $(ev.currentTarget).addClass('active').attr('aria-selected', 'true');
-
-      $sheetContent.hide();
-      $body.find('.ethernum-content').hide();
-      $body.find(`.ethernum-content[data-ethernum-tab="${tab}"]`).show();
+      _activeEthernumTab.set(actorId, tab);
+      this._showTab($html, tab);
     });
 
     $html.find('.sheet-navigation .item:not([data-tab^="ethernum"])').on('click.ethernum', () => {
+      _activeEthernumTab.delete(actorId);
       $sheetContent.show();
       $body.find('.ethernum-content').hide();
       $html.find('.sheet-navigation [data-tab^="ethernum"]').removeClass('active').attr('aria-selected', 'false');
