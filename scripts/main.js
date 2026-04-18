@@ -56,7 +56,7 @@ async function initializeActorFlags(actor) {
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
 
-Hooks.on("renderActorSheet", (app, html) => EtherTabManager.render(app, html));
+Hooks.on("renderCharacterSheetPF2e", (app, html) => EtherTabManager.render(app, html));
 Hooks.on("createActor", (actor) => initializeActorFlags(actor));
 
 Hooks.once("init", () => {
@@ -73,7 +73,7 @@ Hooks.once("init", () => {
   game.ethernum = { ETHERNUM };
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
   await migrateWorld();

@@ -3,16 +3,19 @@ import { EtherSystem, FESystem, EthernumDiceCalculator } from '../systems.js';
 
 export class EtherTabManager {
   static async render(app, html) {
-    if (app.actor.type !== "character") return;
+    if (app.actor?.type !== "character") return;
 
-    const tabs = html.find('.sheet-navigation.tabs');
-    if (tabs.length === 0) return;
-    if (tabs.find('[data-tab="ethernum-attributes"]').length > 0) return;
+    // ApplicationV2 (PF2E v8) passes HTMLElement; Application passes jQuery
+    const $html = html instanceof jQuery ? html : $(html);
+
+    const nav = $html.find('.sheet-navigation');
+    if (nav.length === 0) return;
+    if (nav.find('[data-tab="ethernum-attributes"]').length > 0) return;
 
     const actor = app.actor;
     const isGM = game.user.isGM;
 
-    tabs.append(`
+    nav.append(`
       <a class="item" data-tab="ethernum-attributes">
         <i class="fas fa-user-shield"></i> ${game.i18n.localize("ETHERNUM.Tabs.EtherAttributes")}
       </a>
@@ -28,12 +31,12 @@ export class EtherTabManager {
       renderTemplate(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData),
     ]);
 
-    html.find('.sheet-body').append(`
+    $html.find('.sheet-body').append(`
       <div class="tab" data-tab="ethernum-attributes">${attributesTemplate}</div>
       <div class="tab" data-tab="ethernum-runes">${runesTemplate}</div>
     `);
 
-    this._activateListeners(app, html, actor, isGM);
+    this._activateListeners(app, $html, actor, isGM);
   }
 
   static _buildTemplateData(actor, isGM) {
