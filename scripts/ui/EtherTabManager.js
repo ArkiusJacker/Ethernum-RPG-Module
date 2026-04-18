@@ -33,8 +33,8 @@ export class EtherTabManager {
     ]);
 
     $html.find('.sheet-body').append(`
-      <div class="ethernum-content" data-ethernum-tab="ethernum-attributes" style="display:none;height:100%;overflow-y:auto;">${attributesTemplate}</div>
-      <div class="ethernum-content" data-ethernum-tab="ethernum-runes" style="display:none;height:100%;overflow-y:auto;">${runesTemplate}</div>
+      <div class="ethernum-content" data-ethernum-tab="ethernum-attributes">${attributesTemplate}</div>
+      <div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>
     `);
 
     this._activateTabSwitching($html);
