@@ -74,6 +74,13 @@ export function registerSettings() {
     }
   });
 
+  game.settings.register(ETHERNUM.MODULE_NAME, "schemaVersion", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
+  });
+
   console.log("Ethernum RPG Module | Settings registradas");
 }
 

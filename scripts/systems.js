@@ -171,7 +171,7 @@ export class RuneSystem {
     // Rola 1d20 + Constituição + Rank Bonus
     const totalBonus = conValue + conRankBonus;
     const roll = new Roll(`1d20 + ${totalBonus}`);
-    await roll.evaluate({async: true});
+    await roll.evaluate();
     
     const success = roll.total >= dc;
     
@@ -234,128 +234,28 @@ export class FESystem {
     return { nextRank, cost, possible: true };
   }
 
-  /**
-   * Tenta fazer upgrade de um atributo
-   * @param {Actor} actor - O ator
-   * @param {string} attrKey - A chave do atributo (ex: "forca")
-   * @param {number} levelsToGain - Quantidade de níveis para ganhar
-   * @returns {object} - { success, message, newValue, newRank, feCost }
-   */
-  static async upgradeAttribute(actor, attrKey, levelsToGain = 1) {
-    if (!actor || !attrKey || levelsToGain < 1) {
-      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
-    }
-
+  static async _upgradeEntity(actor, entityKey, flagKey, defaultValues, notFoundKey, levelsToGain) {
     const fe = actor.getFlag(ETHERNUM.MODULE_NAME, "fe") || { ...ETHERNUM.DEFAULT_FE };
-    const etherAttributes = actor.getFlag(ETHERNUM.MODULE_NAME, "etherAttributes") || { ...ETHERNUM.DEFAULT_ETHER_ATTRIBUTES };
-    
-    if (!etherAttributes[attrKey]) {
-      return { success: false, message: game.i18n.localize("ETHERNUM.FE.AttributeNotFound") };
-    }
+    const entityMap = actor.getFlag(ETHERNUM.MODULE_NAME, flagKey) || { ...defaultValues };
 
-    const attr = etherAttributes[attrKey];
-    let currentLevel = attr.value || 1;
-    let currentRank = attr.rank || "F";
+    if (!entityMap[entityKey])
+      return { success: false, message: game.i18n.localize(notFoundKey) };
+
+    const entity = entityMap[entityKey];
+    let currentLevel = entity.value || 1;
+    let currentRank = entity.rank || "F";
     let remainingLevels = levelsToGain;
     let totalCost = 0;
 
-    // Simula os upgrades para calcular o custo total
     while (remainingLevels > 0) {
       const targetLevel = Math.min(currentLevel + remainingLevels, ETHERNUM.MAX_LEVEL);
-      const cost = this.calculateUpgradeCost(currentRank, currentLevel, targetLevel);
-      totalCost += cost;
-      
-      const levelsGained = targetLevel - currentLevel;
-      remainingLevels -= levelsGained;
+      totalCost += this.calculateUpgradeCost(currentRank, currentLevel, targetLevel);
+      remainingLevels -= targetLevel - currentLevel;
       currentLevel = targetLevel;
 
-      // Se atingiu o nível máximo e ainda tem níveis para ganhar, tenta subir de rank
       if (currentLevel >= ETHERNUM.MAX_LEVEL && remainingLevels > 0) {
         const rankUpInfo = this.calculateRankUpCost(currentRank);
-        if (!rankUpInfo.possible) {
-          break; // Não pode subir mais de rank
-        }
-        totalCost += rankUpInfo.cost;
-        currentRank = rankUpInfo.nextRank;
-        currentLevel = 1;
-        remainingLevels--; // O rank up conta como 1 nível
-      }
-    }
-
-    // Verifica se tem FE suficiente
-    if (fe.current < totalCost) {
-      return { 
-        success: false, 
-        message: game.i18n.format("ETHERNUM.FE.NotEnough", { cost: totalCost, current: fe.current }),
-        feCost: totalCost
-      };
-    }
-
-    // Aplica o upgrade
-    const newFE = {
-      current: fe.current - totalCost,
-      total: fe.total
-    };
-
-    etherAttributes[attrKey] = {
-      value: currentLevel,
-      rank: currentRank,
-      points: attr.points || 0
-    };
-
-    await actor.setFlag(ETHERNUM.MODULE_NAME, "fe", newFE);
-    await actor.setFlag(ETHERNUM.MODULE_NAME, "etherAttributes", etherAttributes);
-
-    return {
-      success: true,
-      message: game.i18n.format("ETHERNUM.FE.UpgradeSuccess", { attr: attrKey }),
-      newValue: currentLevel,
-      newRank: currentRank,
-      feCost: totalCost
-    };
-  }
-
-  /**
-   * Tenta fazer upgrade de um talento
-   * @param {Actor} actor - O ator
-   * @param {string} talentKey - A chave do talento
-   * @param {number} levelsToGain - Quantidade de níveis para ganhar
-   * @returns {object} - { success, message, newValue, newRank, feCost }
-   */
-  static async upgradeTalent(actor, talentKey, levelsToGain = 1) {
-    if (!actor || !talentKey || levelsToGain < 1) {
-      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
-    }
-
-    const fe = actor.getFlag(ETHERNUM.MODULE_NAME, "fe") || { ...ETHERNUM.DEFAULT_FE };
-    const talents = actor.getFlag(ETHERNUM.MODULE_NAME, "talents") || { ...ETHERNUM.DEFAULT_TALENTS };
-    
-    if (!talents[talentKey]) {
-      return { success: false, message: game.i18n.localize("ETHERNUM.FE.TalentNotFound") };
-    }
-
-    const talent = talents[talentKey];
-    let currentLevel = talent.value || 1;
-    let currentRank = talent.rank || "F";
-    let remainingLevels = levelsToGain;
-    let totalCost = 0;
-
-    // Simula os upgrades para calcular o custo total
-    while (remainingLevels > 0) {
-      const targetLevel = Math.min(currentLevel + remainingLevels, ETHERNUM.MAX_LEVEL);
-      const cost = this.calculateUpgradeCost(currentRank, currentLevel, targetLevel);
-      totalCost += cost;
-      
-      const levelsGained = targetLevel - currentLevel;
-      remainingLevels -= levelsGained;
-      currentLevel = targetLevel;
-
-      // Se atingiu o nível máximo e ainda tem níveis para ganhar, tenta subir de rank
-      if (currentLevel >= ETHERNUM.MAX_LEVEL && remainingLevels > 0) {
-        const rankUpInfo = this.calculateRankUpCost(currentRank);
-        if (!rankUpInfo.possible) {
-          break;
-        }
+        if (!rankUpInfo.possible) break;
         totalCost += rankUpInfo.cost;
         currentRank = rankUpInfo.nextRank;
         currentLevel = 1;
@@ -363,37 +263,26 @@ export class FESystem {
       }
     }
 
-    // Verifica se tem FE suficiente
-    if (fe.current < totalCost) {
-      return { 
-        success: false, 
-        message: game.i18n.format("ETHERNUM.FE.NotEnough", { cost: totalCost, current: fe.current }),
-        feCost: totalCost
-      };
-    }
+    if (fe.current < totalCost)
+      return { success: false, message: game.i18n.format("ETHERNUM.FE.NotEnough", { cost: totalCost, current: fe.current }), feCost: totalCost };
 
-    // Aplica o upgrade
-    const newFE = {
-      current: fe.current - totalCost,
-      total: fe.total
-    };
+    entityMap[entityKey] = { value: currentLevel, rank: currentRank, points: entity.points || 0 };
+    await actor.setFlag(ETHERNUM.MODULE_NAME, "fe", { current: fe.current - totalCost, total: fe.total });
+    await actor.setFlag(ETHERNUM.MODULE_NAME, flagKey, entityMap);
 
-    talents[talentKey] = {
-      value: currentLevel,
-      rank: currentRank,
-      points: talent.points || 0
-    };
+    return { success: true, message: game.i18n.format("ETHERNUM.FE.UpgradeSuccess", { attr: entityKey }), newValue: currentLevel, newRank: currentRank, feCost: totalCost };
+  }
 
-    await actor.setFlag(ETHERNUM.MODULE_NAME, "fe", newFE);
-    await actor.setFlag(ETHERNUM.MODULE_NAME, "talents", talents);
+  static async upgradeAttribute(actor, attrKey, levelsToGain = 1) {
+    if (!actor || !attrKey || levelsToGain < 1)
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
+    return this._upgradeEntity(actor, attrKey, "etherAttributes", ETHERNUM.DEFAULT_ETHER_ATTRIBUTES, "ETHERNUM.FE.AttributeNotFound", levelsToGain);
+  }
 
-    return {
-      success: true,
-      message: game.i18n.format("ETHERNUM.FE.UpgradeSuccess", { attr: talentKey }),
-      newValue: currentLevel,
-      newRank: currentRank,
-      feCost: totalCost
-    };
+  static async upgradeTalent(actor, talentKey, levelsToGain = 1) {
+    if (!actor || !talentKey || levelsToGain < 1)
+      return { success: false, message: game.i18n.localize("ETHERNUM.FE.InvalidParams") };
+    return this._upgradeEntity(actor, talentKey, "talents", ETHERNUM.DEFAULT_TALENTS, "ETHERNUM.FE.TalentNotFound", levelsToGain);
   }
 
   /**
@@ -485,7 +374,7 @@ export class EthernumDiceCalculator {
     const formula = `1d20 + ${totalBonus}`;
     
     const roll = new Roll(formula);
-    await roll.evaluate({async: true});
+    await roll.evaluate();
 
     // Monta o flavor text com detalhes
     const flavorParts = [
@@ -557,7 +446,7 @@ export class EthernumDiceCalculator {
     // Rola o efeito da runa
     const formula = `1d20 + ${etherPower}`;
     const roll = new Roll(formula);
-    await roll.evaluate({async: true});
+    await roll.evaluate();
 
     // Constrói mensagem detalhada
     const runeClassInfo = ETHERNUM.RUNE_CLASSES[runeClass];
@@ -595,7 +484,7 @@ export class EthernumDiceCalculator {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({actor: actor}),
       content: content,
-      type: CONST.CHAT_MESSAGE_TYPES.OTHER
+      type: CONST.CHAT_MESSAGE_STYLES?.OTHER ?? 0
     });
 
     ui.notifications.error(game.i18n.localize("ETHERNUM.Override.FailureNotification"));
@@ -617,7 +506,7 @@ export class EthernumDiceCalculator {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({actor: actor}),
       content: content,
-      type: CONST.CHAT_MESSAGE_TYPES.OTHER
+      type: CONST.CHAT_MESSAGE_STYLES?.OTHER ?? 0
     });
 
     ui.notifications.warn(game.i18n.localize("ETHERNUM.Override.SuccessNotification"));

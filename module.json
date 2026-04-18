@@ -18,8 +18,7 @@
     "systems": [
       {
         "id": "pf2e",
-        "type": "system",
-        "compatibility": {"pf2e"}
+        "type": "system"
       }
     ]
   },
