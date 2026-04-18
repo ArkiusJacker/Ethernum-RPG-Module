@@ -33,10 +33,11 @@ export class EtherTabManager {
     ]);
 
     $html.find('.sheet-body').append(`
-      <div class="tab" data-tab="ethernum-attributes">${attributesTemplate}</div>
-      <div class="tab" data-tab="ethernum-runes">${runesTemplate}</div>
+      <div class="ethernum-content" data-ethernum-tab="ethernum-attributes" style="display:none;height:100%;overflow-y:auto;">${attributesTemplate}</div>
+      <div class="ethernum-content" data-ethernum-tab="ethernum-runes" style="display:none;height:100%;overflow-y:auto;">${runesTemplate}</div>
     `);
 
+    this._activateTabSwitching($html);
     this._activateListeners(app, $html, actor, isGM);
   }
 
@@ -79,6 +80,30 @@ export class EtherTabManager {
       etherMax: ether.calculateMaxEther(actor),
       etherCurrent: Math.min(current.etherCurrent ?? 0, ether.calculateMaxEther(actor)),
       etherPower: ether.calculateEtherPower(actor),
+    });
+  }
+
+  static _activateTabSwitching($html) {
+    const $body = $html.find('.sheet-body');
+    const $sheetContent = $body.find('.sheet-content');
+
+    $html.find('.sheet-navigation [data-tab^="ethernum"]').on('click.ethernum', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const tab = $(ev.currentTarget).data('tab');
+
+      $html.find('.sheet-navigation .item').removeClass('active').attr('aria-selected', 'false');
+      $(ev.currentTarget).addClass('active').attr('aria-selected', 'true');
+
+      $sheetContent.hide();
+      $body.find('.ethernum-content').hide();
+      $body.find(`.ethernum-content[data-ethernum-tab="${tab}"]`).show();
+    });
+
+    $html.find('.sheet-navigation .item:not([data-tab^="ethernum"])').on('click.ethernum', () => {
+      $sheetContent.show();
+      $body.find('.ethernum-content').hide();
+      $html.find('.sheet-navigation [data-tab^="ethernum"]').removeClass('active').attr('aria-selected', 'false');
     });
   }
 
