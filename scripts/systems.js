@@ -326,31 +326,71 @@ export class FESystem {
   }
 }
 
+// Mapa de talentos Ethernum → slugs de skills no PF2E
+const PF2E_SKILL_MAP = {
+  investigacao: "occultism",
+  percepcao:    "_perception",   // Percepção é atributo especial no PF2E
+  furtividade:  "stealth",
+  atletismo:    "athletics",
+  acrobacia:    "acrobatics",
+  intimidacao:  "intimidation",
+  persuasao:    "diplomacy",
+  enganacao:    "deception",
+  medicina:     "medicine",
+  sobrevivencia:"survival",
+  arcanismo:    "arcana",
+  religiao:     "religion",
+  natureza:     "nature",
+  sociedade:    "society",
+  ocultismo:    "occultism",
+};
+
+// Mapa de atributos Ethernum → chaves de habilidade PF2E
+const PF2E_ABILITY_MAP = {
+  forca:        "str",
+  destreza:     "dex",
+  constituicao: "con",
+  inteligencia: "int",
+  sabedoria:    "wis",
+  carisma:      "cha",
+};
+
 /**
  * Calculadora de Dados com Sistema de Talentos e Ranks
- * Fórmula: Talento + Rank do Talento + Atributo + Rank do Atributo
- * Usando os bônus específicos: Atributo (F=2...K=20), Talento (F=3...K=25)
+ * Fórmula: 1d20 + PF2E_Skill + TalentRankBonus + PF2E_AbilityMod + AttrRankBonus
  */
 export class EthernumDiceCalculator {
-  /**
-   * Converte rank de atributo para bônus numérico
-   * F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20
-   */
   static attributeRankToBonus(rank) {
     return ETHERNUM.ATTRIBUTE_RANK_BONUS[rank || "F"] || 2;
   }
 
-  /**
-   * Converte rank de talento para bônus numérico
-   * F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25
-   */
   static talentRankToBonus(rank) {
     return ETHERNUM.TALENT_RANK_BONUS[rank || "F"] || 3;
   }
 
+  /** Lê o modificador total de uma skill PF2E para o talento dado. */
+  static _getPF2ESkillValue(actor, talentKey) {
+    const slug = PF2E_SKILL_MAP[talentKey];
+    if (!slug) return null;
+    if (slug === "_perception") {
+      return actor.system?.attributes?.perception?.value
+        ?? actor.perception?.value
+        ?? null;
+    }
+    return actor.skills?.[slug]?.value ?? null;
+  }
+
+  /** Lê o modificador de habilidade PF2E para o atributo dado. */
+  static _getPF2EAbilityMod(actor, attributeKey) {
+    const key = PF2E_ABILITY_MAP[attributeKey];
+    if (!key) return null;
+    return actor.system?.abilities?.[key]?.mod ?? null;
+  }
+
   /**
-   * Rola dados usando o sistema de talentos
-   * Fórmula: 1d20 + Talento(valor) + RankTalento(bônus) + Atributo(valor) + RankAtributo(bônus)
+   * Rola dados usando o sistema de talentos integrado com PF2E.
+   * Fórmula: 1d20 + PF2E_Skill + TalentRankBonus + PF2E_AbilityMod + AttrRankBonus
+   * Quando PF2E não disponível, usa valores manuais do Ethernum como fallback.
    */
   static async rollWithTalent(actor, talentKey, attributeKey, options = {}) {
     if (!actor) {
@@ -364,29 +404,34 @@ export class EthernumDiceCalculator {
     const talent = talents[talentKey] || { value: 1, rank: "F" };
     const attribute = etherAttributes[attributeKey] || { value: 1, rank: "F" };
 
-    const talentValue = talent.value || 1;
     const talentRankBonus = this.talentRankToBonus(talent.rank);
-    const attrValue = attribute.value || 1;
     const attrRankBonus = this.attributeRankToBonus(attribute.rank);
 
-    // Fórmula: 1d20 + talento + rankTalento(bônus) + atributo + rankAtributo(bônus)
+    // Lê do PF2E se disponível; fallback para valores manuais do Ethernum
+    const pf2eSkill = this._getPF2ESkillValue(actor, talentKey);
+    const pf2eAbility = this._getPF2EAbilityMod(actor, attributeKey);
+    const talentValue = pf2eSkill !== null ? pf2eSkill : (talent.value || 1);
+    const attrValue   = pf2eAbility !== null ? pf2eAbility : (attribute.value || 1);
+
     const totalBonus = talentValue + talentRankBonus + attrValue + attrRankBonus;
-    const formula = `1d20 + ${totalBonus}`;
-    
-    const roll = new Roll(formula);
+    const roll = new Roll(`1d20 + ${totalBonus}`);
     await roll.evaluate();
 
-    // Monta o flavor text com detalhes
+    const talentLabel = game.i18n.localize(`ETHERNUM.Talent.${talentKey}`) || talentKey;
+    const attrLabel   = game.i18n.localize(`ETHERNUM.Attribute.${attributeKey}`) || attributeKey;
+    const skillSource = pf2eSkill !== null ? " (PF2E)" : " (Ethernum)";
+    const abilSource  = pf2eAbility !== null ? " (PF2E)" : " (Ethernum)";
+
     const flavorParts = [
-      game.i18n.localize("ETHERNUM.Calculator.TalentRoll"),
-      `${game.i18n.localize("ETHERNUM.Talent." + talentKey) || talentKey}: ${talentValue} + ${talentRankBonus} (${talent.rank})`,
-      `${game.i18n.localize("ETHERNUM.Attribute." + attributeKey) || attributeKey}: ${attrValue} + ${attrRankBonus} (${attribute.rank})`,
-      `<strong>Total: 1d20 + ${totalBonus}</strong>`
+      `<strong>${game.i18n.localize("ETHERNUM.Calculator.TalentRoll")}</strong>`,
+      `${talentLabel}: <b>${talentValue}</b>${skillSource} + ${talentRankBonus} (Rank ${talent.rank})`,
+      `${attrLabel}: <b>${attrValue}</b>${abilSource} + ${attrRankBonus} (Rank ${attribute.rank})`,
+      `<strong>Total: 1d20 + ${totalBonus}</strong>`,
     ];
 
     await roll.toMessage({
-      speaker: ChatMessage.getSpeaker({actor: actor}),
-      flavor: flavorParts.join("<br>")
+      speaker: ChatMessage.getSpeaker({ actor }),
+      flavor: flavorParts.join("<br>"),
     });
 
     return roll;
