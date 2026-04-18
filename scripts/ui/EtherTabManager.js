@@ -16,19 +16,20 @@ export class EtherTabManager {
     const isGM = game.user.isGM;
 
     nav.append(`
-      <a class="item" data-tab="ethernum-attributes">
-        <i class="fas fa-user-shield"></i> ${game.i18n.localize("ETHERNUM.Tabs.EtherAttributes")}
+      <a class="item" data-tab="ethernum-attributes" data-tooltip="${game.i18n.localize("ETHERNUM.Tabs.EtherAttributes")}">
+        <i class="fas fa-user-shield"></i>
       </a>
-      <a class="item" data-tab="ethernum-runes">
-        <i class="fas fa-gem"></i> ${game.i18n.localize("ETHERNUM.Tabs.RuneSystem")}
+      <a class="item" data-tab="ethernum-runes" data-tooltip="${game.i18n.localize("ETHERNUM.Tabs.RuneSystem")}">
+        <i class="fas fa-gem"></i>
       </a>
     `);
 
     const templateData = this._buildTemplateData(actor, isGM);
 
+    const renderTpl = foundry.applications?.handlebars?.renderTemplate ?? renderTemplate;
     const [attributesTemplate, runesTemplate] = await Promise.all([
-      renderTemplate(`${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`, templateData),
-      renderTemplate(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData),
+      renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`, templateData),
+      renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData),
     ]);
 
     $html.find('.sheet-body').append(`

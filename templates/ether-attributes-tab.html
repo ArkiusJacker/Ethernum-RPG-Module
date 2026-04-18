@@ -60,7 +60,7 @@
         <label class="ethernum-label">{{localize "ETHERNUM.EtherCurrent"}}</label>
         <div class="ethernum-ether-bar">
           {{#if etherSystem.etherMax}}
-          <div class="ethernum-ether-bar-fill" style="width: {{multiply (divide etherSystem.etherCurrent etherSystem.etherMax) 100}}%"></div>
+          <div class="ethernum-ether-bar-fill" style="width: {{ethernum-multiply (ethernum-divide etherSystem.etherCurrent etherSystem.etherMax) 100}}%"></div>
           {{/if}}
           <div class="ethernum-ether-bar-text">
             <input type="number" 

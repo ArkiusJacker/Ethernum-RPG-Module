@@ -12,6 +12,8 @@ function registerHandlebarsHelpers() {
   Handlebars.registerHelper('ethernum-eq', (a, b) => a === b);
   Handlebars.registerHelper('ethernum-gt', (a, b) => a > b);
   Handlebars.registerHelper('ethernum-lte', (a, b) => a <= b);
+  Handlebars.registerHelper('ethernum-divide', (a, b) => (b !== 0 ? a / b : 0));
+  Handlebars.registerHelper('ethernum-multiply', (a, b) => a * b);
   Handlebars.registerHelper('ethernum-rankIndex', (rank) => ETHERNUM.RANKS.indexOf(rank || "F"));
   Handlebars.registerHelper('ethernum-attrRankBonus', (rank) => ETHERNUM.ATTRIBUTE_RANK_BONUS[rank || "F"] || 2);
   Handlebars.registerHelper('ethernum-talentRankBonus', (rank) => ETHERNUM.TALENT_RANK_BONUS[rank || "F"] || 3);
@@ -65,7 +67,8 @@ Hooks.once("init", () => {
   registerHandlebarsHelpers();
   registerSettings();
 
-  loadTemplates([
+  const loadTpls = foundry.applications?.handlebars?.loadTemplates ?? loadTemplates;
+  loadTpls([
     `${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`,
   ]);
