@@ -33,3 +33,6 @@ logs/
 # Environment
 .env
 .env.local
+
+# Brainstorming sessions
+.superpowers/

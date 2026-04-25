@@ -7,8 +7,11 @@ import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '..
 const _activeEthernumTab = new Map<string, string>();
 
 // Estado de UI: grupos colapsados e runas minimizadas — não persistem no banco.
-const _collapsedGroups = new Map<string, Set<string>>();
-const _minimizedRunes  = new Map<string, Set<string>>();
+const _collapsedGroups  = new Map<string, Set<string>>();
+const _minimizedRunes   = new Map<string, Set<string>>();
+const _scrollPositions  = new Map<string, Record<string, number>>();
+const _gmDrawerOpen     = new Map<string, boolean>();
+const _sectionCollapsed = new Map<string, Set<string>>();
 
 interface EtherSystemState {
   etherMax: number;
@@ -66,6 +69,21 @@ export class EtherTabManager {
       <div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>
     `);
 
+    // Restore scroll positions before showing tab
+    const savedScrolls = _scrollPositions.get(actor.id!) ?? {};
+    $html.find('.ethernum-content').each((_, el) => {
+      const tab = el.getAttribute('data-ethernum-tab') ?? '';
+      if (savedScrolls[tab] != null) el.scrollTop = savedScrolls[tab];
+    });
+
+    // Save scroll continuously
+    $html.find('.ethernum-content').on('scroll.ethernum', (ev) => {
+      const el = ev.currentTarget as HTMLElement;
+      const tab = el.getAttribute('data-ethernum-tab') ?? '';
+      if (!_scrollPositions.has(actor.id!)) _scrollPositions.set(actor.id!, {});
+      _scrollPositions.get(actor.id!)![tab] = el.scrollTop;
+    });
+
     this._activateTabSwitching($html, actor.id!);
 
     const savedTab = _activeEthernumTab.get(actor.id!);
@@ -118,6 +136,12 @@ export class EtherTabManager {
       runeGroups,
       maxRuneClass:    (actor.getFlag(ETHERNUM.MODULE_NAME, "maxRuneClass") as number | undefined) ?? 1,
       isGM,
+      gmDrawerOpen: _gmDrawerOpen.get(actor.id!) ?? false,
+      sectionCollapsed: Object.fromEntries(
+        ['classes', 'fe', 'attributes', 'talents'].map(k => [
+          k, (_sectionCollapsed.get(actor.id!) ?? new Set(['classes'])).has(k)
+        ])
+      ),
       ranks:               ETHERNUM.RANKS,
       runeClasses:         ETHERNUM.RUNE_CLASSES,
       runeTrinity:         ETHERNUM.RUNE_TRINITY,
@@ -499,6 +523,63 @@ export class EtherTabManager {
       (rune as Record<string, unknown>)[field] = value;
       await actor.setFlag(ETHERNUM.MODULE_NAME, "runes", runes);
       if (field === 'costValue' || field === 'runeClass') app.render();
+    });
+
+    // GM drawer: abrir/fechar sem re-render
+    html.find('.ethernum-toggle-gm-drawer').on('click', (ev) => {
+      ev.preventDefault();
+      const actorId = actor.id!;
+      const isOpen  = !(_gmDrawerOpen.get(actorId) ?? false);
+      _gmDrawerOpen.set(actorId, isOpen);
+      html.find('.ethernum-gm-drawer').toggleClass('open', isOpen);
+      html.find('.ethernum-toggle-gm-drawer').toggleClass('active', isOpen);
+    });
+
+    // Accordion de seções: colapsar/expandir sem re-render
+    html.find('.ethernum-accordion-toggle').on('click', (ev) => {
+      ev.preventDefault();
+      const section = $(ev.currentTarget).data('section') as string;
+      const actorId = actor.id!;
+      if (!_sectionCollapsed.has(actorId)) _sectionCollapsed.set(actorId, new Set(['classes']));
+      const set = _sectionCollapsed.get(actorId)!;
+      if (set.has(section)) set.delete(section); else set.add(section);
+      $(ev.currentTarget).closest('.ethernum-section--accordion').toggleClass('collapsed', set.has(section));
+    });
+
+    // Trinity chips: click abre o select
+    html.find('.ethernum-trinity-chip').on('click', (ev) => {
+      ev.preventDefault();
+      const $chip   = $(ev.currentTarget);
+      const $group  = $chip.closest('.ethernum-trinity-chip-group');
+      const $select = $group.find('.ethernum-trinity-select-hidden');
+      $chip.hide();
+      $select.show().trigger('focus');
+    });
+
+    // Trinity select change: atualiza chip no DOM (setFlag já é tratado pelo listener .ethernum-rune-input)
+    html.find('.ethernum-trinity-select-hidden').on('change', (ev) => {
+      const $select  = $(ev.currentTarget);
+      const $group   = $select.closest('.ethernum-trinity-chip-group');
+      const $chip    = $group.find('.ethernum-trinity-chip');
+      const val      = (ev.target as HTMLSelectElement).value;
+      const $content = $chip.find('.ethernum-chip-val, .ethernum-chip-empty');
+      if (val) {
+        $content.replaceWith(`<span class="ethernum-chip-val">${val}</span>`);
+      } else {
+        const placeholder = $select.find('option:first').text();
+        $content.replaceWith(`<span class="ethernum-chip-empty">${placeholder}</span>`);
+      }
+      $select.hide();
+      $chip.show();
+    });
+
+    // Trinity select blur sem mudança: restaura chip
+    html.find('.ethernum-trinity-select-hidden').on('blur', (ev) => {
+      const $select = $(ev.currentTarget);
+      if ($select.is(':visible')) {
+        $select.closest('.ethernum-trinity-chip-group').find('.ethernum-trinity-chip').show();
+        $select.hide();
+      }
     });
   }
 }

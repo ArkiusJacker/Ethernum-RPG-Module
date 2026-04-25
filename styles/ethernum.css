@@ -205,6 +205,11 @@
   color: white;
   cursor: pointer;
   transition: background 0.2s;
+  width: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .ethernum-button-small:hover { background: var(--eth-purple-dark); }
@@ -1137,6 +1142,316 @@
   color: var(--eth-gold);
   margin: 0 0 8px 0;
   font-size: 0.95em;
+}
+
+/* ===== BARRA DE ÉTER COMPACTA ===== */
+.ethernum-ether-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--eth-purple-muted);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: var(--eth-radius);
+  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.ethernum-topbar-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ethernum-topbar-ether {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 14px;
+  padding: 3px 10px 3px 8px;
+}
+
+.ethernum-topbar-ether .ethernum-ether-input {
+  width: 44px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-dark-primary, #333);
+  font-weight: 700;
+  font-size: 0.9em;
+  padding: 0;
+}
+
+.ethernum-topbar-sep {
+  color: var(--color-text-dark-secondary, #666);
+  font-size: 0.85em;
+}
+
+.ethernum-topbar-max {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.ethernum-topbar-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--eth-border);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--eth-purple);
+  white-space: nowrap;
+}
+
+.ethernum-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ethernum-topbar-action {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-text-dark-secondary, #666);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ethernum-topbar-action:hover {
+  background: var(--eth-purple-muted);
+  border-color: var(--eth-purple);
+  color: var(--eth-purple);
+}
+
+.ethernum-topbar-action--gm {
+  border-color: rgba(217, 119, 6, 0.4);
+  color: var(--eth-gold);
+}
+
+.ethernum-topbar-action--gm:hover {
+  background: var(--eth-gold-muted);
+  border-color: var(--eth-gold);
+  color: var(--eth-gold);
+}
+
+.ethernum-topbar-action--gm.active {
+  background: var(--eth-gold-muted);
+  border-color: var(--eth-gold);
+  color: var(--eth-gold);
+}
+
+/* ===== GM DRAWER ===== */
+.ethernum-runes-tab {
+  position: relative;
+}
+
+.ethernum-gm-drawer {
+  position: absolute;
+  top: 0;
+  right: -105%;
+  bottom: 0;
+  width: 60%;
+  background: var(--color-bg, #fff);
+  border-left: 2px solid var(--eth-gold);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.25s ease;
+  overflow: hidden;
+}
+
+.ethernum-gm-drawer.open {
+  right: 0;
+}
+
+.ethernum-gm-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--eth-gold-muted);
+  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--eth-gold);
+}
+
+.ethernum-gm-drawer-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--eth-gold);
+  font-size: 1em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.ethernum-gm-drawer-close:hover {
+  background: rgba(217, 119, 6, 0.15);
+}
+
+.ethernum-gm-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ethernum-gm-drawer-section {
+  background: var(--eth-section-bg);
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  padding: 10px;
+}
+
+.ethernum-gm-drawer-section h4 {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--eth-gold);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== ACCORDION ===== */
+.ethernum-section--accordion > .ethernum-section-title {
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.ethernum-section--accordion:not(.collapsed) > .ethernum-section-title {
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--eth-border);
+}
+
+.ethernum-accordion-icon {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary, #666);
+  transition: transform 0.2s;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.ethernum-section--accordion.collapsed > .ethernum-section-title .ethernum-accordion-icon {
+  transform: rotate(-90deg);
+}
+
+.ethernum-accordion-body {
+  display: block;
+}
+
+.ethernum-section--accordion.collapsed .ethernum-accordion-body {
+  display: none;
+}
+
+/* ===== CHIPS TRINITY ===== */
+.ethernum-trinity-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: var(--eth-purple-muted);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: var(--eth-radius);
+}
+
+.ethernum-trinity-chip-group {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+}
+
+.ethernum-trinity-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px dashed rgba(124, 58, 237, 0.4);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 0.82em;
+  text-align: left;
+}
+
+.ethernum-trinity-chip:hover {
+  background: var(--eth-purple-muted);
+  border-color: var(--eth-purple);
+  border-style: solid;
+}
+
+.ethernum-chip-icon {
+  color: var(--eth-purple);
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+.ethernum-chip-val {
+  font-weight: 600;
+  color: var(--color-text-dark-primary, #333);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ethernum-chip-empty {
+  color: var(--color-text-dark-secondary, #999);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ethernum-chip-sep {
+  color: var(--color-text-dark-secondary, #aaa);
+  font-weight: 300;
+  font-size: 1.1em;
+  flex-shrink: 0;
+}
+
+.ethernum-trinity-select-hidden {
+  display: none;
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--eth-purple);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+  font-size: 0.85em;
 }
 
 /* ===== GRUPOS DE RUNAS ===== */
