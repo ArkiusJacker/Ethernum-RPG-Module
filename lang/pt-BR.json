@@ -51,7 +51,9 @@
       "Delete": "Excluir",
       "Roll": "Rolar",
       "Enable": "Habilitar",
-      "Disable": "Desabilitar"
+      "Disable": "Desabilitar",
+      "Minimize": "Minimizar",
+      "Expand": "Expandir"
     },
     "Attribute": {
       "Name": "Atributo",
@@ -92,6 +94,8 @@
       "Effect": "Efeito",
       "EffectPlaceholder": "Descrição do efeito da runa...",
       "NoRunes": "Nenhuma runa criada ainda. Adicione sua primeira runa para começar!",
+      "NoNounGroup": "Sem Substantivo",
+      "UseDefaultCost": "Custo padrão da classe",
       "DescriptionPlaceholder": "Descreva os efeitos e propriedades desta runa...",
       "Activated": "Runa Ativada",
       "DisabledByGM": "Esta runa foi desabilitada pelo Mestre",
@@ -184,7 +188,15 @@
       "MaxRuneClass": "Classe Máxima de Runa Permitida",
       "MaxRuneClassHint": "Define qual classe de runa o jogador pode usar sem precisar de Override.",
       "ConfigureDCs": "Configurar CDs",
-      "ConfigureDCsHint": "Defina o CD de dificuldade para cada classe de runa."
+      "ConfigureDCsHint": "Defina o CD de dificuldade para cada classe de runa.",
+      "DefaultCostPerClass": "Custo Padrão por Classe",
+      "DefaultCostPerClassHint": "Custo de éter padrão aplicado a novas runas de cada classe.",
+      "CustomWords": "Palavras Customizadas",
+      "CustomVerbs": "Verbos",
+      "CustomNouns": "Substantivos",
+      "CustomSources": "Fontes",
+      "AddWord": "Adicionar",
+      "WordPlaceholder": "Nova palavra..."
     },
     "DiceRoll": {
       "EtherEnhanced": "Rolagem Aprimorada por Éter"
@@ -228,6 +240,10 @@
       "FECostsPerRank": {
         "Name": "Custos de FE por Rank",
         "Hint": "Define o custo de FE por nível para cada rank (F-K)."
+      },
+      "DefaultRuneCostPerClass": {
+        "Name": "Custo Padrão de Runa por Classe",
+        "Hint": "Define o custo de éter padrão (adicional ao custo base da classe) para novas runas de cada classe."
       }
     }
   }

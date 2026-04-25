@@ -1139,6 +1139,162 @@
   font-size: 0.95em;
 }
 
+/* ===== GRUPOS DE RUNAS ===== */
+.ethernum-rune-group {
+  margin-bottom: 4px;
+}
+
+.ethernum-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--eth-purple-muted);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: var(--eth-radius);
+  cursor: pointer;
+}
+
+.ethernum-toggle-group {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  color: var(--eth-purple);
+  cursor: pointer;
+  font-size: 0.75em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ethernum-toggle-group:hover {
+  color: var(--eth-purple-dark);
+}
+
+.ethernum-group-label {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--eth-purple-dark);
+  flex: 1;
+}
+
+.ethernum-group-count {
+  font-size: 0.75em;
+  color: var(--color-text-secondary, #666);
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.ethernum-group-runes {
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid rgba(124, 58, 237, 0.2);
+  margin-left: 8px;
+}
+
+/* ===== CUSTO PADRÃO POR RUNA ===== */
+.ethernum-cost-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ethernum-default-cost-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+  color: var(--color-text-secondary, #666);
+  cursor: pointer;
+}
+
+.ethernum-default-cost-toggle input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.ethernum-cost-display {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--eth-section-bg);
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  font-size: 0.9em;
+  color: var(--color-text-secondary, #666);
+  font-style: italic;
+}
+
+/* ===== PALAVRAS CUSTOMIZADAS ===== */
+.ethernum-custom-words-config {
+  margin-top: 8px;
+}
+
+.ethernum-custom-word-group {
+  margin-bottom: 12px;
+}
+
+.ethernum-custom-word-section-label {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--color-text-secondary, #666);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ethernum-custom-word-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 24px;
+  margin-bottom: 6px;
+}
+
+.ethernum-custom-word-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 8px;
+  background: var(--eth-purple-muted);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  font-size: 0.8em;
+  color: var(--eth-purple-dark);
+}
+
+.ethernum-custom-word-tag button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--eth-purple);
+  font-size: 0.75em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.ethernum-custom-word-tag button:hover {
+  color: #dc2626;
+}
+
+.ethernum-custom-word-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ethernum-custom-word-input {
+  flex: 1;
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 0.85em;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+}
+
 /* ===== ANIMAÇÕES ===== */
 @keyframes ether-pulse {
   0%, 100% { box-shadow: 0 0 0 1px var(--eth-purple); }

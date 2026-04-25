@@ -6,10 +6,28 @@ import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '..
 // sem esse mapa, a aba reseta para o estado nativo a cada interação.
 const _activeEthernumTab = new Map<string, string>();
 
+// Estado de UI: grupos colapsados e runas minimizadas — não persistem no banco.
+const _collapsedGroups = new Map<string, Set<string>>();
+const _minimizedRunes  = new Map<string, Set<string>>();
+
 interface EtherSystemState {
   etherMax: number;
   etherCurrent: number;
   etherPower: number;
+}
+
+interface CustomWords {
+  verbs: string[];
+  nouns: string[];
+  sources: string[];
+}
+
+interface RuneGroupData {
+  noun: string;
+  label: string;
+  count: number;
+  collapsed: boolean;
+  runes: Array<RuneData & { minimized: boolean; effectiveCostValue: number }>;
 }
 
 export class EtherTabManager {
@@ -75,8 +93,20 @@ export class EtherTabManager {
 
     let runeClassDCs: Record<number, number> = {};
     let feCosts: Record<Rank, number> = ETHERNUM.FE_COST_PER_LEVEL;
+    let defaultRuneCostPerClass: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
     try { runeClassDCs = (game.settings!.get(ETHERNUM.MODULE_NAME, "runeClassDCs") as Record<number, number>) ?? {}; } catch { /* no-op */ }
     try { feCosts = (game.settings!.get(ETHERNUM.MODULE_NAME, "feCostsPerRank") as Record<Rank, number>) ?? feCosts; } catch { /* no-op */ }
+    try { defaultRuneCostPerClass = (game.settings!.get(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass") as Record<number, number>) ?? defaultRuneCostPerClass; } catch { /* no-op */ }
+
+    const customWords: CustomWords = (actor.getFlag(ETHERNUM.MODULE_NAME, "customWords") as CustomWords | undefined) ?? { verbs: [], nouns: [], sources: [] };
+
+    const actorId = actor.id!;
+    const collapsedSet = _collapsedGroups.get(actorId) ?? new Set<string>();
+    const minimizedSet = _minimizedRunes.get(actorId) ?? new Set<string>();
+
+    const rawRunes = (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [];
+    const runeGroups = this._buildRuneGroups(rawRunes, collapsedSet, minimizedSet, defaultRuneCostPerClass);
 
     return {
       actor,
@@ -85,16 +115,52 @@ export class EtherTabManager {
       talents:         (actor.getFlag(ETHERNUM.MODULE_NAME, "talents") as Record<string, EtherAttribute> | undefined) ?? { ...ETHERNUM.DEFAULT_TALENTS },
       fe:              (actor.getFlag(ETHERNUM.MODULE_NAME, "fe") as { current: number; total: number } | undefined) ?? { ...ETHERNUM.DEFAULT_FE },
       feCosts,
-      runes:           (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [],
+      runeGroups,
       maxRuneClass:    (actor.getFlag(ETHERNUM.MODULE_NAME, "maxRuneClass") as number | undefined) ?? 1,
       isGM,
       ranks:               ETHERNUM.RANKS,
       runeClasses:         ETHERNUM.RUNE_CLASSES,
       runeTrinity:         ETHERNUM.RUNE_TRINITY,
       runeClassDCs,
+      defaultRuneCostPerClass,
+      customWords,
       attributeRankBonus:  ETHERNUM.ATTRIBUTE_RANK_BONUS,
       talentRankBonus:     ETHERNUM.TALENT_RANK_BONUS,
     };
+  }
+
+  static _buildRuneGroups(
+    rawRunes: RuneData[],
+    collapsedSet: Set<string>,
+    minimizedSet: Set<string>,
+    defaultRuneCostPerClass: Record<number, number>
+  ): RuneGroupData[] {
+    const groupMap = new Map<string, RuneData[]>();
+    for (const rune of rawRunes) {
+      const noun = rune.noun ?? "";
+      if (!groupMap.has(noun)) groupMap.set(noun, []);
+      groupMap.get(noun)!.push(rune);
+    }
+
+    const sortedEntries = [...groupMap.entries()].sort(([nounA, runesA], [nounB, runesB]) => {
+      if (nounA === "" && nounB !== "") return 1;
+      if (nounB === "" && nounA !== "") return -1;
+      return runesB.length - runesA.length;
+    });
+
+    return sortedEntries.map(([noun, groupRunes]) => ({
+      noun,
+      label: noun || game.i18n!.localize("ETHERNUM.Rune.NoNounGroup"),
+      count: groupRunes.length,
+      collapsed: collapsedSet.has(noun),
+      runes: groupRunes.map(rune => ({
+        ...rune,
+        minimized: minimizedSet.has(rune.id),
+        effectiveCostValue: rune.usesDefaultCost
+          ? (defaultRuneCostPerClass[rune.runeClass] ?? 0)
+          : (rune.costValue ?? 0),
+      })),
+    }));
   }
 
   static async _recalculateEther(actor: Actor): Promise<void> {
@@ -282,6 +348,80 @@ export class EtherTabManager {
       app.render();
     });
 
+    // Runa: custo padrão por classe (GM, world setting)
+    html.find('.ethernum-default-cost-input').on('change', async (ev) => {
+      if (!isGM) return;
+      const runeClass = $(ev.currentTarget).data('class') as number;
+      const value     = parseInt((ev.target as HTMLInputElement).value) || 0;
+      let costs: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      try { costs = (game.settings!.get(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass") as Record<number, number>) ?? costs; } catch { /* no-op */ }
+      costs[runeClass] = value;
+      await game.settings!.set(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass", costs);
+      app.render();
+    });
+
+    // Runa: grupo — colapsar/expandir (UI only, sem persist)
+    html.find('.ethernum-toggle-group').on('click', (ev) => {
+      ev.preventDefault();
+      const noun    = String($(ev.currentTarget).data('noun') ?? "");
+      const actorId = actor.id!;
+      if (!_collapsedGroups.has(actorId)) _collapsedGroups.set(actorId, new Set());
+      const set = _collapsedGroups.get(actorId)!;
+      if (set.has(noun)) set.delete(noun);
+      else set.add(noun);
+      app.render();
+    });
+
+    // Runa: minimizar/expandir (UI only, sem persist)
+    html.find('.ethernum-toggle-rune-minimize').on('click', (ev) => {
+      ev.preventDefault();
+      const runeId  = $(ev.currentTarget).data('rune-id') as string;
+      const actorId = actor.id!;
+      if (!_minimizedRunes.has(actorId)) _minimizedRunes.set(actorId, new Set());
+      const set = _minimizedRunes.get(actorId)!;
+      if (set.has(runeId)) set.delete(runeId);
+      else set.add(runeId);
+      app.render();
+    });
+
+    // Runa: toggle usar custo padrão da classe
+    html.find('.ethernum-toggle-uses-default-cost').on('change', async (ev) => {
+      const runeId  = $(ev.currentTarget).data('rune-id') as string;
+      const checked = (ev.target as HTMLInputElement).checked;
+      const runes   = (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [];
+      const rune    = runes.find(r => r.id === runeId);
+      if (!rune) return;
+      rune.usesDefaultCost = checked;
+      await actor.setFlag(ETHERNUM.MODULE_NAME, "runes", runes);
+      app.render();
+    });
+
+    // Palavras customizadas: adicionar (GM)
+    html.find('.ethernum-add-custom-word').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      const wordType = $(ev.currentTarget).data('word-type') as keyof CustomWords;
+      const input    = html.find(`.ethernum-custom-word-input[data-word-type="${wordType}"]`);
+      const word     = (input.val() as string).trim();
+      if (!word) return;
+      const customWords: CustomWords = (actor.getFlag(ETHERNUM.MODULE_NAME, "customWords") as CustomWords | undefined) ?? { verbs: [], nouns: [], sources: [] };
+      if (!customWords[wordType].includes(word)) customWords[wordType].push(word);
+      await actor.setFlag(ETHERNUM.MODULE_NAME, "customWords", customWords);
+      app.render();
+    });
+
+    // Palavras customizadas: remover (GM)
+    html.find('.ethernum-remove-custom-word').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      const wordType = $(ev.currentTarget).data('word-type') as keyof CustomWords;
+      const word     = $(ev.currentTarget).data('word') as string;
+      const customWords: CustomWords = (actor.getFlag(ETHERNUM.MODULE_NAME, "customWords") as CustomWords | undefined) ?? { verbs: [], nouns: [], sources: [] };
+      customWords[wordType] = customWords[wordType].filter(w => w !== word);
+      await actor.setFlag(ETHERNUM.MODULE_NAME, "customWords", customWords);
+      app.render();
+    });
+
     // Runa: adicionar
     html.find('.ethernum-add-rune').on('click', async (ev) => {
       ev.preventDefault();
@@ -291,6 +431,7 @@ export class EtherTabManager {
         name: game.i18n!.localize("ETHERNUM.Rune.NewRune"),
         runeClass: 1, verb: "", noun: "", source: "",
         costType: "ether", costValue: 0,
+        usesDefaultCost: true,
         effect: "", description: "", equipped: false, active: true,
       });
       await actor.setFlag(ETHERNUM.MODULE_NAME, "runes", runes);
@@ -353,9 +494,11 @@ export class EtherTabManager {
       if (field === 'costValue' || field === 'runeClass') {
         value = parseInt(value) || 0;
         if (field === 'runeClass') value = Math.max(ETHERNUM.MIN_RUNE_CLASS, Math.min(ETHERNUM.MAX_RUNE_CLASS, value));
+        if (field === 'costValue') rune.usesDefaultCost = false;
       }
       (rune as Record<string, unknown>)[field] = value;
       await actor.setFlag(ETHERNUM.MODULE_NAME, "runes", runes);
+      if (field === 'costValue' || field === 'runeClass') app.render();
     });
   }
 }

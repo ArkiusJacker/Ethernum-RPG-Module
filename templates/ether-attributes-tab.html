@@ -49,58 +49,6 @@
     </div>
   </section>
 
-  <!-- Sistema de Éter (Descanso Longo) -->
-  <section class="ethernum-section ether-system">
-    <h2 class="ethernum-section-title">
-      <i class="fas fa-magic"></i> {{localize "ETHERNUM.Tabs.EtherSystem"}}
-    </h2>
-    
-    <div class="ethernum-ether-display">
-      <div class="ethernum-stat-row">
-        <label class="ethernum-label">{{localize "ETHERNUM.EtherCurrent"}}</label>
-        <div class="ethernum-ether-bar">
-          {{#if etherSystem.etherMax}}
-          <div class="ethernum-ether-bar-fill" style="width: {{ethernum-multiply (ethernum-divide etherSystem.etherCurrent etherSystem.etherMax) 100}}%"></div>
-          {{/if}}
-          <div class="ethernum-ether-bar-text">
-            <input type="number" 
-                   class="ethernum-ether-input" 
-                   value="{{etherSystem.etherCurrent}}" 
-                   min="0" 
-                   max="{{etherSystem.etherMax}}" />
-            / {{etherSystem.etherMax}}
-          </div>
-        </div>
-      </div>
-
-      <div class="ethernum-stats-grid">
-        <div class="ethernum-stat-box">
-          <label>{{localize "ETHERNUM.EtherMax"}}</label>
-          <div class="ethernum-stat-value">{{etherSystem.etherMax}}</div>
-        </div>
-        
-        <div class="ethernum-stat-box">
-          <label>{{localize "ETHERNUM.EtherPower"}}</label>
-          <div class="ethernum-stat-value">+{{etherSystem.etherPower}}</div>
-        </div>
-      </div>
-
-      <div class="ethernum-button-row">
-        <button type="button" class="ethernum-button ethernum-recalculate">
-          <i class="fas fa-calculator"></i> {{localize "ETHERNUM.Buttons.Recalculate"}}
-        </button>
-        <button type="button" class="ethernum-button ethernum-long-rest">
-          <i class="fas fa-bed"></i> {{localize "ETHERNUM.Buttons.LongRest"}}
-        </button>
-      </div>
-
-      <div class="ethernum-info-box">
-        <i class="fas fa-info-circle"></i>
-        <span>{{localize "ETHERNUM.LongRestInfo"}}</span>
-      </div>
-    </div>
-  </section>
-
   <!-- Atributos de Éter -->
   <section class="ethernum-section ether-attributes">
     <h2 class="ethernum-section-title">

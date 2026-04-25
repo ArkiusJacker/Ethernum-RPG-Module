@@ -1,5 +1,5 @@
 import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute } from './config.js';
-import { getFECostForRank, getRuneClassDC } from './settings.js';
+import { getFECostForRank, getRuneClassDC, getDefaultRuneCost } from './settings.js';
 
 interface EtherSystemState {
   etherMax: number;
@@ -18,6 +18,7 @@ export interface RuneData {
   runeClass: RuneClassKey;
   costType: string;
   costValue: number;
+  usesDefaultCost?: boolean;
   effect: string;
   description: string;
   equipped: boolean;
@@ -392,7 +393,10 @@ export class EthernumDiceCalculator {
 
     const etherSystem  = ((actor.getFlag(ETHERNUM.MODULE_NAME, "etherSystem") as Partial<{ etherCurrent: number }> | undefined) ?? {});
     const currentEther = etherSystem.etherCurrent ?? 0;
-    const etherCost    = RuneSystem.getRuneClassCost(runeClass).ether + (rune.costValue ?? 0);
+    const effectiveCostValue = rune.usesDefaultCost
+      ? getDefaultRuneCost(runeClass as RuneClassKey)
+      : (rune.costValue ?? 0);
+    const etherCost    = RuneSystem.getRuneClassCost(runeClass).ether + effectiveCostValue;
 
     if (currentEther < etherCost && etherCost > 0) {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NotEnoughEther"));

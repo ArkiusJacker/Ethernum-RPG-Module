@@ -51,7 +51,9 @@
       "Delete": "Delete",
       "Roll": "Roll",
       "Enable": "Enable",
-      "Disable": "Disable"
+      "Disable": "Disable",
+      "Minimize": "Minimize",
+      "Expand": "Expand"
     },
     "Attribute": {
       "Name": "Attribute",
@@ -92,6 +94,8 @@
       "Effect": "Effect",
       "EffectPlaceholder": "Description of the rune's effect...",
       "NoRunes": "No runes created yet. Add your first rune to get started!",
+      "NoNounGroup": "No Noun",
+      "UseDefaultCost": "Default class cost",
       "DescriptionPlaceholder": "Describe the effects and properties of this rune...",
       "Activated": "Rune Activated",
       "DisabledByGM": "This rune has been disabled by the Game Master",
@@ -184,7 +188,15 @@
       "MaxRuneClass": "Maximum Allowed Rune Class",
       "MaxRuneClassHint": "Defines which rune class the player can use without needing Override.",
       "ConfigureDCs": "Configure DCs",
-      "ConfigureDCsHint": "Set the difficulty DC for each rune class."
+      "ConfigureDCsHint": "Set the difficulty DC for each rune class.",
+      "DefaultCostPerClass": "Default Cost per Class",
+      "DefaultCostPerClassHint": "Default ether cost applied to new runes of each class.",
+      "CustomWords": "Custom Words",
+      "CustomVerbs": "Verbs",
+      "CustomNouns": "Nouns",
+      "CustomSources": "Sources",
+      "AddWord": "Add",
+      "WordPlaceholder": "New word..."
     },
     "DiceRoll": {
       "EtherEnhanced": "Ether-Enhanced Roll"
@@ -228,6 +240,10 @@
       "FECostsPerRank": {
         "Name": "FE Costs per Rank",
         "Hint": "Set the FE cost per level for each rank (F-K)."
+      },
+      "DefaultRuneCostPerClass": {
+        "Name": "Default Rune Cost per Class",
+        "Hint": "Set the default ether cost (additional to class base cost) for new runes of each class."
       }
     }
   }

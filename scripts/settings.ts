@@ -1,6 +1,14 @@
 import { ETHERNUM, type Rank, type RuneClassKey } from './config.js';
 
 export function registerSettings(): void {
+  game.settings!.register(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass", {
+    name: "ETHERNUM.Settings.DefaultRuneCostPerClass.Name",
+    hint: "ETHERNUM.Settings.DefaultRuneCostPerClass.Hint",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  });
   game.settings!.register(ETHERNUM.MODULE_NAME, "longRestFullRestore", {
     name: "ETHERNUM.Settings.LongRestFullRestore.Name",
     hint: "ETHERNUM.Settings.LongRestFullRestore.Hint",
@@ -71,5 +79,14 @@ export function getRuneClassDC(runeClass: RuneClassKey): number {
     return customDCs[runeClass] ?? ETHERNUM.RUNE_CLASSES[runeClass]?.defaultDC ?? 15;
   } catch {
     return ETHERNUM.RUNE_CLASSES[runeClass]?.defaultDC ?? 15;
+  }
+}
+
+export function getDefaultRuneCost(runeClass: RuneClassKey): number {
+  try {
+    const costs = game.settings!.get(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass") as Record<number, number>;
+    return costs[runeClass] ?? 0;
+  } catch {
+    return 0;
   }
 }
