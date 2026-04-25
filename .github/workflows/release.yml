@@ -15,6 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
@@ -24,17 +33,13 @@ jobs:
           jq --arg v "${{ steps.version.outputs.VERSION }}" '.version = $v' module.json > module.json.tmp
           mv module.json.tmp module.json
 
+      - name: Build
+        run: npm run build
+
       - name: Create release zip
         run: |
-          zip -r ethernum-rpg-module.zip \
-            module.json \
-            scripts/ \
-            styles/ \
-            templates/ \
-            lang/ \
-            LICENSE \
-            README.md \
-            CHANGELOG.md \
+          cd dist
+          zip -r ../ethernum-rpg-module.zip . \
             --exclude "*.DS_Store" \
             --exclude "*Thumbs.db"
 
@@ -43,5 +48,5 @@ jobs:
         with:
           files: |
             ethernum-rpg-module.zip
-            module.json
+            dist/module.json
           generate_release_notes: true
