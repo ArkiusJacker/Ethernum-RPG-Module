@@ -75,9 +75,10 @@ Personagens podem tentar usar uma Classe de Runa superior em momento de desesper
 ## 🎮 Como Usar
 
 ### 1. Abas do Sistema
-Após ativar o módulo, abra a ficha de um personagem. Você verá duas novas abas:
+Após ativar o módulo, abra a ficha de um personagem. Você verá três novas abas:
 - **Atributos de Éter** (ícone de escudo): Gerencia atributos, talentos e éter
 - **Sistema de Runas** (ícone de gema): Gerencia runas e classes de runa
+- **Mecânicas Únicas** (ícone de impressão digital): Gerencia mecânicas especiais por personagem
 
 ### 2. Configurando Atributos de Éter
 1. Acesse a aba "Atributos de Éter"
@@ -119,6 +120,40 @@ Após ativar o módulo, abra a ficha de um personagem. Você verá duas novas ab
 1. O GM vê um painel especial na aba de Runas
 2. Pode definir a classe máxima de runa permitida (1-5)
 3. Pode ativar/desativar runas específicas clicando no ícone de olho
+
+### 8. Mecânicas Únicas
+1. Acesse a aba "Mecânicas Únicas"
+2. Selecione o perfil do personagem
+3. Para Gyro Zeppeli, o módulo controla Spin Points, Nível de Rotação, IKONs, testes de Controle de Spin, Desvio da Rotação e técnicas de rotação
+
+#### Macros úteis do Gyro
+
+```js
+await game.ethernum.macros.setUniqueProfile("gyro-spin");
+```
+
+```js
+await game.ethernum.macros.showGyroStatus();
+```
+
+```js
+await game.ethernum.macros.gainGyroSP(1);
+await game.ethernum.macros.spendGyroSP(1);
+await game.ethernum.macros.setGyroSP(7);
+```
+
+```js
+await game.ethernum.macros.startGyroCombat();
+await game.ethernum.macros.rollGyroControl("forced");
+await game.ethernum.macros.rollGyroControl("corpse");
+await game.ethernum.macros.rollGyroControl("perfect");
+await game.ethernum.macros.rollGyroDeviation();
+```
+
+```js
+await game.ethernum.macros.useGyroTechnique("spiral-ricochet", "forced");
+await game.ethernum.macros.useGyroTechnique("absolute-rotation", "perfect");
+```
 
 ## ⚙️ Configurações
 

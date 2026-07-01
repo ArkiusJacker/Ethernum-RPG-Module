@@ -5,7 +5,8 @@
       "EtherAttributes": "Ether Attributes",
       "RuneSystem": "Rune System",
       "DiceCalculator": "Dice Calculator",
-      "Talents": "Talents"
+      "Talents": "Talents",
+      "UniqueMechanics": "Unique Mechanics"
     },
     "EtherCurrent": "Current Ether",
     "EtherMax": "Maximum Ether",
@@ -197,6 +198,54 @@
       "CustomSources": "Sources",
       "AddWord": "Add",
       "WordPlaceholder": "New word..."
+    },
+    "Unique": {
+      "Empty": "No unique mechanic selected for this character.",
+      "Profile": {
+        "None": "No unique mechanic"
+      },
+      "Errors": {
+        "TechniqueNotFound": "Technique not found."
+      },
+      "Gyro": {
+        "Subtitle": "Path of the Sacred Rotation",
+        "SpinPoints": "Spin Points",
+        "RotationRank": "Rotation Rank",
+        "Status": "Rotation Status",
+        "Controls": "Rotation Configuration",
+        "MainAttribute": "Main Attribute",
+        "Proficiency": "Proficiency",
+        "CorpsePartNumber": "Part No.",
+        "MaxSPOverride": "Manual Max SP",
+        "SacredScars": "Sacred Scars",
+        "TorsoBonus": "Torso: +6 SP",
+        "HeartRegen": "Heart: +1 SP/turn",
+        "AbsoluteReady": "Absolute Rotation ready",
+        "StartCombat": "Start",
+        "CombatStart": "Combat Start",
+        "ExecutionRisk": "Execution & Risk",
+        "ExecutionMode": "Execution Mode",
+        "SPCost": "SP Cost",
+        "Techniques": "Techniques",
+        "Ikons": "Holy Corpse IKONs",
+        "NotEnoughSP": "Not enough Spin Points.",
+        "StableNoCheck": "No check required",
+        "ControlCheck": "Spin Control Check",
+        "ControlSuccess": "Control maintained.",
+        "ControlFailure": "Rotation Deviation!",
+        "Deviation": "Rotation Deviation",
+        "Execution": {
+          "stable": "Stable Rotation",
+          "forced": "Forced Rotation",
+          "corpse": "Holy Corpse Rotation",
+          "perfect": "Perfect Rotation"
+        },
+        "IkonTier": {
+          "normal": "Normal",
+          "legendary": "Legendary",
+          "transcendental": "Transcendental"
+        }
+      }
     },
     "DiceRoll": {
       "EtherEnhanced": "Ether-Enhanced Roll"

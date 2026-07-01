@@ -2,12 +2,63 @@ import { ETHERNUM, type Rank } from './config.js';
 import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
+import { UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 
 declare global {
   interface Game {
-    ethernum?: { ETHERNUM: typeof ETHERNUM };
+    ethernum?: {
+      ETHERNUM: typeof ETHERNUM;
+      unique: typeof UniqueMechanicsSystem;
+      macros: {
+        getActor: () => Actor | null;
+        setUniqueProfile: (profileId: UniqueMechanicProfileId, actor?: Actor | null) => Promise<void>;
+        showGyroStatus: (actor?: Actor | null) => Promise<void>;
+        gainGyroSP: (amount?: number, actor?: Actor | null, reason?: string) => Promise<unknown>;
+        spendGyroSP: (amount?: number, actor?: Actor | null, reason?: string) => Promise<unknown>;
+        setGyroSP: (value: number, actor?: Actor | null) => Promise<unknown>;
+        startGyroCombat: (actor?: Actor | null) => Promise<unknown>;
+        rollGyroControl: (mode?: GyroExecutionMode, actor?: Actor | null) => Promise<Roll | null>;
+        rollGyroDeviation: (actor?: Actor | null) => Promise<Roll | null>;
+        useGyroTechnique: (techniqueId: string, mode?: GyroExecutionMode, actor?: Actor | null) => Promise<void>;
+      };
+    };
   }
+}
+
+function resolveMacroActor(actor?: Actor | null): Actor | null {
+  return actor ?? UniqueMechanicsSystem.getControlledActor();
+}
+
+function buildMacroApi() {
+  return {
+    getActor: () => UniqueMechanicsSystem.getControlledActor(),
+    setUniqueProfile: async (profileId: UniqueMechanicProfileId, actor?: Actor | null) => {
+      const target = resolveMacroActor(actor);
+      if (!target) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+        return;
+      }
+      await UniqueMechanicsSystem.setActiveProfile(target, profileId);
+    },
+    showGyroStatus: async (actor?: Actor | null) => UniqueMechanicsSystem.showGyroStatus(resolveMacroActor(actor)),
+    gainGyroSP: async (amount = 1, actor?: Actor | null, reason = "Macro") =>
+      UniqueMechanicsSystem.gainGyroSP(resolveMacroActor(actor), amount, reason),
+    spendGyroSP: async (amount = 1, actor?: Actor | null, reason = "Macro") =>
+      UniqueMechanicsSystem.spendGyroSP(resolveMacroActor(actor), amount, reason),
+    setGyroSP: async (value: number, actor?: Actor | null) => {
+      const target = resolveMacroActor(actor);
+      if (!target) return ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return UniqueMechanicsSystem.setGyroSP(target, value);
+    },
+    startGyroCombat: async (actor?: Actor | null) => UniqueMechanicsSystem.startGyroCombat(resolveMacroActor(actor)),
+    rollGyroControl: async (mode: GyroExecutionMode = "forced", actor?: Actor | null) =>
+      UniqueMechanicsSystem.rollGyroControl(resolveMacroActor(actor), mode),
+    rollGyroDeviation: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.rollGyroDeviation(resolveMacroActor(actor)),
+    useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
+      UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
+  };
 }
 
 function registerHandlebarsHelpers(): void {
@@ -62,6 +113,9 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
       etherPower:   ether.calculateEtherPower(actor),
     };
 
+  if (!actor.getFlag(m, "uniqueMechanics"))
+    updates[`flags.${m}.uniqueMechanics`] = { activeProfile: "", profiles: {} };
+
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
 
@@ -80,9 +134,14 @@ Hooks.once("init", () => {
   loadTpls([
     `${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`,
+    `${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`,
   ]);
 
-  game.ethernum = { ETHERNUM };
+  game.ethernum = {
+    ETHERNUM,
+    unique: UniqueMechanicsSystem,
+    macros: buildMacroApi(),
+  };
 });
 
 Hooks.once("ready", async () => {

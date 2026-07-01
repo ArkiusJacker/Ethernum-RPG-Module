@@ -1,0 +1,189 @@
+<div class="ethernum-container ethernum-unique-tab">
+  <div class="ethernum-unique-topbar">
+    <div class="ethernum-unique-profile-picker">
+      <i class="fas fa-fingerprint"></i>
+      <select class="ethernum-unique-profile">
+        {{#each uniqueMechanics.profiles}}
+        <option value="{{this.id}}" {{#if (ethernum-eq ../uniqueMechanics.activeProfile this.id)}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}
+    <div class="ethernum-unique-resource-pill gyro-rank-{{uniqueMechanics.gyro.rank.id}}">
+      <span>{{uniqueMechanics.gyro.rank.num}}</span>
+      <strong>{{uniqueMechanics.gyro.rank.name}}</strong>
+    </div>
+    {{/if}}
+  </div>
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}
+  <section class="ethernum-section ethernum-unique-empty">
+    <i class="fas fa-fingerprint"></i>
+    <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}
+  <section class="ethernum-section ethernum-gyro-panel">
+    <div class="ethernum-gyro-header">
+      <div>
+        <h2 class="ethernum-gyro-title">Gyro Zeppeli</h2>
+        <p>{{localize "ETHERNUM.Unique.Gyro.Subtitle"}}</p>
+      </div>
+      <button type="button" class="ethernum-icon-button ethernum-gyro-show-status" title="{{localize 'ETHERNUM.Unique.Gyro.Status'}}">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+
+    <div class="ethernum-gyro-sp-card">
+      <div class="ethernum-gyro-sp-ring" style="--spin-percent: {{uniqueMechanics.gyro.spinPercent}}%">
+        <span>{{uniqueMechanics.gyro.state.currentSP}}</span>
+        <small>/ {{uniqueMechanics.gyro.maxSP}}</small>
+      </div>
+      <div class="ethernum-gyro-sp-main">
+        <div class="ethernum-gyro-sp-row">
+          <label>{{localize "ETHERNUM.Unique.Gyro.SpinPoints"}}</label>
+          <input type="number" class="ethernum-gyro-sp-input" value="{{uniqueMechanics.gyro.state.currentSP}}" min="0" max="{{uniqueMechanics.gyro.maxSP}}" />
+        </div>
+        <div class="ethernum-gyro-sp-actions">
+          <input type="number" class="ethernum-gyro-sp-delta" value="1" min="1" />
+          <button type="button" class="ethernum-button-small ethernum-gyro-adjust-sp" data-delta="-1">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button type="button" class="ethernum-button-small ethernum-gyro-adjust-sp" data-delta="1">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button type="button" class="ethernum-button-small ethernum-gyro-start-combat">
+            <i class="fas fa-play"></i> {{localize "ETHERNUM.Unique.Gyro.StartCombat"}}
+          </button>
+        </div>
+      </div>
+      <div class="ethernum-gyro-rank-card gyro-rank-{{uniqueMechanics.gyro.rank.id}}">
+        <span>{{uniqueMechanics.gyro.rank.range}}</span>
+        <strong>{{uniqueMechanics.gyro.rank.control}}</strong>
+        <p>{{uniqueMechanics.gyro.rank.text}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-gyro-controls">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-sliders-h"></i> {{localize "ETHERNUM.Unique.Gyro.Controls"}}</span>
+    </h2>
+    <div class="ethernum-gyro-config-grid">
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Gyro.MainAttribute"}}</span>
+        <select class="ethernum-gyro-config" data-field="mainAttribute">
+          <option value="dex" {{#if (ethernum-eq uniqueMechanics.gyro.state.mainAttribute "dex")}}selected{{/if}}>Destreza</option>
+          <option value="wis" {{#if (ethernum-eq uniqueMechanics.gyro.state.mainAttribute "wis")}}selected{{/if}}>Sabedoria</option>
+        </select>
+      </label>
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Gyro.Proficiency"}}</span>
+        <input type="number" class="ethernum-gyro-config" data-field="proficiencyBonus" value="{{uniqueMechanics.gyro.state.proficiencyBonus}}" />
+      </label>
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Gyro.CorpsePartNumber"}}</span>
+        <input type="number" class="ethernum-gyro-config" data-field="corpsePartNumber" value="{{uniqueMechanics.gyro.state.corpsePartNumber}}" min="1" max="9" />
+      </label>
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Gyro.MaxSPOverride"}}</span>
+        <input type="number" class="ethernum-gyro-config" data-field="maxSPOverride" value="{{uniqueMechanics.gyro.state.maxSPOverride}}" min="0" placeholder="{{uniqueMechanics.gyro.maxSP}}" />
+      </label>
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Gyro.SacredScars"}}</span>
+        <input type="number" class="ethernum-gyro-config" data-field="sacredScars" value="{{uniqueMechanics.gyro.state.sacredScars}}" min="0" />
+      </label>
+      <label class="ethernum-gyro-check">
+        <input type="checkbox" class="ethernum-gyro-config" data-field="torsoBonus" {{#if uniqueMechanics.gyro.state.torsoBonus}}checked{{/if}} />
+        <span>{{localize "ETHERNUM.Unique.Gyro.TorsoBonus"}}</span>
+      </label>
+      <label class="ethernum-gyro-check">
+        <input type="checkbox" class="ethernum-gyro-config" data-field="heartRegen" {{#if uniqueMechanics.gyro.state.heartRegen}}checked{{/if}} />
+        <span>{{localize "ETHERNUM.Unique.Gyro.HeartRegen"}}</span>
+      </label>
+      <label class="ethernum-gyro-check">
+        <input type="checkbox" class="ethernum-gyro-config" data-field="absoluteReady" {{#if uniqueMechanics.gyro.state.absoluteReady}}checked{{/if}} />
+        <span>{{localize "ETHERNUM.Unique.Gyro.AbsoluteReady"}}</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-gyro-execution">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-dice-d20"></i> {{localize "ETHERNUM.Unique.Gyro.ExecutionRisk"}}</span>
+    </h2>
+    <div class="ethernum-gyro-execution-grid">
+      <button type="button" class="ethernum-gyro-exec-button ethernum-gyro-roll-control" data-mode="stable">
+        <strong>{{localize "ETHERNUM.Unique.Gyro.Execution.stable"}}</strong>
+        <span>{{localize "ETHERNUM.Unique.Gyro.StableNoCheck"}}</span>
+      </button>
+      <button type="button" class="ethernum-gyro-exec-button ethernum-gyro-roll-control" data-mode="forced">
+        <strong>{{localize "ETHERNUM.Unique.Gyro.Execution.forced"}}</strong>
+        <span>CD 13</span>
+      </button>
+      <button type="button" class="ethernum-gyro-exec-button ethernum-gyro-roll-control" data-mode="corpse">
+        <strong>{{localize "ETHERNUM.Unique.Gyro.Execution.corpse"}}</strong>
+        <span>CD 15 + {{uniqueMechanics.gyro.state.corpsePartNumber}}</span>
+      </button>
+      <button type="button" class="ethernum-gyro-exec-button ethernum-gyro-roll-control" data-mode="perfect">
+        <strong>{{localize "ETHERNUM.Unique.Gyro.Execution.perfect"}}</strong>
+        <span>CD 17</span>
+      </button>
+      <button type="button" class="ethernum-gyro-exec-button ethernum-gyro-roll-deviation">
+        <strong>{{localize "ETHERNUM.Unique.Gyro.Deviation"}}</strong>
+        <span>1d6</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-gyro-techniques">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-circle-notch"></i> {{localize "ETHERNUM.Unique.Gyro.Techniques"}}</span>
+    </h2>
+    <div class="ethernum-gyro-technique-list">
+      {{#each uniqueMechanics.gyro.techniques}}
+      <div class="ethernum-gyro-technique {{#unless this.canAfford}}disabled{{/unless}}">
+        <div class="ethernum-gyro-technique-main">
+          <span class="ethernum-gyro-tech-cost">{{this.cost}} SP</span>
+          <div>
+            <strong>{{this.name}}</strong>
+            <small>{{this.source}}</small>
+            <p>{{this.description}}</p>
+          </div>
+        </div>
+        <div class="ethernum-gyro-tech-actions">
+          <select class="ethernum-gyro-tech-mode" data-technique-id="{{this.id}}">
+            <option value="stable">{{localize "ETHERNUM.Unique.Gyro.Execution.stable"}}</option>
+            <option value="forced">{{localize "ETHERNUM.Unique.Gyro.Execution.forced"}}</option>
+            <option value="corpse">{{localize "ETHERNUM.Unique.Gyro.Execution.corpse"}}</option>
+            <option value="perfect">{{localize "ETHERNUM.Unique.Gyro.Execution.perfect"}}</option>
+          </select>
+          <button type="button" class="ethernum-icon-button ethernum-gyro-use-technique" data-technique-id="{{this.id}}" title="{{localize 'ETHERNUM.Buttons.Activate'}}" {{#unless this.canAfford}}disabled{{/unless}}>
+            <i class="fas fa-dice-d20"></i>
+          </button>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-gyro-ikons">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-cross"></i> {{localize "ETHERNUM.Unique.Gyro.Ikons"}}</span>
+    </h2>
+    <div class="ethernum-gyro-ikon-grid">
+      {{#each uniqueMechanics.gyro.ikons}}
+      <label class="ethernum-gyro-ikon {{#if this.unlocked}}unlocked{{/if}} tier-{{this.tier}}">
+        <input type="checkbox" class="ethernum-gyro-ikon-toggle" data-ikon-id="{{this.id}}" {{#if this.unlocked}}checked{{/if}} />
+        <span class="ethernum-gyro-ikon-num">{{this.num}}</span>
+        <span>
+          <strong>{{this.piece}}</strong>
+          <small>{{this.title}} · {{this.tierLabel}}</small>
+        </span>
+      </label>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+</div>

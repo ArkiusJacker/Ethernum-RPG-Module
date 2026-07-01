@@ -1647,3 +1647,466 @@
   .ethernum-trinity-triangle::before { display: none; }
   .ethernum-dc-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ===== MECÂNICAS ÚNICAS ===== */
+.ethernum-unique-tab {
+  --gyro-green: #2d6b30;
+  --gyro-green-bright: #4a9e4e;
+  --gyro-gold: #c8a84b;
+  --gyro-red: #c42b2b;
+  --gyro-steel: #6b7f8a;
+}
+
+.ethernum-unique-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid rgba(45, 107, 48, 0.35);
+  border-radius: var(--eth-radius);
+  background: rgba(45, 107, 48, 0.12);
+  backdrop-filter: blur(4px);
+}
+
+.ethernum-unique-profile-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ethernum-unique-profile-picker i {
+  color: var(--gyro-green-bright);
+}
+
+.ethernum-unique-profile {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg-option, #f5f5f5);
+  color: var(--color-text-dark-primary, #333);
+  padding: 5px 8px;
+}
+
+.ethernum-unique-resource-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 14px;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.ethernum-unique-resource-pill span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: currentColor;
+  color: white;
+  font-weight: 700;
+}
+
+.ethernum-unique-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 140px;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.ethernum-unique-empty i {
+  color: var(--gyro-green-bright);
+  font-size: 1.4em;
+}
+
+.ethernum-gyro-panel {
+  border-color: rgba(45, 107, 48, 0.35);
+  background: linear-gradient(135deg, rgba(45, 107, 48, 0.12), rgba(107, 127, 138, 0.08));
+}
+
+.ethernum-gyro-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.ethernum-gyro-title {
+  margin: 0;
+  font-size: 1.15em;
+  color: var(--gyro-green-bright);
+}
+
+.ethernum-gyro-header p {
+  margin: 2px 0 0 0;
+  color: var(--color-text-dark-secondary, #666);
+  font-size: 0.85em;
+}
+
+.ethernum-gyro-sp-card {
+  display: grid;
+  grid-template-columns: 92px minmax(180px, 1fr) minmax(180px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.ethernum-gyro-sp-ring {
+  --spin-color: var(--gyro-green-bright);
+  width: 88px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, var(--color-bg, #fff) 58%, transparent 60%),
+    conic-gradient(var(--spin-color) var(--spin-percent), rgba(0, 0, 0, 0.12) 0);
+  border: 1px solid rgba(45, 107, 48, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ethernum-gyro-sp-ring span {
+  color: var(--spin-color);
+  font-size: 1.7em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ethernum-gyro-sp-ring small {
+  color: var(--color-text-dark-secondary, #666);
+  font-size: 0.78em;
+}
+
+.ethernum-gyro-sp-main,
+.ethernum-gyro-rank-card {
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+  padding: 10px;
+}
+
+.ethernum-gyro-sp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ethernum-gyro-sp-row label {
+  flex: 1;
+  font-size: 0.82em;
+  color: var(--color-text-dark-secondary, #666);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ethernum-gyro-sp-input,
+.ethernum-gyro-sp-delta {
+  width: 64px;
+  padding: 5px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg-option, #f5f5f5);
+  text-align: center;
+  color: var(--color-text-dark-primary, #333);
+}
+
+.ethernum-gyro-sp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ethernum-gyro-rank-card {
+  border-color: currentColor;
+}
+
+.ethernum-gyro-rank-card span {
+  display: block;
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary, #666);
+  margin-bottom: 4px;
+}
+
+.ethernum-gyro-rank-card strong {
+  display: block;
+  color: currentColor;
+  margin-bottom: 4px;
+}
+
+.ethernum-gyro-rank-card p {
+  margin: 0;
+  font-size: 0.82em;
+  color: var(--color-text-dark-primary, #333);
+}
+
+.gyro-rank-stable { color: var(--gyro-steel); }
+.gyro-rank-elevated { color: var(--gyro-green-bright); }
+.gyro-rank-sacred { color: var(--gyro-gold); }
+.gyro-rank-perfect { color: var(--gyro-red); }
+.gyro-rank-absolute { color: #8b5cf6; }
+
+.ethernum-gyro-config-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ethernum-gyro-config-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78em;
+  color: var(--color-text-dark-secondary, #666);
+  font-weight: 700;
+}
+
+.ethernum-gyro-config-grid input,
+.ethernum-gyro-config-grid select {
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg-option, #f5f5f5);
+  color: var(--color-text-dark-primary, #333);
+  padding: 5px 7px;
+}
+
+.ethernum-gyro-check {
+  flex-direction: row !important;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 7px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ethernum-gyro-check input {
+  width: auto;
+  margin: 0;
+}
+
+.ethernum-gyro-execution-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ethernum-gyro-exec-button {
+  min-height: 58px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+  color: var(--color-text-dark-primary, #333);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.ethernum-gyro-exec-button:hover {
+  border-color: var(--gyro-green-bright);
+  transform: translateY(-1px);
+}
+
+.ethernum-gyro-exec-button strong {
+  font-size: 0.82em;
+}
+
+.ethernum-gyro-exec-button span {
+  font-size: 0.75em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.ethernum-gyro-technique-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ethernum-gyro-technique {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--eth-border);
+  border-left: 4px solid var(--gyro-green-bright);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+}
+
+.ethernum-gyro-technique.disabled {
+  opacity: 0.58;
+}
+
+.ethernum-gyro-technique-main {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ethernum-gyro-tech-cost {
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(45, 107, 48, 0.12);
+  color: var(--gyro-green-bright);
+  font-size: 0.76em;
+  font-weight: 800;
+}
+
+.ethernum-gyro-technique strong,
+.ethernum-gyro-ikon strong {
+  color: var(--color-text-dark-primary, #333);
+}
+
+.ethernum-gyro-technique small,
+.ethernum-gyro-ikon small {
+  display: block;
+  color: var(--color-text-dark-secondary, #666);
+  font-size: 0.76em;
+}
+
+.ethernum-gyro-technique p {
+  margin: 3px 0 0 0;
+  color: var(--color-text-dark-primary, #333);
+  font-size: 0.83em;
+}
+
+.ethernum-gyro-tech-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ethernum-gyro-tech-mode {
+  width: 142px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg-option, #f5f5f5);
+  color: var(--color-text-dark-primary, #333);
+  padding: 5px;
+  font-size: 0.8em;
+}
+
+.ethernum-gyro-ikon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ethernum-gyro-ikon {
+  display: grid;
+  grid-template-columns: auto 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  background: var(--color-bg, #fff);
+  cursor: pointer;
+}
+
+.ethernum-gyro-ikon.unlocked {
+  border-color: var(--gyro-gold);
+  background: rgba(200, 168, 75, 0.08);
+}
+
+.ethernum-gyro-ikon input {
+  margin: 0;
+}
+
+.ethernum-gyro-ikon-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gyro-steel);
+  color: white;
+  font-weight: 800;
+  font-size: 0.78em;
+}
+
+.ethernum-gyro-ikon.tier-legendary .ethernum-gyro-ikon-num {
+  background: var(--gyro-gold);
+}
+
+.ethernum-gyro-ikon.tier-transcendental .ethernum-gyro-ikon-num {
+  background: #8b5cf6;
+}
+
+.ethernum-unique-chat-card {
+  border: 1px solid rgba(45, 107, 48, 0.35);
+  border-radius: var(--eth-radius);
+  padding: 10px;
+  background: rgba(45, 107, 48, 0.08);
+}
+
+.ethernum-unique-chat-card h3 {
+  margin: 0 0 6px 0;
+  color: var(--gyro-green-bright, #4a9e4e);
+}
+
+.ethernum-unique-chat-card p {
+  margin: 4px 0;
+}
+
+@media (max-width: 900px) {
+  .ethernum-gyro-sp-card,
+  .ethernum-gyro-config-grid,
+  .ethernum-gyro-execution-grid,
+  .ethernum-gyro-ikon-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ethernum-unique-topbar,
+  .ethernum-gyro-header,
+  .ethernum-gyro-technique,
+  .ethernum-gyro-technique-main,
+  .ethernum-gyro-tech-actions {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ethernum-gyro-sp-card,
+  .ethernum-gyro-config-grid,
+  .ethernum-gyro-execution-grid,
+  .ethernum-gyro-ikon-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-gyro-sp-ring {
+    margin: 0 auto;
+  }
+
+  .ethernum-gyro-tech-mode {
+    width: 100%;
+  }
+}

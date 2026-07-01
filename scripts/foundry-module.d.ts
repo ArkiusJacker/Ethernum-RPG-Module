@@ -12,6 +12,7 @@ declare global {
     "ethernum-rpg-module.allowOverride": boolean;
     "ethernum-rpg-module.runeClassDCs": Record<number, number>;
     "ethernum-rpg-module.feCostsPerRank": Record<string, number>;
+    "ethernum-rpg-module.defaultRuneCostPerClass": Record<number, number>;
     "ethernum-rpg-module.schemaVersion": number;
   }
 
@@ -25,6 +26,10 @@ declare global {
         etherSystem?: { etherMax: number; etherCurrent: number; etherPower: number };
         runes?: Array<Record<string, unknown>>;
         maxRuneClass?: number;
+        uniqueMechanics?: {
+          activeProfile: string;
+          profiles: Record<string, unknown>;
+        };
         schemaVersion?: number;
         [key: string]: unknown;
       };

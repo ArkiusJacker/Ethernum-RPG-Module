@@ -1,5 +1,11 @@
 import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute } from '../config.js';
 import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '../systems.js';
+import {
+  UniqueMechanicsSystem,
+  type GyroExecutionMode,
+  type GyroMainAttribute,
+  type UniqueMechanicProfileId,
+} from '../unique/UniqueMechanics.js';
 
 // Persiste qual aba Ethernum estava ativa por ator entre re-renders.
 // actor.setFlag() no PF2E v8 (ApplicationV2) dispara re-render automático;
@@ -52,6 +58,9 @@ export class EtherTabManager {
       <a class="item" data-tab="ethernum-runes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.RuneSystem")}">
         <i class="fas fa-gem"></i>
       </a>
+      <a class="item" data-tab="ethernum-unique" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.UniqueMechanics")}">
+        <i class="fas fa-fingerprint"></i>
+      </a>
     `);
 
     const templateData = this._buildTemplateData(actor, isGM);
@@ -59,14 +68,16 @@ export class EtherTabManager {
     const renderTpl = (foundry.applications as Record<string, unknown> & { handlebars?: { renderTemplate?: typeof renderTemplate } })
       ?.handlebars?.renderTemplate ?? renderTemplate;
 
-    const [attributesTemplate, runesTemplate] = await Promise.all([
+    const [attributesTemplate, runesTemplate, uniqueTemplate] = await Promise.all([
       renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`, templateData),
       renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData),
+      renderTpl(`${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`, templateData),
     ]);
 
     $html.find('.sheet-body').append(`
       <div class="ethernum-content" data-ethernum-tab="ethernum-attributes">${attributesTemplate}</div>
       <div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>
+      <div class="ethernum-content" data-ethernum-tab="ethernum-unique">${uniqueTemplate}</div>
     `);
 
     // Restore scroll positions before showing tab
@@ -150,6 +161,7 @@ export class EtherTabManager {
       customWords,
       attributeRankBonus:  ETHERNUM.ATTRIBUTE_RANK_BONUS,
       talentRankBonus:     ETHERNUM.TALENT_RANK_BONUS,
+      uniqueMechanics:     UniqueMechanicsSystem.buildSheetData(actor, isGM),
     };
   }
 
@@ -580,6 +592,93 @@ export class EtherTabManager {
         $select.closest('.ethernum-trinity-chip-group').find('.ethernum-trinity-chip').show();
         $select.hide();
       }
+    });
+
+    html.find('.ethernum-unique-profile').on('change', async (ev) => {
+      const profileId = (ev.target as HTMLSelectElement).value as UniqueMechanicProfileId;
+      await UniqueMechanicsSystem.setActiveProfile(actor, profileId);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-sp-input').on('change', async (ev) => {
+      await UniqueMechanicsSystem.setGyroSP(actor, parseInt((ev.target as HTMLInputElement).value) || 0);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-adjust-sp').on('click', async (ev) => {
+      ev.preventDefault();
+      const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
+      const amount = parseInt(String(html.find('.ethernum-gyro-sp-delta').val())) || 1;
+      await UniqueMechanicsSystem.adjustGyroSP(actor, delta * amount);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-start-combat').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.startGyroCombat(actor);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showGyroStatus(actor);
+    });
+
+    html.find('.ethernum-gyro-roll-control').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.rollGyroControl(actor, $(ev.currentTarget).data('mode') as GyroExecutionMode);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-roll-deviation').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.rollGyroDeviation(actor);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-use-technique').on('click', async (ev) => {
+      ev.preventDefault();
+      const techniqueId = $(ev.currentTarget).data('technique-id') as string;
+      const mode = html.find(`.ethernum-gyro-tech-mode[data-technique-id="${techniqueId}"]`).val() as GyroExecutionMode;
+      await UniqueMechanicsSystem.useGyroTechnique(actor, techniqueId, mode);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-config').on('change', async (ev) => {
+      const input = ev.target as HTMLInputElement | HTMLSelectElement;
+      const field = $(ev.currentTarget).data('field') as string;
+      let value: string | number | boolean | undefined = input.value;
+      if (input instanceof HTMLInputElement && input.type === 'checkbox') value = input.checked;
+      if (['proficiencyBonus', 'corpsePartNumber', 'sacredScars'].includes(field)) value = parseInt(String(value)) || 0;
+      if (field === 'maxSPOverride') value = input.value === "" ? undefined : parseInt(String(value)) || 0;
+      await UniqueMechanicsSystem.updateGyroState(actor, {
+        [field]: value,
+      } as Partial<{
+        mainAttribute: GyroMainAttribute;
+        proficiencyBonus: number;
+        corpsePartNumber: number;
+        maxSPOverride?: number;
+        sacredScars: number;
+        torsoBonus: boolean;
+        heartRegen: boolean;
+        absoluteReady: boolean;
+      }>);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-ikon-toggle').on('change', async (ev) => {
+      const input = ev.target as HTMLInputElement;
+      const ikonId = $(ev.currentTarget).data('ikon-id') as string;
+      const gyroState = UniqueMechanicsSystem.getGyroState(actor);
+      const unlocked = new Set(gyroState.unlockedIkons);
+      if (input.checked) unlocked.add(ikonId);
+      else unlocked.delete(ikonId);
+      await UniqueMechanicsSystem.updateGyroState(actor, {
+        unlockedIkons: [...unlocked],
+        ...(ikonId === "VII" ? { torsoBonus: input.checked } : {}),
+        ...(ikonId === "III" ? { heartRegen: input.checked } : {}),
+      });
+      app.render();
     });
   }
 }
