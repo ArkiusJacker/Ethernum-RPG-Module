@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 interface EtherSystem {
   etherMax: number;
@@ -19,6 +19,11 @@ interface Rune {
   runeClass: number;
   active?: boolean;
   [key: string]: unknown;
+}
+
+interface UniqueMechanics {
+  activeProfile: string;
+  profiles: Record<string, unknown>;
 }
 
 export interface ValidationResult {
@@ -68,6 +73,14 @@ function validateRunes(runes: unknown): runes is Rune[] {
   );
 }
 
+function validateUniqueMechanics(value: unknown): value is UniqueMechanics {
+  if (!value || typeof value !== "object") return false;
+  const state = value as UniqueMechanics;
+  return typeof state.activeProfile === "string"
+    && !!state.profiles
+    && typeof state.profiles === "object";
+}
+
 export function validateActorFlags(actor: Actor): ValidationResult {
   const issues: string[] = [];
   const m = ETHERNUM.MODULE_NAME;
@@ -77,6 +90,7 @@ export function validateActorFlags(actor: Actor): ValidationResult {
   if (!validateEtherSystem(actor.getFlag(m, "etherSystem"))) issues.push("etherSystem");
   if (!validateFE(actor.getFlag(m, "fe"))) issues.push("fe");
   if (!validateRunes(actor.getFlag(m, "runes") ?? [])) issues.push("runes");
+  if (!validateUniqueMechanics(actor.getFlag(m, "uniqueMechanics"))) issues.push("uniqueMechanics");
 
   return { valid: issues.length === 0, issues };
 }
@@ -94,9 +108,17 @@ export async function migrateActor(actor: Actor): Promise<void> {
     if (Array.isArray(runes)) {
       updates[`flags.${m}.runes`] = runes.map(r => ({ active: true, ...r }));
     }
-    updates[`flags.${m}.schemaVersion`] = 1;
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v1`);
   }
+
+  if (schemaVersion < 2) {
+    if (!actor.getFlag(m, "uniqueMechanics")) {
+      updates[`flags.${m}.uniqueMechanics`] = { activeProfile: "", profiles: {} };
+    }
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v2`);
+  }
+
+  updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;
 
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }

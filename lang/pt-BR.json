@@ -5,7 +5,8 @@
       "EtherAttributes": "Atributos de Éter",
       "RuneSystem": "Sistema de Runas",
       "DiceCalculator": "Calculadora de Dados",
-      "Talents": "Talentos"
+      "Talents": "Talentos",
+      "UniqueMechanics": "Mecânicas Únicas"
     },
     "EtherCurrent": "Éter Atual",
     "EtherMax": "Éter Máximo",
@@ -197,6 +198,54 @@
       "CustomSources": "Fontes",
       "AddWord": "Adicionar",
       "WordPlaceholder": "Nova palavra..."
+    },
+    "Unique": {
+      "Empty": "Nenhuma mecânica única selecionada para este personagem.",
+      "Profile": {
+        "None": "Sem mecânica única"
+      },
+      "Errors": {
+        "TechniqueNotFound": "Técnica não encontrada."
+      },
+      "Gyro": {
+        "Subtitle": "Via da Rotação Sagrada",
+        "SpinPoints": "Spin Points",
+        "RotationRank": "Nível de Rotação",
+        "Status": "Status da Rotação",
+        "Controls": "Configuração da Rotação",
+        "MainAttribute": "Atributo Principal",
+        "Proficiency": "Proficiência",
+        "CorpsePartNumber": "Nº da Parte",
+        "MaxSPOverride": "SP Máximo Manual",
+        "SacredScars": "Cicatrizes Sagradas",
+        "TorsoBonus": "Torso: +6 SP",
+        "HeartRegen": "Coração: +1 SP/turno",
+        "AbsoluteReady": "Rotação Absoluta pronta",
+        "StartCombat": "Início",
+        "CombatStart": "Início de Combate",
+        "ExecutionRisk": "Execução & Risco",
+        "ExecutionMode": "Modo de Execução",
+        "SPCost": "Custo de SP",
+        "Techniques": "Técnicas",
+        "Ikons": "IKONs do Cadáver Santo",
+        "NotEnoughSP": "Spin Points insuficientes.",
+        "StableNoCheck": "Sem teste necessário",
+        "ControlCheck": "Teste de Controle de Spin",
+        "ControlSuccess": "Controle mantido.",
+        "ControlFailure": "Desvio da Rotação!",
+        "Deviation": "Desvio da Rotação",
+        "Execution": {
+          "stable": "Rotação Estável",
+          "forced": "Rotação Forçada",
+          "corpse": "Rotação do Cadáver Santo",
+          "perfect": "Rotação Perfeita"
+        },
+        "IkonTier": {
+          "normal": "Normal",
+          "legendary": "Lendário",
+          "transcendental": "Transcendental"
+        }
+      }
     },
     "DiceRoll": {
       "EtherEnhanced": "Rolagem Aprimorada por Éter"
