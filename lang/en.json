@@ -54,7 +54,8 @@
       "Enable": "Enable",
       "Disable": "Disable",
       "Minimize": "Minimize",
-      "Expand": "Expand"
+      "Expand": "Expand",
+      "Close": "Close"
     },
     "Attribute": {
       "Name": "Attribute",
@@ -250,6 +251,8 @@
         "MinimizeHud": "Minimize panel",
         "ExpandHud": "Expand panel",
         "PlayAnimation": "Play animation",
+        "DeviationCleared": "Rotation Deviation cleared.",
+        "NoUnlockedTechniques": "No unlocked techniques for this character.",
         "NotEnoughSP": "Not enough Spin Points.",
         "SPGainCapped": "Spin Point gain cap reached for this round.",
         "StableNoCheck": "No check required",

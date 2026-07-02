@@ -2359,7 +2359,8 @@
   position: fixed;
   left: 16px;
   bottom: 16px;
-  z-index: 80;
+  z-index: 10000;
+  pointer-events: auto;
   width: min(360px, calc(100vw - 32px));
   border: 1px solid rgba(200, 168, 75, 0.42);
   border-radius: 8px;
@@ -2386,6 +2387,8 @@
   gap: 8px;
   padding: 10px 10px 8px;
   border-bottom: 1px solid rgba(200, 168, 75, 0.22);
+  cursor: move;
+  user-select: none;
 }
 
 .ethernum-gyro-hud-header strong {
@@ -2449,6 +2452,7 @@
   width: 64px;
   border-radius: 50%;
   padding: 0;
+  cursor: grab;
 }
 
 .ethernum-gyro-hud-orb img,
@@ -2534,6 +2538,89 @@
 .ethernum-gyro-hud-clear {
   padding: 4px 6px;
   font-size: 0.9em;
+}
+
+.ethernum-gyro-tech-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ethernum-gyro-tech-dialog-card {
+  border: 1px solid rgba(200, 168, 75, 0.28);
+  border-left: 4px solid var(--gyro-gold, #c8a84b);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(24, 35, 22, 0.96), rgba(13, 21, 14, 0.96));
+  color: var(--gyro-bone, #eadfca);
+  padding: 9px;
+}
+
+.ethernum-gyro-tech-dialog-card.disabled {
+  opacity: 0.58;
+}
+
+.ethernum-gyro-tech-dialog-card header,
+.ethernum-gyro-tech-dialog-card footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ethernum-gyro-tech-dialog-card header span {
+  min-width: 45px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(200, 168, 75, 0.16);
+  color: var(--gyro-gold, #c8a84b);
+  font-weight: 800;
+  text-align: center;
+}
+
+.ethernum-gyro-tech-dialog-card header strong {
+  display: block;
+  color: var(--gyro-bone, #eadfca);
+}
+
+.ethernum-gyro-tech-dialog-card header small,
+.ethernum-gyro-tech-dialog-card p,
+.ethernum-gyro-tech-dialog-card li {
+  color: var(--gyro-muted, #b6ad95);
+}
+
+.ethernum-gyro-tech-dialog-card p {
+  margin: 6px 0;
+}
+
+.ethernum-gyro-tech-dialog-card details {
+  margin: 6px 0;
+}
+
+.ethernum-gyro-tech-dialog-card summary {
+  cursor: pointer;
+  color: var(--gyro-gold, #c8a84b);
+  font-weight: 700;
+}
+
+.ethernum-gyro-tech-dialog-card ul {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+
+.ethernum-gyro-tech-dialog-card footer {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.ethernum-gyro-macro-mode {
+  min-width: 190px;
+  border: 1px solid rgba(200, 168, 75, 0.3);
+  border-radius: 5px;
+  background: rgba(234, 223, 202, 0.08);
+  color: var(--gyro-bone, #eadfca);
+  padding: 4px 6px;
 }
 
 @keyframes ethernum-gyro-slow-spin {

@@ -581,38 +581,14 @@ function isSequencerActive(): boolean {
   return Boolean(game.modules?.get("sequencer")?.active && (globalThis as { Sequence?: unknown }).Sequence);
 }
 
-function sequencerFileAvailable(file: string): boolean {
-  if (!file.startsWith("jb2a.")) return true;
-  const database = (globalThis as { Sequencer?: { Database?: { getEntry?: (path: string) => unknown } } }).Sequencer?.Database;
-  if (typeof database?.getEntry !== "function") return false;
-  try {
-    return Boolean(database.getEntry(file));
-  } catch {
-    return false;
-  }
-}
-
 function getGyroAnimationFile(variant: "technique" | "deviation" | "status"): string {
-  const candidates: Record<typeof variant, string[]> = {
-    technique: [
-      "jb2a.magic_signs.circle.02.conjuration.loop.yellow",
-      "jb2a.energy_strands.complete.yellow.01",
-      "jb2a.template_circle.out_pulse.02.loop.yellow",
-      GYRO_SPINBALL_ASSET,
-    ],
-    deviation: [
-      "jb2a.impact.ground_crack.orange",
-      "jb2a.explosion.01.orange",
-      "jb2a.template_circle.out_pulse.02.loop.orange",
-      GYRO_SPINBALL_ASSET,
-    ],
-    status: [
-      "jb2a.template_circle.out_pulse.02.loop.yellow",
-      "jb2a.magic_signs.circle.02.abjuration.loop.yellow",
-      GYRO_SPINBALL_ASSET,
-    ],
+  const jb2aActive = game.modules?.get("JB2A_DnD5e")?.active ?? false;
+  const jb2aFiles: Record<typeof variant, string> = {
+    technique: "modules/JB2A_DnD5e/Library/Generic/Magic_Signs/ConjurationCircleComplete_02_Regular_Yellow_800x800.webm",
+    deviation: "modules/JB2A_DnD5e/Library/Generic/Explosion/Explosion_05_Regular_Orange_400x400.webm",
+    status: "modules/JB2A_DnD5e/Library/TMFX/OutPulse/Circle/OutPulse_02_Circle_Normal_500.webm",
   };
-  return candidates[variant].find(sequencerFileAvailable) ?? GYRO_SPINBALL_ASSET;
+  return jb2aActive ? jb2aFiles[variant] : GYRO_SPINBALL_ASSET;
 }
 
 function getCombatRoundKey(): string | null {
@@ -672,6 +648,12 @@ export class UniqueMechanicsSystem {
     await actor.setFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics", state);
   }
 
+  static async setStateQuiet(actor: Actor, state: UniqueMechanicsState): Promise<void> {
+    await (actor as Actor & {
+      update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<Actor>;
+    }).update({ [`flags.${ETHERNUM.MODULE_NAME}.uniqueMechanics`]: state }, { render: false });
+  }
+
   static getGyroState(actor: Actor): GyroSpinState {
     const state = this.getState(actor);
     return normalizeGyroState(state.profiles[GYRO_PROFILE_ID]);
@@ -695,7 +677,7 @@ export class UniqueMechanicsSystem {
     if (!Number.isFinite(Number(next.maxSPOverride)) || Number(next.maxSPOverride) <= 0) delete next.maxSPOverride;
     state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = next;
-    await this.setState(actor, state);
+    await this.setStateQuiet(actor, state);
     return next;
   }
 
@@ -953,7 +935,13 @@ export class UniqueMechanicsSystem {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
       return;
     }
-    await this.updateGyroState(target, { activeDeviation: undefined });
+    const state = this.getState(target);
+    const gyroState = this.getGyroState(target);
+    delete gyroState.activeDeviation;
+    state.activeProfile = GYRO_PROFILE_ID;
+    state.profiles[GYRO_PROFILE_ID] = gyroState;
+    await this.setStateQuiet(target, state);
+    ui.notifications?.info(game.i18n!.localize("ETHERNUM.Unique.Gyro.DeviationCleared"));
   }
 
   static async playGyroSpinAnimation(actor?: Actor | null, variant: "technique" | "deviation" | "status" = "technique"): Promise<boolean> {
@@ -1062,6 +1050,73 @@ export class UniqueMechanicsSystem {
           <p>${technique.description}</p>
         </div>`,
     });
+  }
+
+  static async showGyroTechniques(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const isGM = game.user?.isGM ?? false;
+    const data = this.buildSheetData(target, isGM) as {
+      gyro: {
+        techniques: GyroTechniqueSheetData[];
+      };
+    };
+    const techniques = data.gyro.techniques.filter(technique => technique.unlocked);
+    if (techniques.length === 0) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Gyro.NoUnlockedTechniques"));
+      return;
+    }
+
+    const content = `
+      <div class="ethernum-gyro-tech-dialog">
+        ${techniques.map(technique => `
+          <section class="ethernum-gyro-tech-dialog-card ${technique.usable ? "" : "disabled"}">
+            <header>
+              <span>${technique.cost} SP</span>
+              <div>
+                <strong>${technique.name}</strong>
+                <small>${technique.source} - ${technique.actions}</small>
+              </div>
+            </header>
+            <p>${technique.description}</p>
+            <details>
+              <summary>${game.i18n!.localize("ETHERNUM.Unique.Gyro.Details")}</summary>
+              <ul>
+                ${technique.systemNotes.map(note => `<li>${note}</li>`).join("")}
+              </ul>
+            </details>
+            <footer>
+              <select class="ethernum-gyro-macro-mode" data-technique-id="${technique.id}">
+                ${technique.executionModes.map(mode => `
+                  <option value="${mode.id}" ${mode.selected ? "selected" : ""} ${mode.available ? "" : "disabled"}>
+                    ${mode.label} - ${mode.dcLabel}
+                  </option>
+                `).join("")}
+              </select>
+              <button type="button" class="ethernum-button-small ethernum-gyro-macro-use" data-technique-id="${technique.id}" ${technique.usable ? "" : "disabled"}>
+                <i class="fas fa-dice-d20"></i> ${game.i18n!.localize("ETHERNUM.Buttons.Activate")}
+              </button>
+            </footer>
+          </section>
+        `).join("")}
+      </div>
+    `;
+
+    new Dialog({
+      title: game.i18n!.localize("ETHERNUM.Unique.Gyro.Techniques"),
+      content,
+      buttons: { close: { label: game.i18n!.localize("ETHERNUM.Buttons.Close") } },
+      render: (html: JQuery) => {
+        html.find('.ethernum-gyro-macro-use').on('click', async (ev) => {
+          const techniqueId = $(ev.currentTarget).data('technique-id') as string;
+          const mode = html.find(`.ethernum-gyro-macro-mode[data-technique-id="${techniqueId}"]`).val() as GyroExecutionMode;
+          await this.useGyroTechnique(target, techniqueId, mode);
+        });
+      },
+    }).render(true);
   }
 
   static buildSheetData(actor: Actor, isGM: boolean): Record<string, unknown> {

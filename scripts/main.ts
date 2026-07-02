@@ -23,6 +23,7 @@ declare global {
         rollGyroDeviation: (actor?: Actor | null) => Promise<Roll | null>;
         clearGyroDeviation: (actor?: Actor | null) => Promise<void>;
         playGyroAnimation: (actor?: Actor | null) => Promise<boolean>;
+        showGyroTechniques: (actor?: Actor | null) => Promise<void>;
         useGyroTechnique: (techniqueId: string, mode?: GyroExecutionMode, actor?: Actor | null) => Promise<void>;
       };
     };
@@ -63,6 +64,8 @@ function buildMacroApi() {
       UniqueMechanicsSystem.clearGyroDeviation(resolveMacroActor(actor)),
     playGyroAnimation: async (actor?: Actor | null) =>
       UniqueMechanicsSystem.playGyroSpinAnimation(resolveMacroActor(actor), "status"),
+    showGyroTechniques: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.showGyroTechniques(resolveMacroActor(actor)),
     useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
       UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
   };
@@ -126,7 +129,13 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
 
-Hooks.on("renderCharacterSheetPF2e", (app: Application, html: JQuery) => EtherTabManager.render(app, html));
+function renderEthernumTabs(app: Application & { actor?: Actor }, html: JQuery<HTMLElement> | HTMLElement): void {
+  const $html = html instanceof HTMLElement ? $(html) : html;
+  void EtherTabManager.render(app, $html);
+}
+
+Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => renderEthernumTabs(app, html));
+Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: HTMLElement) => renderEthernumTabs(app, element));
 Hooks.on("createActor", (actor: Actor) => initializeActorFlags(actor));
 
 Hooks.once("init", () => {

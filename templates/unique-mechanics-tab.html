@@ -80,11 +80,9 @@
   <section class="ethernum-section ethernum-gyro-deviation-active">
     <h2 class="ethernum-section-title">
       <span><i class="fas fa-exclamation-triangle"></i> {{localize "ETHERNUM.Unique.Gyro.ActiveDeviation"}}</span>
-      {{#if isGM}}
       <button type="button" class="ethernum-button-small ethernum-gyro-clear-deviation">
         <i class="fas fa-check"></i> {{localize "ETHERNUM.Unique.Gyro.ClearDeviation"}}
       </button>
-      {{/if}}
     </h2>
     <p>{{uniqueMechanics.gyro.state.activeDeviation}}</p>
   </section>

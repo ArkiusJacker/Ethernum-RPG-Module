@@ -54,7 +54,8 @@
       "Enable": "Habilitar",
       "Disable": "Desabilitar",
       "Minimize": "Minimizar",
-      "Expand": "Expandir"
+      "Expand": "Expandir",
+      "Close": "Fechar"
     },
     "Attribute": {
       "Name": "Atributo",
@@ -250,6 +251,8 @@
         "MinimizeHud": "Minimizar painel",
         "ExpandHud": "Expandir painel",
         "PlayAnimation": "Tocar animação",
+        "DeviationCleared": "Desvio da Rotação limpo.",
+        "NoUnlockedTechniques": "Nenhuma técnica liberada para este personagem.",
         "NotEnoughSP": "Spin Points insuficientes.",
         "SPGainCapped": "Limite de ganho de Spin Points desta rodada atingido.",
         "StableNoCheck": "Sem teste necessário",

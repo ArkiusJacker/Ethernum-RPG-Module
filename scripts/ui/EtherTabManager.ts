@@ -259,8 +259,6 @@ export class EtherTabManager {
     actor: Actor,
     isGM: boolean
   ): void {
-    const rememberScroll = () => this._saveScrollPositions(html, actor.id!);
-
     // FE: adicionar (GM)
     html.find('.ethernum-add-fe').on('click', async (ev) => {
       ev.preventDefault();
@@ -620,17 +618,46 @@ export class EtherTabManager {
       }
     });
 
+    this._activateUniqueListeners(app, html, actor, isGM);
+  }
+
+  static async _refreshUniqueTab(
+    app: Application & { render(): void },
+    html: JQuery,
+    actor: Actor,
+    isGM: boolean
+  ): Promise<void> {
+    this._saveScrollPositions(html, actor.id!);
+    const renderTpl = (foundry.applications as Record<string, unknown> & { handlebars?: { renderTemplate?: typeof renderTemplate } })
+      ?.handlebars?.renderTemplate ?? renderTemplate;
+    const uniqueTemplate = await renderTpl(`${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`, this._buildTemplateData(actor, isGM));
+    html.find('.ethernum-content[data-ethernum-tab="ethernum-unique"]').html(uniqueTemplate);
+    this._restoreScrollPositions(html, actor.id!);
+    this._activateUniqueListeners(app, html, actor, isGM);
+  }
+
+  static _activateUniqueListeners(
+    app: Application & { render(): void },
+    html: JQuery,
+    actor: Actor,
+    isGM: boolean
+  ): void {
+    const rememberScroll = () => this._saveScrollPositions(html, actor.id!);
+    const refreshUnique = () => this._refreshUniqueTab(app, html, actor, isGM);
+
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
       if (!isGM) return;
       rememberScroll();
       const profileId = (ev.target as HTMLSelectElement).value as UniqueMechanicProfileId;
       await UniqueMechanicsSystem.setActiveProfile(actor, profileId);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-sp-input').on('change', async (ev) => {
       if (!isGM) return;
       rememberScroll();
       await UniqueMechanicsSystem.setGyroSP(actor, parseInt((ev.target as HTMLInputElement).value) || 0);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-adjust-sp').on('click', async (ev) => {
@@ -640,6 +667,7 @@ export class EtherTabManager {
       const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
       const amount = parseInt(String(html.find('.ethernum-gyro-sp-delta').val())) || 1;
       await UniqueMechanicsSystem.adjustGyroSP(actor, delta * amount);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-start-combat').on('click', async (ev) => {
@@ -647,6 +675,7 @@ export class EtherTabManager {
       if (!isGM) return;
       rememberScroll();
       await UniqueMechanicsSystem.startGyroCombat(actor);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-show-status').on('click', async (ev) => {
@@ -658,6 +687,7 @@ export class EtherTabManager {
       ev.preventDefault();
       rememberScroll();
       await UniqueMechanicsSystem.rollGyroControl(actor, $(ev.currentTarget).data('mode') as GyroExecutionMode);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-roll-deviation').on('click', async (ev) => {
@@ -665,13 +695,14 @@ export class EtherTabManager {
       if (!isGM) return;
       rememberScroll();
       await UniqueMechanicsSystem.rollGyroDeviation(actor);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-clear-deviation').on('click', async (ev) => {
       ev.preventDefault();
-      if (!isGM) return;
       rememberScroll();
       await UniqueMechanicsSystem.clearGyroDeviation(actor);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-use-technique').on('click', async (ev) => {
@@ -680,6 +711,7 @@ export class EtherTabManager {
       const techniqueId = $(ev.currentTarget).data('technique-id') as string;
       const mode = html.find(`.ethernum-gyro-tech-mode[data-technique-id="${techniqueId}"]`).val() as GyroExecutionMode;
       await UniqueMechanicsSystem.useGyroTechnique(actor, techniqueId, mode);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-config').on('change', async (ev) => {
@@ -703,6 +735,7 @@ export class EtherTabManager {
         heartRegen: boolean;
         absoluteReady: boolean;
       }>);
+      await refreshUnique();
     });
 
     html.find('.ethernum-gyro-ikon-toggle').on('change', async (ev) => {
@@ -719,6 +752,7 @@ export class EtherTabManager {
         ...(ikonId === "VII" ? { torsoBonus: input.checked } : {}),
         ...(ikonId === "III" ? { heartRegen: input.checked } : {}),
       });
+      await refreshUnique();
     });
   }
 }
