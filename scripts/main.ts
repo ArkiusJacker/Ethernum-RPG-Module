@@ -3,8 +3,18 @@ import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
-import { UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
+import { GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
+
+const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
+const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.showGyroTechniques();";
+
+type EthernumMacroDocument = {
+  name?: string;
+  command?: string;
+  img?: string;
+  update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>;
+};
 
 declare global {
   interface Game {
@@ -69,6 +79,43 @@ function buildMacroApi() {
     useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
       UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
   };
+}
+
+async function ensureManagedMacros(): Promise<void> {
+  if (!game.user?.isGM) return;
+  const macros = game.macros as unknown as {
+    find?: (predicate: (macro: EthernumMacroDocument) => boolean) => EthernumMacroDocument | undefined;
+    getName?: (name: string) => EthernumMacroDocument | undefined;
+  };
+  const existing = macros.getName?.(GYRO_TECHNIQUES_MACRO_NAME)
+    ?? macros.find?.(macro => macro.name === GYRO_TECHNIQUES_MACRO_NAME);
+  const ownerPermission = (globalThis as {
+    CONST?: { DOCUMENT_OWNERSHIP_LEVELS?: { OWNER?: number } };
+  }).CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+  const data = {
+    name: GYRO_TECHNIQUES_MACRO_NAME,
+    type: "script",
+    img: GYRO_SPINBALL_ASSET,
+    command: GYRO_TECHNIQUES_MACRO_COMMAND,
+    ownership: { default: ownerPermission },
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        managedMacro: "gyro-techniques",
+      },
+    },
+  };
+
+  if (existing) {
+    const updates: Record<string, unknown> = {};
+    if (existing.command !== GYRO_TECHNIQUES_MACRO_COMMAND) updates.command = GYRO_TECHNIQUES_MACRO_COMMAND;
+    if (existing.img !== GYRO_SPINBALL_ASSET) updates.img = GYRO_SPINBALL_ASSET;
+    updates.ownership = { default: ownerPermission };
+    if (Object.keys(updates).length > 0) await existing.update(updates, { render: false });
+    return;
+  }
+
+  const MacroClass = (globalThis as { Macro?: { create?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown> } }).Macro;
+  await MacroClass?.create?.(data, { render: false });
 }
 
 function registerHandlebarsHelpers(): void {
@@ -164,6 +211,7 @@ Hooks.once("ready", async () => {
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
   await migrateWorld();
+  await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
 
   if (game.user?.isGM) {

@@ -1650,6 +1650,10 @@
 
 /* ===== MECÂNICAS ÚNICAS ===== */
 .ethernum-unique-tab {
+  --company-gold: #d8bd78;
+  --company-gold-soft: #f2e6c8;
+  --company-ink: #030303;
+  --company-smoke: #11100c;
   --gyro-green: #17351d;
   --gyro-green-bright: #6fac69;
   --gyro-gold: #c8a84b;
@@ -1725,17 +1729,62 @@
 }
 
 .ethernum-unique-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 140px;
-  color: var(--color-text-dark-secondary, #666);
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  overflow: hidden;
+  color: var(--company-gold-soft);
 }
 
-.ethernum-unique-empty i {
-  color: var(--gyro-green-bright);
-  font-size: 1.4em;
+.ethernum-unique-empty::before,
+.ethernum-unique-empty::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    linear-gradient(112deg, transparent 0 39%, rgba(216, 189, 120, 0.28) 40%, transparent 42%),
+    linear-gradient(68deg, transparent 0 47%, rgba(242, 230, 200, 0.16) 48%, transparent 50%);
+  background-size: 210px 210px, 280px 280px;
+  animation: ethernum-company-threads 18s linear infinite;
+}
+
+.ethernum-unique-empty::after {
+  opacity: 0.24;
+  transform: rotate(180deg);
+  animation-duration: 24s;
+  animation-direction: reverse;
+}
+
+.ethernum-unique-empty-aura {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  max-width: 420px;
+  padding: 28px;
+}
+
+.ethernum-unique-empty-aura img {
+  width: min(180px, 42vw);
+  height: auto;
+  filter: drop-shadow(0 0 16px rgba(216, 189, 120, 0.26));
+  opacity: 0.94;
+}
+
+.ethernum-unique-empty-aura strong {
+  display: block;
+  color: var(--company-gold-soft);
+  font-size: 1.05em;
+}
+
+.ethernum-unique-empty-aura p {
+  margin: 3px 0 0;
+  color: rgba(242, 230, 200, 0.78);
 }
 
 .ethernum-gyro-panel {
@@ -1773,13 +1822,17 @@
 .ethernum-gyro-sp-ring {
   --spin-color: var(--gyro-green-bright);
   width: 88px;
-  aspect-ratio: 1;
+  height: 88px;
+  min-width: 88px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   border-radius: 50%;
   background:
     radial-gradient(circle at center, var(--color-bg, #fff) 58%, transparent 60%),
     conic-gradient(var(--spin-color) var(--spin-percent), rgba(0, 0, 0, 0.12) 0);
   border: 1px solid rgba(45, 107, 48, 0.35);
   display: flex;
+  flex: 0 0 88px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -2088,11 +2141,27 @@
   color: var(--gyro-bone);
 }
 
+.ethernum-unique-company-theme.ethernum-container {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(216, 189, 120, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(3, 3, 3, 0.98), rgba(17, 16, 12, 0.96) 58%, rgba(43, 34, 14, 0.9));
+  color: var(--company-gold-soft);
+}
+
 .ethernum-unique-tab .ethernum-section {
   border-color: var(--gyro-border);
   background: linear-gradient(180deg, rgba(24, 35, 22, 0.96), rgba(13, 21, 14, 0.96));
   color: var(--gyro-bone);
   box-shadow: inset 0 1px 0 rgba(234, 223, 202, 0.06);
+}
+
+.ethernum-unique-company-theme .ethernum-section {
+  border-color: rgba(216, 189, 120, 0.34);
+  background:
+    radial-gradient(circle at center, rgba(216, 189, 120, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(14, 13, 10, 0.95), rgba(3, 3, 3, 0.96));
+  color: var(--company-gold-soft);
+  box-shadow: inset 0 1px 0 rgba(242, 230, 200, 0.08), 0 0 24px rgba(216, 189, 120, 0.08);
 }
 
 .ethernum-unique-tab .ethernum-section-title {
@@ -2103,6 +2172,11 @@
 .ethernum-unique-topbar {
   border-color: var(--gyro-border);
   background: linear-gradient(90deg, rgba(9, 16, 11, 0.92), rgba(32, 57, 31, 0.9));
+}
+
+.ethernum-unique-company-theme .ethernum-unique-topbar {
+  border-color: rgba(216, 189, 120, 0.34);
+  background: linear-gradient(90deg, rgba(3, 3, 3, 0.92), rgba(43, 34, 14, 0.78));
 }
 
 .ethernum-unique-profile,
@@ -2157,6 +2231,12 @@
 .ethernum-gyro-sp-ring {
   position: relative;
   overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  flex: 0 0 88px;
   background:
     radial-gradient(circle at center, rgba(9, 16, 11, 0.78) 45%, rgba(9, 16, 11, 0.25) 62%, transparent 64%),
     conic-gradient(var(--gyro-gold) var(--spin-percent), rgba(234, 223, 202, 0.12) 0);
@@ -2167,7 +2247,7 @@
 .ethernum-gyro-sp-ring::before {
   content: "";
   position: absolute;
-  inset: -18%;
+  inset: -14%;
   background: url("../assets/unique/spinball.png") center / contain no-repeat;
   opacity: 0.58;
   filter: saturate(0.92) contrast(1.06);
@@ -2199,6 +2279,10 @@
 .ethernum-gyro-technique p,
 .ethernum-unique-empty {
   color: var(--gyro-bone);
+}
+
+.ethernum-unique-company-theme .ethernum-unique-empty {
+  color: var(--company-gold-soft);
 }
 
 .ethernum-gyro-technique strong,
@@ -2238,6 +2322,26 @@
   gap: 5px;
   margin-top: 6px;
   color: #d9c17a;
+}
+
+.ethernum-gyro-tech-meta,
+.ethernum-gyro-corpse-lock,
+.ethernum-gyro-dialog-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  border: 1px solid rgba(200, 168, 75, 0.22);
+  border-radius: var(--eth-radius);
+  background: rgba(9, 16, 11, 0.32);
+  color: #d9c17a;
+  font-size: 0.78em;
+  padding: 3px 6px;
+}
+
+.ethernum-gyro-corpse-lock {
+  display: flex;
+  width: fit-content;
 }
 
 .ethernum-gyro-details {
@@ -2437,9 +2541,12 @@
 .ethernum-gyro-hud-ball {
   position: relative;
   width: 86px;
-  aspect-ratio: 1;
+  height: 86px;
+  min-width: 86px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   display: grid;
+  flex: 0 0 86px;
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(200, 168, 75, 0.5);
@@ -2450,6 +2557,9 @@
 
 .ethernum-gyro-hud-ball {
   width: 64px;
+  height: 64px;
+  min-width: 64px;
+  flex-basis: 64px;
   border-radius: 50%;
   padding: 0;
   cursor: grab;
@@ -2633,7 +2743,14 @@
   50% { box-shadow: inset 0 1px 0 rgba(234, 223, 202, 0.08), 0 0 16px rgba(200, 168, 75, 0.08); }
 }
 
+@keyframes ethernum-company-threads {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 420px 210px, -280px 280px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .ethernum-unique-empty::before,
+  .ethernum-unique-empty::after,
   .ethernum-gyro-sp-ring::before,
   .ethernum-gyro-hud-orb img,
   .ethernum-gyro-hud-ball img,

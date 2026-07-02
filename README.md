@@ -134,6 +134,7 @@ await game.ethernum.macros.setUniqueProfile("gyro-spin");
 
 ```js
 await game.ethernum.macros.showGyroStatus();
+await game.ethernum.macros.showGyroTechniques();
 ```
 
 ```js

@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-unique-tab">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}}">
   <div class="ethernum-unique-topbar">
     <div class="ethernum-unique-profile-picker">
       <i class="fas fa-fingerprint"></i>
@@ -18,8 +18,13 @@
 
   {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}
   <section class="ethernum-section ethernum-unique-empty">
-    <i class="fas fa-fingerprint"></i>
-    <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
+    <div class="ethernum-unique-empty-aura">
+      <img src="{{uniqueMechanics.companyLogoAsset}}" alt="Ethernum Company" />
+      <div>
+        <strong>{{localize "ETHERNUM.Unique.Profile.None"}}</strong>
+        <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
+      </div>
+    </div>
   </section>
   {{/if}}
 
@@ -72,6 +77,9 @@
         <span>{{uniqueMechanics.gyro.rank.range}}</span>
         <strong>{{uniqueMechanics.gyro.rank.control}}</strong>
         <p>{{uniqueMechanics.gyro.rank.text}}</p>
+        {{#unless uniqueMechanics.gyro.hasCorpseIkon}}
+        <p class="ethernum-gyro-corpse-lock"><i class="fas fa-lock"></i> {{localize "ETHERNUM.Unique.Gyro.CorpseLockedHint"}}</p>
+        {{/unless}}
       </div>
     </div>
   </section>
@@ -172,6 +180,12 @@
             <strong>{{this.name}}</strong>
             <small>{{this.source}} · {{this.actions}}</small>
             <p>{{this.description}}</p>
+            {{#if this.frequency}}
+            <p class="ethernum-gyro-tech-meta"><i class="fas fa-hourglass-half"></i> {{localize "ETHERNUM.Unique.Gyro.Frequency"}}: {{this.frequency}}</p>
+            {{/if}}
+            {{#if this.attachedToStrike}}
+            <p class="ethernum-gyro-tech-meta"><i class="fas fa-bullseye"></i> {{localize "ETHERNUM.Unique.Gyro.RequiresSteelBallStrike"}}</p>
+            {{/if}}
             {{#unless this.unlocked}}
             <p class="ethernum-gyro-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</p>
             {{/unless}}

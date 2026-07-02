@@ -7,6 +7,7 @@ export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 
 export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
+export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
 
 export interface UniqueMechanicsState {
   activeProfile: UniqueMechanicProfileId;
@@ -27,6 +28,7 @@ export interface GyroSpinState {
   activeDeviation?: string;
   spGainedThisRound?: number;
   lastSPRoundKey?: string;
+  lastBallBreakerTurnKey?: string;
 }
 
 interface GyroTechnique {
@@ -47,6 +49,8 @@ interface GyroTechnique {
   requiresAbsolute?: boolean;
   gmOnly?: boolean;
   narrativeOnly?: boolean;
+  frequency?: string;
+  attachedToStrike?: boolean;
 }
 
 interface GyroIkon {
@@ -172,7 +176,7 @@ export const GYRO_RANKS: GyroRank[] = [
     minSP: 7,
     maxSP: 10,
     control: "Cadáver: CD por nível + Parte/3",
-    text: "As Partes do Cadáver respondem quando ao menos um IKON foi liberado.",
+    text: "A rotação alcança frequência compatível com o Cadáver Santo. Se Gyro não possuir uma Parte/IKON sincronizada, esta frequência permanece instável e não libera o modo Cadáver.",
   },
   {
     id: "perfect",
@@ -250,13 +254,11 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     cost: 2,
     source: "Técnica",
     actions: "1 ação",
-    description: "Ao acertar cabeça, pescoço ou mandíbula, o alvo faz Fortitude contra a CD do mestre.",
+    description: "Ao acertar cabeça, pescoço ou mandíbula com uma Steel Ball, o alvo faz salvamento de Fortitude contra a CD de Spin.",
     options: [
-      "-2 em ataques por 1 rodada",
-      "Stupefied 1 em falha",
-      "Conjuração exige teste simples em falha crítica",
-      "Perde a reação até o próximo turno",
-      "Fica Vulnerável ao próximo ataque de Spin",
+      "Falha: escolha 1 efeito: Stupefied 1 até o fim do próximo turno de Gyro; -2 de circunstância no próximo ataque do alvo; ou o alvo perde a reação até o início do próximo turno dele.",
+      "Falha crítica: aplique 2 efeitos da lista.",
+      "Sucesso crítico: o alvo fica imune à Mandíbula Giratória por 24 horas ou até o fim da cena, conforme preferência da mesa.",
     ],
     defaultMode: "forced",
     requiredLevel: 3,
@@ -294,11 +296,12 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     cost: 3,
     source: "IKON I",
     actions: "ação livre",
-    description: "Por 1 rodada, o próximo ricochete de Gyro reduz cobertura em 1 passo e pode encadear 1 alvo adicional distinto.",
+    description: "Por 1 rodada, o próximo Ricochete Espiral ou Trajetória Calculada de Gyro reduz cobertura em 1 passo e pode encadear 1 alvo adicional distinto.",
     options: [],
     defaultMode: "corpse",
     requiredIkon: "I",
     requiredLevel: 3,
+    frequency: "1 vez por rodada",
   },
   {
     id: "paralyzing-frequency",
@@ -306,7 +309,7 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     cost: 2,
     source: "IKON II",
     actions: "1 ação",
-    description: "Alvo faz salvo de Constituição. Falha reduz velocidade; falha crítica zera velocidade.",
+    description: "Alvo faz salvamento de Fortitude contra a CD de Spin. Falha: velocidade reduzida. Falha crítica: fica imobilizado até o fim do próximo turno de Gyro ou recebe Slowed 1, conforme decisão do mestre.",
     options: [],
     defaultMode: "corpse",
     requiredIkon: "II",
@@ -353,12 +356,14 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Ball Breaker: Requiem",
     cost: 8,
     source: "IKON VIII",
-    actions: "ação livre",
-    description: "6d10 de força. Ignora resistência física/força até o nível de Gyro. Imunidade exige clímax narrativo.",
+    actions: "2 ações",
+    description: "Anexe o Ball Breaker: Requiem a um Strike de Steel Ball. Faça um Strike com Steel Ball como parte desta atividade de 2 ações. Se acertar, além do dano normal da Steel Ball, o alvo sofre 6d10 de dano de força. O ataque ignora resistência física/força até o nível de Gyro. Imunidades só podem ser afetadas em clímax narrativo ou com aprovação do mestre.",
     options: [],
     defaultMode: "perfect",
     requiredIkon: "VIII",
     requiredLevel: 12,
+    frequency: "1 vez por turno",
+    attachedToStrike: true,
   },
   {
     id: "saints-hand",
@@ -535,6 +540,10 @@ export const GYRO_DEVIATIONS: GyroDeviation[] = [
   },
 ];
 
+// TODO: Automatizar Desvios como efeitos PF2e quando a mesa fechar a regra final:
+// Retorno Violento -> Off-Guard; Colapso do Eixo -> bloqueio de técnicas com custo de SP;
+// Pulso do Cadáver -> Drained 1 ou Clumsy 1; Espiral Exposta -> Slowed 1 e -2 no próximo Controle de Spin.
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
@@ -582,19 +591,26 @@ function isSequencerActive(): boolean {
 }
 
 function getGyroAnimationFile(variant: "technique" | "deviation" | "status"): string {
-  const jb2aActive = game.modules?.get("JB2A_DnD5e")?.active ?? false;
+  const jb2aModuleId = ["jb2a_patreon", "JB2A_DnD5e", "jb2a_free"].find(moduleId => game.modules?.get(moduleId)?.active);
   const jb2aFiles: Record<typeof variant, string> = {
-    technique: "modules/JB2A_DnD5e/Library/Generic/Magic_Signs/ConjurationCircleComplete_02_Regular_Yellow_800x800.webm",
-    deviation: "modules/JB2A_DnD5e/Library/Generic/Explosion/Explosion_05_Regular_Orange_400x400.webm",
-    status: "modules/JB2A_DnD5e/Library/TMFX/OutPulse/Circle/OutPulse_02_Circle_Normal_500.webm",
+    technique: "Library/Generic/Magic_Signs/ConjurationCircleComplete_02_Regular_Yellow_800x800.webm",
+    deviation: "Library/Generic/Explosion/Explosion_05_Regular_Orange_400x400.webm",
+    status: "Library/TMFX/OutPulse/Circle/OutPulse_02_Circle_Normal_500.webm",
   };
-  return jb2aActive ? jb2aFiles[variant] : GYRO_SPINBALL_ASSET;
+  return jb2aModuleId ? `modules/${jb2aModuleId}/${jb2aFiles[variant]}` : GYRO_SPINBALL_ASSET;
 }
 
 function getCombatRoundKey(): string | null {
   const combat = game.combat;
   if (!combat) return null;
   return `${combat.id ?? "combat"}:${combat.round ?? 0}`;
+}
+
+function getCombatTurnKey(): string | null {
+  const combat = game.combat as (Combat & { combatant?: { id?: string }; turn?: number; current?: { combatantId?: string } }) | undefined;
+  if (!combat) return null;
+  const combatantId = combat.combatant?.id ?? combat.current?.combatantId ?? "no-combatant";
+  return `${combat.id ?? "combat"}:${combat.round ?? 0}:${combat.turn ?? 0}:${combatantId}`;
 }
 
 function getSPGainCap(actor: Actor): number {
@@ -628,6 +644,7 @@ function normalizeGyroState(raw: unknown): GyroSpinState {
     activeDeviation: typeof state.activeDeviation === "string" ? state.activeDeviation : undefined,
     spGainedThisRound: Number(state.spGainedThisRound ?? 0) || 0,
     lastSPRoundKey: typeof state.lastSPRoundKey === "string" ? state.lastSPRoundKey : undefined,
+    lastBallBreakerTurnKey: typeof state.lastBallBreakerTurnKey === "string" ? state.lastBallBreakerTurnKey : undefined,
   };
 }
 
@@ -1003,9 +1020,14 @@ export class UniqueMechanicsSystem {
       return;
     }
     const state = this.getGyroState(target);
-    const status = this.getGyroTechniqueStatus(target, technique, state);
+    const status = this.getGyroTechniqueStatus(target, technique, state, game.user?.isGM ?? false);
     if (!status.unlocked) {
       ui.notifications?.warn(status.lockReasons.join(" | "));
+      return;
+    }
+    const ballBreakerTurnKey = technique.id === "ball-breaker-requiem" ? getCombatTurnKey() : null;
+    if (ballBreakerTurnKey && state.lastBallBreakerTurnKey === ballBreakerTurnKey) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Gyro.BallBreakerAlreadyUsed"));
       return;
     }
     const modeGate = this.canUseGyroExecutionMode(target, mode, state);
@@ -1034,6 +1056,7 @@ export class UniqueMechanicsSystem {
         return;
       }
     }
+    if (ballBreakerTurnKey) await this.updateGyroState(target, { lastBallBreakerTurnKey: ballBreakerTurnKey });
     const nextState = this.getGyroState(target);
     const maxSP = this.calculateGyroMaxSP(target, nextState);
     const rank = this.getGyroRank(nextState.currentSP, nextState);
@@ -1064,7 +1087,9 @@ export class UniqueMechanicsSystem {
         techniques: GyroTechniqueSheetData[];
       };
     };
-    const techniques = data.gyro.techniques.filter(technique => technique.unlocked);
+    const techniques = isGM
+      ? data.gyro.techniques
+      : data.gyro.techniques.filter(technique => technique.unlocked);
     if (techniques.length === 0) {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Gyro.NoUnlockedTechniques"));
       return;
@@ -1073,7 +1098,7 @@ export class UniqueMechanicsSystem {
     const content = `
       <div class="ethernum-gyro-tech-dialog">
         ${techniques.map(technique => `
-          <section class="ethernum-gyro-tech-dialog-card ${technique.usable ? "" : "disabled"}">
+          <section class="ethernum-gyro-tech-dialog-card ${technique.usable ? "" : "disabled"} ${technique.unlocked ? "" : "locked"}">
             <header>
               <span>${technique.cost} SP</span>
               <div>
@@ -1082,6 +1107,7 @@ export class UniqueMechanicsSystem {
               </div>
             </header>
             <p>${technique.description}</p>
+            ${!technique.unlocked && technique.lockReason ? `<p class="ethernum-gyro-dialog-lock"><i class="fas fa-lock"></i> ${technique.lockReason}</p>` : ""}
             <details>
               <summary>${game.i18n!.localize("ETHERNUM.Unique.Gyro.Details")}</summary>
               <ul>
@@ -1131,6 +1157,7 @@ export class UniqueMechanicsSystem {
     return {
       activeProfile: state.activeProfile,
       isGM,
+      companyLogoAsset: ETHERNUM_COMPANY_LOGO_ASSET,
       profiles: [
         { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
         { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
@@ -1145,6 +1172,7 @@ export class UniqueMechanicsSystem {
         controlBonus: this.getGyroControlBonus(actor, gyroState),
         mainAttributeMod: getPF2EAbilityMod(actor, gyroState.mainAttribute),
         spinballAsset: GYRO_SPINBALL_ASSET,
+        hasCorpseIkon: gyroState.unlockedIkons.length > 0,
         executionModes,
         techniques: GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
           const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
@@ -1162,6 +1190,8 @@ export class UniqueMechanicsSystem {
             systemNotes: [
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Actions")}: ${technique.actions}`,
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.SPCost")}: ${technique.cost}`,
+              ...(technique.frequency ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Frequency")}: ${technique.frequency}`] : []),
+              ...(technique.attachedToStrike ? [game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresSteelBallStrike")] : []),
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ExecutionMode")}: ${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${technique.defaultMode}`)}`,
               dc === null
                 ? game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck")
