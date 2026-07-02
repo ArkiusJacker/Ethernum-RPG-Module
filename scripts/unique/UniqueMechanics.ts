@@ -5,6 +5,9 @@ export type GyroMainAttribute = "dex" | "wis";
 export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 
+export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
+export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
+
 export interface UniqueMechanicsState {
   activeProfile: UniqueMechanicProfileId;
   profiles: Record<string, unknown>;
@@ -34,6 +37,7 @@ interface GyroTechnique {
   actions: string;
   description: string;
   options: string[];
+  details?: string[];
   defaultMode: GyroExecutionMode;
   requiredLevel?: number;
   requiredIkon?: string;
@@ -80,6 +84,7 @@ interface GyroTechniqueSheetData extends GyroTechnique {
   unlocked: boolean;
   usable: boolean;
   lockReason: string;
+  systemNotes: string[];
   executionModes: Array<{
     id: GyroExecutionMode;
     label: string;
@@ -530,8 +535,6 @@ export const GYRO_DEVIATIONS: GyroDeviation[] = [
   },
 ];
 
-const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
-
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
@@ -565,6 +568,51 @@ function getPF2EAbilityMod(actor: Actor, ability: GyroMainAttribute): number {
 function getControlledActor(): Actor | null {
   const controlled = canvas?.tokens?.controlled?.[0]?.actor;
   return controlled ?? game.user?.character ?? null;
+}
+
+function getActorToken(actor: Actor): Token | null {
+  const controlled = canvas?.tokens?.controlled?.find(token => token.actor?.id === actor.id);
+  if (controlled) return controlled;
+  const activeTokens = typeof actor.getActiveTokens === "function" ? actor.getActiveTokens() : [];
+  return activeTokens[0] ?? null;
+}
+
+function isSequencerActive(): boolean {
+  return Boolean(game.modules?.get("sequencer")?.active && (globalThis as { Sequence?: unknown }).Sequence);
+}
+
+function sequencerFileAvailable(file: string): boolean {
+  if (!file.startsWith("jb2a.")) return true;
+  const database = (globalThis as { Sequencer?: { Database?: { getEntry?: (path: string) => unknown } } }).Sequencer?.Database;
+  if (typeof database?.getEntry !== "function") return false;
+  try {
+    return Boolean(database.getEntry(file));
+  } catch {
+    return false;
+  }
+}
+
+function getGyroAnimationFile(variant: "technique" | "deviation" | "status"): string {
+  const candidates: Record<typeof variant, string[]> = {
+    technique: [
+      "jb2a.magic_signs.circle.02.conjuration.loop.yellow",
+      "jb2a.energy_strands.complete.yellow.01",
+      "jb2a.template_circle.out_pulse.02.loop.yellow",
+      GYRO_SPINBALL_ASSET,
+    ],
+    deviation: [
+      "jb2a.impact.ground_crack.orange",
+      "jb2a.explosion.01.orange",
+      "jb2a.template_circle.out_pulse.02.loop.orange",
+      GYRO_SPINBALL_ASSET,
+    ],
+    status: [
+      "jb2a.template_circle.out_pulse.02.loop.yellow",
+      "jb2a.magic_signs.circle.02.abjuration.loop.yellow",
+      GYRO_SPINBALL_ASSET,
+    ],
+  };
+  return candidates[variant].find(sequencerFileAvailable) ?? GYRO_SPINBALL_ASSET;
 }
 
 function getCombatRoundKey(): string | null {
@@ -643,6 +691,8 @@ export class UniqueMechanicsSystem {
     const current = this.getGyroState(actor);
     const next = normalizeGyroState({ ...current, ...patch });
     next.currentSP = clamp(next.currentSP, 0, this.calculateGyroMaxSP(actor, next));
+    if (!next.activeDeviation) delete next.activeDeviation;
+    if (!Number.isFinite(Number(next.maxSPOverride)) || Number(next.maxSPOverride) <= 0) delete next.maxSPOverride;
     state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = next;
     await this.setState(actor, state);
@@ -818,6 +868,7 @@ export class UniqueMechanicsSystem {
     const maxSP = this.calculateGyroMaxSP(target, state);
     const rank = this.getGyroRank(state.currentSP, state);
     const controlBonus = this.getGyroControlBonus(target, state);
+    void this.playGyroSpinAnimation(target, "status");
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: target }),
       content: `
@@ -888,7 +939,10 @@ export class UniqueMechanicsSystem {
         result ? `<em>${result.combatEffect}</em>` : "",
       ].join("<br>"),
     });
-    if (result) await this.updateGyroState(target, { activeDeviation: `${result.name}: ${result.combatEffect}` });
+    if (result) {
+      void this.playGyroSpinAnimation(target, "deviation");
+      await this.updateGyroState(target, { activeDeviation: `${result.name}: ${result.combatEffect}` });
+    }
     if (roll.total === 2) await this.setGyroSP(target, 0);
     return roll;
   }
@@ -900,6 +954,49 @@ export class UniqueMechanicsSystem {
       return;
     }
     await this.updateGyroState(target, { activeDeviation: undefined });
+  }
+
+  static async playGyroSpinAnimation(actor?: Actor | null, variant: "technique" | "deviation" | "status" = "technique"): Promise<boolean> {
+    const target = actor ?? getControlledActor();
+    if (!target || !isSequencerActive()) return false;
+    const token = getActorToken(target);
+    if (!token) return false;
+
+    const SequenceCtor = (globalThis as { Sequence?: new (options?: Record<string, unknown>) => unknown }).Sequence;
+    if (!SequenceCtor) return false;
+
+    try {
+      const sequence = new SequenceCtor({ moduleName: ETHERNUM.MODULE_NAME, softFail: true }) as {
+        effect: () => Record<string, unknown>;
+        play: () => Promise<unknown> | unknown;
+      };
+      let effect = sequence.effect() as Record<string, unknown>;
+      const chain = (method: string, ...args: unknown[]) => {
+        const fn = effect[method];
+        if (typeof fn === "function") {
+          const next = (fn as (...callArgs: unknown[]) => unknown).apply(effect, args);
+          if (next && typeof next === "object") effect = next as Record<string, unknown>;
+        }
+      };
+
+      chain("file", getGyroAnimationFile(variant));
+      chain("atLocation", token);
+      chain("fadeIn", 150);
+      chain("fadeOut", 450);
+      chain("duration", variant === "deviation" ? 1600 : 1100);
+      chain("opacity", variant === "deviation" ? 0.82 : 0.72);
+      chain("scaleToObject", variant === "status" ? 1.45 : 1.2);
+      chain("rotateIn", 180, 700);
+      chain("scaleIn", 0.45, 250);
+      chain("scaleOut", 0.15, 450);
+      chain("belowTokens");
+
+      await sequence.play();
+      return true;
+    } catch (error) {
+      console.warn("Ethernum RPG Module | Sequencer animation failed", error);
+      return false;
+    }
   }
 
   static async useGyroTechnique(
@@ -952,6 +1049,7 @@ export class UniqueMechanicsSystem {
     const nextState = this.getGyroState(target);
     const maxSP = this.calculateGyroMaxSP(target, nextState);
     const rank = this.getGyroRank(nextState.currentSP, nextState);
+    void this.playGyroSpinAnimation(target, "technique");
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: target }),
       content: `
@@ -991,6 +1089,7 @@ export class UniqueMechanicsSystem {
         proficiencyRankBonus: PROFICIENCY_RANK_BONUS[gyroState.proficiencyRank],
         controlBonus: this.getGyroControlBonus(actor, gyroState),
         mainAttributeMod: getPF2EAbilityMod(actor, gyroState.mainAttribute),
+        spinballAsset: GYRO_SPINBALL_ASSET,
         executionModes,
         techniques: GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
           const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
@@ -998,12 +1097,22 @@ export class UniqueMechanicsSystem {
           const selectedMode = modes.find(mode => mode.selected);
           const canAfford = gyroState.currentSP >= technique.cost;
           const usable = status.unlocked && canAfford && (selectedMode?.available ?? false);
+          const dc = this.getGyroControlDC(actor, technique.defaultMode, gyroState);
           return {
             ...technique,
             canAfford,
             unlocked: status.unlocked,
             usable,
             lockReason: status.lockReasons.join(" | "),
+            systemNotes: [
+              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Actions")}: ${technique.actions}`,
+              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.SPCost")}: ${technique.cost}`,
+              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ExecutionMode")}: ${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${technique.defaultMode}`)}`,
+              dc === null
+                ? game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck")
+                : `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlCheck")}: CD ${dc}`,
+              ...(technique.details ?? technique.options),
+            ],
             executionModes: modes,
           };
         }),

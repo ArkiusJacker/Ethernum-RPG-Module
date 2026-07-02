@@ -22,6 +22,7 @@ export default defineConfig({
       targets: [
         { src: 'templates', dest: '.' },
         { src: 'styles', dest: '.' },
+        { src: 'assets', dest: '.' },
         { src: 'lang', dest: '.' },
         { src: 'module.json', dest: '.' },
         { src: 'LICENSE', dest: '.' },

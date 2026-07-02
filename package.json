@@ -1,6 +1,6 @@
 {
   "name": "ethernum-rpg-module",
-  "version": "3.3.7",
+  "version": "3.3.8",
   "type": "module",
   "scripts": {
     "build": "vite build",

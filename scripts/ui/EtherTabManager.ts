@@ -83,12 +83,7 @@ export class EtherTabManager {
       <div class="ethernum-content" data-ethernum-tab="ethernum-unique">${uniqueTemplate}</div>
     `);
 
-    // Restore scroll positions before showing tab
-    const savedScrolls = _scrollPositions.get(actor.id!) ?? {};
-    $html.find('.ethernum-content').each((_, el) => {
-      const tab = el.getAttribute('data-ethernum-tab') ?? '';
-      if (savedScrolls[tab] != null) el.scrollTop = savedScrolls[tab];
-    });
+    this._restoreScrollPositions($html, actor.id!);
 
     // Save scroll continuously
     $html.find('.ethernum-content').on('scroll.ethernum', (ev) => {
@@ -106,6 +101,7 @@ export class EtherTabManager {
     } else if (savedTab?.startsWith("ethernum")) {
       _activeEthernumTab.delete(actor.id!);
     }
+    this._restoreScrollPositions($html, actor.id!);
 
     this._activateListeners(app, $html, actor, isGM);
   }
@@ -117,6 +113,27 @@ export class EtherTabManager {
     $body.find('.sheet-content').hide();
     $body.find('.ethernum-content').hide();
     $body.find(`.ethernum-content[data-ethernum-tab="${tab}"]`).show();
+  }
+
+  static _saveScrollPositions($html: JQuery, actorId: string): void {
+    if (!_scrollPositions.has(actorId)) _scrollPositions.set(actorId, {});
+    const savedScrolls = _scrollPositions.get(actorId)!;
+    $html.find('.ethernum-content').each((_, el) => {
+      const tab = el.getAttribute('data-ethernum-tab') ?? '';
+      savedScrolls[tab] = el.scrollTop;
+    });
+  }
+
+  static _restoreScrollPositions($html: JQuery, actorId: string): void {
+    const savedScrolls = _scrollPositions.get(actorId) ?? {};
+    const restore = () => {
+      $html.find('.ethernum-content').each((_, el) => {
+        const tab = el.getAttribute('data-ethernum-tab') ?? '';
+        if (savedScrolls[tab] != null) el.scrollTop = savedScrolls[tab];
+      });
+    };
+    restore();
+    window.requestAnimationFrame(restore);
   }
 
   static _buildTemplateData(actor: Actor, isGM: boolean): Record<string, unknown> {
@@ -242,6 +259,8 @@ export class EtherTabManager {
     actor: Actor,
     isGM: boolean
   ): void {
+    const rememberScroll = () => this._saveScrollPositions(html, actor.id!);
+
     // FE: adicionar (GM)
     html.find('.ethernum-add-fe').on('click', async (ev) => {
       ev.preventDefault();
@@ -603,31 +622,31 @@ export class EtherTabManager {
 
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
       if (!isGM) return;
+      rememberScroll();
       const profileId = (ev.target as HTMLSelectElement).value as UniqueMechanicProfileId;
       await UniqueMechanicsSystem.setActiveProfile(actor, profileId);
-      app.render();
     });
 
     html.find('.ethernum-gyro-sp-input').on('change', async (ev) => {
       if (!isGM) return;
+      rememberScroll();
       await UniqueMechanicsSystem.setGyroSP(actor, parseInt((ev.target as HTMLInputElement).value) || 0);
-      app.render();
     });
 
     html.find('.ethernum-gyro-adjust-sp').on('click', async (ev) => {
       ev.preventDefault();
       if (!isGM) return;
+      rememberScroll();
       const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
       const amount = parseInt(String(html.find('.ethernum-gyro-sp-delta').val())) || 1;
       await UniqueMechanicsSystem.adjustGyroSP(actor, delta * amount);
-      app.render();
     });
 
     html.find('.ethernum-gyro-start-combat').on('click', async (ev) => {
       ev.preventDefault();
       if (!isGM) return;
+      rememberScroll();
       await UniqueMechanicsSystem.startGyroCombat(actor);
-      app.render();
     });
 
     html.find('.ethernum-gyro-show-status').on('click', async (ev) => {
@@ -637,34 +656,35 @@ export class EtherTabManager {
 
     html.find('.ethernum-gyro-roll-control').on('click', async (ev) => {
       ev.preventDefault();
+      rememberScroll();
       await UniqueMechanicsSystem.rollGyroControl(actor, $(ev.currentTarget).data('mode') as GyroExecutionMode);
-      app.render();
     });
 
     html.find('.ethernum-gyro-roll-deviation').on('click', async (ev) => {
       ev.preventDefault();
       if (!isGM) return;
+      rememberScroll();
       await UniqueMechanicsSystem.rollGyroDeviation(actor);
-      app.render();
     });
 
     html.find('.ethernum-gyro-clear-deviation').on('click', async (ev) => {
       ev.preventDefault();
       if (!isGM) return;
+      rememberScroll();
       await UniqueMechanicsSystem.clearGyroDeviation(actor);
-      app.render();
     });
 
     html.find('.ethernum-gyro-use-technique').on('click', async (ev) => {
       ev.preventDefault();
+      rememberScroll();
       const techniqueId = $(ev.currentTarget).data('technique-id') as string;
       const mode = html.find(`.ethernum-gyro-tech-mode[data-technique-id="${techniqueId}"]`).val() as GyroExecutionMode;
       await UniqueMechanicsSystem.useGyroTechnique(actor, techniqueId, mode);
-      app.render();
     });
 
     html.find('.ethernum-gyro-config').on('change', async (ev) => {
       if (!isGM) return;
+      rememberScroll();
       const input = ev.target as HTMLInputElement | HTMLSelectElement;
       const field = $(ev.currentTarget).data('field') as string;
       let value: string | number | boolean | undefined = input.value;
@@ -683,11 +703,11 @@ export class EtherTabManager {
         heartRegen: boolean;
         absoluteReady: boolean;
       }>);
-      app.render();
     });
 
     html.find('.ethernum-gyro-ikon-toggle').on('change', async (ev) => {
       if (!isGM) return;
+      rememberScroll();
       const input = ev.target as HTMLInputElement;
       const ikonId = $(ev.currentTarget).data('ikon-id') as string;
       const gyroState = UniqueMechanicsSystem.getGyroState(actor);
@@ -699,7 +719,6 @@ export class EtherTabManager {
         ...(ikonId === "VII" ? { torsoBonus: input.checked } : {}),
         ...(ikonId === "III" ? { heartRegen: input.checked } : {}),
       });
-      app.render();
     });
   }
 }

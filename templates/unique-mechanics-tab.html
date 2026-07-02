@@ -180,6 +180,17 @@
             {{#unless this.canAfford}}
             <p class="ethernum-gyro-lock-reason"><i class="fas fa-battery-quarter"></i> {{localize "ETHERNUM.Unique.Gyro.NotEnoughSP"}}</p>
             {{/unless}}
+            <details class="ethernum-gyro-details">
+              <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
+              <div class="ethernum-gyro-details-body">
+                <strong>{{localize "ETHERNUM.Unique.Gyro.SystemSummary"}}</strong>
+                <ul>
+                  {{#each this.systemNotes}}
+                  <li>{{this}}</li>
+                  {{/each}}
+                </ul>
+              </div>
+            </details>
           </div>
         </div>
         <div class="ethernum-gyro-tech-actions">
@@ -197,24 +208,49 @@
     </div>
   </section>
 
-  {{#if isGM}}
   <section class="ethernum-section ethernum-gyro-ikons">
     <h2 class="ethernum-section-title">
       <span><i class="fas fa-cross"></i> {{localize "ETHERNUM.Unique.Gyro.Ikons"}}</span>
     </h2>
     <div class="ethernum-gyro-ikon-grid">
       {{#each uniqueMechanics.gyro.ikons}}
-      <label class="ethernum-gyro-ikon {{#if this.unlocked}}unlocked{{/if}} tier-{{this.tier}}">
+      <div class="ethernum-gyro-ikon {{#if this.unlocked}}unlocked{{/if}} tier-{{this.tier}}">
+        {{#if ../isGM}}
         <input type="checkbox" class="ethernum-gyro-ikon-toggle" data-ikon-id="{{this.id}}" {{#if this.unlocked}}checked{{/if}} />
+        {{else}}
+        <span class="ethernum-gyro-ikon-state" title="{{#if this.unlocked}}{{localize 'ETHERNUM.Unique.Gyro.Unlocked'}}{{else}}{{localize 'ETHERNUM.Unique.Gyro.Locked'}}{{/if}}">
+          {{#if this.unlocked}}<i class="fas fa-lock-open"></i>{{else}}<i class="fas fa-lock"></i>{{/if}}
+        </span>
+        {{/if}}
         <span class="ethernum-gyro-ikon-num">{{this.num}}</span>
         <span>
           <strong>{{this.piece}}</strong>
           <small>{{this.title}} · {{this.tierLabel}}</small>
         </span>
-      </label>
+        <details class="ethernum-gyro-details ethernum-gyro-ikon-details">
+          <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
+          <div class="ethernum-gyro-details-body">
+            <p><strong>{{localize "ETHERNUM.Unique.Gyro.UnlockMethod"}}:</strong> {{this.unlock}}</p>
+            <strong>{{localize "ETHERNUM.Unique.Gyro.Passives"}}</strong>
+            <ul>
+              {{#each this.passives}}
+              <li>{{this}}</li>
+              {{/each}}
+            </ul>
+            {{#if this.actives.length}}
+            <strong>{{localize "ETHERNUM.Unique.Gyro.Actives"}}</strong>
+            <ul>
+              {{#each this.actives}}
+              <li>{{this.name}} ({{this.cost}} SP): {{this.text}}</li>
+              {{/each}}
+            </ul>
+            {{/if}}
+            <p><strong>{{localize "ETHERNUM.Unique.Gyro.Transcendence"}}:</strong> {{this.transcendence.name}} ({{this.transcendence.cost}} SP): {{this.transcendence.text}}</p>
+          </div>
+        </details>
+      </div>
       {{/each}}
     </div>
   </section>
-  {{/if}}
   {{/if}}
 </div>

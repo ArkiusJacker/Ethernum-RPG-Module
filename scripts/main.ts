@@ -2,6 +2,7 @@ import { ETHERNUM, type Rank } from './config.js';
 import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
+import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
 import { UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 
@@ -21,6 +22,7 @@ declare global {
         rollGyroControl: (mode?: GyroExecutionMode, actor?: Actor | null) => Promise<Roll | null>;
         rollGyroDeviation: (actor?: Actor | null) => Promise<Roll | null>;
         clearGyroDeviation: (actor?: Actor | null) => Promise<void>;
+        playGyroAnimation: (actor?: Actor | null) => Promise<boolean>;
         useGyroTechnique: (techniqueId: string, mode?: GyroExecutionMode, actor?: Actor | null) => Promise<void>;
       };
     };
@@ -59,6 +61,8 @@ function buildMacroApi() {
       UniqueMechanicsSystem.rollGyroDeviation(resolveMacroActor(actor)),
     clearGyroDeviation: async (actor?: Actor | null) =>
       UniqueMechanicsSystem.clearGyroDeviation(resolveMacroActor(actor)),
+    playGyroAnimation: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.playGyroSpinAnimation(resolveMacroActor(actor), "status"),
     useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
       UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
   };
@@ -151,6 +155,7 @@ Hooks.once("ready", async () => {
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
   await migrateWorld();
+  UniqueMechanicsHud.initialize();
 
   if (game.user?.isGM) {
     (game.actors ?? []).filter((a: Actor) => (a.type as string) === "character").forEach((a: Actor) => initializeActorFlags(a));
