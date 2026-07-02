@@ -20,6 +20,7 @@ declare global {
         startGyroCombat: (actor?: Actor | null) => Promise<unknown>;
         rollGyroControl: (mode?: GyroExecutionMode, actor?: Actor | null) => Promise<Roll | null>;
         rollGyroDeviation: (actor?: Actor | null) => Promise<Roll | null>;
+        clearGyroDeviation: (actor?: Actor | null) => Promise<void>;
         useGyroTechnique: (techniqueId: string, mode?: GyroExecutionMode, actor?: Actor | null) => Promise<void>;
       };
     };
@@ -56,6 +57,8 @@ function buildMacroApi() {
       UniqueMechanicsSystem.rollGyroControl(resolveMacroActor(actor), mode),
     rollGyroDeviation: async (actor?: Actor | null) =>
       UniqueMechanicsSystem.rollGyroDeviation(resolveMacroActor(actor)),
+    clearGyroDeviation: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.clearGyroDeviation(resolveMacroActor(actor)),
     useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
       UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
   };

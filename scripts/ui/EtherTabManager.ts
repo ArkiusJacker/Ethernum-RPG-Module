@@ -4,6 +4,7 @@ import {
   UniqueMechanicsSystem,
   type GyroExecutionMode,
   type GyroMainAttribute,
+  type GyroProficiencyRank,
   type UniqueMechanicProfileId,
 } from '../unique/UniqueMechanics.js';
 
@@ -46,18 +47,20 @@ export class EtherTabManager {
     const $html = html;
     const nav = $html.find('.sheet-navigation');
     if (nav.length === 0) return;
-    if (nav.find('[data-tab="ethernum-attributes"]').length > 0) return;
+    if (nav.find('[data-tab="ethernum-unique"]').length > 0) return;
 
     const actor: Actor = app.actor;
     const isGM = game.user?.isGM ?? false;
 
     nav.append(`
-      <a class="item" data-tab="ethernum-attributes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.EtherAttributes")}">
-        <i class="fas fa-user-shield"></i>
-      </a>
-      <a class="item" data-tab="ethernum-runes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.RuneSystem")}">
-        <i class="fas fa-gem"></i>
-      </a>
+      ${isGM ? `
+        <a class="item" data-tab="ethernum-attributes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.EtherAttributes")}">
+          <i class="fas fa-user-shield"></i>
+        </a>
+        <a class="item" data-tab="ethernum-runes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.RuneSystem")}">
+          <i class="fas fa-gem"></i>
+        </a>
+      ` : ""}
       <a class="item" data-tab="ethernum-unique" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.UniqueMechanics")}">
         <i class="fas fa-fingerprint"></i>
       </a>
@@ -69,14 +72,14 @@ export class EtherTabManager {
       ?.handlebars?.renderTemplate ?? renderTemplate;
 
     const [attributesTemplate, runesTemplate, uniqueTemplate] = await Promise.all([
-      renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`, templateData),
-      renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData),
+      isGM ? renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`, templateData) : Promise.resolve(""),
+      isGM ? renderTpl(`${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`, templateData) : Promise.resolve(""),
       renderTpl(`${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`, templateData),
     ]);
 
     $html.find('.sheet-body').append(`
-      <div class="ethernum-content" data-ethernum-tab="ethernum-attributes">${attributesTemplate}</div>
-      <div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>
+      ${isGM ? `<div class="ethernum-content" data-ethernum-tab="ethernum-attributes">${attributesTemplate}</div>` : ""}
+      ${isGM ? `<div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>` : ""}
       <div class="ethernum-content" data-ethernum-tab="ethernum-unique">${uniqueTemplate}</div>
     `);
 
@@ -98,7 +101,11 @@ export class EtherTabManager {
     this._activateTabSwitching($html, actor.id!);
 
     const savedTab = _activeEthernumTab.get(actor.id!);
-    if (savedTab) this._showTab($html, savedTab);
+    if (savedTab && (isGM || savedTab === "ethernum-unique")) {
+      this._showTab($html, savedTab);
+    } else if (savedTab?.startsWith("ethernum")) {
+      _activeEthernumTab.delete(actor.id!);
+    }
 
     this._activateListeners(app, $html, actor, isGM);
   }
@@ -595,18 +602,21 @@ export class EtherTabManager {
     });
 
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
+      if (!isGM) return;
       const profileId = (ev.target as HTMLSelectElement).value as UniqueMechanicProfileId;
       await UniqueMechanicsSystem.setActiveProfile(actor, profileId);
       app.render();
     });
 
     html.find('.ethernum-gyro-sp-input').on('change', async (ev) => {
+      if (!isGM) return;
       await UniqueMechanicsSystem.setGyroSP(actor, parseInt((ev.target as HTMLInputElement).value) || 0);
       app.render();
     });
 
     html.find('.ethernum-gyro-adjust-sp').on('click', async (ev) => {
       ev.preventDefault();
+      if (!isGM) return;
       const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
       const amount = parseInt(String(html.find('.ethernum-gyro-sp-delta').val())) || 1;
       await UniqueMechanicsSystem.adjustGyroSP(actor, delta * amount);
@@ -615,6 +625,7 @@ export class EtherTabManager {
 
     html.find('.ethernum-gyro-start-combat').on('click', async (ev) => {
       ev.preventDefault();
+      if (!isGM) return;
       await UniqueMechanicsSystem.startGyroCombat(actor);
       app.render();
     });
@@ -632,7 +643,15 @@ export class EtherTabManager {
 
     html.find('.ethernum-gyro-roll-deviation').on('click', async (ev) => {
       ev.preventDefault();
+      if (!isGM) return;
       await UniqueMechanicsSystem.rollGyroDeviation(actor);
+      app.render();
+    });
+
+    html.find('.ethernum-gyro-clear-deviation').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      await UniqueMechanicsSystem.clearGyroDeviation(actor);
       app.render();
     });
 
@@ -645,17 +664,18 @@ export class EtherTabManager {
     });
 
     html.find('.ethernum-gyro-config').on('change', async (ev) => {
+      if (!isGM) return;
       const input = ev.target as HTMLInputElement | HTMLSelectElement;
       const field = $(ev.currentTarget).data('field') as string;
       let value: string | number | boolean | undefined = input.value;
       if (input instanceof HTMLInputElement && input.type === 'checkbox') value = input.checked;
-      if (['proficiencyBonus', 'corpsePartNumber', 'sacredScars'].includes(field)) value = parseInt(String(value)) || 0;
+      if (['corpsePartNumber', 'sacredScars'].includes(field)) value = parseInt(String(value)) || 0;
       if (field === 'maxSPOverride') value = input.value === "" ? undefined : parseInt(String(value)) || 0;
       await UniqueMechanicsSystem.updateGyroState(actor, {
         [field]: value,
       } as Partial<{
         mainAttribute: GyroMainAttribute;
-        proficiencyBonus: number;
+        proficiencyRank: GyroProficiencyRank;
         corpsePartNumber: number;
         maxSPOverride?: number;
         sacredScars: number;
@@ -667,6 +687,7 @@ export class EtherTabManager {
     });
 
     html.find('.ethernum-gyro-ikon-toggle').on('change', async (ev) => {
+      if (!isGM) return;
       const input = ev.target as HTMLInputElement;
       const ikonId = $(ev.currentTarget).data('ikon-id') as string;
       const gyroState = UniqueMechanicsSystem.getGyroState(actor);

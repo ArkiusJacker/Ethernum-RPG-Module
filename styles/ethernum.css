@@ -1650,11 +1650,17 @@
 
 /* ===== MECÂNICAS ÚNICAS ===== */
 .ethernum-unique-tab {
-  --gyro-green: #2d6b30;
-  --gyro-green-bright: #4a9e4e;
+  --gyro-green: #17351d;
+  --gyro-green-bright: #6fac69;
   --gyro-gold: #c8a84b;
-  --gyro-red: #c42b2b;
-  --gyro-steel: #6b7f8a;
+  --gyro-red: #b7412f;
+  --gyro-steel: #657780;
+  --gyro-ink: #09100b;
+  --gyro-surface: #101a12;
+  --gyro-surface-2: #182316;
+  --gyro-bone: #eadfca;
+  --gyro-muted: #b6ad95;
+  --gyro-border: rgba(200, 168, 75, 0.34);
 }
 
 .ethernum-unique-topbar {
@@ -2073,6 +2079,190 @@
 
 .ethernum-unique-chat-card p {
   margin: 4px 0;
+}
+
+.ethernum-unique-tab.ethernum-container {
+  background:
+    linear-gradient(135deg, rgba(9, 16, 11, 0.96), rgba(23, 53, 29, 0.92)),
+    linear-gradient(90deg, rgba(200, 168, 75, 0.08), rgba(101, 119, 128, 0.08));
+  color: var(--gyro-bone);
+}
+
+.ethernum-unique-tab .ethernum-section {
+  border-color: var(--gyro-border);
+  background: linear-gradient(180deg, rgba(24, 35, 22, 0.96), rgba(13, 21, 14, 0.96));
+  color: var(--gyro-bone);
+  box-shadow: inset 0 1px 0 rgba(234, 223, 202, 0.06);
+}
+
+.ethernum-unique-tab .ethernum-section-title {
+  color: var(--gyro-bone);
+  border-bottom-color: rgba(200, 168, 75, 0.26);
+}
+
+.ethernum-unique-topbar {
+  border-color: var(--gyro-border);
+  background: linear-gradient(90deg, rgba(9, 16, 11, 0.92), rgba(32, 57, 31, 0.9));
+}
+
+.ethernum-unique-profile,
+.ethernum-gyro-config-grid input,
+.ethernum-gyro-config-grid select,
+.ethernum-gyro-sp-input,
+.ethernum-gyro-sp-delta,
+.ethernum-gyro-tech-mode {
+  border-color: rgba(200, 168, 75, 0.3);
+  background: rgba(234, 223, 202, 0.08);
+  color: var(--gyro-bone);
+}
+
+.ethernum-unique-tab select option {
+  background: var(--gyro-surface);
+  color: var(--gyro-bone);
+}
+
+.ethernum-gyro-panel {
+  border-color: var(--gyro-border);
+  background:
+    linear-gradient(135deg, rgba(23, 53, 29, 0.66), rgba(9, 16, 11, 0.92)),
+    linear-gradient(45deg, rgba(200, 168, 75, 0.1), transparent);
+}
+
+.ethernum-gyro-title,
+.ethernum-unique-profile-picker i,
+.ethernum-unique-empty i {
+  color: var(--gyro-gold);
+}
+
+.ethernum-gyro-header p,
+.ethernum-gyro-sp-row label,
+.ethernum-gyro-rank-card span,
+.ethernum-gyro-technique small,
+.ethernum-gyro-ikon small,
+.ethernum-gyro-exec-button span,
+.ethernum-gyro-config-grid label {
+  color: var(--gyro-muted);
+}
+
+.ethernum-gyro-sp-main,
+.ethernum-gyro-rank-card,
+.ethernum-gyro-exec-button,
+.ethernum-gyro-technique,
+.ethernum-gyro-ikon {
+  border-color: rgba(200, 168, 75, 0.26);
+  background: linear-gradient(180deg, rgba(234, 223, 202, 0.08), rgba(9, 16, 11, 0.2));
+  color: var(--gyro-bone);
+}
+
+.ethernum-gyro-sp-ring {
+  background:
+    radial-gradient(circle at center, var(--gyro-ink) 58%, transparent 60%),
+    conic-gradient(var(--gyro-gold) var(--spin-percent), rgba(234, 223, 202, 0.12) 0);
+  border-color: rgba(200, 168, 75, 0.42);
+}
+
+.ethernum-gyro-sp-ring span,
+.ethernum-gyro-tech-cost {
+  color: var(--gyro-gold);
+}
+
+.ethernum-gyro-sp-ring small,
+.ethernum-gyro-rank-card p,
+.ethernum-gyro-technique p,
+.ethernum-unique-empty {
+  color: var(--gyro-bone);
+}
+
+.ethernum-gyro-technique strong,
+.ethernum-gyro-ikon strong {
+  color: var(--gyro-bone);
+}
+
+.ethernum-gyro-technique {
+  border-left-color: var(--gyro-gold);
+}
+
+.ethernum-gyro-tech-cost {
+  background: rgba(200, 168, 75, 0.16);
+}
+
+.ethernum-gyro-control-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ethernum-gyro-control-summary span,
+.ethernum-gyro-lock-reason,
+.ethernum-gyro-exec-button em {
+  border: 1px solid rgba(200, 168, 75, 0.22);
+  border-radius: var(--eth-radius);
+  background: rgba(9, 16, 11, 0.35);
+  color: var(--gyro-muted);
+  font-size: 0.75em;
+  padding: 3px 6px;
+}
+
+.ethernum-gyro-lock-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: #d9c17a;
+}
+
+.ethernum-gyro-exec-button.locked,
+.ethernum-gyro-technique.locked,
+.ethernum-gyro-technique.disabled,
+.ethernum-gyro-exec-button:disabled,
+.ethernum-unique-tab select:disabled,
+.ethernum-unique-tab input:disabled {
+  opacity: 0.52;
+  filter: grayscale(0.35);
+}
+
+.ethernum-gyro-exec-button:hover:not(:disabled) {
+  border-color: var(--gyro-gold);
+  box-shadow: 0 0 0 1px rgba(200, 168, 75, 0.18);
+}
+
+.ethernum-gyro-check {
+  border-color: rgba(200, 168, 75, 0.22);
+  background: rgba(9, 16, 11, 0.28);
+}
+
+.ethernum-gyro-ikon.unlocked {
+  border-color: var(--gyro-gold);
+  background: linear-gradient(180deg, rgba(200, 168, 75, 0.18), rgba(23, 53, 29, 0.28));
+}
+
+.ethernum-gyro-ikon-num {
+  background: var(--gyro-steel);
+  color: var(--gyro-bone);
+}
+
+.ethernum-gyro-deviation-active {
+  border-color: rgba(183, 65, 47, 0.55) !important;
+  background: linear-gradient(180deg, rgba(66, 23, 18, 0.86), rgba(20, 12, 10, 0.92)) !important;
+}
+
+.ethernum-gyro-deviation-active .ethernum-section-title i,
+.gyro-rank-perfect {
+  color: #d66a4e;
+}
+
+.ethernum-unique-tab .ethernum-button-small,
+.ethernum-unique-tab .ethernum-icon-button {
+  border-color: rgba(200, 168, 75, 0.34);
+  background: rgba(234, 223, 202, 0.08);
+  color: var(--gyro-bone);
+}
+
+.ethernum-unique-tab .ethernum-button-small:hover,
+.ethernum-unique-tab .ethernum-icon-button:hover {
+  border-color: var(--gyro-gold);
+  color: var(--gyro-gold);
 }
 
 @media (max-width: 900px) {

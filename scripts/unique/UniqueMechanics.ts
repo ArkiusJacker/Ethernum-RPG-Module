@@ -2,6 +2,7 @@ import { ETHERNUM } from '../config.js';
 
 export type UniqueMechanicProfileId = "" | "gyro-spin";
 export type GyroMainAttribute = "dex" | "wis";
+export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 
 export interface UniqueMechanicsState {
@@ -13,13 +14,16 @@ export interface GyroSpinState {
   currentSP: number;
   maxSPOverride?: number;
   mainAttribute: GyroMainAttribute;
-  proficiencyBonus: number;
+  proficiencyRank: GyroProficiencyRank;
   sacredScars: number;
   corpsePartNumber: number;
   torsoBonus: boolean;
   heartRegen: boolean;
   absoluteReady: boolean;
   unlockedIkons: string[];
+  activeDeviation?: string;
+  spGainedThisRound?: number;
+  lastSPRoundKey?: string;
 }
 
 interface GyroTechnique {
@@ -27,8 +31,18 @@ interface GyroTechnique {
   name: string;
   cost: number;
   source: string;
+  actions: string;
   description: string;
   options: string[];
+  defaultMode: GyroExecutionMode;
+  requiredLevel?: number;
+  requiredIkon?: string;
+  requiredCorpseParts?: number;
+  requiresAllCorpseParts?: boolean;
+  requiresSacredScars?: number;
+  requiresAbsolute?: boolean;
+  gmOnly?: boolean;
+  narrativeOnly?: boolean;
 }
 
 interface GyroIkon {
@@ -56,8 +70,56 @@ interface GyroRank {
 
 interface GyroDeviation {
   roll: number;
+  name: string;
   text: string;
+  combatEffect: string;
 }
+
+interface GyroTechniqueSheetData extends GyroTechnique {
+  canAfford: boolean;
+  unlocked: boolean;
+  usable: boolean;
+  lockReason: string;
+  executionModes: Array<{
+    id: GyroExecutionMode;
+    label: string;
+    dcLabel: string;
+    available: boolean;
+    reason: string;
+    selected: boolean;
+  }>;
+}
+
+const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
+  trained: 2,
+  expert: 4,
+  master: 6,
+  legendary: 8,
+};
+
+const LEVEL_BASED_DCS: Record<number, number> = {
+  0: 14,
+  1: 15,
+  2: 16,
+  3: 18,
+  4: 19,
+  5: 20,
+  6: 22,
+  7: 23,
+  8: 24,
+  9: 26,
+  10: 27,
+  11: 28,
+  12: 30,
+  13: 31,
+  14: 32,
+  15: 34,
+  16: 35,
+  17: 36,
+  18: 38,
+  19: 39,
+  20: 40,
+};
 
 const DEFAULT_UNIQUE_STATE: UniqueMechanicsState = {
   activeProfile: "",
@@ -67,7 +129,7 @@ const DEFAULT_UNIQUE_STATE: UniqueMechanicsState = {
 const DEFAULT_GYRO_STATE: GyroSpinState = {
   currentSP: 0,
   mainAttribute: "dex",
-  proficiencyBonus: 2,
+  proficiencyRank: "trained",
   sacredScars: 0,
   corpsePartNumber: 1,
   torsoBonus: false,
@@ -94,8 +156,8 @@ export const GYRO_RANKS: GyroRank[] = [
     range: "4-6 SP",
     minSP: 4,
     maxSP: 6,
-    control: "Forçada CD 13",
-    text: "Rotação Forçada disponível. IKONs de 3-4 SP acessíveis.",
+    control: "Forçada: CD por nível -2",
+    text: "Rotação Forçada disponível a partir do nível 3. Técnicas agressivas começam a cobrar risco.",
   },
   {
     id: "sacred",
@@ -104,8 +166,8 @@ export const GYRO_RANKS: GyroRank[] = [
     range: "7-10 SP",
     minSP: 7,
     maxSP: 10,
-    control: "Cadáver CD 15+",
-    text: "As Partes do Cadáver respondem. Ball Breaker ganha forma.",
+    control: "Cadáver: CD por nível + Parte/3",
+    text: "As Partes do Cadáver respondem quando ao menos um IKON foi liberado.",
   },
   {
     id: "perfect",
@@ -114,8 +176,8 @@ export const GYRO_RANKS: GyroRank[] = [
     range: "11+ SP",
     minSP: 11,
     maxSP: null,
-    control: "Perfeita CD 17",
-    text: "O eixo se alinha com o universo. Desvios têm consequências severas.",
+    control: "Perfeita: CD por nível +2",
+    text: "O eixo se alinha com o universo. Disponível no nível 9+ ou por liberação narrativa.",
   },
   {
     id: "absolute",
@@ -135,18 +197,21 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Esfera de Aço",
     cost: 0,
     source: "Técnica",
+    actions: "1 ação",
     description: "Ataque básico à distância com as esferas de aço.",
     options: [
       "Causa dano normal ao acertar",
       "Gera +1 SP ao acertar",
       "Pode ricochetear gastando 1 SP adicional",
     ],
+    defaultMode: "stable",
   },
   {
     id: "spiral-ricochet",
     name: "Ricochete Espiral",
     cost: 1,
     source: "Técnica",
+    actions: "1 ação",
     description: "A esfera quica em parede, chão, arma, escudo ou criatura.",
     options: [
       "Acertar alvo com cobertura total ou parcial",
@@ -154,12 +219,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
       "Atacar segundo alvo com dano reduzido",
       "Forçar inimigo a mudar posição",
     ],
+    defaultMode: "forced",
+    requiredLevel: 3,
   },
   {
     id: "medicinal-spin",
     name: "Rotação Medicinal",
     cost: 2,
     source: "Técnica",
+    actions: "2 ações",
     description: "Gyro usa a rotação para corrigir ossos, músculos e fluxo sanguíneo.",
     options: [
       "Curar 1d6 + modificador principal",
@@ -168,25 +236,32 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
       "Acordar aliado inconsciente com 1 HP",
       "Estabilizar criatura morrendo",
     ],
+    defaultMode: "forced",
+    requiredLevel: 3,
   },
   {
     id: "rotating-jaw",
     name: "Mandíbula Giratória",
     cost: 2,
     source: "Técnica",
-    description: "Ao acertar cabeça, pescoço ou mandíbula, o alvo faz salvamento.",
+    actions: "1 ação",
+    description: "Ao acertar cabeça, pescoço ou mandíbula, o alvo faz Fortitude contra a CD do mestre.",
     options: [
       "-2 em ataques por 1 rodada",
-      "Magias verbais falham",
+      "Stupefied 1 em falha",
+      "Conjuração exige teste simples em falha crítica",
       "Perde a reação até o próximo turno",
       "Fica Vulnerável ao próximo ataque de Spin",
     ],
+    defaultMode: "forced",
+    requiredLevel: 3,
   },
   {
     id: "proportion-mark",
     name: "Marca da Proporção",
     cost: 1,
     source: "Técnica",
+    actions: "1 ação",
     description: "Gyro marca um alvo com vibração invisível por 1 cena.",
     options: [
       "Gyro sente a direção do alvo",
@@ -194,70 +269,119 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
       "Acertar o alvo marcado gera +1 SP adicional",
       "Técnicas do Cadáver Santo têm efeito melhorado",
     ],
+    defaultMode: "stable",
+    requiredLevel: 3,
   },
   {
     id: "calculated-trajectory",
     name: "Trajetória Calculada",
     cost: 2,
     source: "IKON I",
-    description: "Próximo ataque ignora cobertura parcial e total. Ricochete sem desvantagem.",
+    actions: "1 ação",
+    description: "Reduz cobertura em 1 passo. Cobertura total só pode ser contornada com linha plausível de ricochete.",
     options: [],
+    defaultMode: "corpse",
+    requiredIkon: "I",
+  },
+  {
+    id: "trajectory-perfect",
+    name: "Trajetória Perfeita",
+    cost: 3,
+    source: "IKON I",
+    actions: "ação livre",
+    description: "Por 1 rodada, o próximo ricochete de Gyro reduz cobertura em 1 passo e pode encadear 1 alvo adicional distinto.",
+    options: [],
+    defaultMode: "corpse",
+    requiredIkon: "I",
+    requiredLevel: 3,
   },
   {
     id: "paralyzing-frequency",
     name: "Freq. Paralisante",
     cost: 2,
     source: "IKON II",
+    actions: "1 ação",
     description: "Alvo faz salvo de Constituição. Falha reduz velocidade; falha crítica zera velocidade.",
     options: [],
+    defaultMode: "corpse",
+    requiredIkon: "II",
+    requiredLevel: 5,
   },
   {
     id: "battle-cadence",
     name: "Cadência de Batalha",
     cost: 5,
     source: "IKON III",
+    actions: "2 ações",
     description: "Por 1 minuto, habilidades de Rotação custam -1 SP, mínimo 0.",
     options: [],
+    defaultMode: "corpse",
+    requiredIkon: "III",
+    requiredLevel: 10,
   },
   {
     id: "axial-spin",
     name: "Rotação Axial",
     cost: 3,
     source: "IKON IV",
-    description: "Por 1 rodada, 50% de deflectir projéteis físicos; deflectidos voltam ao atacante.",
+    actions: "reação",
+    description: "1x/rodada: +2 CA contra ataque físico à distância ou reduz dano por 2 + nível. Se reduzir a 0, pode ricochetear.",
     options: [],
+    defaultMode: "corpse",
+    requiredIkon: "IV",
+    requiredLevel: 6,
   },
   {
     id: "breaker-recharge",
     name: "Recarga do Quebrador",
     cost: 6,
     source: "IKON VIII",
+    actions: "2 ações",
     description: "Recarrega o Ball Breaker Devastador.",
     options: [],
+    defaultMode: "perfect",
+    requiredIkon: "VIII",
+    requiredLevel: 11,
   },
   {
     id: "ball-breaker-requiem",
     name: "Ball Breaker: Requiem",
     cost: 8,
     source: "IKON VIII",
-    description: "6d10 de força, Atordoado 2 rodadas, ignora resistências e imunidades.",
+    actions: "ação livre",
+    description: "6d10 de força. Ignora resistência física/força até o nível de Gyro. Imunidade exige clímax narrativo.",
     options: [],
+    defaultMode: "perfect",
+    requiredIkon: "VIII",
+    requiredLevel: 12,
   },
   {
     id: "saints-hand",
     name: "Mão do Santo",
     cost: 10,
     source: "IKON IX",
-    description: "Por 3 turnos, Gyro pode usar qualquer IKON ou técnica sem restrição de Parte.",
+    actions: "ação livre",
+    description: "Por 3 rodadas, 1x/rodada, Gyro trata uma técnica como desbloqueada, mas ainda paga SP e rola Controle.",
     options: [],
+    defaultMode: "perfect",
+    requiredIkon: "IX",
+    requiredLevel: 13,
   },
   {
     id: "absolute-rotation",
     name: "Rotação Absoluta",
     cost: 9,
     source: "Técnica Final",
-    description: "Altera uma regra da cena. Requer 9 Partes ou condição narrativa extrema e 1 Cicatriz Sagrada.",
+    actions: "GM / narrativo",
+    description: "1x por arco. Altera uma regra da cena em clímax narrativo. Não é botão comum de combate.",
     options: [],
+    defaultMode: "perfect",
+    requiredLevel: 17,
+    requiresAllCorpseParts: true,
+    requiresSacredScars: 1,
+    requiresAbsolute: true,
+    gmOnly: true,
+    narrativeOnly: true,
   },
 ];
 
@@ -270,7 +394,7 @@ export const GYRO_IKONS: GyroIkon[] = [
     tier: "normal",
     unlock: "Palma dos Olhos",
     passives: ["Trajetória Natural", "Olho do Ricochete"],
-    actives: [{ name: "Trajetória Calculada", cost: 2, text: "Ignora cobertura parcial e total." }],
+    actives: [{ name: "Trajetória Calculada", cost: 2, text: "Reduz cobertura em 1 passo." }],
     transcendence: { name: "Trajetória Perfeita", cost: 3, text: "Ataques calculados por 1 rodada." },
   },
   {
@@ -319,7 +443,7 @@ export const GYRO_IKONS: GyroIkon[] = [
     unlock: "Palma da Força",
     passives: ["Impacto Composto", "Peso Giroscópico"],
     actives: [],
-    transcendence: { name: "Rotação Amplificada", cost: 3, text: "Próximo ataque rola dano 3x." },
+    transcendence: { name: "Rotação Amplificada", cost: 3, text: "Próximo ataque recebe +1 dado da arma ou +1d6/+2d6 de força por nível." },
   },
   {
     id: "VI",
@@ -368,12 +492,42 @@ export const GYRO_IKONS: GyroIkon[] = [
 ];
 
 export const GYRO_DEVIATIONS: GyroDeviation[] = [
-  { roll: 1, text: "A esfera retorna de forma errada. Gyro sofre 1d4 de dano do próprio impacto." },
-  { roll: 2, text: "Gyro perde todo o Spin acumulado. A rotação colapsa completamente." },
-  { roll: 3, text: "A técnica acerta, mas também afeta um aliado adjacente ou elemento do cenário." },
-  { roll: 4, text: "A Parte do Cadáver Santo pulsa e exige custo narrativo." },
-  { roll: 5, text: "Gyro fica com -3 no próximo ataque pela rotação desestabilizada." },
-  { roll: 6, text: "A Rotação sai perfeita demais: o efeito acontece, mas atrai algo indesejado ao campo." },
+  {
+    roll: 1,
+    name: "Retorno Violento",
+    text: "A esfera volta contra Gyro e a técnica falha.",
+    combatEffect: "Gyro sofre 1d6 de dano de força por 2 níveis, fica off-guard até o início do próximo turno e perde 1 SP adicional.",
+  },
+  {
+    roll: 2,
+    name: "Colapso do Eixo",
+    text: "A rotação colapsa completamente.",
+    combatEffect: "SP atual vira 0. Até gastar 2 ações para Recentrar a Rotação, Gyro não pode usar técnicas com custo de SP.",
+  },
+  {
+    roll: 3,
+    name: "Ângulo Aberto",
+    text: "A esfera rasga uma trajetória perigosa no campo.",
+    combatEffect: "A técnica falha e o mestre escolhe um alvo ou objeto adjacente afetado por efeito menor. Gyro não pode ganhar SP até o fim do próximo turno.",
+  },
+  {
+    roll: 4,
+    name: "Pulso do Cadáver",
+    text: "A Parte do Cadáver Santo exige preço.",
+    combatEffect: "Gyro fica drained 1 ou clumsy 1 até o fim da cena, à escolha do mestre. Se não possuir Parte, fica slowed 1 por 1 rodada.",
+  },
+  {
+    roll: 5,
+    name: "Mão Travada",
+    text: "A mão perde o ritmo fino da esfera.",
+    combatEffect: "Até o fim do combate, a primeira técnica de Spin em cada rodada custa +1 SP. Uma atividade de 2 ações remove esse desvio.",
+  },
+  {
+    roll: 6,
+    name: "Espiral Exposta",
+    text: "A Rotação abre demais o eixo de Gyro.",
+    combatEffect: "Gyro fica slowed 1 no próximo turno e sofre -2 no próximo Controle de Spin deste combate.",
+  },
 ];
 
 const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
@@ -383,7 +537,13 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
+}
+
+function levelBasedDC(level: number): number {
+  const capped = clamp(Math.floor(level), 0, 20);
+  return LEVEL_BASED_DCS[capped] ?? LEVEL_BASED_DCS[20];
 }
 
 function getActorLevel(actor: Actor): number {
@@ -407,6 +567,26 @@ function getControlledActor(): Actor | null {
   return controlled ?? game.user?.character ?? null;
 }
 
+function getCombatRoundKey(): string | null {
+  const combat = game.combat;
+  if (!combat) return null;
+  return `${combat.id ?? "combat"}:${combat.round ?? 0}`;
+}
+
+function getSPGainCap(actor: Actor): number {
+  const level = getActorLevel(actor);
+  if (level >= 13) return 4;
+  if (level >= 7) return 3;
+  return 2;
+}
+
+function normalizeProficiencyRank(value: unknown): GyroProficiencyRank {
+  if (value === "legendary" || value === 8) return "legendary";
+  if (value === "master" || value === 6) return "master";
+  if (value === "expert" || value === 4) return "expert";
+  return "trained";
+}
+
 function normalizeGyroState(raw: unknown): GyroSpinState {
   const state = asRecord(raw);
   return {
@@ -414,13 +594,16 @@ function normalizeGyroState(raw: unknown): GyroSpinState {
     currentSP: Number(state.currentSP ?? DEFAULT_GYRO_STATE.currentSP) || 0,
     maxSPOverride: state.maxSPOverride === undefined ? undefined : Number(state.maxSPOverride),
     mainAttribute: state.mainAttribute === "wis" ? "wis" : "dex",
-    proficiencyBonus: Number(state.proficiencyBonus ?? DEFAULT_GYRO_STATE.proficiencyBonus) || 0,
+    proficiencyRank: normalizeProficiencyRank(state.proficiencyRank ?? state.proficiencyBonus ?? DEFAULT_GYRO_STATE.proficiencyRank),
     sacredScars: Number(state.sacredScars ?? DEFAULT_GYRO_STATE.sacredScars) || 0,
     corpsePartNumber: clamp(Number(state.corpsePartNumber ?? DEFAULT_GYRO_STATE.corpsePartNumber) || 1, 1, 9),
     torsoBonus: Boolean(state.torsoBonus),
     heartRegen: Boolean(state.heartRegen),
     absoluteReady: Boolean(state.absoluteReady),
     unlockedIkons: Array.isArray(state.unlockedIkons) ? state.unlockedIkons.map(String) : [],
+    activeDeviation: typeof state.activeDeviation === "string" ? state.activeDeviation : undefined,
+    spGainedThisRound: Number(state.spGainedThisRound ?? 0) || 0,
+    lastSPRoundKey: typeof state.lastSPRoundKey === "string" ? state.lastSPRoundKey : undefined,
   };
 }
 
@@ -469,7 +652,7 @@ export class UniqueMechanicsSystem {
   static calculateGyroMaxSP(actor: Actor, state = this.getGyroState(actor)): number {
     const override = Number(state.maxSPOverride);
     if (Number.isFinite(override) && override > 0) return Math.floor(override);
-    return getActorLevel(actor) * 3 + (state.torsoBonus ? 6 : 0);
+    return 6 + getActorLevel(actor) + state.unlockedIkons.length + (state.torsoBonus ? 3 : 0);
   }
 
   static getGyroRank(currentSP: number, state?: GyroSpinState): GyroRank {
@@ -481,11 +664,80 @@ export class UniqueMechanicsSystem {
     ) ?? GYRO_RANKS[0];
   }
 
-  static getGyroControlDC(mode: GyroExecutionMode, corpsePartNumber = 1): number | null {
+  static getGyroControlDC(actor: Actor, mode: GyroExecutionMode, state = this.getGyroState(actor)): number | null {
     if (mode === "stable") return null;
-    if (mode === "forced") return 13;
-    if (mode === "corpse") return 15 + clamp(corpsePartNumber, 1, 9);
-    return 17;
+    const baseDC = levelBasedDC(getActorLevel(actor));
+    if (mode === "forced") return baseDC - 2;
+    if (mode === "corpse") return baseDC + Math.ceil(clamp(state.corpsePartNumber, 1, 9) / 3);
+    return baseDC + 2;
+  }
+
+  static canUseGyroExecutionMode(actor: Actor, mode: GyroExecutionMode, state = this.getGyroState(actor)): { available: boolean; reason: string } {
+    const level = getActorLevel(actor);
+    if (mode === "stable") return { available: true, reason: "" };
+    if (mode === "forced") return level >= 3
+      ? { available: true, reason: "" }
+      : { available: false, reason: game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresLevel", { level: 3 }) };
+    if (mode === "corpse") return state.unlockedIkons.length > 0
+      ? { available: true, reason: "" }
+      : { available: false, reason: game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresCorpsePart") };
+    return level >= 9 || state.absoluteReady
+      ? { available: true, reason: "" }
+      : { available: false, reason: game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresLevelOrNarrative", { level: 9 }) };
+  }
+
+  static getGyroControlBonus(actor: Actor, state = this.getGyroState(actor)): number {
+    return getActorLevel(actor)
+      + PROFICIENCY_RANK_BONUS[state.proficiencyRank]
+      + getPF2EAbilityMod(actor, state.mainAttribute);
+  }
+
+  static getGyroTechniqueStatus(
+    actor: Actor,
+    technique: GyroTechnique,
+    state = this.getGyroState(actor),
+    isGM = game.user?.isGM ?? false
+  ): { unlocked: boolean; lockReasons: string[] } {
+    const reasons: string[] = [];
+    const level = getActorLevel(actor);
+    if (technique.requiredLevel && level < technique.requiredLevel) {
+      reasons.push(game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresLevel", { level: technique.requiredLevel }));
+    }
+    if (technique.requiredIkon && !state.unlockedIkons.includes(technique.requiredIkon)) {
+      reasons.push(game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresIkon", { ikon: technique.requiredIkon }));
+    }
+    if (technique.requiredCorpseParts && state.unlockedIkons.length < technique.requiredCorpseParts) {
+      reasons.push(game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresParts", { count: technique.requiredCorpseParts }));
+    }
+    if (technique.requiresAllCorpseParts && state.unlockedIkons.length < 9) {
+      reasons.push(game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresAllParts"));
+    }
+    if (technique.requiresSacredScars && state.sacredScars < technique.requiresSacredScars) {
+      reasons.push(game.i18n!.format("ETHERNUM.Unique.Gyro.RequiresScars", { count: technique.requiresSacredScars }));
+    }
+    if (technique.requiresAbsolute && !state.absoluteReady) {
+      reasons.push(game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresAbsolute"));
+    }
+    if (technique.gmOnly && !isGM) {
+      reasons.push(game.i18n!.localize("ETHERNUM.Unique.Gyro.GMOnlyTechnique"));
+    }
+    return { unlocked: reasons.length === 0, lockReasons: reasons };
+  }
+
+  static buildGyroExecutionModes(actor: Actor, state: GyroSpinState, selected: GyroExecutionMode): GyroTechniqueSheetData["executionModes"] {
+    const modes: GyroExecutionMode[] = ["stable", "forced", "corpse", "perfect"];
+    return modes.map(mode => {
+      const gate = this.canUseGyroExecutionMode(actor, mode, state);
+      const dc = this.getGyroControlDC(actor, mode, state);
+      return {
+        id: mode,
+        label: game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${mode}`),
+        dcLabel: dc === null ? game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck") : `CD ${dc}`,
+        available: gate.available,
+        reason: gate.reason,
+        selected: mode === selected,
+      };
+    });
   }
 
   static async setGyroSP(actor: Actor, value: number): Promise<GyroSpinState> {
@@ -507,7 +759,26 @@ export class UniqueMechanicsSystem {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
       return null;
     }
-    return this.adjustGyroSP(target, amount, reason);
+    const state = this.getGyroState(target);
+    const roundKey = getCombatRoundKey();
+    let allowedAmount = amount;
+    let patch: Partial<GyroSpinState> = {};
+    if (roundKey) {
+      const currentRoundGain = state.lastSPRoundKey === roundKey ? state.spGainedThisRound ?? 0 : 0;
+      const remaining = Math.max(0, getSPGainCap(target) - currentRoundGain);
+      allowedAmount = Math.min(amount, remaining);
+      patch = {
+        lastSPRoundKey: roundKey,
+        spGainedThisRound: currentRoundGain + allowedAmount,
+      };
+      if (allowedAmount <= 0) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Gyro.SPGainCapped"));
+        return state;
+      }
+    }
+    const next = await this.adjustGyroSP(target, allowedAmount, reason);
+    if (Object.keys(patch).length > 0) return this.updateGyroState(target, patch);
+    return next;
   }
 
   static async spendGyroSP(actor?: Actor | null, amount = 1, reason = "Gasto de Spin"): Promise<GyroSpinState | null> {
@@ -546,6 +817,7 @@ export class UniqueMechanicsSystem {
     const state = this.getGyroState(target);
     const maxSP = this.calculateGyroMaxSP(target, state);
     const rank = this.getGyroRank(state.currentSP, state);
+    const controlBonus = this.getGyroControlBonus(target, state);
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: target }),
       content: `
@@ -553,6 +825,8 @@ export class UniqueMechanicsSystem {
           <h3>${title ?? game.i18n!.localize("ETHERNUM.Unique.Gyro.Status")}</h3>
           <p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.SpinPoints")}:</strong> ${state.currentSP} / ${maxSP}</p>
           <p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.RotationRank")}:</strong> ${rank.num} - ${rank.name}</p>
+          <p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlBonus")}:</strong> +${controlBonus}</p>
+          ${state.activeDeviation ? `<p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.ActiveDeviation")}:</strong> ${state.activeDeviation}</p>` : ""}
           <p>${rank.text}</p>
         </div>`,
     });
@@ -565,14 +839,21 @@ export class UniqueMechanicsSystem {
       return null;
     }
     const state = this.getGyroState(target);
-    const dc = this.getGyroControlDC(mode, state.corpsePartNumber);
+    const modeGate = this.canUseGyroExecutionMode(target, mode, state);
+    if (!modeGate.available) {
+      ui.notifications?.warn(modeGate.reason);
+      return null;
+    }
+    const dc = this.getGyroControlDC(target, mode, state);
     if (dc === null) {
       await this.showGyroStatus(target, game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck"));
       return null;
     }
 
     const attrMod = getPF2EAbilityMod(target, state.mainAttribute);
-    const bonus = attrMod + state.proficiencyBonus;
+    const rankBonus = PROFICIENCY_RANK_BONUS[state.proficiencyRank];
+    const actorLevel = getActorLevel(target);
+    const bonus = actorLevel + rankBonus + attrMod;
     const roll = new Roll(`1d20 + ${bonus}`);
     await roll.evaluate();
     const success = (roll.total ?? 0) >= dc;
@@ -581,7 +862,7 @@ export class UniqueMechanicsSystem {
       flavor: [
         `<strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlCheck")}</strong>`,
         `${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${mode}`)} - CD ${dc}`,
-        `${state.mainAttribute.toUpperCase()}: ${attrMod} + ${game.i18n!.localize("ETHERNUM.Unique.Gyro.Proficiency")}: ${state.proficiencyBonus}`,
+        `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Level")}: ${actorLevel} + ${game.i18n!.localize("ETHERNUM.Unique.Gyro.Proficiency")}: ${rankBonus} + ${state.mainAttribute.toUpperCase()}: ${attrMod}`,
         success ? game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlSuccess") : game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlFailure"),
       ].join("<br>"),
     });
@@ -602,11 +883,23 @@ export class UniqueMechanicsSystem {
       speaker: ChatMessage.getSpeaker({ actor: target }),
       flavor: [
         `<strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.Deviation")}</strong>`,
+        result ? `<b>${result.name}</b>` : "",
         result?.text ?? "",
+        result ? `<em>${result.combatEffect}</em>` : "",
       ].join("<br>"),
     });
+    if (result) await this.updateGyroState(target, { activeDeviation: `${result.name}: ${result.combatEffect}` });
     if (roll.total === 2) await this.setGyroSP(target, 0);
     return roll;
+  }
+
+  static async clearGyroDeviation(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    await this.updateGyroState(target, { activeDeviation: undefined });
   }
 
   static async useGyroTechnique(
@@ -625,12 +918,37 @@ export class UniqueMechanicsSystem {
       return;
     }
     const state = this.getGyroState(target);
+    const status = this.getGyroTechniqueStatus(target, technique, state);
+    if (!status.unlocked) {
+      ui.notifications?.warn(status.lockReasons.join(" | "));
+      return;
+    }
+    const modeGate = this.canUseGyroExecutionMode(target, mode, state);
+    if (!modeGate.available) {
+      ui.notifications?.warn(modeGate.reason);
+      return;
+    }
     if (state.currentSP < technique.cost) {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Gyro.NotEnoughSP"));
       return;
     }
     await this.updateGyroState(target, { currentSP: state.currentSP - technique.cost });
-    if (mode !== "stable") await this.rollGyroControl(target, mode);
+    if (mode !== "stable") {
+      const dc = this.getGyroControlDC(target, mode, state);
+      const roll = await this.rollGyroControl(target, mode);
+      if (dc !== null && roll && (roll.total ?? 0) < dc) {
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor: target }),
+          content: `
+            <div class="ethernum-unique-chat-card">
+              <h3>${game.i18n!.localize("ETHERNUM.Unique.Gyro.TechniqueLost")}</h3>
+              <p>${technique.name}</p>
+              <p>${game.i18n!.localize("ETHERNUM.Unique.Gyro.TechniqueLostHint")}</p>
+            </div>`,
+        });
+        return;
+      }
+    }
     const nextState = this.getGyroState(target);
     const maxSP = this.calculateGyroMaxSP(target, nextState);
     const rank = this.getGyroRank(nextState.currentSP, nextState);
@@ -651,9 +969,11 @@ export class UniqueMechanicsSystem {
   static buildSheetData(actor: Actor, isGM: boolean): Record<string, unknown> {
     const state = this.getState(actor);
     const gyroState = this.getGyroState(actor);
+    const actorLevel = getActorLevel(actor);
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
     const rank = this.getGyroRank(gyroState.currentSP, gyroState);
     const spinPercent = maxSP > 0 ? Math.round((gyroState.currentSP / maxSP) * 100) : 0;
+    const executionModes = this.buildGyroExecutionModes(actor, gyroState, "forced");
 
     return {
       activeProfile: state.activeProfile,
@@ -667,11 +987,26 @@ export class UniqueMechanicsSystem {
         maxSP,
         rank,
         spinPercent,
+        actorLevel,
+        proficiencyRankBonus: PROFICIENCY_RANK_BONUS[gyroState.proficiencyRank],
+        controlBonus: this.getGyroControlBonus(actor, gyroState),
         mainAttributeMod: getPF2EAbilityMod(actor, gyroState.mainAttribute),
-        techniques: GYRO_TECHNIQUES.map(technique => ({
-          ...technique,
-          canAfford: gyroState.currentSP >= technique.cost,
-        })),
+        executionModes,
+        techniques: GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
+          const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
+          const modes = this.buildGyroExecutionModes(actor, gyroState, technique.defaultMode);
+          const selectedMode = modes.find(mode => mode.selected);
+          const canAfford = gyroState.currentSP >= technique.cost;
+          const usable = status.unlocked && canAfford && (selectedMode?.available ?? false);
+          return {
+            ...technique,
+            canAfford,
+            unlocked: status.unlocked,
+            usable,
+            lockReason: status.lockReasons.join(" | "),
+            executionModes: modes,
+          };
+        }),
         ikons: GYRO_IKONS.map(ikon => ({
           ...ikon,
           unlocked: gyroState.unlockedIkons.includes(ikon.id),
