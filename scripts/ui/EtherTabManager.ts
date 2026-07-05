@@ -644,6 +644,7 @@ export class EtherTabManager {
   ): void {
     const rememberScroll = () => this._saveScrollPositions(html, actor.id!);
     const refreshUnique = () => this._refreshUniqueTab(app, html, actor, isGM);
+    this._activateDetailsAnimations(html);
 
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
       if (!isGM) return;
@@ -753,6 +754,111 @@ export class EtherTabManager {
         ...(ikonId === "III" ? { heartRegen: input.checked } : {}),
       });
       await refreshUnique();
+    });
+
+    html.find('.ethernum-bayle-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showBayleStatus(actor);
+    });
+
+    html.find('.ethernum-bayle-stage-select').on('change', async (ev) => {
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.setBayleStage(actor, parseInt((ev.target as HTMLSelectElement).value) || 1);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-bayle-adjust-ardor').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.adjustBayleArdor(actor, parseInt(String($(ev.currentTarget).data('delta'))) || 0);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-bayle-toggle-rage').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleBayleRage(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-bayle-toggle-awakening').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleBayleAwakening(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-bayle-use-action').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.useBayleAction(actor, $(ev.currentTarget).data('action-id') as string);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-config').on('change', async (ev) => {
+      if (!isGM) return;
+      rememberScroll();
+      const input = ev.target as HTMLInputElement;
+      const field = $(ev.currentTarget).data('field') as string;
+      let value: string | number | boolean = input.value;
+      if (input.type === 'checkbox') value = input.checked;
+      if (['pulse', 'tier', 'mirroredShadows'].includes(field)) value = parseInt(String(value)) || 0;
+      await UniqueMechanicsSystem.updatePippingState(actor, {
+        [field]: value,
+      } as Partial<{
+        pulse: number;
+        tier: number;
+        mirroredShadows: number;
+        livingNightActive: boolean;
+      }>);
+      await refreshUnique();
+    });
+  }
+
+  static _activateDetailsAnimations(html: JQuery): void {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    html.find('.ethernum-animated-details > summary').off('click.ethernum-details').on('click.ethernum-details', (ev) => {
+      if (reduceMotion) return;
+      ev.preventDefault();
+      const summary = ev.currentTarget as HTMLElement;
+      const details = summary.parentElement as HTMLDetailsElement | null;
+      const body = details?.querySelector<HTMLElement>('.ethernum-gyro-details-body, .ethernum-bayle-details-body, .ethernum-pipping-details-body');
+      if (!details || !body) {
+        if (details) details.open = !details.open;
+        return;
+      }
+
+      const timing: KeyframeAnimationOptions = { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' };
+      const cleanup = () => {
+        body.style.height = "";
+        body.style.overflow = "";
+        body.style.opacity = "";
+        body.style.transform = "";
+      };
+
+      if (details.open) {
+        body.style.overflow = "hidden";
+        body.animate([
+          { height: `${body.scrollHeight}px`, opacity: 1, transform: "translateY(0)" },
+          { height: "0px", opacity: 0, transform: "translateY(-4px)" },
+        ], timing).onfinish = () => {
+          details.open = false;
+          cleanup();
+        };
+        return;
+      }
+
+      details.open = true;
+      body.style.overflow = "hidden";
+      body.style.height = "0px";
+      body.animate([
+        { height: "0px", opacity: 0, transform: "translateY(-4px)" },
+        { height: `${body.scrollHeight}px`, opacity: 1, transform: "translateY(0)" },
+      ], timing).onfinish = cleanup;
     });
   }
 }

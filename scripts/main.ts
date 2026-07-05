@@ -8,6 +8,10 @@ import { migrateWorld } from './utils/DataMigration.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
 const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.showGyroTechniques();";
+const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
+const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.showBayleStatus();";
+const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
+const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.showPippingStatus();";
 
 type EthernumMacroDocument = {
   name?: string;
@@ -35,6 +39,13 @@ declare global {
         playGyroAnimation: (actor?: Actor | null) => Promise<boolean>;
         showGyroTechniques: (actor?: Actor | null) => Promise<void>;
         useGyroTechnique: (techniqueId: string, mode?: GyroExecutionMode, actor?: Actor | null) => Promise<void>;
+        showBayleStatus: (actor?: Actor | null) => Promise<void>;
+        adjustBayleArdor: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+        setBayleStage: (stage?: number, actor?: Actor | null) => Promise<unknown>;
+        toggleBayleRage: (actor?: Actor | null) => Promise<unknown>;
+        toggleBayleAwakening: (actor?: Actor | null) => Promise<unknown>;
+        useBayleAction: (actionId: string, actor?: Actor | null) => Promise<void>;
+        showPippingStatus: (actor?: Actor | null) => Promise<void>;
       };
     };
   }
@@ -78,6 +89,20 @@ function buildMacroApi() {
       UniqueMechanicsSystem.showGyroTechniques(resolveMacroActor(actor)),
     useGyroTechnique: async (techniqueId: string, mode: GyroExecutionMode = "stable", actor?: Actor | null) =>
       UniqueMechanicsSystem.useGyroTechnique(resolveMacroActor(actor), techniqueId, mode),
+    showBayleStatus: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.showBayleStatus(resolveMacroActor(actor)),
+    adjustBayleArdor: async (amount = 1, actor?: Actor | null) =>
+      UniqueMechanicsSystem.adjustBayleArdor(resolveMacroActor(actor), amount),
+    setBayleStage: async (stage = 1, actor?: Actor | null) =>
+      UniqueMechanicsSystem.setBayleStage(resolveMacroActor(actor), stage),
+    toggleBayleRage: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.toggleBayleRage(resolveMacroActor(actor)),
+    toggleBayleAwakening: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.toggleBayleAwakening(resolveMacroActor(actor)),
+    useBayleAction: async (actionId: string, actor?: Actor | null) =>
+      UniqueMechanicsSystem.useBayleAction(resolveMacroActor(actor), actionId),
+    showPippingStatus: async (actor?: Actor | null) =>
+      UniqueMechanicsSystem.showPippingStatus(resolveMacroActor(actor)),
   };
 }
 
@@ -92,30 +117,39 @@ async function ensureManagedMacros(): Promise<void> {
   const ownerPermission = (globalThis as {
     CONST?: { DOCUMENT_OWNERSHIP_LEVELS?: { OWNER?: number } };
   }).CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
-  const data = {
-    name: GYRO_TECHNIQUES_MACRO_NAME,
-    type: "script",
-    img: GYRO_SPINBALL_ASSET,
-    command: GYRO_TECHNIQUES_MACRO_COMMAND,
-    ownership: { default: ownerPermission },
-    flags: {
-      [ETHERNUM.MODULE_NAME]: {
-        managedMacro: "gyro-techniques",
+  const ensureOneMacro = async (name: string, command: string, managedMacro: string) => {
+    const existingMacro = name === GYRO_TECHNIQUES_MACRO_NAME
+      ? existing
+      : macros.getName?.(name) ?? macros.find?.(macro => macro.name === name);
+    const data = {
+      name,
+      type: "script",
+      img: GYRO_SPINBALL_ASSET,
+      command,
+      ownership: { default: ownerPermission },
+      flags: {
+        [ETHERNUM.MODULE_NAME]: {
+          managedMacro,
+        },
       },
-    },
+    };
+
+    if (!existingMacro) {
+      const MacroClass = (globalThis as { Macro?: { create?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown> } }).Macro;
+      await MacroClass?.create?.(data, { render: false });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (existingMacro.command !== command) updates.command = command;
+    if (existingMacro.img !== GYRO_SPINBALL_ASSET) updates.img = GYRO_SPINBALL_ASSET;
+    updates.ownership = { default: ownerPermission };
+    if (Object.keys(updates).length > 0) await existingMacro.update(updates, { render: false });
   };
 
-  if (existing) {
-    const updates: Record<string, unknown> = {};
-    if (existing.command !== GYRO_TECHNIQUES_MACRO_COMMAND) updates.command = GYRO_TECHNIQUES_MACRO_COMMAND;
-    if (existing.img !== GYRO_SPINBALL_ASSET) updates.img = GYRO_SPINBALL_ASSET;
-    updates.ownership = { default: ownerPermission };
-    if (Object.keys(updates).length > 0) await existing.update(updates, { render: false });
-    return;
-  }
-
-  const MacroClass = (globalThis as { Macro?: { create?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown> } }).Macro;
-  await MacroClass?.create?.(data, { render: false });
+  await ensureOneMacro(GYRO_TECHNIQUES_MACRO_NAME, GYRO_TECHNIQUES_MACRO_COMMAND, "gyro-techniques");
+  await ensureOneMacro(BAYLE_STATUS_MACRO_NAME, BAYLE_STATUS_MACRO_COMMAND, "bayle-status");
+  await ensureOneMacro(PIPPING_STATUS_MACRO_NAME, PIPPING_STATUS_MACRO_COMMAND, "pipping-status");
 }
 
 function registerHandlebarsHelpers(): void {

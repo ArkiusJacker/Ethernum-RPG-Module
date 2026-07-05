@@ -1665,6 +1665,19 @@
   --gyro-bone: #eadfca;
   --gyro-muted: #b6ad95;
   --gyro-border: rgba(200, 168, 75, 0.34);
+  --bayle-ember: #e04a2f;
+  --bayle-red: #7b1615;
+  --bayle-gold: #d7aa48;
+  --bayle-lightning: #f2dd72;
+  --bayle-ash: #17100f;
+  --bayle-smoke: #261515;
+  --bayle-bone: #f0d8ba;
+  --bayle-muted: #c5a58a;
+  --pipping-night: #050713;
+  --pipping-blue: #6488e8;
+  --pipping-red: #e01840;
+  --pipping-ice: #d9e2ff;
+  --pipping-muted: #aab4d8;
 }
 
 .ethernum-unique-topbar {
@@ -2148,6 +2161,22 @@
   color: var(--company-gold-soft);
 }
 
+.ethernum-unique-bayle-theme.ethernum-container {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(224, 74, 47, 0.24), transparent 30%),
+    radial-gradient(circle at 82% 10%, rgba(242, 221, 114, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(16, 8, 7, 0.98), rgba(38, 21, 21, 0.96) 58%, rgba(67, 19, 14, 0.92));
+  color: var(--bayle-bone);
+}
+
+.ethernum-unique-pipping-theme.ethernum-container {
+  background:
+    radial-gradient(circle at 15% 12%, rgba(224, 24, 64, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 8%, rgba(100, 136, 232, 0.2), transparent 26%),
+    linear-gradient(135deg, rgba(5, 7, 19, 0.98), rgba(10, 12, 28, 0.96) 62%, rgba(42, 8, 24, 0.9));
+  color: var(--pipping-ice);
+}
+
 .ethernum-unique-tab .ethernum-section {
   border-color: var(--gyro-border);
   background: linear-gradient(180deg, rgba(24, 35, 22, 0.96), rgba(13, 21, 14, 0.96));
@@ -2164,6 +2193,24 @@
   box-shadow: inset 0 1px 0 rgba(242, 230, 200, 0.08), 0 0 24px rgba(216, 189, 120, 0.08);
 }
 
+.ethernum-unique-bayle-theme .ethernum-section {
+  border-color: rgba(224, 74, 47, 0.38);
+  background:
+    linear-gradient(135deg, rgba(123, 22, 21, 0.32), rgba(23, 16, 15, 0.96)),
+    radial-gradient(circle at 80% 0%, rgba(215, 170, 72, 0.12), transparent 38%);
+  color: var(--bayle-bone);
+  box-shadow: inset 0 1px 0 rgba(240, 216, 186, 0.08), 0 0 22px rgba(224, 74, 47, 0.08);
+}
+
+.ethernum-unique-pipping-theme .ethernum-section {
+  border-color: rgba(100, 136, 232, 0.32);
+  background:
+    linear-gradient(135deg, rgba(5, 7, 19, 0.94), rgba(18, 12, 33, 0.94)),
+    radial-gradient(circle at 90% 0%, rgba(224, 24, 64, 0.12), transparent 36%);
+  color: var(--pipping-ice);
+  box-shadow: inset 0 1px 0 rgba(217, 226, 255, 0.06), 0 0 20px rgba(100, 136, 232, 0.08);
+}
+
 .ethernum-unique-tab .ethernum-section-title {
   color: var(--gyro-bone);
   border-bottom-color: rgba(200, 168, 75, 0.26);
@@ -2177,6 +2224,16 @@
 .ethernum-unique-company-theme .ethernum-unique-topbar {
   border-color: rgba(216, 189, 120, 0.34);
   background: linear-gradient(90deg, rgba(3, 3, 3, 0.92), rgba(43, 34, 14, 0.78));
+}
+
+.ethernum-unique-bayle-theme .ethernum-unique-topbar {
+  border-color: rgba(224, 74, 47, 0.42);
+  background: linear-gradient(90deg, rgba(16, 8, 7, 0.94), rgba(87, 20, 16, 0.82));
+}
+
+.ethernum-unique-pipping-theme .ethernum-unique-topbar {
+  border-color: rgba(100, 136, 232, 0.34);
+  background: linear-gradient(90deg, rgba(5, 7, 19, 0.94), rgba(35, 10, 31, 0.82));
 }
 
 .ethernum-unique-profile,
@@ -2379,6 +2436,416 @@
 
 .ethernum-gyro-details-body li {
   margin: 3px 0;
+}
+
+.ethernum-animated-details summary i {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.ethernum-animated-details[open] > summary i {
+  transform: rotate(90deg);
+}
+
+.ethernum-animated-details[open] .ethernum-gyro-details-body,
+.ethernum-animated-details[open] .ethernum-bayle-details-body,
+.ethernum-animated-details[open] .ethernum-pipping-details-body {
+  animation: ethernum-details-open 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ethernum-bayle-resource-pill {
+  color: var(--bayle-lightning);
+  background: rgba(224, 74, 47, 0.12);
+}
+
+.ethernum-bayle-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.ethernum-bayle-hero::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background:
+    conic-gradient(from 220deg, transparent, rgba(224, 74, 47, 0.16), transparent 34%),
+    linear-gradient(120deg, transparent 0 44%, rgba(242, 221, 114, 0.12) 45%, transparent 47%);
+  animation: ethernum-bayle-ember-drift 18s linear infinite;
+}
+
+.ethernum-bayle-hero-main,
+.ethernum-bayle-state-grid,
+.ethernum-bayle-control-row,
+.ethernum-bayle-stage-track,
+.ethernum-bayle-info-grid,
+.ethernum-bayle-action-list,
+.ethernum-bayle-macro-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.ethernum-bayle-hero-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.ethernum-bayle-kicker,
+.ethernum-bayle-stage-emblem small,
+.ethernum-bayle-status-card span,
+.ethernum-bayle-action span,
+.ethernum-bayle-action small,
+.ethernum-bayle-stage-card small {
+  color: var(--bayle-muted);
+}
+
+.ethernum-bayle-hero h2 {
+  margin: 2px 0;
+  color: var(--bayle-lightning);
+  font-size: 1.35em;
+  letter-spacing: 0;
+}
+
+.ethernum-bayle-hero p,
+.ethernum-bayle-action p {
+  color: var(--bayle-bone);
+}
+
+.ethernum-bayle-state-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.1fr) repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.ethernum-bayle-stage-emblem,
+.ethernum-bayle-ardor,
+.ethernum-bayle-status-card,
+.ethernum-bayle-stage-card,
+.ethernum-bayle-action,
+.ethernum-bayle-details,
+.ethernum-bayle-macro-grid code {
+  border: 1px solid rgba(224, 74, 47, 0.34);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(38, 21, 21, 0.88), rgba(16, 8, 7, 0.88));
+  box-shadow: inset 0 1px 0 rgba(240, 216, 186, 0.06);
+}
+
+.ethernum-bayle-stage-emblem,
+.ethernum-bayle-ardor,
+.ethernum-bayle-status-card {
+  padding: 11px;
+}
+
+.ethernum-bayle-stage-emblem span {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(224, 74, 47, 0.22);
+  color: var(--bayle-lightning);
+  font-weight: 800;
+}
+
+.ethernum-bayle-stage-emblem strong,
+.ethernum-bayle-status-card strong,
+.ethernum-bayle-action strong,
+.ethernum-bayle-stage-card strong {
+  display: block;
+  color: var(--bayle-bone);
+}
+
+.ethernum-bayle-ardor {
+  overflow: hidden;
+}
+
+.ethernum-bayle-ardor strong {
+  display: block;
+  color: var(--bayle-lightning);
+  font-size: 1.3em;
+}
+
+.ethernum-bayle-ardor i {
+  display: block;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--bayle-ember) var(--ardor-percent), rgba(240, 216, 186, 0.16) 0);
+  box-shadow: 0 0 12px rgba(224, 74, 47, 0.22);
+}
+
+.ethernum-bayle-status-card.active {
+  border-color: rgba(242, 221, 114, 0.52);
+  box-shadow: inset 0 1px 0 rgba(240, 216, 186, 0.1), 0 0 18px rgba(224, 74, 47, 0.12);
+}
+
+.ethernum-bayle-status-card.awakening {
+  background: linear-gradient(180deg, rgba(86, 55, 16, 0.9), rgba(38, 21, 21, 0.9));
+}
+
+.ethernum-bayle-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.ethernum-bayle-control-row label {
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+  flex: 1;
+  color: var(--bayle-muted);
+}
+
+.ethernum-bayle-control-row select {
+  border: 1px solid rgba(224, 74, 47, 0.34);
+  border-radius: 6px;
+  background: rgba(16, 8, 7, 0.72);
+  color: var(--bayle-bone);
+  padding: 5px 8px;
+}
+
+.ethernum-bayle-stage-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ethernum-bayle-stage-card {
+  padding: 10px;
+  border-left: 4px solid rgba(224, 74, 47, 0.42);
+}
+
+.ethernum-bayle-stage-card.active {
+  border-left-color: var(--bayle-lightning);
+  background: linear-gradient(180deg, rgba(94, 38, 21, 0.92), rgba(16, 8, 7, 0.9));
+}
+
+.ethernum-bayle-stage-card.locked {
+  opacity: 0.58;
+  filter: grayscale(0.25);
+}
+
+.ethernum-bayle-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ethernum-bayle-details {
+  padding: 10px;
+}
+
+.ethernum-bayle-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--bayle-lightning);
+  font-weight: 800;
+}
+
+.ethernum-bayle-details-body {
+  margin-top: 8px;
+  color: var(--bayle-bone);
+}
+
+.ethernum-bayle-details-body ul {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+
+.ethernum-bayle-details-body li {
+  margin: 5px 0;
+}
+
+.ethernum-bayle-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ethernum-bayle-action {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-left: 4px solid var(--bayle-ember);
+}
+
+.ethernum-bayle-action.used,
+.ethernum-bayle-action.locked {
+  opacity: 0.58;
+}
+
+.ethernum-bayle-action em {
+  color: var(--bayle-lightning);
+  font-style: normal;
+  font-size: 0.82em;
+}
+
+.ethernum-bayle-macro-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.ethernum-bayle-macro-grid code {
+  display: block;
+  padding: 7px 9px;
+  color: var(--bayle-lightning);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.ethernum-bayle-chat-card h3 {
+  color: var(--bayle-lightning, #f2dd72);
+}
+
+.ethernum-pipping-resource-pill {
+  color: var(--pipping-blue);
+  background: rgba(100, 136, 232, 0.1);
+}
+
+.ethernum-pipping-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.ethernum-pipping-kicker {
+  color: var(--pipping-red);
+  font-weight: 800;
+}
+
+.ethernum-pipping-hero h2 {
+  margin: 2px 0;
+  color: var(--pipping-ice);
+  text-shadow: 0 0 14px rgba(100, 136, 232, 0.26);
+}
+
+.ethernum-pipping-hero p,
+.ethernum-pipping-ability p {
+  color: var(--pipping-muted);
+}
+
+.ethernum-pipping-pulse,
+.ethernum-pipping-ability,
+.ethernum-pipping-macro-grid code {
+  border: 1px solid rgba(100, 136, 232, 0.32);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(10, 12, 28, 0.9), rgba(5, 7, 19, 0.92));
+  box-shadow: inset 0 1px 0 rgba(217, 226, 255, 0.06);
+}
+
+.ethernum-pipping-pulse {
+  padding: 12px;
+}
+
+.ethernum-pipping-pulse span,
+.ethernum-pipping-ability header span,
+.ethernum-pipping-ability header small {
+  color: var(--pipping-muted);
+}
+
+.ethernum-pipping-pulse strong {
+  display: block;
+  color: var(--pipping-blue);
+  font-size: 1.3em;
+}
+
+.ethernum-pipping-pulse i {
+  display: block;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--pipping-red) var(--pulse-percent), rgba(217, 226, 255, 0.14) 0);
+  box-shadow: 0 0 12px rgba(224, 24, 64, 0.25);
+}
+
+.ethernum-pipping-control-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ethernum-pipping-control-row label {
+  display: grid;
+  gap: 4px;
+  color: var(--pipping-muted);
+}
+
+.ethernum-pipping-control-row input {
+  border: 1px solid rgba(100, 136, 232, 0.32);
+  border-radius: 6px;
+  background: rgba(5, 7, 19, 0.72);
+  color: var(--pipping-ice);
+  padding: 5px 8px;
+}
+
+.ethernum-pipping-ability-list,
+.ethernum-pipping-macro-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ethernum-pipping-ability {
+  padding: 10px;
+  border-left: 4px solid var(--pipping-blue);
+}
+
+.ethernum-pipping-ability:nth-child(even) {
+  border-left-color: var(--pipping-red);
+}
+
+.ethernum-pipping-ability header strong {
+  display: block;
+  color: var(--pipping-ice);
+}
+
+.ethernum-pipping-details {
+  margin-top: 8px;
+}
+
+.ethernum-pipping-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--pipping-blue);
+  font-weight: 800;
+}
+
+.ethernum-pipping-details-body {
+  margin-top: 8px;
+  border: 1px solid rgba(100, 136, 232, 0.2);
+  border-radius: 6px;
+  background: rgba(5, 7, 19, 0.46);
+  padding: 8px;
+}
+
+.ethernum-pipping-details-body ul {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+
+.ethernum-pipping-details-body li {
+  margin: 5px 0;
+}
+
+.ethernum-pipping-macro-grid code {
+  display: block;
+  padding: 7px 9px;
+  color: var(--pipping-blue);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.ethernum-pipping-chat-card h3 {
+  color: var(--pipping-blue, #6488e8);
 }
 
 .ethernum-gyro-exec-button.locked,
@@ -2748,9 +3215,21 @@
   to { background-position: 420px 210px, -280px 280px; }
 }
 
+@keyframes ethernum-bayle-ember-drift {
+  from { transform: rotate(0deg) scale(1); opacity: 0.72; }
+  50% { opacity: 1; }
+  to { transform: rotate(360deg) scale(1); opacity: 0.72; }
+}
+
+@keyframes ethernum-details-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ethernum-unique-empty::before,
   .ethernum-unique-empty::after,
+  .ethernum-bayle-hero::before,
   .ethernum-gyro-sp-ring::before,
   .ethernum-gyro-hud-orb img,
   .ethernum-gyro-hud-ball img,
@@ -2764,7 +3243,12 @@
   .ethernum-gyro-sp-card,
   .ethernum-gyro-config-grid,
   .ethernum-gyro-execution-grid,
-  .ethernum-gyro-ikon-grid {
+  .ethernum-gyro-ikon-grid,
+  .ethernum-bayle-state-grid,
+  .ethernum-bayle-info-grid,
+  .ethernum-bayle-stage-track,
+  .ethernum-pipping-hero,
+  .ethernum-pipping-control-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2783,7 +3267,12 @@
   .ethernum-gyro-sp-card,
   .ethernum-gyro-config-grid,
   .ethernum-gyro-execution-grid,
-  .ethernum-gyro-ikon-grid {
+  .ethernum-gyro-ikon-grid,
+  .ethernum-bayle-state-grid,
+  .ethernum-bayle-info-grid,
+  .ethernum-bayle-stage-track,
+  .ethernum-pipping-hero,
+  .ethernum-pipping-control-row {
     grid-template-columns: 1fr;
   }
 

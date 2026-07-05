@@ -156,6 +156,22 @@ await game.ethernum.macros.useGyroTechnique("spiral-ricochet", "forced");
 await game.ethernum.macros.useGyroTechnique("absolute-rotation", "perfect");
 ```
 
+#### Macros iniciais de Bayle e Pipping
+
+```js
+await game.ethernum.macros.setUniqueProfile("bayle-dragon");
+await game.ethernum.macros.showBayleStatus();
+await game.ethernum.macros.adjustBayleArdor(1);
+await game.ethernum.macros.toggleBayleRage();
+await game.ethernum.macros.toggleBayleAwakening();
+await game.ethernum.macros.useBayleAction("placidusax-lightning");
+```
+
+```js
+await game.ethernum.macros.setUniqueProfile("pipping-night");
+await game.ethernum.macros.showPippingStatus();
+```
+
 ## ⚙️ Configurações
 
 O módulo oferece as seguintes configurações (acessíveis nas configurações do módulo):

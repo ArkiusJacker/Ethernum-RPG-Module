@@ -238,6 +238,8 @@
         "ExecutionMode": "Execution Mode",
         "SPCost": "SP Cost",
         "Actions": "Actions",
+        "Roll": "Roll",
+        "DamageType": "Damage type",
         "Frequency": "Frequency",
         "RequiresSteelBallStrike": "Requires Steel Ball Strike",
         "Techniques": "Techniques",
@@ -290,6 +292,31 @@
           "legendary": "Legendary",
           "transcendental": "Transcendental"
         }
+      },
+      "Bayle": {
+        "Status": "Draconic Status",
+        "Controls": "Draconic Control",
+        "Stage": "Stage",
+        "Stages": "Stages",
+        "Level": "Level",
+        "Ardor": "Draconic Ardor",
+        "Awakening": "Awakening",
+        "Active": "Active",
+        "Inactive": "Inactive",
+        "Passives": "Passives",
+        "Collapse": "Collapse",
+        "Actions": "Draconic Actions",
+        "MacroSpace": "Macro space",
+        "RequiresArdor": "Bayle needs 3 Ardor to activate Awakening.",
+        "RequiresRage": "Requires active Rage.",
+        "RequiresAwakening": "Requires active Awakening.",
+        "RequiresRageAwakening": "Requires active Rage and Awakening.",
+        "NoCharges": "No charges left in this Awakening.",
+        "OncePerRage": "This action has already been used in this Rage.",
+        "OncePerAwakening": "This action has already been used in this Awakening."
+      },
+      "Pipping": {
+        "Controls": "Night Control"
       }
     },
     "DiceRoll": {

@@ -1,11 +1,13 @@
 import { ETHERNUM } from '../config.js';
 
-export type UniqueMechanicProfileId = "" | "gyro-spin";
+export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night";
 export type GyroMainAttribute = "dex" | "wis";
 export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 
 export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
+export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
+export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
 
@@ -51,6 +53,13 @@ interface GyroTechnique {
   narrativeOnly?: boolean;
   frequency?: string;
   attachedToStrike?: boolean;
+  roll?: {
+    label: string;
+    kind: "healing" | "damage";
+    damageType?: string;
+    formula: (actor: Actor, state: GyroSpinState) => string;
+    note?: string;
+  };
 }
 
 interface GyroIkon {
@@ -97,6 +106,62 @@ interface GyroTechniqueSheetData extends GyroTechnique {
     reason: string;
     selected: boolean;
   }>;
+  rollLabel?: string;
+  rollFormula?: string;
+  rollNote?: string;
+}
+
+interface BayleStage {
+  stage: number;
+  roman: string;
+  name: string;
+  minLevel: number;
+  title: string;
+  subtitle: string;
+  rageBonus: number;
+  lightningDC: number;
+  lightningCharges: number;
+  breath?: { formula: string; dc: number };
+  passives: string[];
+  awakening: string[];
+  collapse: string[];
+  actions: Array<{
+    id: string;
+    name: string;
+    tag: string;
+    requirement: string;
+    text: string;
+    formula?: string;
+  }>;
+}
+
+export interface BayleDragonState {
+  stage: number;
+  ardor: number;
+  rageActive: boolean;
+  awakeningActive: boolean;
+  lightningChargesUsed: number;
+  breathUsed: boolean;
+  roarUsed: boolean;
+  lancesUsed: boolean;
+  closureUsed: boolean;
+}
+
+interface PippingAbility {
+  id: string;
+  name: string;
+  tag: string;
+  cost: string;
+  aspect: string;
+  text: string;
+  details: string[];
+}
+
+export interface PippingNightState {
+  pulse: number;
+  tier: number;
+  livingNightActive: boolean;
+  mirroredShadows: number;
 }
 
 const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
@@ -146,6 +211,104 @@ const DEFAULT_GYRO_STATE: GyroSpinState = {
   absoluteReady: false,
   unlockedIkons: [],
 };
+
+const DEFAULT_BAYLE_STATE: BayleDragonState = {
+  stage: 1,
+  ardor: 0,
+  rageActive: false,
+  awakeningActive: false,
+  lightningChargesUsed: 0,
+  breathUsed: false,
+  roarUsed: false,
+  lancesUsed: false,
+  closureUsed: false,
+};
+
+const DEFAULT_PIPPING_STATE: PippingNightState = {
+  pulse: 2,
+  tier: 1,
+  livingNightActive: false,
+  mirroredShadows: 0,
+};
+
+export const PIPPING_ABILITIES: PippingAbility[] = [
+  {
+    id: "animated-shadow",
+    name: "Sombra Animada",
+    tag: "Passivo Permanente",
+    cost: "Sem custo",
+    aspect: "Véu",
+    text: "A sombra de Pipping se move independente e funciona como extensão silenciosa da vontade dele.",
+    details: [
+      "Flanqueio Sombrio: 1 vez por rodada, se aliado e sombra estão adjacentes ao mesmo inimigo, o próximo ataque desse aliado deixa o alvo off-guard contra ele.",
+      "A sombra se estende até 10 pés em qualquer direção e não ocupa espaço físico real.",
+      "Luz intensa suprime a sombra por 1 rodada, mas não a destrói.",
+    ],
+  },
+  {
+    id: "mirrored-shadows",
+    name: "Sombras Espelhadas",
+    tag: "2 ações",
+    cost: "1 PS",
+    aspect: "Véu / Vazio",
+    text: "Convoca silhuetas negras adjacentes. Elas não bloqueiam movimento nem visão, mas reagem quando atacadas.",
+    details: [
+      "Número de sombras: 2 + 1 por Tier desbloqueado.",
+      "Cada sombra tem CA 10 + nível de Pipping e 1 HP.",
+      "Quando uma sombra é destruída por ataque não área/splash, o atacante sofre 1d6 de energia negativa; se for imune, converta para frio.",
+      "Enquanto houver sombra em campo, Pipping recebe +1 circunstância na CA contra ataques à distância.",
+    ],
+  },
+  {
+    id: "dark-whisper",
+    name: "Sussurro das Trevas",
+    tag: "1 ação",
+    cost: "1 PS",
+    aspect: "Véu / Voz",
+    text: "Um aliado a 30 pés que possa ouvi-lo recebe bônus pela linguagem da noite.",
+    details: [
+      "Até o início do próximo turno de Pipping, o aliado recebe +1 circunstância no próximo ataque ou saving throw.",
+      "Se o aliado estiver em escuridão completa, o bônus sobe para +2.",
+    ],
+  },
+  {
+    id: "void-echoes",
+    name: "Ecos do Vazio",
+    tag: "Reação",
+    cost: "Sem custo",
+    aspect: "Vazio",
+    text: "Quando uma criatura falha num save contra habilidade ou magia de Pipping, a noite devolve Pulso.",
+    details: [
+      "Gatilho: criatura a 30 pés falha ou falha criticamente num save contra habilidade ou magia de Pipping.",
+      "Pipping recupera 1 PS.",
+      "Frequência: 1 vez por rodada.",
+    ],
+  },
+  {
+    id: "living-night-song",
+    name: "Canção da Noite Viva",
+    tag: "2 ações",
+    cost: "1 PS inicial",
+    aspect: "Composição / Véu / Vazio / Voz",
+    text: "Pipping performa a noite: a escuridão se adensa e protege quem conhece seu ritmo.",
+    details: [
+      "Área: 30 pés de presença, com 10 pés de escuridão mágica para inimigos.",
+      "Duração: sustentada com ação livre, máximo 1 minuto.",
+      "A área é difícil para inimigos que dependem de visão comum, conforme decisão do mestre.",
+    ],
+  },
+];
+
+function gyroMedicinalHealingFormula(actor: Actor, state: GyroSpinState): string {
+  const dice = Math.max(1, Math.ceil(getActorLevel(actor) / 2));
+  const mod = getPF2EAbilityMod(actor, state.mainAttribute);
+  return `${dice}d6${mod >= 0 ? ` + ${mod}` : ` - ${Math.abs(mod)}`}`;
+}
+
+function gyroRicochetImpactFormula(actor: Actor): string {
+  const dice = Math.max(1, Math.min(5, Math.floor((getActorLevel(actor) - 1) / 4) + 1));
+  return `${dice}d6`;
+}
 
 export const GYRO_RANKS: GyroRank[] = [
   {
@@ -225,11 +388,18 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     options: [
       "Acertar alvo com cobertura total ou parcial",
       "Mudar o ângulo do ataque",
-      "Atacar segundo alvo com dano reduzido",
+      "Atacar segundo alvo com dano reduzido: aplique -2 no ataque do ricochete e metade do dano do Strike principal, arredondando para baixo.",
       "Forçar inimigo a mudar posição",
     ],
     defaultMode: "forced",
     requiredLevel: 3,
+    roll: {
+      label: "Impacto secundário opcional",
+      kind: "damage",
+      damageType: "bludgeoning",
+      formula: gyroRicochetImpactFormula,
+      note: "Use esta rolagem apenas quando a mesa preferir resolver o alvo secundário separadamente. Regra padrão: -2 no ataque e metade do dano do Strike principal.",
+    },
   },
   {
     id: "medicinal-spin",
@@ -239,14 +409,21 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     actions: "2 ações",
     description: "Gyro usa a rotação para corrigir ossos, músculos e fluxo sanguíneo.",
     options: [
-      "Curar 1d6 + modificador principal",
+      "Cura 1d6 por rank equivalente de nível de personagem + modificador principal. Ex.: nível 3 = 2d6 + mod; nível 5 = 3d6 + mod.",
       "Remover Sangrando",
       "Reduzir uma penalidade física em 1",
       "Acordar aliado inconsciente com 1 HP",
       "Estabilizar criatura morrendo",
+      "Não cura veneno, doença mística ou corrupção divina sem uma Parte do Cadáver.",
     ],
     defaultMode: "forced",
     requiredLevel: 3,
+    roll: {
+      label: "Cura da Rotação Medicinal",
+      kind: "healing",
+      formula: gyroMedicinalHealingFormula,
+      note: "Scaling inspirado em heightening de PF2e: +1d6 a cada novo rank equivalente de personagem.",
+    },
   },
   {
     id: "rotating-jaw",
@@ -364,6 +541,13 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     requiredLevel: 12,
     frequency: "1 vez por turno",
     attachedToStrike: true,
+    roll: {
+      label: "Dano de força do Requiem",
+      kind: "damage",
+      damageType: "force",
+      formula: () => "6d10",
+      note: "Role apenas se o Strike de Steel Ball anexado acertar.",
+    },
   },
   {
     id: "saints-hand",
@@ -540,6 +724,215 @@ export const GYRO_DEVIATIONS: GyroDeviation[] = [
   },
 ];
 
+export const BAYLE_STAGES: BayleStage[] = [
+  {
+    stage: 1,
+    roman: "I",
+    name: "Pele, Sangue e Coração",
+    minLevel: 3,
+    title: "Pele, Sangue e Coração Dracônico",
+    subtitle: "O corpo aceita o primeiro ritmo de dragão: defesa, sangue quente e Ardor.",
+    rageBonus: 4,
+    lightningDC: 17,
+    lightningCharges: 1,
+    passives: [
+      "Pele Dracônica: resistência 3 a fogo e eletricidade.",
+      "+1 CA contra ataques físicos não mágicos, conforme decisão do mestre.",
+      "+1 em Fortitude contra venenos, doenças e efeitos físicos extremos.",
+      "Handwraps Integradas: +1 potency, Striking e dano desarmado apropriado ao estágio.",
+    ],
+    awakening: [
+      "Ativar Despertar custa 3 Ardor e dura enquanto Bayle estiver em Rage.",
+      "Chama dos Dragões: Strikes desarmados causam +1d4 fogo.",
+      "Eletricidade de Placidusax: ação livre ao acertar, Fortitude CD 17 ou Stunned 1. 1 carga por Despertar.",
+      "Rage Dracônico: bônus total de dano da Rage sobe para +4.",
+    ],
+    collapse: [
+      "Rage termina com Despertar ativo: Drained 1 + Fatigued normal.",
+      "Encerramento Dracônico usado: Drained 2.",
+    ],
+    actions: [
+      {
+        id: "placidusax-lightning",
+        name: "Eletricidade de Placidusax",
+        tag: "Ação livre",
+        requirement: "Despertar ativo e Strike acertou",
+        text: "Fortitude CD 17 ou Stunned 1. 1 carga por Despertar.",
+      },
+      {
+        id: "draconic-closure",
+        name: "Encerramento Dracônico",
+        tag: "Golpe final",
+        requirement: "Rage + Despertar",
+        text: "Dado do Strike sobe um passo. Dano elemental extra = 2 x rodadas restantes da Rage, máximo 20. No E1/E2 o Despertar termina e não pode ser reativado neste combate.",
+      },
+    ],
+  },
+  {
+    stage: 2,
+    roman: "II",
+    name: "Garras e Movimento",
+    minLevel: 6,
+    title: "Garras e Movimento",
+    subtitle: "O corpo aprende a avançar como predador, sem abandonar as defesas do primeiro estágio.",
+    rageBonus: 6,
+    lightningDC: 18,
+    lightningCharges: 1,
+    passives: [
+      "Mantém Pele Dracônica, resistências e Handwraps Integradas.",
+      "Garras Integradas: dano desarmado pode alternar para corte quando fizer sentido narrativo.",
+      "+10 pés de velocidade enquanto em Rage.",
+      "Instinto de Investida: após mover 10 pés antes do Strike, adiciona +1d6 de dano uma vez por turno.",
+    ],
+    awakening: [
+      "Chama dos Dragões aumenta para +2d4 fogo.",
+      "Eletricidade de Placidusax: Fortitude CD 18 ou Stunned 1. 1 carga por Despertar.",
+      "Rage Dracônico: bônus total de dano da Rage sobe para +6.",
+      "Movimento em Despertar: +10 pés adicionais, total +20 pés com Rage.",
+      "Salto/Ruptura: ignora terreno difícil e reações antes de um Strike 1 vez por Despertar.",
+    ],
+    collapse: [
+      "Rage termina com Despertar ativo: Drained 1 + Fatigued.",
+      "Encerramento usado: Drained 2.",
+    ],
+    actions: [
+      {
+        id: "placidusax-lightning",
+        name: "Eletricidade de Placidusax",
+        tag: "Ação livre",
+        requirement: "Despertar ativo e Strike acertou",
+        text: "Fortitude CD 18 ou Stunned 1. 1 carga por Despertar.",
+      },
+      {
+        id: "draconic-closure",
+        name: "Encerramento Dracônico",
+        tag: "Golpe final",
+        requirement: "Rage + Despertar",
+        text: "Dado do Strike sobe um passo e aplica dano elemental extra. No E2 o Despertar ainda é consumido.",
+      },
+    ],
+  },
+  {
+    stage: 3,
+    roman: "III",
+    name: "Escama e Espinha",
+    minLevel: 8,
+    title: "Escama e Espinha",
+    subtitle: "A primeira armadura real emerge. A fúria passa a proteger e retaliar.",
+    rageBonus: 8,
+    lightningDC: 19,
+    lightningCharges: 2,
+    breath: { formula: "4d6", dc: 19 },
+    passives: [
+      "Escamas Dracônicas: +2 CA contra ataques físicos não mágicos.",
+      "Resistência a fogo e eletricidade aumenta para 9.",
+      "+2 circunstância em Intimidação e Demoralize pode melhorar o grau em sucesso, se o mestre aprovar.",
+      "Mantém Garras, Passo e Instinto do estágio anterior.",
+    ],
+    awakening: [
+      "Chama dos Dragões aumenta para +3d4 fogo.",
+      "Eletricidade de Placidusax: Fortitude CD 19 ou Stunned 1. 2 cargas por Despertar.",
+      "Rage Dracônico: bônus total de dano da Rage sobe para +8.",
+      "Escamas em Fúria: proteção adicional enquanto o Despertar estiver ativo.",
+    ],
+    collapse: [
+      "Rage termina com Despertar ativo: Drained 1 + Fatigued.",
+      "Encerramento usado: Drained 2.",
+      "No E3 o Encerramento zera Ardor, mas o Despertar não termina e pode ser reativado.",
+    ],
+    actions: [
+      {
+        id: "placidusax-lightning",
+        name: "Eletricidade de Placidusax",
+        tag: "Ação livre",
+        requirement: "Despertar ativo e Strike acertou",
+        text: "Fortitude CD 19 ou Stunned 1. 2 cargas por Despertar.",
+      },
+      {
+        id: "bayle-breath",
+        name: "Sopro de Bayle",
+        tag: "2 ações",
+        requirement: "Rage ativa",
+        text: "Dano 4d6 fogo, CD 19, 1 vez por Rage. Não requer Despertar.",
+        formula: "4d6",
+      },
+      {
+        id: "draconic-closure",
+        name: "Encerramento Dracônico",
+        tag: "Golpe final",
+        requirement: "Rage + Despertar",
+        text: "Dado do Strike sobe um passo; Ardor zera, Despertar não termina e Rage continua.",
+      },
+    ],
+  },
+  {
+    stage: 4,
+    roman: "IV",
+    name: "O Rugido",
+    minLevel: 10,
+    title: "O Rugido",
+    subtitle: "A presença dracônica ocupa a cena. Bayle já não apenas luta: ele impõe território.",
+    rageBonus: 10,
+    lightningDC: 20,
+    lightningCharges: 2,
+    breath: { formula: "5d6", dc: 20 },
+    passives: [
+      "Escamas Dracônicas e resistências do E3 permanecem.",
+      "Garras, Passo, Instinto e Presença seguem ativos.",
+      "Durante Rage, a presença de Bayle pressiona inimigos próximos.",
+    ],
+    awakening: [
+      "Eletricidade de Placidusax: Fortitude CD 20 ou Stunned 1. 2 cargas.",
+      "Rage Dracônico: bônus total de dano da Rage sobe para +10.",
+      "Escamas em Fúria: +1 CA contra todos os ataques durante o Despertar.",
+      "Lanças de Placidusax ficam disponíveis 1 vez por Despertar.",
+    ],
+    collapse: [
+      "Rage termina com Despertar ativo: Drained 1 + Fatigued.",
+      "Encerramento usado: Drained 2 e encerramento narrativo da explosão dracônica.",
+    ],
+    actions: [
+      {
+        id: "placidusax-lightning",
+        name: "Eletricidade de Placidusax",
+        tag: "Ação livre",
+        requirement: "Despertar ativo e Strike acertou",
+        text: "Fortitude CD 20 ou Stunned 1. 2 cargas por Despertar.",
+      },
+      {
+        id: "bayle-roar",
+        name: "O Rugido",
+        tag: "2 ações",
+        requirement: "Rage ativa",
+        text: "Vontade CD 20. Sucesso crítico: imune 24h. Usável 1 vez por Rage.",
+      },
+      {
+        id: "placidusax-lances",
+        name: "Lanças de Placidusax",
+        tag: "2 ações",
+        requirement: "Despertar ativo",
+        text: "Até 3 alvos em 60 pés. Cada lança causa 2d6 eletricidade. MAP -4/-8 em vez de -5/-10. 1 vez por Despertar.",
+        formula: "2d6",
+      },
+      {
+        id: "bayle-breath",
+        name: "Sopro de Bayle",
+        tag: "2 ações",
+        requirement: "Rage ativa",
+        text: "Dano 5d6 fogo, CD 20, 1 vez por Rage.",
+        formula: "5d6",
+      },
+      {
+        id: "draconic-closure",
+        name: "Encerramento Dracônico",
+        tag: "Golpe final",
+        requirement: "Rage + Despertar",
+        text: "Ardor zera, Despertar não termina, Rage continua. Colapso com Drained 2.",
+      },
+    ],
+  },
+];
+
 // TODO: Automatizar Desvios como efeitos PF2e quando a mesa fechar a regra final:
 // Retorno Violento -> Off-Guard; Colapso do Eixo -> bloqueio de técnicas com custo de SP;
 // Pulso do Cadáver -> Drained 1 ou Clumsy 1; Espiral Exposta -> Slowed 1 e -2 no próximo Controle de Spin.
@@ -648,6 +1041,37 @@ function normalizeGyroState(raw: unknown): GyroSpinState {
   };
 }
 
+function normalizeBayleState(raw: unknown): BayleDragonState {
+  const state = asRecord(raw);
+  return {
+    ...DEFAULT_BAYLE_STATE,
+    stage: clamp(Number(state.stage ?? DEFAULT_BAYLE_STATE.stage) || 1, 1, 4),
+    ardor: clamp(Number(state.ardor ?? DEFAULT_BAYLE_STATE.ardor) || 0, 0, 3),
+    rageActive: Boolean(state.rageActive),
+    awakeningActive: Boolean(state.awakeningActive),
+    lightningChargesUsed: clamp(Number(state.lightningChargesUsed ?? 0) || 0, 0, 2),
+    breathUsed: Boolean(state.breathUsed),
+    roarUsed: Boolean(state.roarUsed),
+    lancesUsed: Boolean(state.lancesUsed),
+    closureUsed: Boolean(state.closureUsed),
+  };
+}
+
+function normalizePippingState(raw: unknown): PippingNightState {
+  const state = asRecord(raw);
+  return {
+    ...DEFAULT_PIPPING_STATE,
+    pulse: clamp(Number(state.pulse ?? DEFAULT_PIPPING_STATE.pulse) || 0, 0, 6),
+    tier: clamp(Number(state.tier ?? DEFAULT_PIPPING_STATE.tier) || 1, 1, 4),
+    livingNightActive: Boolean(state.livingNightActive),
+    mirroredShadows: clamp(Number(state.mirroredShadows ?? DEFAULT_PIPPING_STATE.mirroredShadows) || 0, 0, 8),
+  };
+}
+
+function getBayleStageData(stage: number): BayleStage {
+  return BAYLE_STAGES.find(item => item.stage === stage) ?? BAYLE_STAGES[0];
+}
+
 export class UniqueMechanicsSystem {
   static getControlledActor(): Actor | null {
     return getControlledActor();
@@ -655,8 +1079,11 @@ export class UniqueMechanicsSystem {
 
   static getState(actor: Actor): UniqueMechanicsState {
     const raw = asRecord(actor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics"));
+    const activeProfile = raw.activeProfile === GYRO_PROFILE_ID || raw.activeProfile === BAYLE_PROFILE_ID || raw.activeProfile === PIPPING_PROFILE_ID
+      ? raw.activeProfile
+      : "";
     return {
-      activeProfile: (raw.activeProfile === GYRO_PROFILE_ID ? GYRO_PROFILE_ID : "") as UniqueMechanicProfileId,
+      activeProfile: activeProfile as UniqueMechanicProfileId,
       profiles: asRecord(raw.profiles),
     };
   }
@@ -676,11 +1103,27 @@ export class UniqueMechanicsSystem {
     return normalizeGyroState(state.profiles[GYRO_PROFILE_ID]);
   }
 
+  static getBayleState(actor: Actor): BayleDragonState {
+    const state = this.getState(actor);
+    return normalizeBayleState(state.profiles[BAYLE_PROFILE_ID]);
+  }
+
+  static getPippingState(actor: Actor): PippingNightState {
+    const state = this.getState(actor);
+    return normalizePippingState(state.profiles[PIPPING_PROFILE_ID]);
+  }
+
   static async setActiveProfile(actor: Actor, profileId: UniqueMechanicProfileId): Promise<void> {
     const state = this.getState(actor);
     state.activeProfile = profileId;
     if (profileId === GYRO_PROFILE_ID && !state.profiles[GYRO_PROFILE_ID]) {
       state.profiles[GYRO_PROFILE_ID] = { ...DEFAULT_GYRO_STATE };
+    }
+    if (profileId === BAYLE_PROFILE_ID && !state.profiles[BAYLE_PROFILE_ID]) {
+      state.profiles[BAYLE_PROFILE_ID] = { ...DEFAULT_BAYLE_STATE };
+    }
+    if (profileId === PIPPING_PROFILE_ID && !state.profiles[PIPPING_PROFILE_ID]) {
+      state.profiles[PIPPING_PROFILE_ID] = { ...DEFAULT_PIPPING_STATE };
     }
     await this.setState(actor, state);
   }
@@ -696,6 +1139,120 @@ export class UniqueMechanicsSystem {
     state.profiles[GYRO_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
+  }
+
+  static async updateBayleState(actor: Actor, patch: Partial<BayleDragonState>): Promise<BayleDragonState> {
+    const state = this.getState(actor);
+    const current = this.getBayleState(actor);
+    const next = normalizeBayleState({ ...current, ...patch });
+    const stageData = getBayleStageData(next.stage);
+    next.lightningChargesUsed = clamp(next.lightningChargesUsed, 0, stageData.lightningCharges);
+    if (!next.awakeningActive) {
+      next.lightningChargesUsed = 0;
+      next.lancesUsed = false;
+    }
+    state.activeProfile = BAYLE_PROFILE_ID;
+    state.profiles[BAYLE_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async adjustBayleArdor(actor?: Actor | null, amount = 1): Promise<BayleDragonState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getBayleState(target);
+    return this.updateBayleState(target, { ardor: clamp(state.ardor + amount, 0, 3) });
+  }
+
+  static async setBayleStage(actor?: Actor | null, stage = 1): Promise<BayleDragonState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    return this.updateBayleState(target, {
+      stage,
+      lightningChargesUsed: 0,
+      breathUsed: false,
+      roarUsed: false,
+      lancesUsed: false,
+    });
+  }
+
+  static async toggleBayleRage(actor?: Actor | null): Promise<BayleDragonState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getBayleState(target);
+    const nextRage = !state.rageActive;
+    const next = await this.updateBayleState(target, {
+      rageActive: nextRage,
+      awakeningActive: nextRage ? state.awakeningActive : false,
+      lightningChargesUsed: 0,
+      breathUsed: nextRage ? state.breathUsed : false,
+      roarUsed: nextRage ? state.roarUsed : false,
+      closureUsed: nextRage ? state.closureUsed : false,
+    });
+    await this.showBayleStatus(target, nextRage ? "Rage Dracônico ativo" : "Rage Dracônico encerrado");
+    return next;
+  }
+
+  static async toggleBayleAwakening(actor?: Actor | null): Promise<BayleDragonState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getBayleState(target);
+    if (!state.awakeningActive && state.ardor < 3) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresArdor"));
+      return state;
+    }
+    const nextAwakening = !state.awakeningActive;
+    const next = await this.updateBayleState(target, {
+      rageActive: nextAwakening ? true : state.rageActive,
+      awakeningActive: nextAwakening,
+      ardor: nextAwakening ? 0 : state.ardor,
+      lightningChargesUsed: 0,
+      lancesUsed: false,
+    });
+    await this.showBayleStatus(target, nextAwakening ? "Despertar Dracônico ativo" : "Despertar Dracônico encerrado");
+    return next;
+  }
+
+  static async updatePippingState(actor: Actor, patch: Partial<PippingNightState>): Promise<PippingNightState> {
+    const state = this.getState(actor);
+    const current = this.getPippingState(actor);
+    const next = normalizePippingState({ ...current, ...patch });
+    state.activeProfile = PIPPING_PROFILE_ID;
+    state.profiles[PIPPING_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async showPippingStatus(actor?: Actor | null, title = "Pipping — Expressão da Noite"): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const state = this.getPippingState(target);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-pipping-chat-card">
+          <h3>${title}</h3>
+          <p><strong>Tier:</strong> ${state.tier}</p>
+          <p><strong>Pulso Sombrio:</strong> ${state.pulse} / 6</p>
+          <p><strong>Sombras Espelhadas:</strong> ${state.mirroredShadows}</p>
+          <p><strong>Canção da Noite Viva:</strong> ${state.livingNightActive ? "Ativa" : "Inativa"}</p>
+        </div>`,
+    });
   }
 
   static calculateGyroMaxSP(actor: Actor, state = this.getGyroState(actor)): number {
@@ -878,6 +1435,128 @@ export class UniqueMechanicsSystem {
           <p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlBonus")}:</strong> +${controlBonus}</p>
           ${state.activeDeviation ? `<p><strong>${game.i18n!.localize("ETHERNUM.Unique.Gyro.ActiveDeviation")}:</strong> ${state.activeDeviation}</p>` : ""}
           <p>${rank.text}</p>
+        </div>`,
+    });
+  }
+
+  static async showBayleStatus(actor?: Actor | null, title?: string): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const state = this.getBayleState(target);
+    const stage = getBayleStageData(state.stage);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-bayle-chat-card">
+          <h3>${title ?? "Bayle — Corpo Dracônico"}</h3>
+          <p><strong>Estágio:</strong> ${stage.roman} — ${stage.name}</p>
+          <p><strong>Ardor:</strong> ${state.ardor} / 3</p>
+          <p><strong>Rage:</strong> ${state.rageActive ? "Ativa" : "Inativa"} · <strong>Despertar:</strong> ${state.awakeningActive ? "Ativo" : "Inativo"}</p>
+          <p><strong>Rage Dracônico:</strong> +${stage.rageBonus} dano total durante Rage.</p>
+          <p><strong>Placidusax:</strong> Fortitude CD ${stage.lightningDC}; ${stage.lightningCharges - state.lightningChargesUsed}/${stage.lightningCharges} carga(s) disponíveis.</p>
+        </div>`,
+    });
+  }
+
+  static async useBayleAction(actor?: Actor | null, actionId = "placidusax-lightning"): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const state = this.getBayleState(target);
+    const stage = getBayleStageData(state.stage);
+    const action = stage.actions.find(item => item.id === actionId);
+    if (!action) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Errors.TechniqueNotFound"));
+      return;
+    }
+
+    if (actionId === "placidusax-lightning") {
+      if (!state.awakeningActive) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresAwakening"));
+        return;
+      }
+      if (state.lightningChargesUsed >= stage.lightningCharges) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.NoCharges"));
+        return;
+      }
+      await this.updateBayleState(target, { lightningChargesUsed: state.lightningChargesUsed + 1 });
+    }
+
+    if (actionId === "bayle-breath") {
+      if (!state.rageActive) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresRage"));
+        return;
+      }
+      if (state.breathUsed) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.OncePerRage"));
+        return;
+      }
+      await this.updateBayleState(target, { breathUsed: true });
+    }
+
+    if (actionId === "bayle-roar") {
+      if (stage.stage < 4 || !state.rageActive) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresRage"));
+        return;
+      }
+      if (state.roarUsed) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.OncePerRage"));
+        return;
+      }
+      await this.updateBayleState(target, { roarUsed: true });
+    }
+
+    if (actionId === "placidusax-lances") {
+      if (stage.stage < 4 || !state.awakeningActive) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresAwakening"));
+        return;
+      }
+      if (state.lancesUsed) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.OncePerAwakening"));
+        return;
+      }
+      await this.updateBayleState(target, { lancesUsed: true });
+    }
+
+    if (actionId === "draconic-closure") {
+      if (!state.rageActive || !state.awakeningActive) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Bayle.RequiresRageAwakening"));
+        return;
+      }
+      await this.updateBayleState(target, {
+        ardor: 0,
+        closureUsed: true,
+        awakeningActive: stage.stage >= 3,
+        lightningChargesUsed: stage.stage >= 3 ? state.lightningChargesUsed : 0,
+      });
+    }
+
+    if (action.formula) {
+      const roll = new Roll(action.formula);
+      await roll.evaluate();
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        flavor: [
+          `<strong>${action.name}</strong>`,
+          action.text,
+          actionId === "placidusax-lances" ? "Aplique esta rolagem para cada lança que acertar." : "",
+        ].filter(Boolean).join("<br>"),
+      });
+      return;
+    }
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-bayle-chat-card">
+          <h3>${action.name}</h3>
+          <p><strong>${action.tag}</strong> · ${action.requirement}</p>
+          <p>${action.text}</p>
         </div>`,
     });
   }
@@ -1073,6 +1752,19 @@ export class UniqueMechanicsSystem {
           <p>${technique.description}</p>
         </div>`,
     });
+    if (technique.roll) {
+      const formula = technique.roll.formula(target, nextState);
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        flavor: [
+          `<strong>${technique.roll.label}</strong>`,
+          technique.roll.damageType ? `${game.i18n!.localize("ETHERNUM.Unique.Gyro.DamageType")}: ${technique.roll.damageType}` : "",
+          technique.roll.note ?? "",
+        ].filter(Boolean).join("<br>"),
+      });
+    }
   }
 
   static async showGyroTechniques(actor?: Actor | null): Promise<void> {
@@ -1108,11 +1800,13 @@ export class UniqueMechanicsSystem {
             </header>
             <p>${technique.description}</p>
             ${!technique.unlocked && technique.lockReason ? `<p class="ethernum-gyro-dialog-lock"><i class="fas fa-lock"></i> ${technique.lockReason}</p>` : ""}
-            <details>
+            <details class="ethernum-animated-details ethernum-gyro-details">
               <summary>${game.i18n!.localize("ETHERNUM.Unique.Gyro.Details")}</summary>
-              <ul>
-                ${technique.systemNotes.map(note => `<li>${note}</li>`).join("")}
-              </ul>
+              <div class="ethernum-gyro-details-body">
+                <ul>
+                  ${technique.systemNotes.map(note => `<li>${note}</li>`).join("")}
+                </ul>
+              </div>
             </details>
             <footer>
               <select class="ethernum-gyro-macro-mode" data-technique-id="${technique.id}">
@@ -1148,11 +1842,15 @@ export class UniqueMechanicsSystem {
   static buildSheetData(actor: Actor, isGM: boolean): Record<string, unknown> {
     const state = this.getState(actor);
     const gyroState = this.getGyroState(actor);
+    const bayleState = this.getBayleState(actor);
+    const pippingState = this.getPippingState(actor);
     const actorLevel = getActorLevel(actor);
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
     const rank = this.getGyroRank(gyroState.currentSP, gyroState);
     const spinPercent = maxSP > 0 ? Math.round((gyroState.currentSP / maxSP) * 100) : 0;
     const executionModes = this.buildGyroExecutionModes(actor, gyroState, "forced");
+    const bayleStage = getBayleStageData(bayleState.stage);
+    const bayleLightningRemaining = Math.max(0, bayleStage.lightningCharges - bayleState.lightningChargesUsed);
 
     return {
       activeProfile: state.activeProfile,
@@ -1161,7 +1859,56 @@ export class UniqueMechanicsSystem {
       profiles: [
         { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
         { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
+        { id: BAYLE_PROFILE_ID, label: "Bayle, o Horror - Corpo Dracônico" },
+        { id: PIPPING_PROFILE_ID, label: "Pipping Baldwin Black - Expressão da Noite" },
       ],
+      pipping: {
+        state: pippingState,
+        pulsePercent: Math.round((pippingState.pulse / 6) * 100),
+        shadowCountExpected: 2 + pippingState.tier,
+        abilities: PIPPING_ABILITIES,
+        macroSlots: [
+          "await game.ethernum.macros.setUniqueProfile(\"pipping-night\");",
+          "await game.ethernum.macros.showPippingStatus();",
+        ],
+      },
+      bayle: {
+        state: bayleState,
+        stage: bayleStage,
+        actorLevel,
+        ardorPercent: Math.round((bayleState.ardor / 3) * 100),
+        lightningRemaining: bayleLightningRemaining,
+        stages: BAYLE_STAGES.map(item => ({
+          ...item,
+          active: item.stage === bayleStage.stage,
+          available: actorLevel >= item.minLevel,
+        })),
+        actions: bayleStage.actions.map(action => {
+          const used = (action.id === "placidusax-lightning" && bayleLightningRemaining <= 0)
+            || (action.id === "bayle-breath" && bayleState.breathUsed)
+            || (action.id === "bayle-roar" && bayleState.roarUsed)
+            || (action.id === "placidusax-lances" && bayleState.lancesUsed)
+            || (action.id === "draconic-closure" && bayleState.closureUsed && bayleStage.stage < 3);
+          const blocked = (action.id === "placidusax-lightning" && !bayleState.awakeningActive)
+            || (action.id === "placidusax-lances" && !bayleState.awakeningActive)
+            || (action.id === "bayle-breath" && !bayleState.rageActive)
+            || (action.id === "bayle-roar" && !bayleState.rageActive)
+            || (action.id === "draconic-closure" && (!bayleState.rageActive || !bayleState.awakeningActive));
+          return {
+            ...action,
+            used,
+            usable: !used && !blocked,
+            blocked,
+          };
+        }),
+        macroSlots: [
+          "await game.ethernum.macros.setUniqueProfile(\"bayle-dragon\");",
+          "await game.ethernum.macros.showBayleStatus();",
+          "await game.ethernum.macros.adjustBayleArdor(1);",
+          "await game.ethernum.macros.toggleBayleRage();",
+          "await game.ethernum.macros.toggleBayleAwakening();",
+        ],
+      },
       gyro: {
         state: gyroState,
         maxSP,
@@ -1181,15 +1928,20 @@ export class UniqueMechanicsSystem {
           const canAfford = gyroState.currentSP >= technique.cost;
           const usable = status.unlocked && canAfford && (selectedMode?.available ?? false);
           const dc = this.getGyroControlDC(actor, technique.defaultMode, gyroState);
+          const rollFormula = technique.roll?.formula(actor, gyroState);
           return {
             ...technique,
             canAfford,
             unlocked: status.unlocked,
             usable,
             lockReason: status.lockReasons.join(" | "),
+            rollLabel: technique.roll?.label,
+            rollFormula,
+            rollNote: technique.roll?.note,
             systemNotes: [
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Actions")}: ${technique.actions}`,
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.SPCost")}: ${technique.cost}`,
+              ...(technique.roll ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Roll")}: ${technique.roll.label} (${rollFormula})`] : []),
               ...(technique.frequency ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Frequency")}: ${technique.frequency}`] : []),
               ...(technique.attachedToStrike ? [game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresSteelBallStrike")] : []),
               `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ExecutionMode")}: ${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${technique.defaultMode}`)}`,

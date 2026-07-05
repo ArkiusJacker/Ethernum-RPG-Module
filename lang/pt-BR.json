@@ -238,6 +238,8 @@
         "ExecutionMode": "Modo de Execução",
         "SPCost": "Custo de SP",
         "Actions": "Ações",
+        "Roll": "Rolagem",
+        "DamageType": "Tipo de dano",
         "Frequency": "Frequência",
         "RequiresSteelBallStrike": "Requer Strike de Steel Ball",
         "Techniques": "Técnicas",
@@ -290,6 +292,31 @@
           "legendary": "Lendário",
           "transcendental": "Transcendental"
         }
+      },
+      "Bayle": {
+        "Status": "Status Dracônico",
+        "Controls": "Controle Dracônico",
+        "Stage": "Estágio",
+        "Stages": "Estágios",
+        "Level": "Nível",
+        "Ardor": "Ardor Dracônico",
+        "Awakening": "Despertar",
+        "Active": "Ativo",
+        "Inactive": "Inativo",
+        "Passives": "Passivos",
+        "Collapse": "Colapso",
+        "Actions": "Ações Dracônicas",
+        "MacroSpace": "Espaço de macros",
+        "RequiresArdor": "Bayle precisa de 3 Ardor para ativar o Despertar.",
+        "RequiresRage": "Requer Rage ativa.",
+        "RequiresAwakening": "Requer Despertar ativo.",
+        "RequiresRageAwakening": "Requer Rage e Despertar ativos.",
+        "NoCharges": "Sem cargas restantes neste Despertar.",
+        "OncePerRage": "Esta ação já foi usada nesta Rage.",
+        "OncePerAwakening": "Esta ação já foi usada neste Despertar."
+      },
+      "Pipping": {
+        "Controls": "Controle da Noite"
       }
     },
     "DiceRoll": {

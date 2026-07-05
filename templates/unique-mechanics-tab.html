@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}}">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}}">
   <div class="ethernum-unique-topbar">
     <div class="ethernum-unique-profile-picker">
       <i class="fas fa-fingerprint"></i>
@@ -14,6 +14,18 @@
       <strong>{{uniqueMechanics.gyro.rank.name}}</strong>
     </div>
     {{/if}}
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}
+    <div class="ethernum-unique-resource-pill ethernum-bayle-resource-pill">
+      <span>{{uniqueMechanics.bayle.stage.roman}}</span>
+      <strong>{{uniqueMechanics.bayle.state.ardor}}/3 Ardor</strong>
+    </div>
+    {{/if}}
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}
+    <div class="ethernum-unique-resource-pill ethernum-pipping-resource-pill">
+      <span>{{uniqueMechanics.pipping.state.tier}}</span>
+      <strong>{{uniqueMechanics.pipping.state.pulse}}/6 PS</strong>
+    </div>
+    {{/if}}
   </div>
 
   {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}
@@ -24,6 +36,231 @@
         <strong>{{localize "ETHERNUM.Unique.Profile.None"}}</strong>
         <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
       </div>
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}
+  <section class="ethernum-section ethernum-bayle-hero">
+    <div class="ethernum-bayle-hero-main">
+      <div>
+        <span class="ethernum-bayle-kicker">Bayle, o Horror</span>
+        <h2>Corpo Dracônico</h2>
+        <p>{{uniqueMechanics.bayle.stage.subtitle}}</p>
+      </div>
+      <button type="button" class="ethernum-icon-button ethernum-bayle-show-status" title="{{localize 'ETHERNUM.Unique.Bayle.Status'}}">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+    <div class="ethernum-bayle-state-grid">
+      <div class="ethernum-bayle-stage-emblem">
+        <span>{{uniqueMechanics.bayle.stage.roman}}</span>
+        <strong>{{uniqueMechanics.bayle.stage.name}}</strong>
+        <small>{{localize "ETHERNUM.Unique.Bayle.Level"}} {{uniqueMechanics.bayle.stage.minLevel}}+</small>
+      </div>
+      <div class="ethernum-bayle-ardor" style="--ardor-percent: {{uniqueMechanics.bayle.ardorPercent}}%">
+        <span>{{localize "ETHERNUM.Unique.Bayle.Ardor"}}</span>
+        <strong>{{uniqueMechanics.bayle.state.ardor}} / 3</strong>
+        <i></i>
+      </div>
+      <div class="ethernum-bayle-status-card {{#if uniqueMechanics.bayle.state.rageActive}}active{{/if}}">
+        <span>Rage</span>
+        <strong>+{{uniqueMechanics.bayle.stage.rageBonus}}</strong>
+        <small>{{#if uniqueMechanics.bayle.state.rageActive}}{{localize "ETHERNUM.Unique.Bayle.Active"}}{{else}}{{localize "ETHERNUM.Unique.Bayle.Inactive"}}{{/if}}</small>
+      </div>
+      <div class="ethernum-bayle-status-card {{#if uniqueMechanics.bayle.state.awakeningActive}}active awakening{{/if}}">
+        <span>{{localize "ETHERNUM.Unique.Bayle.Awakening"}}</span>
+        <strong>{{uniqueMechanics.bayle.lightningRemaining}}/{{uniqueMechanics.bayle.stage.lightningCharges}}</strong>
+        <small>CD {{uniqueMechanics.bayle.stage.lightningDC}}</small>
+      </div>
+    </div>
+  </section>
+
+  {{#if isGM}}
+  <section class="ethernum-section ethernum-bayle-controls">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-dragon"></i> {{localize "ETHERNUM.Unique.Bayle.Controls"}}</span>
+    </h2>
+    <div class="ethernum-bayle-control-row">
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Bayle.Stage"}}</span>
+        <select class="ethernum-bayle-stage-select">
+          {{#each uniqueMechanics.bayle.stages}}
+          <option value="{{this.stage}}" {{#if this.active}}selected{{/if}}>{{this.roman}} · {{this.name}} ({{localize "ETHERNUM.Unique.Bayle.Level"}} {{this.minLevel}})</option>
+          {{/each}}
+        </select>
+      </label>
+      <button type="button" class="ethernum-button-small ethernum-bayle-adjust-ardor" data-delta="-1"><i class="fas fa-minus"></i></button>
+      <button type="button" class="ethernum-button-small ethernum-bayle-adjust-ardor" data-delta="1"><i class="fas fa-plus"></i> Ardor</button>
+      <button type="button" class="ethernum-button-small ethernum-bayle-toggle-rage"><i class="fas fa-fire"></i> Rage</button>
+      <button type="button" class="ethernum-button-small ethernum-bayle-toggle-awakening"><i class="fas fa-bolt"></i> {{localize "ETHERNUM.Unique.Bayle.Awakening"}}</button>
+    </div>
+  </section>
+  {{/if}}
+
+  <section class="ethernum-section ethernum-bayle-stages">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-mountain"></i> {{localize "ETHERNUM.Unique.Bayle.Stages"}}</span>
+    </h2>
+    <div class="ethernum-bayle-stage-track">
+      {{#each uniqueMechanics.bayle.stages}}
+      <div class="ethernum-bayle-stage-card {{#if this.active}}active{{/if}} {{#unless this.available}}locked{{/unless}}">
+        <span>{{this.roman}}</span>
+        <strong>{{this.name}}</strong>
+        <small>{{localize "ETHERNUM.Unique.Bayle.Level"}} {{this.minLevel}}+</small>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-bayle-details-section">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-scale-balanced"></i> {{uniqueMechanics.bayle.stage.title}}</span>
+    </h2>
+    <div class="ethernum-bayle-info-grid">
+      <details class="ethernum-animated-details ethernum-bayle-details" open>
+        <summary><i class="fas fa-shield-halved"></i> {{localize "ETHERNUM.Unique.Bayle.Passives"}}</summary>
+        <div class="ethernum-bayle-details-body">
+          <ul>
+            {{#each uniqueMechanics.bayle.stage.passives}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+        </div>
+      </details>
+      <details class="ethernum-animated-details ethernum-bayle-details">
+        <summary><i class="fas fa-bolt"></i> {{localize "ETHERNUM.Unique.Bayle.Awakening"}}</summary>
+        <div class="ethernum-bayle-details-body">
+          <ul>
+            {{#each uniqueMechanics.bayle.stage.awakening}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+        </div>
+      </details>
+      <details class="ethernum-animated-details ethernum-bayle-details">
+        <summary><i class="fas fa-skull"></i> {{localize "ETHERNUM.Unique.Bayle.Collapse"}}</summary>
+        <div class="ethernum-bayle-details-body">
+          <ul>
+            {{#each uniqueMechanics.bayle.stage.collapse}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-bayle-actions">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-hand-fist"></i> {{localize "ETHERNUM.Unique.Bayle.Actions"}}</span>
+    </h2>
+    <div class="ethernum-bayle-action-list">
+      {{#each uniqueMechanics.bayle.actions}}
+      <article class="ethernum-bayle-action {{#if this.used}}used{{/if}} {{#if this.blocked}}locked{{/if}}">
+        <div>
+          <span>{{this.tag}}</span>
+          <strong>{{this.name}}</strong>
+          <small>{{this.requirement}}</small>
+          <p>{{this.text}}</p>
+          {{#if this.formula}}<em>{{localize "ETHERNUM.Unique.Gyro.Roll"}}: {{this.formula}}</em>{{/if}}
+        </div>
+        <button type="button" class="ethernum-icon-button ethernum-bayle-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
+          <i class="fas fa-dice-d20"></i>
+        </button>
+      </article>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-bayle-macros">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-terminal"></i> {{localize "ETHERNUM.Unique.Bayle.MacroSpace"}}</span>
+    </h2>
+    <div class="ethernum-bayle-macro-grid">
+      {{#each uniqueMechanics.bayle.macroSlots}}
+      <code>{{this}}</code>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}
+  <section class="ethernum-section ethernum-pipping-hero">
+    <div>
+      <span class="ethernum-pipping-kicker">Pipping Baldwin Black</span>
+      <h2>Expressão da Noite</h2>
+      <p>A sombra age como extensão da vontade, transformando escuridão, ecos e performance em economia de Pulso.</p>
+    </div>
+    <div class="ethernum-pipping-pulse" style="--pulse-percent: {{uniqueMechanics.pipping.pulsePercent}}%">
+      <span>Pulso Sombrio</span>
+      <strong>{{uniqueMechanics.pipping.state.pulse}} / 6</strong>
+      <i></i>
+    </div>
+  </section>
+
+  {{#if isGM}}
+  <section class="ethernum-section ethernum-pipping-controls">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-moon"></i> {{localize "ETHERNUM.Unique.Pipping.Controls"}}</span>
+    </h2>
+    <div class="ethernum-pipping-control-row">
+      <label>
+        <span>Tier</span>
+        <input type="number" class="ethernum-pipping-config" data-field="tier" min="1" max="4" value="{{uniqueMechanics.pipping.state.tier}}" />
+      </label>
+      <label>
+        <span>Pulso</span>
+        <input type="number" class="ethernum-pipping-config" data-field="pulse" min="0" max="6" value="{{uniqueMechanics.pipping.state.pulse}}" />
+      </label>
+      <label>
+        <span>Sombras</span>
+        <input type="number" class="ethernum-pipping-config" data-field="mirroredShadows" min="0" max="8" value="{{uniqueMechanics.pipping.state.mirroredShadows}}" />
+      </label>
+      <label class="ethernum-gyro-check">
+        <input type="checkbox" class="ethernum-pipping-config" data-field="livingNightActive" {{#if uniqueMechanics.pipping.state.livingNightActive}}checked{{/if}} />
+        <span>Canção ativa</span>
+      </label>
+    </div>
+  </section>
+  {{/if}}
+
+  <section class="ethernum-section ethernum-pipping-abilities">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-eye"></i> Habilidades da Noite</span>
+    </h2>
+    <div class="ethernum-pipping-ability-list">
+      {{#each uniqueMechanics.pipping.abilities}}
+      <article class="ethernum-pipping-ability">
+        <header>
+          <span>{{this.tag}}</span>
+          <strong>{{this.name}}</strong>
+          <small>{{this.cost}} · {{this.aspect}}</small>
+        </header>
+        <p>{{this.text}}</p>
+        <details class="ethernum-animated-details ethernum-pipping-details">
+          <summary><i class="fas fa-circle-info"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
+          <div class="ethernum-pipping-details-body">
+            <ul>
+              {{#each this.details}}
+              <li>{{this}}</li>
+              {{/each}}
+            </ul>
+          </div>
+        </details>
+      </article>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-pipping-macros">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-terminal"></i> {{localize "ETHERNUM.Unique.Bayle.MacroSpace"}}</span>
+    </h2>
+    <div class="ethernum-pipping-macro-grid">
+      {{#each uniqueMechanics.pipping.macroSlots}}
+      <code>{{this}}</code>
+      {{/each}}
     </div>
   </section>
   {{/if}}
@@ -192,7 +429,7 @@
             {{#unless this.canAfford}}
             <p class="ethernum-gyro-lock-reason"><i class="fas fa-battery-quarter"></i> {{localize "ETHERNUM.Unique.Gyro.NotEnoughSP"}}</p>
             {{/unless}}
-            <details class="ethernum-gyro-details">
+            <details class="ethernum-animated-details ethernum-gyro-details">
               <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
               <div class="ethernum-gyro-details-body">
                 <strong>{{localize "ETHERNUM.Unique.Gyro.SystemSummary"}}</strong>
@@ -239,7 +476,7 @@
           <strong>{{this.piece}}</strong>
           <small>{{this.title}} · {{this.tierLabel}}</small>
         </span>
-        <details class="ethernum-gyro-details ethernum-gyro-ikon-details">
+        <details class="ethernum-animated-details ethernum-gyro-details ethernum-gyro-ikon-details">
           <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
           <div class="ethernum-gyro-details-body">
             <p><strong>{{localize "ETHERNUM.Unique.Gyro.UnlockMethod"}}:</strong> {{this.unlock}}</p>
