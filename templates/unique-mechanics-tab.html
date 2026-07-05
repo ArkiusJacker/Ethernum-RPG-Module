@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}}">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
   <div class="ethernum-unique-topbar">
     <div class="ethernum-unique-profile-picker">
       <i class="fas fa-fingerprint"></i>
@@ -36,6 +36,19 @@
         <strong>{{localize "ETHERNUM.Unique.Profile.None"}}</strong>
         <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
       </div>
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if uniqueMechanics.placeholderProfile}}
+  <section class="ethernum-section ethernum-unique-placeholder">
+    <div class="ethernum-unique-placeholder-sigil">
+      <img src="{{uniqueMechanics.companyLogoAsset}}" alt="Ethernum Company" />
+    </div>
+    <div>
+      <span>Próxima mecânica única</span>
+      <h2>{{uniqueMechanics.placeholderProfile.label}}</h2>
+      <p>Esta aba já está reservada para receber rastreadores, ações, macros e efeitos próprios do personagem em uma próxima rodada de desenvolvimento.</p>
     </div>
   </section>
   {{/if}}
@@ -408,51 +421,63 @@
     <h2 class="ethernum-section-title">
       <span><i class="fas fa-circle-notch"></i> {{localize "ETHERNUM.Unique.Gyro.Techniques"}}</span>
     </h2>
-    <div class="ethernum-gyro-technique-list">
-      {{#each uniqueMechanics.gyro.techniques}}
-      <div class="ethernum-gyro-technique {{#unless this.usable}}disabled{{/unless}} {{#unless this.unlocked}}locked{{/unless}}">
-        <div class="ethernum-gyro-technique-main">
-          <span class="ethernum-gyro-tech-cost">{{this.cost}} SP</span>
-          <div>
-            <strong>{{this.name}}</strong>
-            <small>{{this.source}} · {{this.actions}}</small>
-            <p>{{this.description}}</p>
-            {{#if this.frequency}}
-            <p class="ethernum-gyro-tech-meta"><i class="fas fa-hourglass-half"></i> {{localize "ETHERNUM.Unique.Gyro.Frequency"}}: {{this.frequency}}</p>
-            {{/if}}
-            {{#if this.attachedToStrike}}
-            <p class="ethernum-gyro-tech-meta"><i class="fas fa-bullseye"></i> {{localize "ETHERNUM.Unique.Gyro.RequiresSteelBallStrike"}}</p>
-            {{/if}}
-            {{#unless this.unlocked}}
-            <p class="ethernum-gyro-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</p>
-            {{/unless}}
-            {{#unless this.canAfford}}
-            <p class="ethernum-gyro-lock-reason"><i class="fas fa-battery-quarter"></i> {{localize "ETHERNUM.Unique.Gyro.NotEnoughSP"}}</p>
-            {{/unless}}
-            <details class="ethernum-animated-details ethernum-gyro-details">
-              <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
-              <div class="ethernum-gyro-details-body">
-                <strong>{{localize "ETHERNUM.Unique.Gyro.SystemSummary"}}</strong>
-                <ul>
-                  {{#each this.systemNotes}}
-                  <li>{{this}}</li>
-                  {{/each}}
-                </ul>
+    <div class="ethernum-gyro-technique-groups">
+      {{#each uniqueMechanics.gyro.techniqueGroups}}
+      <details class="ethernum-animated-details ethernum-gyro-category" open>
+        <summary>
+          <span><i class="{{this.icon}}"></i> {{this.label}}</span>
+          <small>{{this.hint}}</small>
+        </summary>
+        <div class="ethernum-gyro-technique-list">
+          {{#each this.techniques}}
+          <div class="ethernum-gyro-technique {{#unless this.usable}}disabled{{/unless}} {{#unless this.unlocked}}locked{{/unless}}">
+            <div class="ethernum-gyro-technique-main">
+              <span class="ethernum-gyro-tech-cost">{{this.cost}} SP</span>
+              <div>
+                <strong>{{this.name}}</strong>
+                <small>{{this.source}} · {{this.actions}}</small>
+                <p>{{this.description}}</p>
+                {{#if this.frequency}}
+                <p class="ethernum-gyro-tech-meta"><i class="fas fa-hourglass-half"></i> {{localize "ETHERNUM.Unique.Gyro.Frequency"}}: {{this.frequency}}</p>
+                {{/if}}
+                {{#if this.attachedToStrike}}
+                <p class="ethernum-gyro-tech-meta"><i class="fas fa-bullseye"></i> {{localize "ETHERNUM.Unique.Gyro.RequiresSteelBallStrike"}}</p>
+                {{/if}}
+                {{#unless this.unlocked}}
+                <p class="ethernum-gyro-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</p>
+                {{/unless}}
+                {{#unless this.canAfford}}
+                <p class="ethernum-gyro-lock-reason"><i class="fas fa-battery-quarter"></i> {{localize "ETHERNUM.Unique.Gyro.NotEnoughSP"}}</p>
+                {{/unless}}
+                <details class="ethernum-animated-details ethernum-gyro-details">
+                  <summary><i class="fas fa-info-circle"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
+                  <div class="ethernum-gyro-details-body">
+                    <strong>Descrição em mesa</strong>
+                    <p>{{this.description}}</p>
+                    <strong>{{localize "ETHERNUM.Unique.Gyro.SystemSummary"}}</strong>
+                    <ul>
+                      {{#each this.systemNotes}}
+                      <li>{{this}}</li>
+                      {{/each}}
+                    </ul>
+                  </div>
+                </details>
               </div>
-            </details>
+            </div>
+            <div class="ethernum-gyro-tech-actions">
+              <select class="ethernum-gyro-tech-mode" data-technique-id="{{this.id}}">
+                {{#each this.executionModes}}
+                <option value="{{this.id}}" {{#if this.selected}}selected{{/if}} {{#unless this.available}}disabled{{/unless}}>{{this.label}} · {{this.dcLabel}}</option>
+                {{/each}}
+              </select>
+              <button type="button" class="ethernum-icon-button ethernum-gyro-use-technique" data-technique-id="{{this.id}}" title="{{localize 'ETHERNUM.Buttons.Activate'}}" {{#unless this.usable}}disabled{{/unless}}>
+                <i class="fas fa-dice-d20"></i>
+              </button>
+            </div>
           </div>
+          {{/each}}
         </div>
-        <div class="ethernum-gyro-tech-actions">
-          <select class="ethernum-gyro-tech-mode" data-technique-id="{{this.id}}">
-            {{#each this.executionModes}}
-            <option value="{{this.id}}" {{#if this.selected}}selected{{/if}} {{#unless this.available}}disabled{{/unless}}>{{this.label}} · {{this.dcLabel}}</option>
-            {{/each}}
-          </select>
-          <button type="button" class="ethernum-icon-button ethernum-gyro-use-technique" data-technique-id="{{this.id}}" title="{{localize 'ETHERNUM.Buttons.Activate'}}" {{#unless this.usable}}disabled{{/unless}}>
-            <i class="fas fa-dice-d20"></i>
-          </button>
-        </div>
-      </div>
+      </details>
       {{/each}}
     </div>
   </section>

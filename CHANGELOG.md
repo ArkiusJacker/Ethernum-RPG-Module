@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.3.12] - 2026-07-05
+
+### Adicionado
+- Separação das ações do Gyro em categorias de Técnicas, IKONs, Ball Breaker e Rotação Absoluta.
+- Popups de alvo e efeitos diretos para Rotação Medicinal, Ricochete Espiral, Marca da Proporção e técnicas de salvamento do Gyro.
+- Tracker automático de acertos para SP do Gyro, Ardor do Bayle e Pulso Sombrio do Pipping.
+- Perfis placeholder para Kaitake, Cinério e Ailan.
+
+### Alterado
+- Melhorou as descrições narrativas e técnicas das habilidades únicas.
+- Bayle agora mostra ganhos de Despertar, colapsos e espaço de macro mais explícito.
+- Pipping recebeu textos técnicos mais completos e macro para ajuste de Pulso.
+
+### Corrigido
+- Desvio da Rotação do Gyro não aparece mais como ativo fora do combate que o gerou.
+- A animação de detalhes agora mira apenas o corpo direto do acordeão aberto.
+
 ## [2.0.0] - 2026-01-31
 
 ### Adicionado

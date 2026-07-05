@@ -1,6 +1,6 @@
 import { ETHERNUM } from '../config.js';
 
-export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night";
+export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night" | "kaitake" | "cinerio" | "ailan";
 export type GyroMainAttribute = "dex" | "wis";
 export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
@@ -8,6 +8,7 @@ export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
 export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
 export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
+export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
 
@@ -28,18 +29,24 @@ export interface GyroSpinState {
   absoluteReady: boolean;
   unlockedIkons: string[];
   activeDeviation?: string;
+  activeDeviationCombatId?: string;
+  proportionMarkTargetId?: string;
   spGainedThisRound?: number;
   lastSPRoundKey?: string;
   lastBallBreakerTurnKey?: string;
 }
+
+type GyroTechniqueCategory = "technique" | "ikon" | "ball-breaker" | "final";
 
 interface GyroTechnique {
   id: string;
   name: string;
   cost: number;
   source: string;
+  category?: GyroTechniqueCategory;
   actions: string;
   description: string;
+  technical?: string[];
   options: string[];
   details?: string[];
   defaultMode: GyroExecutionMode;
@@ -109,6 +116,14 @@ interface GyroTechniqueSheetData extends GyroTechnique {
   rollLabel?: string;
   rollFormula?: string;
   rollNote?: string;
+}
+
+interface GyroTechniqueGroup {
+  id: string;
+  label: string;
+  icon: string;
+  hint: string;
+  techniques: GyroTechniqueSheetData[];
 }
 
 interface BayleStage {
@@ -238,8 +253,9 @@ export const PIPPING_ABILITIES: PippingAbility[] = [
     tag: "Passivo Permanente",
     cost: "Sem custo",
     aspect: "Véu",
-    text: "A sombra de Pipping se move independente e funciona como extensão silenciosa da vontade dele.",
+    text: "A sombra de Pipping se move independente e funciona como extensão silenciosa da vontade dele, criando pressão tática mesmo quando ele não ocupa o espaço.",
     details: [
+      "A sombra deve ser representada por marcador, template ou token auxiliar a critério do mestre.",
       "Flanqueio Sombrio: 1 vez por rodada, se aliado e sombra estão adjacentes ao mesmo inimigo, o próximo ataque desse aliado deixa o alvo off-guard contra ele.",
       "A sombra se estende até 10 pés em qualquer direção e não ocupa espaço físico real.",
       "Luz intensa suprime a sombra por 1 rodada, mas não a destrói.",
@@ -251,12 +267,13 @@ export const PIPPING_ABILITIES: PippingAbility[] = [
     tag: "2 ações",
     cost: "1 PS",
     aspect: "Véu / Vazio",
-    text: "Convoca silhuetas negras adjacentes. Elas não bloqueiam movimento nem visão, mas reagem quando atacadas.",
+    text: "Convoca silhuetas negras adjacentes que confundem mira, puxam agressão e punem ataques mal direcionados.",
     details: [
       "Número de sombras: 2 + 1 por Tier desbloqueado.",
       "Cada sombra tem CA 10 + nível de Pipping e 1 HP.",
       "Quando uma sombra é destruída por ataque não área/splash, o atacante sofre 1d6 de energia negativa; se for imune, converta para frio.",
       "Enquanto houver sombra em campo, Pipping recebe +1 circunstância na CA contra ataques à distância.",
+      "O dano de sombra aumenta para 2d6 no Tier 3 e 3d6 no Tier 4.",
     ],
   },
   {
@@ -269,6 +286,7 @@ export const PIPPING_ABILITIES: PippingAbility[] = [
     details: [
       "Até o início do próximo turno de Pipping, o aliado recebe +1 circunstância no próximo ataque ou saving throw.",
       "Se o aliado estiver em escuridão completa, o bônus sobe para +2.",
+      "Se o bônus transformar falha em sucesso, Pipping recupera 1 PS, no máximo 1 vez por rodada.",
     ],
   },
   {
@@ -282,6 +300,7 @@ export const PIPPING_ABILITIES: PippingAbility[] = [
       "Gatilho: criatura a 30 pés falha ou falha criticamente num save contra habilidade ou magia de Pipping.",
       "Pipping recupera 1 PS.",
       "Frequência: 1 vez por rodada.",
+      "O tracker automático cobre acertos de ataque; falhas em saves ainda dependem de macro/manual por enquanto.",
     ],
   },
   {
@@ -295,6 +314,8 @@ export const PIPPING_ABILITIES: PippingAbility[] = [
       "Área: 30 pés de presença, com 10 pés de escuridão mágica para inimigos.",
       "Duração: sustentada com ação livre, máximo 1 minuto.",
       "A área é difícil para inimigos que dependem de visão comum, conforme decisão do mestre.",
+      "Aliados na área recebem +1 circunstância contra medo e efeitos de visão.",
+      "Quando Pipping acerta um ataque enquanto a Canção está ativa, o tracker pode recuperar 1 PS até o máximo.",
     ],
   },
 ];
@@ -369,8 +390,14 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Esfera de Aço",
     cost: 0,
     source: "Técnica",
+    category: "technique",
     actions: "1 ação",
-    description: "Ataque básico à distância com as esferas de aço.",
+    description: "Gyro lança uma esfera de aço em rotação limpa, usando a técnica base que alimenta toda a Via da Rotação Sagrada.",
+    technical: [
+      "Resolva como Strike à distância com a Steel Ball equipada ou com o item que representa a esfera.",
+      "Ao acertar um Strike com esta técnica, Gyro ganha +1 SP pelo tracker automático.",
+      "Se a mesa resolver ricochete simples sem usar Ricochete Espiral, o mestre pode exigir linha plausível de quique e aplicar cobertura normalmente.",
+    ],
     options: [
       "Causa dano normal ao acertar",
       "Gera +1 SP ao acertar",
@@ -383,8 +410,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Ricochete Espiral",
     cost: 1,
     source: "Técnica",
+    category: "technique",
     actions: "1 ação",
-    description: "A esfera quica em parede, chão, arma, escudo ou criatura.",
+    description: "A esfera conversa com o cenário antes de atingir o alvo, mudando o ângulo de entrada como se o campo inteiro fosse parte da mão de Gyro.",
+    technical: [
+      "Use quando houver parede, chão, arma, escudo, criatura ou obstáculo que justifique uma linha de ricochete.",
+      "Pode atacar um alvo com cobertura parcial/maior; cobertura total exige caminho plausível aprovado pelo mestre.",
+      "Se houver alvo secundário, faça um segundo Strike com -2 ou use a rolagem opcional de dano reduzido do módulo.",
+      "O dano secundário padrão é metade do dano do Strike principal, arredondado para baixo.",
+    ],
     options: [
       "Acertar alvo com cobertura total ou parcial",
       "Mudar o ângulo do ataque",
@@ -406,8 +440,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Rotação Medicinal",
     cost: 2,
     source: "Técnica",
+    category: "technique",
     actions: "2 ações",
-    description: "Gyro usa a rotação para corrigir ossos, músculos e fluxo sanguíneo.",
+    description: "Gyro deixa a esfera vibrar contra o corpo ferido até ossos, músculos e circulação reencontrarem o compasso correto.",
+    technical: [
+      "Escolha um alvo. Se houver alvo marcado no Foundry, o módulo usa esse alvo; sem alvo, Gyro trata a si mesmo.",
+      "Cura 1d6 por rank equivalente de personagem: nível 1-2 = 1d6, 3-4 = 2d6, 5-6 = 3d6, e assim por diante, mais o modificador principal da Rotação.",
+      "O módulo aplica a cura diretamente no HP quando consegue atualizar o ator alvo; se não tiver permissão, deixa a rolagem no chat.",
+      "Também pode estabilizar ou acordar aliado com 1 HP, conforme decisão do mestre.",
+    ],
     options: [
       "Cura 1d6 por rank equivalente de nível de personagem + modificador principal. Ex.: nível 3 = 2d6 + mod; nível 5 = 3d6 + mod.",
       "Remover Sangrando",
@@ -430,8 +471,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Mandíbula Giratória",
     cost: 2,
     source: "Técnica",
+    category: "technique",
     actions: "1 ação",
-    description: "Ao acertar cabeça, pescoço ou mandíbula com uma Steel Ball, o alvo faz salvamento de Fortitude contra a CD de Spin.",
+    description: "Gyro acerta cabeça, pescoço ou mandíbula com uma vibração que desencaixa o ritmo motor do alvo por um instante cruel.",
+    technical: [
+      "Requer que um Strike de Steel Ball tenha acertado ou que o mestre aprove o acerto narrativo na região.",
+      "O alvo faz Fortitude contra a CD de Spin de Gyro.",
+      "Falha: escolha 1 efeito. Falha crítica: aplique 2 efeitos.",
+      "O módulo anuncia a CD e o alvo escolhido; aplicação de condição fica sob controle do mestre por enquanto.",
+    ],
     options: [
       "Falha: escolha 1 efeito: Stupefied 1 até o fim do próximo turno de Gyro; -2 de circunstância no próximo ataque do alvo; ou o alvo perde a reação até o início do próximo turno dele.",
       "Falha crítica: aplique 2 efeitos da lista.",
@@ -445,8 +493,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Marca da Proporção",
     cost: 1,
     source: "Técnica",
+    category: "technique",
     actions: "1 ação",
-    description: "Gyro marca um alvo com vibração invisível por 1 cena.",
+    description: "Gyro grava uma proporção invisível no alvo, uma pequena assinatura vibratória que a esfera reconhece mesmo no caos.",
+    technical: [
+      "Escolha um alvo. O módulo registra o token/ator como alvo marcado quando possível.",
+      "O primeiro ataque de esfera contra o alvo marcado recebe +2 conforme decisão do mestre.",
+      "Acertar o alvo marcado gera +1 SP adicional além do +1 SP normal de acerto.",
+      "A marca dura 1 cena ou até ser substituída por outra Marca da Proporção.",
+    ],
     options: [
       "Gyro sente a direção do alvo",
       "Primeiro ataque de esfera recebe +2",
@@ -461,8 +516,14 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Trajetória Calculada",
     cost: 2,
     source: "IKON I",
+    category: "ikon",
     actions: "1 ação",
-    description: "Reduz cobertura em 1 passo. Cobertura total só pode ser contornada com linha plausível de ricochete.",
+    description: "Os Olhos do Cadáver Santo mostram uma linha que não parecia existir, e Gyro corrige o lançamento antes do mundo perceber.",
+    technical: [
+      "Reduz cobertura em 1 passo contra o próximo Strike de Steel Ball desta ação.",
+      "Cobertura total só pode ser contornada com linha plausível de ricochete aprovada pelo mestre.",
+      "Use modo Cadáver: exige IKON sincronizado e teste de Controle quando a rotação pedir.",
+    ],
     options: [],
     defaultMode: "corpse",
     requiredIkon: "I",
@@ -472,8 +533,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Trajetória Perfeita",
     cost: 3,
     source: "IKON I",
+    category: "ikon",
     actions: "ação livre",
-    description: "Por 1 rodada, o próximo Ricochete Espiral ou Trajetória Calculada de Gyro reduz cobertura em 1 passo e pode encadear 1 alvo adicional distinto.",
+    description: "Por um breve intervalo, o caminho da esfera vira uma frase completa: entrada, desvio, retorno e punição.",
+    technical: [
+      "Dura 1 rodada.",
+      "O próximo Ricochete Espiral ou Trajetória Calculada reduz cobertura em 1 passo adicional.",
+      "Pode encadear 1 alvo adicional distinto, com dano secundário reduzido conforme Ricochete Espiral.",
+      "Frequência: 1 vez por rodada.",
+    ],
     options: [],
     defaultMode: "corpse",
     requiredIkon: "I",
@@ -485,8 +553,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Freq. Paralisante",
     cost: 2,
     source: "IKON II",
+    category: "ikon",
     actions: "1 ação",
-    description: "Alvo faz salvamento de Fortitude contra a CD de Spin. Falha: velocidade reduzida. Falha crítica: fica imobilizado até o fim do próximo turno de Gyro ou recebe Slowed 1, conforme decisão do mestre.",
+    description: "A esfera canta na frequência errada para o corpo do alvo, transformando passo em tropeço e impulso em peso.",
+    technical: [
+      "Escolha um alvo a alcance da Steel Ball ou dentro da cena autorizada pelo mestre.",
+      "O alvo faz Fortitude contra a CD de Spin.",
+      "Falha: velocidade reduzida pela metade até o fim do próximo turno de Gyro.",
+      "Falha crítica: alvo fica imobilizado até o fim do próximo turno de Gyro ou recebe Slowed 1, à escolha do mestre.",
+    ],
     options: [],
     defaultMode: "corpse",
     requiredIkon: "II",
@@ -497,8 +572,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Cadência de Batalha",
     cost: 5,
     source: "IKON III",
+    category: "ikon",
     actions: "2 ações",
-    description: "Por 1 minuto, habilidades de Rotação custam -1 SP, mínimo 0.",
+    description: "O Coração que Não Para entra no mesmo compasso de Gyro, e cada técnica passa a nascer com menos desperdício.",
+    technical: [
+      "Duração: 1 minuto.",
+      "Habilidades de Rotação custam -1 SP, mínimo 0.",
+      "Não reduz custos narrativos ou limitações de frequência.",
+      "A duração deve ser acompanhada pelo mestre ou por efeito temporário externo.",
+    ],
     options: [],
     defaultMode: "corpse",
     requiredIkon: "III",
@@ -509,8 +591,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Rotação Axial",
     cost: 3,
     source: "IKON IV",
+    category: "ikon",
     actions: "reação",
-    description: "1x/rodada: +2 CA contra ataque físico à distância ou reduz dano por 2 + nível. Se reduzir a 0, pode ricochetear.",
+    description: "Gyro gira o eixo do próprio corpo e deixa o projétil perder o centro, como se a distância fosse torcida.",
+    technical: [
+      "Gatilho: Gyro é alvo de ataque físico à distância ou projétil semelhante.",
+      "Frequência: 1 vez por rodada.",
+      "Escolha +2 CA contra o ataque ou redução de dano igual a 2 + nível de Gyro.",
+      "Se a redução zerar o dano, Gyro pode ricochetear como resposta narrativa/Strike autorizado pelo mestre.",
+    ],
     options: [],
     defaultMode: "corpse",
     requiredIkon: "IV",
@@ -521,8 +610,14 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Recarga do Quebrador",
     cost: 6,
     source: "IKON VIII",
+    category: "ball-breaker",
     actions: "2 ações",
-    description: "Recarrega o Ball Breaker Devastador.",
+    description: "A Caveira recorda o caminho do golpe impossível e reabre espaço para o Ball Breaker voltar à cena.",
+    technical: [
+      "Recarrega o uso narrativo do Ball Breaker Devastador ou remove o bloqueio local de turno/cena definido pelo mestre.",
+      "Não remove o limite de 1 uso por turno do Ball Breaker: Requiem.",
+      "Exige IKON VIII sincronizado.",
+    ],
     options: [],
     defaultMode: "perfect",
     requiredIkon: "VIII",
@@ -533,8 +628,16 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Ball Breaker: Requiem",
     cost: 8,
     source: "IKON VIII",
+    category: "ball-breaker",
     actions: "2 ações",
-    description: "Anexe o Ball Breaker: Requiem a um Strike de Steel Ball. Faça um Strike com Steel Ball como parte desta atividade de 2 ações. Se acertar, além do dano normal da Steel Ball, o alvo sofre 6d10 de dano de força. O ataque ignora resistência física/força até o nível de Gyro. Imunidades só podem ser afetadas em clímax narrativo ou com aprovação do mestre.",
+    description: "Gyro prende uma sentença de rotação à esfera: não é só impacto, é o corpo do alvo sendo cobrado pelo tempo que tentou negar.",
+    technical: [
+      "Faça um Strike com Steel Ball como parte desta atividade de 2 ações.",
+      "Se acertar, além do dano normal da Steel Ball, o alvo sofre 6d10 de dano de força.",
+      "O ataque ignora resistência física/força até o nível de Gyro.",
+      "Imunidades só podem ser afetadas em clímax narrativo ou com aprovação do mestre.",
+      "Frequência: 1 vez por turno.",
+    ],
     options: [],
     defaultMode: "perfect",
     requiredIkon: "VIII",
@@ -554,8 +657,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Mão do Santo",
     cost: 10,
     source: "IKON IX",
+    category: "ikon",
     actions: "ação livre",
-    description: "Por 3 rodadas, 1x/rodada, Gyro trata uma técnica como desbloqueada, mas ainda paga SP e rola Controle.",
+    description: "A Alma do Santo corrige a mão de Gyro por três batidas, emprestando memória sagrada onde ainda faltava domínio.",
+    technical: [
+      "Duração: 3 rodadas.",
+      "1 vez por rodada, Gyro trata uma técnica como desbloqueada.",
+      "Ele ainda paga SP, respeita frequência e faz o Controle exigido pelo modo de execução.",
+      "Não desbloqueia Rotação Absoluta sem liberação narrativa do mestre.",
+    ],
     options: [],
     defaultMode: "perfect",
     requiredIkon: "IX",
@@ -566,8 +676,15 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     name: "Rotação Absoluta",
     cost: 9,
     source: "Técnica Final",
+    category: "final",
     actions: "GM / narrativo",
-    description: "1x por arco. Altera uma regra da cena em clímax narrativo. Não é botão comum de combate.",
+    description: "A espiral toca a regra por trás da cena. Quando isso acontece, o combate deixa de ser só combate.",
+    technical: [
+      "Uso narrativo, normalmente 1 vez por arco.",
+      "Altera uma regra da cena em clímax aprovado pelo mestre.",
+      "Requer nível alto, todas as Partes/IKONs relevantes, Cicatriz Sagrada e Rotação Absoluta pronta.",
+      "Não é botão comum de combate e permanece visível para o GM mesmo bloqueada.",
+    ],
     options: [],
     defaultMode: "perfect",
     requiredLevel: 17,
@@ -576,6 +693,37 @@ export const GYRO_TECHNIQUES: GyroTechnique[] = [
     requiresAbsolute: true,
     gmOnly: true,
     narrativeOnly: true,
+  },
+];
+
+const GYRO_TECHNIQUE_GROUP_DEFS: Array<Omit<GyroTechniqueGroup, "techniques"> & { category: GyroTechniqueCategory }> = [
+  {
+    id: "techniques",
+    category: "technique",
+    label: "Técnicas",
+    icon: "fas fa-circle-notch",
+    hint: "Fundação da rotação: cura, marcação, ricochete e ataques que alimentam SP.",
+  },
+  {
+    id: "ikons",
+    category: "ikon",
+    label: "IKONs do Cadáver Santo",
+    icon: "fas fa-cross",
+    hint: "Técnicas liberadas por Partes/IKONs sincronizadas.",
+  },
+  {
+    id: "ball-breaker",
+    category: "ball-breaker",
+    label: "Ball Breaker",
+    icon: "fas fa-burst",
+    hint: "Golpes de ápice ligados à Caveira e à memória plena da rotação.",
+  },
+  {
+    id: "final",
+    category: "final",
+    label: "Rotação Absoluta",
+    icon: "fas fa-infinity",
+    hint: "Recursos narrativos de clímax para uso controlado pelo mestre.",
   },
 ];
 
@@ -1035,6 +1183,8 @@ function normalizeGyroState(raw: unknown): GyroSpinState {
     absoluteReady: Boolean(state.absoluteReady),
     unlockedIkons: Array.isArray(state.unlockedIkons) ? state.unlockedIkons.map(String) : [],
     activeDeviation: typeof state.activeDeviation === "string" ? state.activeDeviation : undefined,
+    activeDeviationCombatId: typeof state.activeDeviationCombatId === "string" ? state.activeDeviationCombatId : undefined,
+    proportionMarkTargetId: typeof state.proportionMarkTargetId === "string" ? state.proportionMarkTargetId : undefined,
     spGainedThisRound: Number(state.spGainedThisRound ?? 0) || 0,
     lastSPRoundKey: typeof state.lastSPRoundKey === "string" ? state.lastSPRoundKey : undefined,
     lastBallBreakerTurnKey: typeof state.lastBallBreakerTurnKey === "string" ? state.lastBallBreakerTurnKey : undefined,
@@ -1072,6 +1222,200 @@ function getBayleStageData(stage: number): BayleStage {
   return BAYLE_STAGES.find(item => item.stage === stage) ?? BAYLE_STAGES[0];
 }
 
+function sanitizeGyroDeviationState(state: GyroSpinState): GyroSpinState {
+  if (!state.activeDeviation) return state;
+  const activeCombatId = game.combat?.id;
+  if (!activeCombatId || state.activeDeviationCombatId !== activeCombatId) {
+    const next = { ...state };
+    delete next.activeDeviation;
+    delete next.activeDeviationCombatId;
+    return next;
+  }
+  return state;
+}
+
+interface EthernumTargetChoice {
+  id: string;
+  name: string;
+  actor: Actor;
+  actorKey: string;
+}
+
+function escapeHtml(value: unknown): string {
+  const text = String(value ?? "");
+  const escape = (foundry.utils as { escapeHTML?: (value: string) => string }).escapeHTML;
+  if (escape) return escape(text);
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getActorKey(actor: Actor): string {
+  return String((actor as Actor & { uuid?: string }).uuid ?? actor.id ?? actor.name ?? "");
+}
+
+function getTargetChoices(fallbackActor?: Actor | null, includeFallback = false): EthernumTargetChoice[] {
+  const targets = Array.from(game.user?.targets ?? []) as Array<{ id?: string; name?: string; actor?: Actor }>;
+  const choices = targets
+    .filter(token => token.actor)
+    .map((token, index): EthernumTargetChoice => {
+      const actor = token.actor as Actor;
+      return {
+        id: String(token.id ?? actor.id ?? index),
+        name: String(token.name ?? actor.name ?? `Alvo ${index + 1}`),
+        actor,
+        actorKey: getActorKey(actor),
+      };
+    });
+
+  if (choices.length === 0 && includeFallback && fallbackActor) {
+    choices.push({
+      id: "self",
+      name: `${fallbackActor.name ?? "Gyro"} (si mesmo)`,
+      actor: fallbackActor,
+      actorKey: getActorKey(fallbackActor),
+    });
+  }
+
+  return choices;
+}
+
+async function chooseTargetChoice(title: string, fallbackActor?: Actor | null, includeFallback = false): Promise<EthernumTargetChoice | null> {
+  const choices = getTargetChoices(fallbackActor, includeFallback);
+  if (choices.length === 0) {
+    ui.notifications?.warn("Selecione um alvo no canvas antes de usar esta técnica.");
+    return null;
+  }
+  if (choices.length === 1) return choices[0];
+
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-target-choice">
+        <label>
+          <span>Alvo</span>
+          <select name="target">
+            ${choices.map(choice => `<option value="${escapeHtml(choice.id)}">${escapeHtml(choice.name)}</option>`).join("")}
+          </select>
+        </label>
+      </form>`;
+    new Dialog({
+      title,
+      content,
+      buttons: {
+        confirm: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Activate"),
+          callback: (html: JQuery) => {
+            resolved = true;
+            const selectedId = String(html.find('[name="target"]').val() ?? "");
+            resolve(choices.find(choice => choice.id === selectedId) ?? choices[0]);
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
+}
+
+async function applyActorHpDelta(actor: Actor, amount: number): Promise<boolean> {
+  const system = asRecord(actor.system);
+  const attributes = asRecord(system.attributes);
+  const hp = asRecord(attributes.hp);
+  const current = Number(hp.value);
+  const max = Number(hp.max);
+  if (!Number.isFinite(current) || !Number.isFinite(max)) return false;
+  await (actor as Actor & { update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<Actor> })
+    .update({ "system.attributes.hp.value": clamp(current + amount, 0, max) });
+  return true;
+}
+
+function getChatMessageContext(message: ChatMessage): Record<string, unknown> {
+  const flags = asRecord((message as ChatMessage & { flags?: unknown }).flags);
+  const pf2e = asRecord(flags.pf2e);
+  return asRecord(pf2e.context ?? pf2e);
+}
+
+function isPF2EAttackRollMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const type = String(context.type ?? context.rollType ?? "");
+  if (type === "attack-roll" || type === "strike-attack-roll") return true;
+  const domains = Array.isArray(context.domains) ? context.domains.map(String) : [];
+  const options = Array.isArray(context.options) ? context.options.map(String) : [];
+  return domains.some(domain => domain.includes("attack-roll") || domain.includes("strike"))
+    || options.some(option => option === "action:strike" || option.includes("attack"));
+}
+
+function isPF2EHitMessage(message: ChatMessage): boolean {
+  const flags = asRecord(asRecord((message as ChatMessage & { flags?: unknown }).flags).pf2e);
+  const context = getChatMessageContext(message);
+  const candidates = [
+    flags.outcome,
+    flags.degreeOfSuccess,
+    context.outcome,
+    context.degreeOfSuccess,
+    asRecord(context.check).degreeOfSuccess,
+    asRecord(context.roll).degreeOfSuccess,
+  ];
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === null) continue;
+    if (typeof candidate === "number") return candidate >= 2;
+    const value = String(candidate).toLowerCase();
+    if (value === "success" || value === "criticalsuccess" || value === "critical-success" || value === "critical success") return true;
+    if (value === "failure" || value === "criticalfailure" || value === "critical-failure" || value === "critical failure") return false;
+  }
+  return false;
+}
+
+function getActorFromChatMessage(message: ChatMessage): Actor | null {
+  const speaker = (message as ChatMessage & { speaker?: { actor?: string } }).speaker;
+  const actorId = speaker?.actor;
+  return (actorId ? game.actors?.get(actorId) ?? null : null) as Actor | null;
+}
+
+function collectActorRefs(value: unknown, refs = new Set<string>(), depth = 0): Set<string> {
+  if (depth > 4 || value === null || value === undefined) return refs;
+  if (typeof value === "string") {
+    if (value.includes("Actor.") || value.includes(".Actor.") || value.length >= 8) refs.add(value);
+    return refs;
+  }
+  if (Array.isArray(value)) {
+    value.forEach(item => collectActorRefs(item, refs, depth + 1));
+    return refs;
+  }
+  if (typeof value !== "object") return refs;
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey.includes("actor") || lowerKey === "target" || lowerKey === "targets" || lowerKey === "token") {
+      collectActorRefs(item, refs, depth + 1);
+    }
+  }
+  return refs;
+}
+
+function chatMessageTargetRefs(message: ChatMessage): Set<string> {
+  const flags = asRecord(asRecord((message as ChatMessage & { flags?: unknown }).flags).pf2e);
+  const refs = collectActorRefs(flags.target);
+  return collectActorRefs(asRecord(getChatMessageContext(message)).target, refs);
+}
+
+function targetRefsIncludeActor(refs: Set<string>, actor: Actor): boolean {
+  const actorId = String(actor.id ?? "");
+  const actorUuid = getActorKey(actor);
+  return Array.from(refs).some(ref => ref === actorId || ref === actorUuid || ref.includes(actorId) || ref.includes(actorUuid));
+}
+
 export class UniqueMechanicsSystem {
   static getControlledActor(): Actor | null {
     return getControlledActor();
@@ -1079,7 +1423,10 @@ export class UniqueMechanicsSystem {
 
   static getState(actor: Actor): UniqueMechanicsState {
     const raw = asRecord(actor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics"));
-    const activeProfile = raw.activeProfile === GYRO_PROFILE_ID || raw.activeProfile === BAYLE_PROFILE_ID || raw.activeProfile === PIPPING_PROFILE_ID
+    const activeProfile = raw.activeProfile === GYRO_PROFILE_ID
+      || raw.activeProfile === BAYLE_PROFILE_ID
+      || raw.activeProfile === PIPPING_PROFILE_ID
+      || PLACEHOLDER_PROFILE_IDS.includes(raw.activeProfile as typeof PLACEHOLDER_PROFILE_IDS[number])
       ? raw.activeProfile
       : "";
     return {
@@ -1100,7 +1447,7 @@ export class UniqueMechanicsSystem {
 
   static getGyroState(actor: Actor): GyroSpinState {
     const state = this.getState(actor);
-    return normalizeGyroState(state.profiles[GYRO_PROFILE_ID]);
+    return sanitizeGyroDeviationState(normalizeGyroState(state.profiles[GYRO_PROFILE_ID]));
   }
 
   static getBayleState(actor: Actor): BayleDragonState {
@@ -1133,7 +1480,10 @@ export class UniqueMechanicsSystem {
     const current = this.getGyroState(actor);
     const next = normalizeGyroState({ ...current, ...patch });
     next.currentSP = clamp(next.currentSP, 0, this.calculateGyroMaxSP(actor, next));
-    if (!next.activeDeviation) delete next.activeDeviation;
+    if (!next.activeDeviation) {
+      delete next.activeDeviation;
+      delete next.activeDeviationCombatId;
+    }
     if (!Number.isFinite(Number(next.maxSPOverride)) || Number(next.maxSPOverride) <= 0) delete next.maxSPOverride;
     state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = next;
@@ -1233,6 +1583,55 @@ export class UniqueMechanicsSystem {
     state.profiles[PIPPING_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
+  }
+
+  static async adjustPippingPulse(actor?: Actor | null, amount = 1): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getPippingState(target);
+    return this.updatePippingState(target, { pulse: clamp(state.pulse + amount, 0, 6) });
+  }
+
+  static async handlePF2EChatMessage(message: ChatMessage): Promise<void> {
+    if (game.system?.id !== "pf2e") return;
+    if (!isPF2EAttackRollMessage(message) || !isPF2EHitMessage(message)) return;
+
+    const attacker = getActorFromChatMessage(message);
+    const targetRefs = chatMessageTargetRefs(message);
+
+    if (attacker) {
+      const attackerProfile = this.getState(attacker).activeProfile;
+      if (attackerProfile === GYRO_PROFILE_ID) {
+        const gyroState = this.getGyroState(attacker);
+        const markedHit = gyroState.proportionMarkTargetId
+          ? Array.from(targetRefs).some(ref => ref.includes(gyroState.proportionMarkTargetId as string) || ref === gyroState.proportionMarkTargetId)
+          : false;
+        await this.gainGyroSP(attacker, markedHit ? 2 : 1, "");
+        if (markedHit) ui.notifications?.info(`${attacker.name}: +2 SP por acerto contra alvo marcado.`);
+      }
+      if (attackerProfile === BAYLE_PROFILE_ID) {
+        await this.adjustBayleArdor(attacker, 1);
+        ui.notifications?.info(`${attacker.name}: +1 Ardor por acertar.`);
+      }
+      if (attackerProfile === PIPPING_PROFILE_ID) {
+        const pippingState = this.getPippingState(attacker);
+        await this.updatePippingState(attacker, { pulse: clamp(pippingState.pulse + 1, 0, 6) });
+        ui.notifications?.info(`${attacker.name}: +1 Pulso Sombrio por acertar.`);
+      }
+    }
+
+    if (targetRefs.size === 0) return;
+    for (const actor of game.actors ?? []) {
+      if ((actor.type as string) !== "character") continue;
+      if (this.getState(actor).activeProfile !== BAYLE_PROFILE_ID) continue;
+      if (attacker?.id && actor.id === attacker.id) continue;
+      if (!targetRefsIncludeActor(targetRefs, actor)) continue;
+      await this.adjustBayleArdor(actor, 1);
+      ui.notifications?.info(`${actor.name}: +1 Ardor por ser acertado.`);
+    }
   }
 
   static async showPippingStatus(actor?: Actor | null, title = "Pipping — Expressão da Noite"): Promise<void> {
@@ -1457,6 +1856,10 @@ export class UniqueMechanicsSystem {
           <p><strong>Rage:</strong> ${state.rageActive ? "Ativa" : "Inativa"} · <strong>Despertar:</strong> ${state.awakeningActive ? "Ativo" : "Inativo"}</p>
           <p><strong>Rage Dracônico:</strong> +${stage.rageBonus} dano total durante Rage.</p>
           <p><strong>Placidusax:</strong> Fortitude CD ${stage.lightningDC}; ${stage.lightningCharges - state.lightningChargesUsed}/${stage.lightningCharges} carga(s) disponíveis.</p>
+          <p><strong>Despertar deste estágio:</strong></p>
+          <ul>${stage.awakening.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          <p><strong>Colapso/Encerramento:</strong></p>
+          <ul>${stage.collapse.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
         </div>`,
     });
   }
@@ -1557,6 +1960,7 @@ export class UniqueMechanicsSystem {
           <h3>${action.name}</h3>
           <p><strong>${action.tag}</strong> · ${action.requirement}</p>
           <p>${action.text}</p>
+          ${actionId === "draconic-closure" ? `<p><strong>Colapso:</strong> ${stage.collapse.map(item => escapeHtml(item)).join(" · ")}</p>` : ""}
         </div>`,
     });
   }
@@ -1619,7 +2023,15 @@ export class UniqueMechanicsSystem {
     });
     if (result) {
       void this.playGyroSpinAnimation(target, "deviation");
-      await this.updateGyroState(target, { activeDeviation: `${result.name}: ${result.combatEffect}` });
+      const combatId = game.combat?.id;
+      if (combatId) {
+        await this.updateGyroState(target, {
+          activeDeviation: `${result.name}: ${result.combatEffect}`,
+          activeDeviationCombatId: combatId,
+        });
+      } else {
+        ui.notifications?.info("Desvio rolado fora de combate: efeito registrado no chat, sem persistir na ficha.");
+      }
     }
     if (roll.total === 2) await this.setGyroSP(target, 0);
     return roll;
@@ -1634,6 +2046,7 @@ export class UniqueMechanicsSystem {
     const state = this.getState(target);
     const gyroState = this.getGyroState(target);
     delete gyroState.activeDeviation;
+    delete gyroState.activeDeviationCombatId;
     state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = gyroState;
     await this.setStateQuiet(target, state);
@@ -1680,6 +2093,107 @@ export class UniqueMechanicsSystem {
     } catch (error) {
       console.warn("Ethernum RPG Module | Sequencer animation failed", error);
       return false;
+    }
+  }
+
+  static async resolveGyroTechniqueOutcome(actor: Actor, technique: GyroTechnique, state: GyroSpinState): Promise<void> {
+    if (technique.id === "proportion-mark") {
+      const choice = await chooseTargetChoice("Marca da Proporção", actor, false);
+      if (!choice) return;
+      await this.updateGyroState(actor, { proportionMarkTargetId: choice.actorKey });
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content: `
+          <div class="ethernum-unique-chat-card">
+            <h3>Marca da Proporção</h3>
+            <p><strong>Alvo marcado:</strong> ${escapeHtml(choice.name)}</p>
+            <p>O próximo acerto de Steel Ball contra este alvo pode receber +2 e gera +1 SP adicional.</p>
+          </div>`,
+      });
+      void this.playGyroSpinAnimation(choice.actor, "status");
+      return;
+    }
+
+    if (technique.id === "medicinal-spin") {
+      const choice = await chooseTargetChoice("Rotação Medicinal", actor, true);
+      if (!choice) return;
+      const formula = technique.roll?.formula(actor, state) ?? gyroMedicinalHealingFormula(actor, state);
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      const total = Number(roll.total ?? 0);
+      const applied = await applyActorHpDelta(choice.actor, total).catch(error => {
+        console.warn("Ethernum RPG Module | Could not apply Gyro healing", error);
+        return false;
+      });
+      void this.playGyroSpinAnimation(choice.actor, "status");
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        flavor: [
+          "<strong>Rotação Medicinal</strong>",
+          `Alvo: ${escapeHtml(choice.name)}`,
+          applied ? `Cura aplicada: ${total} HP` : "Sem permissão para aplicar HP automaticamente; use o total da rolagem.",
+          technique.roll?.note ?? "",
+        ].filter(Boolean).join("<br>"),
+      });
+      return;
+    }
+
+    if (technique.id === "spiral-ricochet") {
+      const choice = await chooseTargetChoice("Ricochete Espiral - alvo secundário", actor, false);
+      if (!choice || !technique.roll) return;
+      const formula = technique.roll.formula(actor, state);
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      const total = Number(roll.total ?? 0);
+      const applied = await applyActorHpDelta(choice.actor, -total).catch(error => {
+        console.warn("Ethernum RPG Module | Could not apply Gyro ricochet damage", error);
+        return false;
+      });
+      void this.playGyroSpinAnimation(choice.actor, "technique");
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        flavor: [
+          "<strong>Ricochete Espiral - impacto secundário</strong>",
+          `Alvo secundário: ${escapeHtml(choice.name)}`,
+          `Tipo: ${technique.roll.damageType ?? "bludgeoning"}`,
+          applied ? `Dano aplicado diretamente: ${total}` : "Sem permissão para aplicar HP automaticamente; use o total da rolagem.",
+          technique.roll.note ?? "",
+        ].filter(Boolean).join("<br>"),
+      });
+      return;
+    }
+
+    if (technique.id === "rotating-jaw" || technique.id === "paralyzing-frequency") {
+      const choice = await chooseTargetChoice(technique.name, actor, false);
+      const dc = this.getGyroControlDC(actor, technique.defaultMode, state) ?? this.getGyroControlDC(actor, "forced", state);
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content: `
+          <div class="ethernum-unique-chat-card">
+            <h3>${escapeHtml(technique.name)}</h3>
+            ${choice ? `<p><strong>Alvo:</strong> ${escapeHtml(choice.name)}</p>` : ""}
+            <p><strong>Salvamento:</strong> Fortitude contra CD ${dc ?? "do mestre"}</p>
+            <ul>
+              ${(technique.technical ?? technique.options).map(note => `<li>${escapeHtml(note)}</li>`).join("")}
+            </ul>
+          </div>`,
+      });
+      if (choice) void this.playGyroSpinAnimation(choice.actor, "status");
+      return;
+    }
+
+    if (technique.roll) {
+      const formula = technique.roll.formula(actor, state);
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        flavor: [
+          `<strong>${escapeHtml(technique.roll.label)}</strong>`,
+          technique.roll.damageType ? `${game.i18n!.localize("ETHERNUM.Unique.Gyro.DamageType")}: ${escapeHtml(technique.roll.damageType)}` : "",
+          technique.roll.note ?? "",
+        ].filter(Boolean).join("<br>"),
+      });
     }
   }
 
@@ -1752,19 +2266,7 @@ export class UniqueMechanicsSystem {
           <p>${technique.description}</p>
         </div>`,
     });
-    if (technique.roll) {
-      const formula = technique.roll.formula(target, nextState);
-      const roll = new Roll(formula);
-      await roll.evaluate();
-      await roll.toMessage({
-        speaker: ChatMessage.getSpeaker({ actor: target }),
-        flavor: [
-          `<strong>${technique.roll.label}</strong>`,
-          technique.roll.damageType ? `${game.i18n!.localize("ETHERNUM.Unique.Gyro.DamageType")}: ${technique.roll.damageType}` : "",
-          technique.roll.note ?? "",
-        ].filter(Boolean).join("<br>"),
-      });
-    }
+    await this.resolveGyroTechniqueOutcome(target, technique, nextState);
   }
 
   static async showGyroTechniques(actor?: Actor | null): Promise<void> {
@@ -1803,6 +2305,8 @@ export class UniqueMechanicsSystem {
             <details class="ethernum-animated-details ethernum-gyro-details">
               <summary>${game.i18n!.localize("ETHERNUM.Unique.Gyro.Details")}</summary>
               <div class="ethernum-gyro-details-body">
+                <strong>Descrição em mesa</strong>
+                <p>${escapeHtml(technique.description)}</p>
                 <ul>
                   ${technique.systemNotes.map(note => `<li>${note}</li>`).join("")}
                 </ul>
@@ -1851,6 +2355,40 @@ export class UniqueMechanicsSystem {
     const executionModes = this.buildGyroExecutionModes(actor, gyroState, "forced");
     const bayleStage = getBayleStageData(bayleState.stage);
     const bayleLightningRemaining = Math.max(0, bayleStage.lightningCharges - bayleState.lightningChargesUsed);
+    const gyroTechniques = GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
+      const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
+      const modes = this.buildGyroExecutionModes(actor, gyroState, technique.defaultMode);
+      const selectedMode = modes.find(mode => mode.selected);
+      const canAfford = gyroState.currentSP >= technique.cost;
+      const usable = status.unlocked && canAfford && (selectedMode?.available ?? false);
+      const dc = this.getGyroControlDC(actor, technique.defaultMode, gyroState);
+      const rollFormula = technique.roll?.formula(actor, gyroState);
+      return {
+        ...technique,
+        category: technique.category ?? "technique",
+        canAfford,
+        unlocked: status.unlocked,
+        usable,
+        lockReason: status.lockReasons.join(" | "),
+        rollLabel: technique.roll?.label,
+        rollFormula,
+        rollNote: technique.roll?.note,
+        systemNotes: [
+          `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Actions")}: ${technique.actions}`,
+          `${game.i18n!.localize("ETHERNUM.Unique.Gyro.SPCost")}: ${technique.cost}`,
+          ...(technique.roll ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Roll")}: ${technique.roll.label} (${rollFormula})`] : []),
+          ...(technique.frequency ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Frequency")}: ${technique.frequency}`] : []),
+          ...(technique.attachedToStrike ? [game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresSteelBallStrike")] : []),
+          `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ExecutionMode")}: ${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${technique.defaultMode}`)}`,
+          dc === null
+            ? game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck")
+            : `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlCheck")}: CD ${dc}`,
+          ...(technique.technical ?? []),
+          ...(technique.details ?? technique.options),
+        ],
+        executionModes: modes,
+      };
+    });
 
     return {
       activeProfile: state.activeProfile,
@@ -1861,7 +2399,20 @@ export class UniqueMechanicsSystem {
         { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
         { id: BAYLE_PROFILE_ID, label: "Bayle, o Horror - Corpo Dracônico" },
         { id: PIPPING_PROFILE_ID, label: "Pipping Baldwin Black - Expressão da Noite" },
+        { id: "kaitake", label: "Kaitake - Mecânica em preparação" },
+        { id: "cinerio", label: "Cinério - Mecânica em preparação" },
+        { id: "ailan", label: "Ailan - Mecânica em preparação" },
       ],
+      placeholderProfile: PLACEHOLDER_PROFILE_IDS.includes(state.activeProfile as typeof PLACEHOLDER_PROFILE_IDS[number])
+        ? {
+          id: state.activeProfile,
+          label: state.activeProfile === "kaitake"
+            ? "Kaitake"
+            : state.activeProfile === "cinerio"
+              ? "Cinério"
+              : "Ailan",
+        }
+        : null,
       pipping: {
         state: pippingState,
         pulsePercent: Math.round((pippingState.pulse / 6) * 100),
@@ -1870,6 +2421,8 @@ export class UniqueMechanicsSystem {
         macroSlots: [
           "await game.ethernum.macros.setUniqueProfile(\"pipping-night\");",
           "await game.ethernum.macros.showPippingStatus();",
+          "await game.ethernum.macros.adjustPippingPulse(1);",
+          "await game.ethernum.macros.adjustPippingPulse(-1);",
         ],
       },
       bayle: {
@@ -1907,6 +2460,8 @@ export class UniqueMechanicsSystem {
           "await game.ethernum.macros.adjustBayleArdor(1);",
           "await game.ethernum.macros.toggleBayleRage();",
           "await game.ethernum.macros.toggleBayleAwakening();",
+          "await game.ethernum.macros.useBayleAction(\"draconic-closure\");",
+          "// Seus macros atuais de Rage/Encerramento/Armamento podem chamar estas funções para manter a aba sincronizada.",
         ],
       },
       gyro: {
@@ -1921,38 +2476,11 @@ export class UniqueMechanicsSystem {
         spinballAsset: GYRO_SPINBALL_ASSET,
         hasCorpseIkon: gyroState.unlockedIkons.length > 0,
         executionModes,
-        techniques: GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
-          const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
-          const modes = this.buildGyroExecutionModes(actor, gyroState, technique.defaultMode);
-          const selectedMode = modes.find(mode => mode.selected);
-          const canAfford = gyroState.currentSP >= technique.cost;
-          const usable = status.unlocked && canAfford && (selectedMode?.available ?? false);
-          const dc = this.getGyroControlDC(actor, technique.defaultMode, gyroState);
-          const rollFormula = technique.roll?.formula(actor, gyroState);
-          return {
-            ...technique,
-            canAfford,
-            unlocked: status.unlocked,
-            usable,
-            lockReason: status.lockReasons.join(" | "),
-            rollLabel: technique.roll?.label,
-            rollFormula,
-            rollNote: technique.roll?.note,
-            systemNotes: [
-              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.Actions")}: ${technique.actions}`,
-              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.SPCost")}: ${technique.cost}`,
-              ...(technique.roll ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Roll")}: ${technique.roll.label} (${rollFormula})`] : []),
-              ...(technique.frequency ? [`${game.i18n!.localize("ETHERNUM.Unique.Gyro.Frequency")}: ${technique.frequency}`] : []),
-              ...(technique.attachedToStrike ? [game.i18n!.localize("ETHERNUM.Unique.Gyro.RequiresSteelBallStrike")] : []),
-              `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ExecutionMode")}: ${game.i18n!.localize(`ETHERNUM.Unique.Gyro.Execution.${technique.defaultMode}`)}`,
-              dc === null
-                ? game.i18n!.localize("ETHERNUM.Unique.Gyro.StableNoCheck")
-                : `${game.i18n!.localize("ETHERNUM.Unique.Gyro.ControlCheck")}: CD ${dc}`,
-              ...(technique.details ?? technique.options),
-            ],
-            executionModes: modes,
-          };
-        }),
+        techniques: gyroTechniques,
+        techniqueGroups: GYRO_TECHNIQUE_GROUP_DEFS.map(group => ({
+          ...group,
+          techniques: gyroTechniques.filter(technique => (technique.category ?? "technique") === group.category),
+        })),
         ikons: GYRO_IKONS.map(ikon => ({
           ...ikon,
           unlocked: gyroState.unlockedIkons.includes(ikon.id),

@@ -826,7 +826,9 @@ export class EtherTabManager {
       ev.preventDefault();
       const summary = ev.currentTarget as HTMLElement;
       const details = summary.parentElement as HTMLDetailsElement | null;
-      const body = details?.querySelector<HTMLElement>('.ethernum-gyro-details-body, .ethernum-bayle-details-body, .ethernum-pipping-details-body');
+      const body = details?.querySelector<HTMLElement>(
+        ':scope > .ethernum-gyro-details-body, :scope > .ethernum-bayle-details-body, :scope > .ethernum-pipping-details-body, :scope > .ethernum-gyro-technique-list'
+      );
       if (!details || !body) {
         if (details) details.open = !details.open;
         return;

@@ -46,6 +46,7 @@ declare global {
         toggleBayleAwakening: (actor?: Actor | null) => Promise<unknown>;
         useBayleAction: (actionId: string, actor?: Actor | null) => Promise<void>;
         showPippingStatus: (actor?: Actor | null) => Promise<void>;
+        adjustPippingPulse: (amount?: number, actor?: Actor | null) => Promise<unknown>;
       };
     };
   }
@@ -103,6 +104,8 @@ function buildMacroApi() {
       UniqueMechanicsSystem.useBayleAction(resolveMacroActor(actor), actionId),
     showPippingStatus: async (actor?: Actor | null) =>
       UniqueMechanicsSystem.showPippingStatus(resolveMacroActor(actor)),
+    adjustPippingPulse: async (amount = 1, actor?: Actor | null) =>
+      UniqueMechanicsSystem.adjustPippingPulse(resolveMacroActor(actor), amount),
   };
 }
 
@@ -218,6 +221,9 @@ function renderEthernumTabs(app: Application & { actor?: Actor }, html: JQuery<H
 Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => renderEthernumTabs(app, html));
 Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: HTMLElement) => renderEthernumTabs(app, element));
 Hooks.on("createActor", (actor: Actor) => initializeActorFlags(actor));
+Hooks.on("createChatMessage", (message: ChatMessage) => {
+  void UniqueMechanicsSystem.handlePF2EChatMessage(message);
+});
 
 Hooks.once("init", () => {
   console.log(`Ethernum RPG Module | Inicializando Sistema de Éter v${game.modules?.get(ETHERNUM.MODULE_NAME)?.version ?? "?"}`);
