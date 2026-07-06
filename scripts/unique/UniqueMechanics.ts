@@ -1,6 +1,18 @@
 import { ETHERNUM, type CampaignCoreId } from '../config.js';
 
-export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night" | "kaitake" | "cinerio" | "ailan" | "arkius-jacker";
+export type UniqueMechanicProfileId = ""
+  | "gyro-spin"
+  | "bayle-dragon"
+  | "pipping-night"
+  | "kaitake"
+  | "cinerio"
+  | "ailan"
+  | "arkius-jacker"
+  | "atlas-sidarta"
+  | "charles"
+  | "morgana"
+  | "yu-jiu-ji-tae"
+  | "unluck";
 export type GyroMainAttribute = "dex" | "wis";
 export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
@@ -11,12 +23,15 @@ export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
 export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
 export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
-export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
+export const ETHERNUM_PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
+export const CONCORDIA_PLACEHOLDER_PROFILE_IDS = ["atlas-sidarta", "charles", "morgana", "yu-jiu-ji-tae", "unluck"] as const;
+export const PLACEHOLDER_PROFILE_IDS = [...ETHERNUM_PLACEHOLDER_PROFILE_IDS, ...CONCORDIA_PLACEHOLDER_PROFILE_IDS] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
 export const ARKIUS_FRAME_WIDE_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-16-9.png`;
 export const ARKIUS_FRAME_TALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-9-16.png`;
 export const ARKIUS_FRAME_BALANCED_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-4-3.png`;
+export const ARKIUS_ICON_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-icon.png`;
 const GYRO_PROPORTION_MARK_EFFECT_SLUG = "gyro-marca-da-proporcao-proximo-strike";
 const ARKIUS_NUCLEO_EFFECT_SLUG = "arkius-nucleo-em-brasas";
 const ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG = "arkius-sintonia-brasas-desajeitado";
@@ -1247,9 +1262,12 @@ function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCo
     profileId === GYRO_PROFILE_ID
     || profileId === BAYLE_PROFILE_ID
     || profileId === PIPPING_PROFILE_ID
-    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
+    || ETHERNUM_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof ETHERNUM_PLACEHOLDER_PROFILE_IDS[number])
   ) return ETHERNUM_COMPANY_CORE_ID;
-  if (profileId === ARKIUS_JACKER_PROFILE_ID) return CONCORDIA_CORE_ID;
+  if (
+    profileId === ARKIUS_JACKER_PROFILE_ID
+    || CONCORDIA_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof CONCORDIA_PLACEHOLDER_PROFILE_IDS[number])
+  ) return CONCORDIA_CORE_ID;
   return null;
 }
 
@@ -1610,7 +1628,7 @@ function buildArkiusEffectData(
   return {
     name,
     type: "effect",
-    img: ARKIUS_FRAME_BALANCED_ASSET,
+    img: ARKIUS_ICON_ASSET,
     system: {
       slug,
       description: { value: description },
@@ -3321,12 +3339,21 @@ export class UniqueMechanicsSystem {
     const concordiaProfiles = [
       { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
       { id: ARKIUS_JACKER_PROFILE_ID, label: "Arkius Jacker - Concórdia" },
+      { id: "atlas-sidarta", label: "Atlas Sidarta - Mecânica em preparação" },
+      { id: "charles", label: "Charles - Mecânica em preparação" },
+      { id: "morgana", label: "Morgana - Mecânica em preparação" },
+      { id: "yu-jiu-ji-tae", label: "Yu, Jiu Ji Tae - Mecânica em preparação" },
+      { id: "unluck", label: "Unluck - Mecânica em preparação" },
     ];
     const placeholderLabels: Record<string, string> = {
       kaitake: "Kaitake",
       cinerio: "Cinério",
       ailan: "Ailan",
-      [ARKIUS_JACKER_PROFILE_ID]: "Arkius Jacker",
+      "atlas-sidarta": "Atlas Sidarta",
+      charles: "Charles",
+      morgana: "Morgana",
+      "yu-jiu-ji-tae": "Yu, Jiu Ji Tae",
+      unluck: "Unluck",
     };
     const gyroTechniques = GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
       const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
@@ -3387,6 +3414,7 @@ export class UniqueMechanicsSystem {
             wide: ARKIUS_FRAME_WIDE_ASSET,
             tall: ARKIUS_FRAME_TALL_ASSET,
             balanced: ARKIUS_FRAME_BALANCED_ASSET,
+            icon: ARKIUS_ICON_ASSET,
           },
           statusLabel: arkiusState.nucleoEmBrasas.active ? "Ativo" : "Inativo",
           usesRemaining: arkiusUsesRemaining,

@@ -3,7 +3,7 @@ import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
-import { ARKIUS_FRAME_BALANCED_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
+import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
@@ -297,7 +297,7 @@ async function ensureManagedMacros(): Promise<void> {
   await ensureOneMacro(BAYLE_STATUS_MACRO_NAME, BAYLE_STATUS_MACRO_COMMAND, "bayle-status");
   await ensureOneMacro(PIPPING_STATUS_MACRO_NAME, PIPPING_STATUS_MACRO_COMMAND, "pipping-status");
   for (const macro of ARKIUS_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, ARKIUS_FRAME_BALANCED_ASSET);
+    await ensureOneMacro(macro.name, macro.command, macro.flag, ARKIUS_ICON_ASSET);
   }
 }
 

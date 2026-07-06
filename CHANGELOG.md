@@ -5,6 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.1] - 2026-07-06
+
+### Adicionado
+- Placeholders de Concórdia para Atlas Sidarta, Charles, Morgana, Yu/Jiu Ji Tae e Unluck.
+- Ícone dedicado do Arkius Jacker para efeitos e macros gerenciados.
+
+### Corrigido
+- Efeitos de Núcleo em Brasas e penalidades de Arkius não usam mais frames da UI como ícone.
+- Paleta visual de Arkius ajustada para preto/vermelho com laranja de brasa.
+
 ## [3.4.0] - 2026-07-06
 
 ### Adicionado
