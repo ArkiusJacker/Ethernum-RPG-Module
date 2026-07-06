@@ -1,4 +1,4 @@
-import { ETHERNUM, type Rank } from './config.js';
+import { ETHERNUM, type Rank, type CampaignCoreId } from './config.js';
 import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
@@ -7,11 +7,11 @@ import { GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, typ
 import { migrateWorld } from './utils/DataMigration.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
-const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.showGyroTechniques();";
+const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.gyro.showTechniques();";
 const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
-const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.showBayleStatus();";
+const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.bayle.showStatus();";
 const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
-const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.showPippingStatus();";
+const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
 
 type EthernumMacroDocument = {
   name?: string;
@@ -27,6 +27,7 @@ declare global {
       unique: typeof UniqueMechanicsSystem;
       macros: {
         getActor: () => Actor | null;
+        setActiveCore: (coreId: CampaignCoreId, actor?: Actor | null) => Promise<void>;
         setUniqueProfile: (profileId: UniqueMechanicProfileId, actor?: Actor | null) => Promise<void>;
         showGyroStatus: (actor?: Actor | null) => Promise<void>;
         gainGyroSP: (amount?: number, actor?: Actor | null, reason?: string) => Promise<unknown>;
@@ -47,6 +48,32 @@ declare global {
         useBayleAction: (actionId: string, actor?: Actor | null) => Promise<void>;
         showPippingStatus: (actor?: Actor | null) => Promise<void>;
         adjustPippingPulse: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+        ethernumCompany: {
+          gyro: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            showTechniques: (actor?: Actor | null) => Promise<void>;
+            gainSP: (amount?: number, actor?: Actor | null, reason?: string) => Promise<unknown>;
+          };
+          bayle: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            adjustArdor: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+            toggleRage: (actor?: Actor | null) => Promise<unknown>;
+            toggleAwakening: (actor?: Actor | null) => Promise<unknown>;
+          };
+          pipping: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            adjustPulse: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+          };
+        };
+        concordia: {
+          arkius: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            toggleThermalNimbus: (actor?: Actor | null) => Promise<void>;
+            syncThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
+            clearThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
+            toggleGateJunctionFire: (actor?: Actor | null) => Promise<void>;
+          };
+        };
       };
     };
   }
@@ -57,8 +84,16 @@ function resolveMacroActor(actor?: Actor | null): Actor | null {
 }
 
 function buildMacroApi() {
-  return {
+  const api = {
     getActor: () => UniqueMechanicsSystem.getControlledActor(),
+    setActiveCore: async (coreId: CampaignCoreId, actor?: Actor | null) => {
+      const target = resolveMacroActor(actor);
+      if (!target) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+        return;
+      }
+      await UniqueMechanicsSystem.setActiveCore(target, coreId);
+    },
     setUniqueProfile: async (profileId: UniqueMechanicProfileId, actor?: Actor | null) => {
       const target = resolveMacroActor(actor);
       if (!target) {
@@ -106,6 +141,41 @@ function buildMacroApi() {
       UniqueMechanicsSystem.showPippingStatus(resolveMacroActor(actor)),
     adjustPippingPulse: async (amount = 1, actor?: Actor | null) =>
       UniqueMechanicsSystem.adjustPippingPulse(resolveMacroActor(actor), amount),
+  };
+
+  return {
+    ...api,
+    ethernumCompany: {
+      gyro: {
+        showStatus: api.showGyroStatus,
+        showTechniques: api.showGyroTechniques,
+        gainSP: api.gainGyroSP,
+      },
+      bayle: {
+        showStatus: api.showBayleStatus,
+        adjustArdor: api.adjustBayleArdor,
+        toggleRage: api.toggleBayleRage,
+        toggleAwakening: api.toggleBayleAwakening,
+      },
+      pipping: {
+        showStatus: api.showPippingStatus,
+        adjustPulse: api.adjustPippingPulse,
+      },
+    },
+    concordia: {
+      arkius: {
+        showStatus: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.showConcordiaArkiusStatus(resolveMacroActor(actor)),
+        toggleThermalNimbus: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Thermal Nimbus", resolveMacroActor(actor)),
+        syncThermalNimbusAura: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Sincronizar aura Thermal Nimbus", resolveMacroActor(actor)),
+        clearThermalNimbusAura: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Limpar aura Thermal Nimbus", resolveMacroActor(actor)),
+        toggleGateJunctionFire: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Gate Junction Fire", resolveMacroActor(actor)),
+      },
+    },
   };
 }
 
@@ -208,7 +278,7 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
     };
 
   if (!actor.getFlag(m, "uniqueMechanics"))
-    updates[`flags.${m}.uniqueMechanics`] = { activeProfile: "", profiles: {} };
+    updates[`flags.${m}.uniqueMechanics`] = { activeCore: "ethernum-company", activeProfile: "", profiles: {} };
 
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }

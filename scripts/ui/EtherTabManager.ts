@@ -1,4 +1,4 @@
-import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute } from '../config.js';
+import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute, type CampaignCoreId } from '../config.js';
 import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '../systems.js';
 import {
   UniqueMechanicsSystem,
@@ -6,6 +6,7 @@ import {
   type GyroMainAttribute,
   type GyroProficiencyRank,
   type UniqueMechanicProfileId,
+  normalizeCampaignCore,
 } from '../unique/UniqueMechanics.js';
 
 // Persiste qual aba Ethernum estava ativa por ator entre re-renders.
@@ -157,12 +158,21 @@ export class EtherTabManager {
     const actorId = actor.id!;
     const collapsedSet = _collapsedGroups.get(actorId) ?? new Set<string>();
     const minimizedSet = _minimizedRunes.get(actorId) ?? new Set<string>();
+    const activeCore = UniqueMechanicsSystem.getActiveCore(actor);
+    const campaignCores = Object.values(ETHERNUM.CAMPAIGN_CORES).map(core => ({
+      ...core,
+      active: core.id === activeCore,
+    }));
 
-    const rawRunes = (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [];
+    const allRunes = (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [];
+    const rawRunes = allRunes.filter(rune => normalizeCampaignCore(rune.core) === activeCore);
     const runeGroups = this._buildRuneGroups(rawRunes, collapsedSet, minimizedSet, defaultRuneCostPerClass);
 
     return {
       actor,
+      activeCore,
+      activeCoreConfig: ETHERNUM.CAMPAIGN_CORES[activeCore],
+      campaignCores,
       etherSystem,
       etherAttributes: (actor.getFlag(ETHERNUM.MODULE_NAME, "etherAttributes") as Record<string, EtherAttribute> | undefined) ?? { ...ETHERNUM.DEFAULT_ETHER_ATTRIBUTES },
       talents:         (actor.getFlag(ETHERNUM.MODULE_NAME, "talents") as Record<string, EtherAttribute> | undefined) ?? { ...ETHERNUM.DEFAULT_TALENTS },
@@ -259,6 +269,8 @@ export class EtherTabManager {
     actor: Actor,
     isGM: boolean
   ): void {
+    this._activateCampaignCoreListeners(app, html, actor);
+
     // FE: adicionar (GM)
     html.find('.ethernum-add-fe').on('click', async (ev) => {
       ev.preventDefault();
@@ -489,6 +501,7 @@ export class EtherTabManager {
       runes.push({
         id: foundry.utils.randomID(),
         name: game.i18n!.localize("ETHERNUM.Rune.NewRune"),
+        core: UniqueMechanicsSystem.getActiveCore(actor),
         runeClass: 1, verb: "", noun: "", source: "",
         costType: "ether", costValue: 0,
         usesDefaultCost: true,
@@ -644,6 +657,7 @@ export class EtherTabManager {
   ): void {
     const rememberScroll = () => this._saveScrollPositions(html, actor.id!);
     const refreshUnique = () => this._refreshUniqueTab(app, html, actor, isGM);
+    this._activateCampaignCoreListeners(app, html, actor);
     this._activateDetailsAnimations(html);
 
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
@@ -816,6 +830,19 @@ export class EtherTabManager {
         livingNightActive: boolean;
       }>);
       await refreshUnique();
+    });
+  }
+
+  static _activateCampaignCoreListeners(
+    app: Application & { render(): void },
+    html: JQuery,
+    actor: Actor
+  ): void {
+    html.find('.ethernum-core-card').off('click.ethernum-core').on('click.ethernum-core', async (ev) => {
+      ev.preventDefault();
+      const coreId = normalizeCampaignCore($(ev.currentTarget).data('core') as CampaignCoreId);
+      await UniqueMechanicsSystem.setActiveCore(actor, coreId);
+      app.render();
     });
   }
 

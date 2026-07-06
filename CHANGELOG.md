@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.3.14] - 2026-07-05
+
+### Adicionado
+- Núcleos de campanha separados: Ethernum Company RPG e Concórdia RPG.
+- Seletor visual de núcleo nas abas Mecânicas Únicas e Sistema de Runas.
+- Perfil placeholder `arkius-jacker` dentro do núcleo Concórdia.
+- Namespaces novos de macro: `game.ethernum.macros.ethernumCompany.*` e `game.ethernum.macros.concordia.arkius.*`.
+
+### Alterado
+- Perfis de mecânica única agora são filtrados pelo núcleo ativo.
+- Runas passam a ser separadas por núcleo; runas antigas sem núcleo continuam como Ethernum Company.
+- Aliases antigos de macro continuam funcionando por compatibilidade.
+
 ## [3.3.13] - 2026-07-05
 
 ### Alterado

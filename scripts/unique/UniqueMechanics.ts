@@ -1,6 +1,6 @@
-import { ETHERNUM } from '../config.js';
+import { ETHERNUM, type CampaignCoreId } from '../config.js';
 
-export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night" | "kaitake" | "cinerio" | "ailan";
+export type UniqueMechanicProfileId = "" | "gyro-spin" | "bayle-dragon" | "pipping-night" | "kaitake" | "cinerio" | "ailan" | "arkius-jacker";
 export type GyroMainAttribute = "dex" | "wis";
 export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
 export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
@@ -8,12 +8,16 @@ export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
 export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
 export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
 export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
-export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
+export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
+export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
+export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
+export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan", ARKIUS_JACKER_PROFILE_ID] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
 const GYRO_PROPORTION_MARK_EFFECT_SLUG = "gyro-marca-da-proporcao-proximo-strike";
 
 export interface UniqueMechanicsState {
+  activeCore: CampaignCoreId;
   activeProfile: UniqueMechanicProfileId;
   profiles: Record<string, unknown>;
 }
@@ -212,6 +216,7 @@ const LEVEL_BASED_DCS: Record<number, number> = {
 };
 
 const DEFAULT_UNIQUE_STATE: UniqueMechanicsState = {
+  activeCore: ETHERNUM_COMPANY_CORE_ID,
   activeProfile: "",
   profiles: {},
 };
@@ -1169,6 +1174,37 @@ function normalizeProficiencyRank(value: unknown): GyroProficiencyRank {
   return "trained";
 }
 
+export function normalizeCampaignCore(value: unknown): CampaignCoreId {
+  return value === CONCORDIA_CORE_ID ? CONCORDIA_CORE_ID : ETHERNUM_COMPANY_CORE_ID;
+}
+
+function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCoreId | null {
+  if (profileId === "") return null;
+  if (
+    profileId === GYRO_PROFILE_ID
+    || profileId === BAYLE_PROFILE_ID
+    || profileId === PIPPING_PROFILE_ID
+    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number]) && profileId !== ARKIUS_JACKER_PROFILE_ID
+  ) return ETHERNUM_COMPANY_CORE_ID;
+  if (profileId === ARKIUS_JACKER_PROFILE_ID) return CONCORDIA_CORE_ID;
+  return null;
+}
+
+function profileBelongsToCore(profileId: UniqueMechanicProfileId | string, coreId: CampaignCoreId): boolean {
+  if (profileId === "") return true;
+  return getProfileCore(profileId) === coreId;
+}
+
+function isKnownProfile(profileId: unknown): profileId is UniqueMechanicProfileId {
+  return typeof profileId === "string" && (
+    profileId === ""
+    || profileId === GYRO_PROFILE_ID
+    || profileId === BAYLE_PROFILE_ID
+    || profileId === PIPPING_PROFILE_ID
+    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
+  );
+}
+
 function normalizeGyroState(raw: unknown): GyroSpinState {
   const state = asRecord(raw);
   return {
@@ -1448,16 +1484,18 @@ export class UniqueMechanicsSystem {
 
   static getState(actor: Actor): UniqueMechanicsState {
     const raw = asRecord(actor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics"));
-    const activeProfile = raw.activeProfile === GYRO_PROFILE_ID
-      || raw.activeProfile === BAYLE_PROFILE_ID
-      || raw.activeProfile === PIPPING_PROFILE_ID
-      || PLACEHOLDER_PROFILE_IDS.includes(raw.activeProfile as typeof PLACEHOLDER_PROFILE_IDS[number])
-      ? raw.activeProfile
-      : "";
+    const activeCore = normalizeCampaignCore(raw.activeCore);
+    const rawProfile = isKnownProfile(raw.activeProfile) ? raw.activeProfile : "";
+    const activeProfile = profileBelongsToCore(rawProfile, activeCore) ? rawProfile : "";
     return {
-      activeProfile: activeProfile as UniqueMechanicProfileId,
+      activeCore,
+      activeProfile,
       profiles: asRecord(raw.profiles),
     };
+  }
+
+  static getActiveCore(actor: Actor): CampaignCoreId {
+    return this.getState(actor).activeCore;
   }
 
   static async setState(actor: Actor, state: UniqueMechanicsState): Promise<void> {
@@ -1536,6 +1574,8 @@ export class UniqueMechanicsSystem {
 
   static async setActiveProfile(actor: Actor, profileId: UniqueMechanicProfileId): Promise<void> {
     const state = this.getState(actor);
+    const profileCore = getProfileCore(profileId);
+    if (profileCore) state.activeCore = profileCore;
     state.activeProfile = profileId;
     if (profileId === GYRO_PROFILE_ID && !state.profiles[GYRO_PROFILE_ID]) {
       state.profiles[GYRO_PROFILE_ID] = { ...DEFAULT_GYRO_STATE };
@@ -1549,6 +1589,14 @@ export class UniqueMechanicsSystem {
     await this.setState(actor, state);
   }
 
+  static async setActiveCore(actor: Actor, coreId: CampaignCoreId): Promise<void> {
+    const state = this.getState(actor);
+    const nextCore = normalizeCampaignCore(coreId);
+    state.activeCore = nextCore;
+    if (!profileBelongsToCore(state.activeProfile, nextCore)) state.activeProfile = "";
+    await this.setState(actor, state);
+  }
+
   static async updateGyroState(actor: Actor, patch: Partial<GyroSpinState>): Promise<GyroSpinState> {
     const state = this.getState(actor);
     const current = this.getGyroState(actor);
@@ -1559,6 +1607,7 @@ export class UniqueMechanicsSystem {
       delete next.activeDeviationCombatId;
     }
     if (!Number.isFinite(Number(next.maxSPOverride)) || Number(next.maxSPOverride) <= 0) delete next.maxSPOverride;
+    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
     state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
@@ -1575,6 +1624,7 @@ export class UniqueMechanicsSystem {
       next.lightningChargesUsed = 0;
       next.lancesUsed = false;
     }
+    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
     state.activeProfile = BAYLE_PROFILE_ID;
     state.profiles[BAYLE_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
@@ -1653,6 +1703,7 @@ export class UniqueMechanicsSystem {
     const state = this.getState(actor);
     const current = this.getPippingState(actor);
     const next = normalizePippingState({ ...current, ...patch });
+    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
     state.activeProfile = PIPPING_PROFILE_ID;
     state.profiles[PIPPING_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
@@ -1743,6 +1794,35 @@ export class UniqueMechanicsSystem {
           <p><strong>Canção da Noite Viva:</strong> ${state.livingNightActive ? "Ativa" : "Inativa"}</p>
         </div>`,
     });
+  }
+
+  static async showConcordiaArkiusStatus(actor?: Actor | null, title = "Arkius Jacker — Concórdia"): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>${title}</h3>
+          <p><strong>Núcleo:</strong> Concórdia RPG</p>
+          <p>Estrutura preparada para Thermal Nimbus, Gate Junction, Lorde das Armas, Fulgor Negro e Momentum Fides.</p>
+          <p>A mecânica completa de Arkius Jacker ainda não foi implementada neste módulo.</p>
+        </div>`,
+    });
+  }
+
+  static async notifyConcordiaArkiusStandby(action: string, actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
+    ui.notifications?.info(`${action}: estrutura de Concórdia preparada; automação completa entra na etapa do Arkius Jacker.`);
   }
 
   static calculateGyroMaxSP(actor: Actor, state = this.getGyroState(actor)): number {
@@ -2447,6 +2527,29 @@ export class UniqueMechanicsSystem {
     const executionModes = this.buildGyroExecutionModes(actor, gyroState, "forced");
     const bayleStage = getBayleStageData(bayleState.stage);
     const bayleLightningRemaining = Math.max(0, bayleStage.lightningCharges - bayleState.lightningChargesUsed);
+    const campaignCores = Object.values(ETHERNUM.CAMPAIGN_CORES).map(core => ({
+      ...core,
+      active: core.id === state.activeCore,
+    }));
+    const ethernumCompanyProfiles = [
+      { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
+      { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
+      { id: BAYLE_PROFILE_ID, label: "Bayle, o Horror - Corpo Dracônico" },
+      { id: PIPPING_PROFILE_ID, label: "Pipping Baldwin Black - Expressão da Noite" },
+      { id: "kaitake", label: "Kaitake - Mecânica em preparação" },
+      { id: "cinerio", label: "Cinério - Mecânica em preparação" },
+      { id: "ailan", label: "Ailan - Mecânica em preparação" },
+    ];
+    const concordiaProfiles = [
+      { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
+      { id: ARKIUS_JACKER_PROFILE_ID, label: "Arkius Jacker - Concórdia" },
+    ];
+    const placeholderLabels: Record<string, string> = {
+      kaitake: "Kaitake",
+      cinerio: "Cinério",
+      ailan: "Ailan",
+      [ARKIUS_JACKER_PROFILE_ID]: "Arkius Jacker",
+    };
     const gyroTechniques = GYRO_TECHNIQUES.map((technique): GyroTechniqueSheetData => {
       const status = this.getGyroTechniqueStatus(actor, technique, gyroState, isGM);
       const modes = this.buildGyroExecutionModes(actor, gyroState, technique.defaultMode);
@@ -2483,28 +2586,33 @@ export class UniqueMechanicsSystem {
     });
 
     return {
+      activeCore: state.activeCore,
       activeProfile: state.activeProfile,
+      activeCoreConfig: ETHERNUM.CAMPAIGN_CORES[state.activeCore],
+      campaignCores,
+      isEthernumCompanyCore: state.activeCore === ETHERNUM_COMPANY_CORE_ID,
+      isConcordiaCore: state.activeCore === CONCORDIA_CORE_ID,
       isGM,
       companyLogoAsset: ETHERNUM_COMPANY_LOGO_ASSET,
-      profiles: [
-        { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
-        { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
-        { id: BAYLE_PROFILE_ID, label: "Bayle, o Horror - Corpo Dracônico" },
-        { id: PIPPING_PROFILE_ID, label: "Pipping Baldwin Black - Expressão da Noite" },
-        { id: "kaitake", label: "Kaitake - Mecânica em preparação" },
-        { id: "cinerio", label: "Cinério - Mecânica em preparação" },
-        { id: "ailan", label: "Ailan - Mecânica em preparação" },
-      ],
+      profiles: state.activeCore === CONCORDIA_CORE_ID ? concordiaProfiles : ethernumCompanyProfiles,
       placeholderProfile: PLACEHOLDER_PROFILE_IDS.includes(state.activeProfile as typeof PLACEHOLDER_PROFILE_IDS[number])
         ? {
           id: state.activeProfile,
-          label: state.activeProfile === "kaitake"
-            ? "Kaitake"
-            : state.activeProfile === "cinerio"
-              ? "Cinério"
-              : "Ailan",
+          label: placeholderLabels[state.activeProfile] ?? String(state.activeProfile),
+          coreLabel: ETHERNUM.CAMPAIGN_CORES[state.activeCore].shortLabel,
         }
         : null,
+      concordia: {
+        arkius: {
+          macroSlots: [
+            "await game.ethernum.macros.concordia.arkius.showStatus();",
+            "await game.ethernum.macros.concordia.arkius.toggleThermalNimbus();",
+            "await game.ethernum.macros.concordia.arkius.syncThermalNimbusAura();",
+            "await game.ethernum.macros.concordia.arkius.clearThermalNimbusAura();",
+            "await game.ethernum.macros.concordia.arkius.toggleGateJunctionFire();",
+          ],
+        },
+      },
       pipping: {
         state: pippingState,
         pulsePercent: Math.round((pippingState.pulse / 6) * 100),

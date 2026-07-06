@@ -1,4 +1,4 @@
-import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute } from './config.js';
+import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute, type CampaignCoreId } from './config.js';
 import { getFECostForRank, getRuneClassDC, getDefaultRuneCost } from './settings.js';
 
 interface EtherSystemState {
@@ -15,6 +15,7 @@ interface FEState {
 export interface RuneData {
   id: string;
   name: string;
+  core?: CampaignCoreId;
   runeClass: RuneClassKey;
   costType: string;
   costValue: number;
@@ -120,6 +121,7 @@ export class RuneSystem {
     this.runes.push({
       id: foundry.utils.randomID(),
       name: rune.name ?? "Nova Runa",
+      core: rune.core ?? "ethernum-company",
       runeClass: (rune.runeClass ?? 1) as RuneClassKey,
       costType: rune.costType ?? "ether",
       costValue: rune.costValue ?? 0,

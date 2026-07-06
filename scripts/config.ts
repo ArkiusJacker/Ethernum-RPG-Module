@@ -1,5 +1,6 @@
 export type Rank = "F" | "E" | "D" | "C" | "B" | "A" | "S" | "K";
 export type RuneClassKey = 1 | 2 | 3 | 4 | 5;
+export type CampaignCoreId = "ethernum-company" | "concordia";
 
 export interface EtherAttribute {
   value: number;
@@ -16,9 +17,22 @@ export interface RuneClassConfig {
   visual: string;
 }
 
+export interface CampaignCoreConfig {
+  id: CampaignCoreId;
+  label: string;
+  shortLabel: string;
+  subtitle: string;
+  description: string;
+  runeHint: string;
+  uniqueHint: string;
+  icon: string;
+  themeClass: string;
+}
+
 export interface EthernumConfig {
   MODULE_NAME: "ethernum-rpg-module";
   TEMPLATE_PATH: string;
+  CAMPAIGN_CORES: Record<CampaignCoreId, CampaignCoreConfig>;
   RANKS: Rank[];
   ATTRIBUTE_RANK_BONUS: Record<Rank, number>;
   TALENT_RANK_BONUS: Record<Rank, number>;
@@ -41,6 +55,31 @@ export interface EthernumConfig {
 export const ETHERNUM: EthernumConfig = {
   MODULE_NAME: "ethernum-rpg-module",
   TEMPLATE_PATH: "modules/ethernum-rpg-module/templates/",
+
+  CAMPAIGN_CORES: {
+    "ethernum-company": {
+      id: "ethernum-company",
+      label: "Ethernum Company RPG",
+      shortLabel: "Ethernum Company",
+      subtitle: "Dossiês, runas corporativas e mecânicas únicas da companhia.",
+      description: "Núcleo preto/dourado, industrial e confidencial. Use para Gyro, Bayle, Pipping, Kaitake, Cinério e Ailan.",
+      runeHint: "Runas da Ethernum Company usam o Sistema de Éter atual.",
+      uniqueHint: "Perfis disponíveis: Gyro, Bayle, Pipping e os próximos membros da mesa.",
+      icon: "fas fa-building-shield",
+      themeClass: "ethernum-core-company",
+    },
+    concordia: {
+      id: "concordia",
+      label: "Concórdia RPG",
+      shortLabel: "Concórdia",
+      subtitle: "Steampunk místico, metal, fogo, divindades e legados dracônicos.",
+      description: "Núcleo separado para Arkius Jacker, Zanzhar, armas únicas, Thermal Nimbus, Gate Junction, Lorde das Armas, Fulgor Negro e Momentum Fides.",
+      runeHint: "Runas de Concórdia ficam isoladas para receber regras próprias futuramente.",
+      uniqueHint: "Estrutura preparada para Arkius Jacker sem misturar com Ethernum Company.",
+      icon: "fas fa-fire-flame-curved",
+      themeClass: "ethernum-core-concordia",
+    },
+  },
 
   RANKS: ["F", "E", "D", "C", "B", "A", "S", "K"],
 

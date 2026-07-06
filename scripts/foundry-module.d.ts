@@ -1,4 +1,4 @@
-import type { EtherAttribute } from './config.js';
+import type { EtherAttribute, CampaignCoreId } from './config.js';
 
 /**
  * Augmenta as interfaces globais do foundry-vtt-types com as flags e settings
@@ -24,9 +24,10 @@ declare global {
         talents?: Record<string, EtherAttribute>;
         fe?: { current: number; total: number };
         etherSystem?: { etherMax: number; etherCurrent: number; etherPower: number };
-        runes?: Array<Record<string, unknown>>;
+        runes?: Array<Record<string, unknown> & { core?: CampaignCoreId }>;
         maxRuneClass?: number;
         uniqueMechanics?: {
+          activeCore?: CampaignCoreId;
           activeProfile: string;
           profiles: Record<string, unknown>;
         };

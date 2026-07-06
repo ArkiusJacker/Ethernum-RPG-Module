@@ -1,4 +1,20 @@
-<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq uniqueMechanics.activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if uniqueMechanics.isEthernumCompanyCore}}{{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}}{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
+  <section class="ethernum-section ethernum-core-selector">
+    <div class="ethernum-core-selector-heading">
+      <span><i class="fas fa-layer-group"></i> Núcleo de campanha</span>
+      <p>{{uniqueMechanics.activeCoreConfig.subtitle}}</p>
+    </div>
+    <div class="ethernum-core-card-grid">
+      {{#each uniqueMechanics.campaignCores}}
+      <button type="button" class="ethernum-core-card {{this.themeClass}} {{#if this.active}}active{{/if}}" data-core="{{this.id}}">
+        <i class="{{this.icon}}"></i>
+        <strong>{{this.shortLabel}}</strong>
+        <span>{{this.description}}</span>
+      </button>
+      {{/each}}
+    </div>
+  </section>
+
   <div class="ethernum-unique-topbar">
     <div class="ethernum-unique-profile-picker">
       <i class="fas fa-fingerprint"></i>
@@ -31,10 +47,14 @@
   {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}
   <section class="ethernum-section ethernum-unique-empty">
     <div class="ethernum-unique-empty-aura">
+      {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}
       <img src="{{uniqueMechanics.companyLogoAsset}}" alt="Ethernum Company" />
+      {{else}}
+      <i class="{{uniqueMechanics.activeCoreConfig.icon}} ethernum-empty-core-icon"></i>
+      {{/if}}
       <div>
-        <strong>{{localize "ETHERNUM.Unique.Profile.None"}}</strong>
-        <p>{{localize "ETHERNUM.Unique.Empty"}}</p>
+        <strong>{{uniqueMechanics.activeCoreConfig.shortLabel}}</strong>
+        <p>{{uniqueMechanics.activeCoreConfig.uniqueHint}}</p>
       </div>
     </div>
   </section>
@@ -43,12 +63,23 @@
   {{#if uniqueMechanics.placeholderProfile}}
   <section class="ethernum-section ethernum-unique-placeholder">
     <div class="ethernum-unique-placeholder-sigil">
+      {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}
       <img src="{{uniqueMechanics.companyLogoAsset}}" alt="Ethernum Company" />
+      {{else}}
+      <i class="{{uniqueMechanics.activeCoreConfig.icon}} ethernum-empty-core-icon"></i>
+      {{/if}}
     </div>
     <div>
-      <span>Próxima mecânica única</span>
+      <span>{{uniqueMechanics.placeholderProfile.coreLabel}} · Próxima mecânica única</span>
       <h2>{{uniqueMechanics.placeholderProfile.label}}</h2>
       <p>Esta aba já está reservada para receber rastreadores, ações, macros e efeitos próprios do personagem em uma próxima rodada de desenvolvimento.</p>
+      {{#if (ethernum-eq uniqueMechanics.placeholderProfile.id "arkius-jacker")}}
+      <div class="ethernum-concordia-macro-grid">
+        {{#each uniqueMechanics.concordia.arkius.macroSlots}}
+        <code>{{this}}</code>
+        {{/each}}
+      </div>
+      {{/if}}
     </div>
   </section>
   {{/if}}

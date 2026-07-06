@@ -1,4 +1,20 @@
-<div class="ethernum-container ethernum-runes-tab">
+<div class="ethernum-container ethernum-runes-tab {{#if (ethernum-eq activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq activeCore "concordia")}}ethernum-core-concordia{{/if}}">
+
+  <section class="ethernum-section ethernum-core-selector ethernum-core-selector--runes">
+    <div class="ethernum-core-selector-heading">
+      <span><i class="fas fa-layer-group"></i> Núcleo de campanha</span>
+      <p>{{activeCoreConfig.runeHint}}</p>
+    </div>
+    <div class="ethernum-core-card-grid">
+      {{#each campaignCores}}
+      <button type="button" class="ethernum-core-card {{this.themeClass}} {{#if this.active}}active{{/if}}" data-core="{{this.id}}">
+        <i class="{{this.icon}}"></i>
+        <strong>{{this.shortLabel}}</strong>
+        <span>{{this.runeHint}}</span>
+      </button>
+      {{/each}}
+    </div>
+  </section>
 
   <!-- Barra de Éter Compacta -->
   <div class="ethernum-ether-topbar">
