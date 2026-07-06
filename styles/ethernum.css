@@ -1939,23 +1939,52 @@
   min-height: 260px;
   border-color: rgba(227, 38, 22, 0.52);
   background:
-    linear-gradient(90deg, rgba(7, 3, 3, 0.94), rgba(20, 4, 4, 0.6) 48%, rgba(7, 3, 3, 0.95)),
-    var(--arkius-bg-wide);
+    linear-gradient(135deg, rgba(7, 3, 3, 0.98), rgba(32, 5, 5, 0.95));
   background-position: center;
   background-size: cover;
   color: var(--arkius-bone);
+}
+
+.ethernum-arkius-frame-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.ethernum-arkius-frame-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.92;
+  filter: saturate(1.12) contrast(1.12) brightness(0.72);
 }
 
 .ethernum-arkius-hero::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
+    linear-gradient(90deg, rgba(7, 3, 3, 0.82), rgba(20, 4, 4, 0.44) 48%, rgba(7, 3, 3, 0.86)),
     linear-gradient(120deg, transparent 0 42%, rgba(255, 106, 31, 0.1) 48%, transparent 58%),
     radial-gradient(circle at 50% 5%, rgba(227, 38, 22, 0.32), transparent 20%);
   mix-blend-mode: screen;
   animation: ethernum-arkius-ember-shift 5s ease-in-out infinite alternate;
+}
+
+.ethernum-arkius-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(7, 3, 3, 0.72), rgba(7, 3, 3, 0.22) 50%, rgba(7, 3, 3, 0.76)),
+    linear-gradient(180deg, rgba(7, 3, 3, 0.24), transparent 42%, rgba(7, 3, 3, 0.44));
 }
 
 @keyframes ethernum-arkius-ember-shift {
@@ -2154,11 +2183,7 @@
 
 @media (max-width: 720px) {
   .ethernum-arkius-hero {
-    background:
-      linear-gradient(180deg, rgba(7, 3, 3, 0.94), rgba(28, 5, 5, 0.66) 48%, rgba(7, 3, 3, 0.96)),
-      var(--arkius-bg-tall);
-    background-position: center;
-    background-size: cover;
+    min-height: 340px;
   }
 
   .ethernum-arkius-hero-grid {

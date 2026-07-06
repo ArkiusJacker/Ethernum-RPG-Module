@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.2] - 2026-07-06
+
+### Corrigido
+- O painel principal de Arkius Jacker agora renderiza o frame visual de Concórdia como imagem de fundo real, em vez de depender apenas de variável CSS.
+- Layout responsivo do frame de Arkius passa a escolher entre os assets largo, vertical e equilibrado conforme a proporção da ficha.
+
 ## [3.4.1] - 2026-07-06
 
 ### Adicionado

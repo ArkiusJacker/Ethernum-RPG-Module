@@ -91,7 +91,12 @@
   {{/if}}
 
   {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}
-  <section class="ethernum-section ethernum-arkius-hero" style="--arkius-bg-wide: url('{{uniqueMechanics.concordia.arkius.assets.wide}}'); --arkius-bg-tall: url('{{uniqueMechanics.concordia.arkius.assets.tall}}');">
+  <section class="ethernum-section ethernum-arkius-hero">
+    <picture class="ethernum-arkius-frame-bg" aria-hidden="true">
+      <source media="(max-width: 720px)" srcset="{{uniqueMechanics.concordia.arkius.assets.tall}}" />
+      <source media="(max-aspect-ratio: 4/3)" srcset="{{uniqueMechanics.concordia.arkius.assets.balanced}}" />
+      <img src="{{uniqueMechanics.concordia.arkius.assets.wide}}" alt="" loading="eager" />
+    </picture>
     <div class="ethernum-arkius-hero-content">
       <span class="ethernum-arkius-kicker">Concórdia RPG</span>
       <h2>Arkius Jacker</h2>
