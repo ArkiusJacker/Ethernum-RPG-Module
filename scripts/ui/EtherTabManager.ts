@@ -831,6 +831,70 @@ export class EtherTabManager {
       }>);
       await refreshUnique();
     });
+
+    html.find('.ethernum-arkius-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showConcordiaArkiusStatus(actor);
+    });
+
+    html.find('.ethernum-arkius-toggle-nucleo').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleNucleoEmBrasas(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-adjust-rounds').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
+      await UniqueMechanicsSystem.adjustArkiusNucleoRounds(actor, delta);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-set-attunement').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      const attunement = String($(ev.currentTarget).data('attunement'));
+      if (attunement === "fluxo") await UniqueMechanicsSystem.setSintoniaFluxo(actor);
+      else await UniqueMechanicsSystem.setSintoniaBrasas(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-mark-proc').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.markPersistentFireProc(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-exaurir').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.exaurirOSol(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-resilience').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.resilienciaReativa(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-short-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.shortRestReset(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-long-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.longRestReset(actor);
+      await refreshUnique();
+    });
   }
 
   static _activateCampaignCoreListeners(
@@ -854,7 +918,7 @@ export class EtherTabManager {
       const summary = ev.currentTarget as HTMLElement;
       const details = summary.parentElement as HTMLDetailsElement | null;
       const body = details?.querySelector<HTMLElement>(
-        ':scope > .ethernum-gyro-details-body, :scope > .ethernum-bayle-details-body, :scope > .ethernum-pipping-details-body, :scope > .ethernum-gyro-technique-list'
+        ':scope > .ethernum-gyro-details-body, :scope > .ethernum-bayle-details-body, :scope > .ethernum-pipping-details-body, :scope > .ethernum-arkius-details-body, :scope > .ethernum-gyro-technique-list'
       );
       if (!details || !body) {
         if (details) details.open = !details.open;

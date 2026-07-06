@@ -5,6 +5,21 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.0] - 2026-07-06
+
+### Adicionado
+- Implementação funcional do núcleo Concórdia RPG.
+- Mecânica única de Arkius Jacker: Force a Marca - Núcleo em Brasas.
+- Finalizador Exaurir o Sol com dano, CD e área por nível.
+- Artefato Braço Evolutivo com Resiliência Reativa.
+- Macros gerenciados de Arkius Jacker.
+- Estado persistente para mecânicas de Concórdia.
+
+### Alterado
+- O módulo agora suporta, de forma funcional, personagens de múltiplas campanhas.
+- `arkius-jacker` deixa de ser placeholder e passa a possuir UI e callbacks próprios.
+- Migração de schema para preparar atores antigos com estado padrão de Concórdia.
+
 ## [3.3.14] - 2026-07-05
 
 ### Adicionado

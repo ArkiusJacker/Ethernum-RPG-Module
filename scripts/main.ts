@@ -3,7 +3,7 @@ import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
-import { GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
+import { ARKIUS_FRAME_BALANCED_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
@@ -12,6 +12,49 @@ const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
 const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.bayle.showStatus();";
 const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
 const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
+
+const ARKIUS_MANAGED_MACROS = [
+  {
+    name: "Ethernum - Concórdia: Arkius Painel",
+    command: "await game.ethernum.macros.concordia.arkius.showStatus();",
+    flag: "concordia-arkius-status",
+  },
+  {
+    name: "Ethernum - Arkius: Núcleo em Brasas",
+    command: "await game.ethernum.macros.concordia.arkius.toggleNucleoEmBrasas();",
+    flag: "arkius-nucleo-em-brasas",
+  },
+  {
+    name: "Ethernum - Arkius: Fluxo",
+    command: "await game.ethernum.macros.concordia.arkius.setSintoniaFluxo();",
+    flag: "arkius-sintonia-fluxo",
+  },
+  {
+    name: "Ethernum - Arkius: Brasas",
+    command: "await game.ethernum.macros.concordia.arkius.setSintoniaBrasas();",
+    flag: "arkius-sintonia-brasas",
+  },
+  {
+    name: "Ethernum - Arkius: Exaurir o Sol",
+    command: "await game.ethernum.macros.concordia.arkius.exaurirOSol();",
+    flag: "arkius-exaurir-o-sol",
+  },
+  {
+    name: "Ethernum - Arkius: Resiliência Reativa",
+    command: "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
+    flag: "arkius-resiliencia-reativa",
+  },
+  {
+    name: "Ethernum - Arkius: Descanso Curto",
+    command: "await game.ethernum.macros.concordia.arkius.shortRestReset();",
+    flag: "arkius-short-rest",
+  },
+  {
+    name: "Ethernum - Arkius: Descanso Longo",
+    command: "await game.ethernum.macros.concordia.arkius.longRestReset();",
+    flag: "arkius-long-rest",
+  },
+];
 
 type EthernumMacroDocument = {
   name?: string;
@@ -68,6 +111,16 @@ declare global {
         concordia: {
           arkius: {
             showStatus: (actor?: Actor | null) => Promise<void>;
+            toggleNucleoEmBrasas: (actor?: Actor | null) => Promise<unknown>;
+            activateNucleoEmBrasas: (actor?: Actor | null) => Promise<unknown>;
+            endNucleoEmBrasas: (actor?: Actor | null) => Promise<unknown>;
+            setSintoniaFluxo: (actor?: Actor | null) => Promise<unknown>;
+            setSintoniaBrasas: (actor?: Actor | null) => Promise<unknown>;
+            markPersistentFireProc: (actor?: Actor | null) => Promise<unknown>;
+            exaurirOSol: (actor?: Actor | null) => Promise<unknown>;
+            resilienciaReativa: (actor?: Actor | null) => Promise<unknown>;
+            shortRestReset: (actor?: Actor | null) => Promise<unknown>;
+            longRestReset: (actor?: Actor | null) => Promise<unknown>;
             toggleThermalNimbus: (actor?: Actor | null) => Promise<void>;
             syncThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
             clearThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
@@ -166,6 +219,26 @@ function buildMacroApi() {
       arkius: {
         showStatus: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.showConcordiaArkiusStatus(resolveMacroActor(actor)),
+        toggleNucleoEmBrasas: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.toggleNucleoEmBrasas(resolveMacroActor(actor)),
+        activateNucleoEmBrasas: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.activateNucleoEmBrasas(resolveMacroActor(actor)),
+        endNucleoEmBrasas: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.endNucleoEmBrasas(resolveMacroActor(actor)),
+        setSintoniaFluxo: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.setSintoniaFluxo(resolveMacroActor(actor)),
+        setSintoniaBrasas: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.setSintoniaBrasas(resolveMacroActor(actor)),
+        markPersistentFireProc: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.markPersistentFireProc(resolveMacroActor(actor)),
+        exaurirOSol: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.exaurirOSol(resolveMacroActor(actor)),
+        resilienciaReativa: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.resilienciaReativa(resolveMacroActor(actor)),
+        shortRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.shortRestReset(resolveMacroActor(actor)),
+        longRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.longRestReset(resolveMacroActor(actor)),
         toggleThermalNimbus: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Thermal Nimbus", resolveMacroActor(actor)),
         syncThermalNimbusAura: async (actor?: Actor | null) =>
@@ -190,14 +263,14 @@ async function ensureManagedMacros(): Promise<void> {
   const ownerPermission = (globalThis as {
     CONST?: { DOCUMENT_OWNERSHIP_LEVELS?: { OWNER?: number } };
   }).CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
-  const ensureOneMacro = async (name: string, command: string, managedMacro: string) => {
+  const ensureOneMacro = async (name: string, command: string, managedMacro: string, img = GYRO_SPINBALL_ASSET) => {
     const existingMacro = name === GYRO_TECHNIQUES_MACRO_NAME
       ? existing
       : macros.getName?.(name) ?? macros.find?.(macro => macro.name === name);
     const data = {
       name,
       type: "script",
-      img: GYRO_SPINBALL_ASSET,
+      img,
       command,
       ownership: { default: ownerPermission },
       flags: {
@@ -215,7 +288,7 @@ async function ensureManagedMacros(): Promise<void> {
 
     const updates: Record<string, unknown> = {};
     if (existingMacro.command !== command) updates.command = command;
-    if (existingMacro.img !== GYRO_SPINBALL_ASSET) updates.img = GYRO_SPINBALL_ASSET;
+    if (existingMacro.img !== img) updates.img = img;
     updates.ownership = { default: ownerPermission };
     if (Object.keys(updates).length > 0) await existingMacro.update(updates, { render: false });
   };
@@ -223,6 +296,9 @@ async function ensureManagedMacros(): Promise<void> {
   await ensureOneMacro(GYRO_TECHNIQUES_MACRO_NAME, GYRO_TECHNIQUES_MACRO_COMMAND, "gyro-techniques");
   await ensureOneMacro(BAYLE_STATUS_MACRO_NAME, BAYLE_STATUS_MACRO_COMMAND, "bayle-status");
   await ensureOneMacro(PIPPING_STATUS_MACRO_NAME, PIPPING_STATUS_MACRO_COMMAND, "pipping-status");
+  for (const macro of ARKIUS_MANAGED_MACROS) {
+    await ensureOneMacro(macro.name, macro.command, macro.flag, ARKIUS_FRAME_BALANCED_ASSET);
+  }
 }
 
 function registerHandlebarsHelpers(): void {

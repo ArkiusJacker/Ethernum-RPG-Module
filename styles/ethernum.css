@@ -1858,6 +1858,266 @@
   white-space: normal;
 }
 
+.ethernum-unique-arkius-theme {
+  --arkius-red: #d94122;
+  --arkius-orange: #ff8a2b;
+  --arkius-brass: #d49b45;
+  --arkius-iron: #6f7c83;
+  --arkius-ink: #120d0a;
+  --arkius-bone: #f1ddbc;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 138, 43, 0.16), transparent 32%),
+    radial-gradient(circle at 85% 78%, rgba(217, 65, 34, 0.14), transparent 36%),
+    linear-gradient(135deg, rgba(12, 8, 6, 0.98), rgba(24, 12, 8, 0.96) 52%, rgba(8, 8, 8, 0.98));
+}
+
+.ethernum-arkius-resource-pill {
+  border-color: rgba(212, 155, 69, 0.45);
+  background: linear-gradient(135deg, rgba(18, 13, 10, 0.78), rgba(74, 27, 15, 0.52));
+  color: var(--arkius-bone);
+}
+
+.ethernum-arkius-resource-pill.active {
+  box-shadow: 0 0 18px rgba(217, 65, 34, 0.28);
+}
+
+.ethernum-arkius-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 260px;
+  border-color: rgba(212, 155, 69, 0.38);
+  background:
+    linear-gradient(90deg, rgba(18, 13, 10, 0.88), rgba(18, 13, 10, 0.55) 48%, rgba(18, 13, 10, 0.9)),
+    var(--arkius-bg-wide);
+  background-position: center;
+  background-size: cover;
+  color: var(--arkius-bone);
+}
+
+.ethernum-arkius-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, transparent 0 42%, rgba(255, 138, 43, 0.14) 48%, transparent 58%),
+    radial-gradient(circle at 50% 5%, rgba(255, 138, 43, 0.28), transparent 20%);
+  mix-blend-mode: screen;
+  animation: ethernum-arkius-ember-shift 5s ease-in-out infinite alternate;
+}
+
+@keyframes ethernum-arkius-ember-shift {
+  from {
+    opacity: 0.42;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 0.78;
+    transform: translateY(2px);
+  }
+}
+
+.ethernum-arkius-hero-content,
+.ethernum-arkius-hero-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.ethernum-arkius-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--arkius-brass);
+  font-size: 0.78em;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.ethernum-arkius-hero h2 {
+  margin: 8px 0 4px;
+  color: #ffd77a;
+  font-size: 2.25em;
+  line-height: 1;
+  text-shadow: 0 0 16px rgba(217, 65, 34, 0.5);
+}
+
+.ethernum-arkius-hero p {
+  max-width: 520px;
+  margin: 0;
+  color: rgba(241, 221, 188, 0.9);
+  font-weight: 700;
+}
+
+.ethernum-arkius-hero-actions,
+.ethernum-arkius-action-row,
+.ethernum-arkius-meter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ethernum-arkius-hero-actions {
+  margin-top: 18px;
+}
+
+.ethernum-arkius-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 34px;
+}
+
+.ethernum-arkius-hero-grid > div,
+.ethernum-arkius-warning,
+.ethernum-arkius-solar-grid > div,
+.ethernum-arkius-braco-grid > div {
+  border: 1px solid rgba(212, 155, 69, 0.34);
+  border-radius: var(--eth-radius);
+  background: linear-gradient(135deg, rgba(18, 13, 10, 0.78), rgba(44, 18, 12, 0.62));
+  padding: 12px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.28);
+}
+
+.ethernum-arkius-hero-grid span,
+.ethernum-arkius-warning strong,
+.ethernum-arkius-solar-grid span,
+.ethernum-arkius-braco-grid span,
+.ethernum-arkius-meter span {
+  display: block;
+  color: rgba(241, 221, 188, 0.72);
+  font-size: 0.78em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ethernum-arkius-hero-grid strong,
+.ethernum-arkius-solar-grid strong,
+.ethernum-arkius-braco-grid strong,
+.ethernum-arkius-meter strong {
+  display: block;
+  margin-top: 4px;
+  color: #ffd77a;
+  font-size: 1.25em;
+  line-height: 1.1;
+}
+
+.ethernum-arkius-hero-grid small,
+.ethernum-arkius-solar-grid small,
+.ethernum-arkius-braco-grid small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(241, 221, 188, 0.76);
+  line-height: 1.35;
+}
+
+.ethernum-arkius-state-grid,
+.ethernum-arkius-solar-grid,
+.ethernum-arkius-braco-grid,
+.ethernum-arkius-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.ethernum-arkius-meter {
+  border: 1px solid rgba(212, 155, 69, 0.38);
+  border-radius: var(--eth-radius);
+  background:
+    linear-gradient(135deg, rgba(18, 13, 10, 0.82), rgba(65, 23, 12, 0.56)),
+    conic-gradient(from 0deg, rgba(255, 138, 43, 0.75) var(--arkius-percent), rgba(255, 255, 255, 0.08) 0);
+  padding: 12px;
+}
+
+.ethernum-arkius-meter i {
+  display: block;
+  height: 5px;
+  margin: 10px 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--arkius-orange) var(--arkius-percent), rgba(255, 255, 255, 0.12) 0);
+}
+
+.ethernum-arkius-warning p,
+.ethernum-arkius-details-body p {
+  margin: 6px 0 0;
+  color: rgba(241, 221, 188, 0.82);
+  line-height: 1.4;
+}
+
+.ethernum-arkius-warning.danger {
+  border-color: rgba(217, 65, 34, 0.66);
+  box-shadow: 0 0 18px rgba(217, 65, 34, 0.16), inset 0 0 24px rgba(0, 0, 0, 0.28);
+}
+
+.ethernum-arkius-action-row {
+  margin-top: 12px;
+}
+
+.ethernum-arkius-details {
+  border: 1px solid rgba(212, 155, 69, 0.28);
+  border-radius: var(--eth-radius);
+  background: rgba(18, 13, 10, 0.55);
+  padding: 8px 10px;
+}
+
+.ethernum-arkius-details summary {
+  cursor: pointer;
+  color: #ffd77a;
+  font-weight: 800;
+}
+
+.ethernum-arkius-area-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ethernum-arkius-area-list span {
+  border: 1px solid rgba(212, 155, 69, 0.34);
+  border-radius: 999px;
+  background: rgba(18, 13, 10, 0.58);
+  color: var(--arkius-bone);
+  padding: 5px 9px;
+  font-size: 0.82em;
+  font-weight: 800;
+}
+
+.ethernum-arkius-braco-grid .locked {
+  opacity: 0.68;
+  filter: grayscale(0.25);
+}
+
+.ethernum-arkius-area-choice {
+  display: grid;
+  gap: 8px;
+}
+
+.ethernum-arkius-area-choice label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .ethernum-arkius-hero {
+    background:
+      linear-gradient(180deg, rgba(18, 13, 10, 0.9), rgba(18, 13, 10, 0.62) 48%, rgba(18, 13, 10, 0.94)),
+      var(--arkius-bg-tall);
+    background-position: center;
+    background-size: cover;
+  }
+
+  .ethernum-arkius-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-arkius-hero h2 {
+    font-size: 1.85em;
+  }
+}
+
 .ethernum-unique-topbar {
   position: sticky;
   top: 0;

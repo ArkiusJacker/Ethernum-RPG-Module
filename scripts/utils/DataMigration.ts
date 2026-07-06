@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 interface EtherSystem {
   etherMax: number;
@@ -18,13 +18,36 @@ interface Rune {
   name: string;
   runeClass: number;
   active?: boolean;
+  core?: string;
   [key: string]: unknown;
 }
 
 interface UniqueMechanics {
+  activeCore?: string;
   activeProfile: string;
   profiles: Record<string, unknown>;
 }
+
+const DEFAULT_ARKIUS_STATE = {
+  nucleoEmBrasas: {
+    active: false,
+    usesSpent: 0,
+    maxUses: 2,
+    remainingRounds: 0,
+    attunement: "none",
+    firstFireMetalProcUsed: false,
+    endedPenaltyActive: false,
+    fireMetalImpulsesLocked: false,
+    exaurirUsed: false,
+  },
+  bracoEvolutivo: {
+    chargesSpent: 0,
+    maxCharges: 2,
+    resistanceFormula: "2d6 + 5",
+    level13Unlocked: false,
+    level17Unlocked: false,
+  },
+};
 
 export interface ValidationResult {
   valid: boolean;
@@ -116,6 +139,30 @@ export async function migrateActor(actor: Actor): Promise<void> {
       updates[`flags.${m}.uniqueMechanics`] = { activeProfile: "", profiles: {} };
     }
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v2`);
+  }
+
+  if (schemaVersion < 3) {
+    const runes = (updates[`flags.${m}.runes`] as Rune[] | undefined) ?? actor.getFlag(m, "runes") as Rune[] | undefined;
+    if (Array.isArray(runes)) {
+      updates[`flags.${m}.runes`] = runes.map(rune => ({
+        core: "ethernum-company",
+        ...rune,
+      }));
+    }
+
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const profiles = {
+      ...(existingUnique.profiles ?? {}),
+      "arkius-jacker": (existingUnique.profiles ?? {})["arkius-jacker"] ?? DEFAULT_ARKIUS_STATE,
+    };
+    updates[`flags.${m}.uniqueMechanics`] = {
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      activeProfile: typeof existingUnique.activeProfile === "string" ? existingUnique.activeProfile : "",
+      profiles,
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v3`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

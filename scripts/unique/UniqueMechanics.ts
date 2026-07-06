@@ -11,10 +11,19 @@ export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
 export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
 export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
-export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan", ARKIUS_JACKER_PROFILE_ID] as const;
+export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
+export const ARKIUS_FRAME_WIDE_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-16-9.png`;
+export const ARKIUS_FRAME_TALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-9-16.png`;
+export const ARKIUS_FRAME_BALANCED_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/concordia/arkius-frame-4-3.png`;
 const GYRO_PROPORTION_MARK_EFFECT_SLUG = "gyro-marca-da-proporcao-proximo-strike";
+const ARKIUS_NUCLEO_EFFECT_SLUG = "arkius-nucleo-em-brasas";
+const ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG = "arkius-sintonia-brasas-desajeitado";
+const ARKIUS_END_CLUMSY_EFFECT_SLUG = "arkius-nucleo-encerrado-desajeitado";
+const ARKIUS_DRAINED_EFFECT_SLUG = "arkius-exaurir-o-sol-drenado";
+const ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG = "arkius-impulsos-fogo-metal-bloqueados";
+const ARKIUS_NUCLEO_MAX_ROUNDS = 10;
 
 export interface UniqueMechanicsState {
   activeCore: CampaignCoreId;
@@ -184,6 +193,39 @@ export interface PippingNightState {
   mirroredShadows: number;
 }
 
+export type ArkiusAttunement = "none" | "fluxo" | "brasas";
+
+export interface ArkiusJackerState {
+  nucleoEmBrasas: {
+    active: boolean;
+    usesSpent: number;
+    maxUses: number;
+    startedRound?: number;
+    startedTurn?: number;
+    combatId?: string;
+    remainingRounds: number;
+    attunement: ArkiusAttunement;
+    fluxoUsedTurnKey?: string;
+    brasasUsedTurnKey?: string;
+    firstFireMetalProcUsed: boolean;
+    endedPenaltyActive: boolean;
+    fireMetalImpulsesLocked: boolean;
+    exaurirUsed: boolean;
+  };
+  bracoEvolutivo: {
+    chargesSpent: number;
+    maxCharges: number;
+    resistanceFormula: string;
+    level13Unlocked: boolean;
+    level17Unlocked: boolean;
+  };
+}
+
+type PartialArkiusJackerState = {
+  nucleoEmBrasas?: Partial<ArkiusJackerState["nucleoEmBrasas"]>;
+  bracoEvolutivo?: Partial<ArkiusJackerState["bracoEvolutivo"]>;
+};
+
 const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
   trained: 2,
   expert: 4,
@@ -250,6 +292,27 @@ const DEFAULT_PIPPING_STATE: PippingNightState = {
   tier: 1,
   livingNightActive: false,
   mirroredShadows: 0,
+};
+
+const DEFAULT_ARKIUS_STATE: ArkiusJackerState = {
+  nucleoEmBrasas: {
+    active: false,
+    usesSpent: 0,
+    maxUses: 2,
+    remainingRounds: 0,
+    attunement: "none",
+    firstFireMetalProcUsed: false,
+    endedPenaltyActive: false,
+    fireMetalImpulsesLocked: false,
+    exaurirUsed: false,
+  },
+  bracoEvolutivo: {
+    chargesSpent: 0,
+    maxCharges: 2,
+    resistanceFormula: "2d6 + 5",
+    level13Unlocked: false,
+    level17Unlocked: false,
+  },
 };
 
 export const PIPPING_ABILITIES: PippingAbility[] = [
@@ -1184,7 +1247,7 @@ function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCo
     profileId === GYRO_PROFILE_ID
     || profileId === BAYLE_PROFILE_ID
     || profileId === PIPPING_PROFILE_ID
-    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number]) && profileId !== ARKIUS_JACKER_PROFILE_ID
+    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
   ) return ETHERNUM_COMPANY_CORE_ID;
   if (profileId === ARKIUS_JACKER_PROFILE_ID) return CONCORDIA_CORE_ID;
   return null;
@@ -1201,6 +1264,7 @@ function isKnownProfile(profileId: unknown): profileId is UniqueMechanicProfileI
     || profileId === GYRO_PROFILE_ID
     || profileId === BAYLE_PROFILE_ID
     || profileId === PIPPING_PROFILE_ID
+    || profileId === ARKIUS_JACKER_PROFILE_ID
     || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
   );
 }
@@ -1255,6 +1319,47 @@ function normalizePippingState(raw: unknown): PippingNightState {
   };
 }
 
+function normalizeArkiusAttunement(value: unknown): ArkiusAttunement {
+  return value === "fluxo" || value === "brasas" ? value : "none";
+}
+
+function normalizeArkiusState(raw: unknown): ArkiusJackerState {
+  const state = asRecord(raw);
+  const nucleo = asRecord(state.nucleoEmBrasas);
+  const braco = asRecord(state.bracoEvolutivo);
+  const startedRound = Number(nucleo.startedRound);
+  const startedTurn = Number(nucleo.startedTurn);
+  const maxUses = clamp(Number(nucleo.maxUses ?? DEFAULT_ARKIUS_STATE.nucleoEmBrasas.maxUses) || 2, 1, 9);
+  const maxCharges = clamp(Number(braco.maxCharges ?? DEFAULT_ARKIUS_STATE.bracoEvolutivo.maxCharges) || 2, 1, 9);
+  return {
+    nucleoEmBrasas: {
+      ...DEFAULT_ARKIUS_STATE.nucleoEmBrasas,
+      active: Boolean(nucleo.active),
+      usesSpent: clamp(Number(nucleo.usesSpent ?? DEFAULT_ARKIUS_STATE.nucleoEmBrasas.usesSpent) || 0, 0, maxUses),
+      maxUses,
+      startedRound: Number.isFinite(startedRound) ? startedRound : undefined,
+      startedTurn: Number.isFinite(startedTurn) ? startedTurn : undefined,
+      combatId: typeof nucleo.combatId === "string" ? nucleo.combatId : undefined,
+      remainingRounds: clamp(Number(nucleo.remainingRounds ?? 0) || 0, 0, ARKIUS_NUCLEO_MAX_ROUNDS),
+      attunement: normalizeArkiusAttunement(nucleo.attunement),
+      fluxoUsedTurnKey: typeof nucleo.fluxoUsedTurnKey === "string" ? nucleo.fluxoUsedTurnKey : undefined,
+      brasasUsedTurnKey: typeof nucleo.brasasUsedTurnKey === "string" ? nucleo.brasasUsedTurnKey : undefined,
+      firstFireMetalProcUsed: Boolean(nucleo.firstFireMetalProcUsed),
+      endedPenaltyActive: Boolean(nucleo.endedPenaltyActive),
+      fireMetalImpulsesLocked: Boolean(nucleo.fireMetalImpulsesLocked),
+      exaurirUsed: Boolean(nucleo.exaurirUsed),
+    },
+    bracoEvolutivo: {
+      ...DEFAULT_ARKIUS_STATE.bracoEvolutivo,
+      chargesSpent: clamp(Number(braco.chargesSpent ?? DEFAULT_ARKIUS_STATE.bracoEvolutivo.chargesSpent) || 0, 0, maxCharges),
+      maxCharges,
+      resistanceFormula: typeof braco.resistanceFormula === "string" ? braco.resistanceFormula : DEFAULT_ARKIUS_STATE.bracoEvolutivo.resistanceFormula,
+      level13Unlocked: Boolean(braco.level13Unlocked),
+      level17Unlocked: Boolean(braco.level17Unlocked),
+    },
+  };
+}
+
 function getBayleStageData(stage: number): BayleStage {
   return BAYLE_STAGES.find(item => item.stage === stage) ?? BAYLE_STAGES[0];
 }
@@ -1276,6 +1381,26 @@ interface EthernumTargetChoice {
   name: string;
   actor: Actor;
   actorKey: string;
+}
+
+interface ArkiusSolarArea {
+  id: "emanation" | "cone" | "line";
+  label: string;
+  distance: number;
+  templateType: "circle" | "cone" | "ray";
+  angle?: number;
+}
+
+interface ArkiusSolarData {
+  formula: string;
+  baseFormula: string;
+  extraDice: number;
+  extraDie: string;
+  remainingRoundsUsed: number;
+  dc: number;
+  dcLabel: string;
+  drainedValue: number;
+  areas: ArkiusSolarArea[];
 }
 
 function escapeHtml(value: unknown): string {
@@ -1375,6 +1500,224 @@ async function applyActorHpDelta(actor: Actor, amount: number): Promise<boolean>
   if (!Number.isFinite(current) || !Number.isFinite(max)) return false;
   await (actor as Actor & { update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<Actor> })
     .update({ "system.attributes.hp.value": clamp(current + amount, 0, max) });
+  return true;
+}
+
+function getActorClassOrKineticDC(actor: Actor): number {
+  const system = asRecord(actor.system);
+  const attributes = asRecord(system.attributes);
+  const classDC = asRecord(attributes.classDC);
+  const classDCValue = Number(classDC.value ?? classDC.dc);
+  if (Number.isFinite(classDCValue) && classDCValue > 0) return classDCValue;
+
+  const proficiencies = asRecord(system.proficiencies);
+  const classDCs = asRecord(proficiencies.classDCs);
+  const kineticist = asRecord(classDCs.kineticist ?? classDCs.kinetic ?? classDCs.class);
+  const kineticDC = Number(kineticist.dc ?? kineticist.value);
+  if (Number.isFinite(kineticDC) && kineticDC > 0) return kineticDC;
+
+  const spellcasting = asRecord(system.spellcasting);
+  const primal = asRecord(spellcasting.primal);
+  const primalDC = Number(primal.dc ?? primal.value);
+  if (Number.isFinite(primalDC) && primalDC > 0) return primalDC;
+
+  return levelBasedDC(getActorLevel(actor));
+}
+
+function getArkiusSolarData(actor: Actor, state: ArkiusJackerState): ArkiusSolarData {
+  const level = getActorLevel(actor);
+  const remainingRoundsUsed = clamp(state.nucleoEmBrasas.remainingRounds || 1, 1, 6);
+  const dc = getActorClassOrKineticDC(actor);
+  if (level >= 17) {
+    return {
+      formula: `10d10 + ${remainingRoundsUsed}d10`,
+      baseFormula: "10d10",
+      extraDice: remainingRoundsUsed,
+      extraDie: "d10",
+      remainingRoundsUsed,
+      dc,
+      dcLabel: `CD ${dc}`,
+      drainedValue: 3,
+      areas: [
+        { id: "emanation", label: "Emanação 30 ft", distance: 30, templateType: "circle" },
+        { id: "cone", label: "Cone 30 ft", distance: 30, templateType: "cone", angle: 90 },
+        { id: "line", label: "Linha 90 ft", distance: 90, templateType: "ray" },
+      ],
+    };
+  }
+  if (level >= 13) {
+    return {
+      formula: `8d10 + ${remainingRoundsUsed}d8`,
+      baseFormula: "8d10",
+      extraDice: remainingRoundsUsed,
+      extraDie: "d8",
+      remainingRoundsUsed,
+      dc,
+      dcLabel: `CD ${dc}`,
+      drainedValue: 2,
+      areas: [
+        { id: "emanation", label: "Emanação 25 ft", distance: 25, templateType: "circle" },
+        { id: "cone", label: "Cone 15 ft", distance: 15, templateType: "cone", angle: 90 },
+        { id: "line", label: "Linha 60 ft", distance: 60, templateType: "ray" },
+      ],
+    };
+  }
+  return {
+    formula: `6d10 + ${remainingRoundsUsed}d6`,
+    baseFormula: "6d10",
+    extraDice: remainingRoundsUsed,
+    extraDie: "d6",
+    remainingRoundsUsed,
+    dc,
+    dcLabel: `CD ${dc}`,
+    drainedValue: 2,
+    areas: [
+      { id: "emanation", label: "Emanação 20 ft", distance: 20, templateType: "circle" },
+      { id: "cone", label: "Cone 15 ft", distance: 15, templateType: "cone", angle: 90 },
+      { id: "line", label: "Linha 30 ft", distance: 30, templateType: "ray" },
+    ],
+  };
+}
+
+function getActorUniqueEffects(actor: Actor, slugs: string[]): Item[] {
+  const slugSet = new Set(slugs);
+  return Array.from((actor.items ?? []) as Collection<Item>).filter(item => {
+    const itemData = item as Item & { slug?: string; getFlag?: (scope: string, key: string) => unknown };
+    const slug = itemData.slug ?? String(asRecord(item.system).slug ?? "");
+    const flag = itemData.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueEffect");
+    return slugSet.has(slug) || slugSet.has(String(flag ?? ""));
+  });
+}
+
+async function removeActorUniqueEffects(actor: Actor, slugs: string[]): Promise<void> {
+  const effects = getActorUniqueEffects(actor, slugs);
+  await Promise.all(effects.map(effect => effect.delete()));
+}
+
+async function createActorEffect(actor: Actor, data: Record<string, unknown>): Promise<void> {
+  await (actor as Actor & {
+    createEmbeddedDocuments: (embeddedName: "Item", data: Record<string, unknown>[], operation?: Record<string, unknown>) => Promise<Item[]>;
+  }).createEmbeddedDocuments("Item", [data], { render: false });
+}
+
+function buildArkiusEffectData(
+  name: string,
+  slug: string,
+  description: string,
+  rules: Array<Record<string, unknown>> = [],
+  duration: Record<string, unknown> = { value: -1, unit: "unlimited", sustained: false, expiry: null }
+): Record<string, unknown> {
+  return {
+    name,
+    type: "effect",
+    img: ARKIUS_FRAME_BALANCED_ASSET,
+    system: {
+      slug,
+      description: { value: description },
+      level: { value: 9 },
+      duration,
+      tokenIcon: { show: true },
+      traits: { value: ["fire", "metal", "primal"] },
+      rules,
+    },
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueEffect: slug,
+      },
+    },
+  };
+}
+
+async function applyArkiusNucleoEffect(actor: Actor): Promise<void> {
+  await removeActorUniqueEffects(actor, [ARKIUS_NUCLEO_EFFECT_SLUG]);
+  await createActorEffect(actor, buildArkiusEffectData(
+    "Núcleo em Brasas",
+    ARKIUS_NUCLEO_EFFECT_SLUG,
+    [
+      "<p><strong>Force a Marca:</strong> +1 status na CA enquanto a postura estiver ativa.</p>",
+      "<p>Impulsos de Fogo recebem traço Metal e impulsos de Metal recebem traço Fogo.</p>",
+      "<p>Perde imunidade/resistência a Gelo e Eletricidade e ganha fraqueza 5 a ambos. Esta parte fica registrada para aplicação do mestre.</p>",
+    ].join(""),
+    [
+      {
+        key: "FlatModifier",
+        selector: "ac",
+        type: "status",
+        value: 1,
+        label: "Núcleo em Brasas",
+      },
+    ],
+    { value: ARKIUS_NUCLEO_MAX_ROUNDS, unit: "rounds", sustained: false, expiry: "turn-start" }
+  ));
+}
+
+async function applyArkiusNarrativeEffect(actor: Actor, slug: string, name: string, description: string): Promise<void> {
+  await removeActorUniqueEffects(actor, [slug]);
+  await createActorEffect(actor, buildArkiusEffectData(name, slug, description, []));
+}
+
+async function chooseArkiusSolarArea(data: ArkiusSolarData): Promise<ArkiusSolarArea | null> {
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-arkius-area-choice">
+        <p>Escolha a área de <strong>Exaurir o Sol</strong>. O módulo tentará criar o template a partir do token de Arkius.</p>
+        ${data.areas.map((area, index) => `
+          <label>
+            <input type="radio" name="area" value="${area.id}" ${index === 0 ? "checked" : ""} />
+            <span>${escapeHtml(area.label)}</span>
+          </label>
+        `).join("")}
+      </form>`;
+    new Dialog({
+      title: "Exaurir o Sol",
+      content,
+      buttons: {
+        confirm: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Activate"),
+          callback: (html: JQuery) => {
+            resolved = true;
+            const selectedId = String(html.find('[name="area"]:checked').val() ?? "");
+            resolve(data.areas.find(area => area.id === selectedId) ?? data.areas[0]);
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
+}
+
+async function createArkiusSolarTemplate(actor: Actor, area: ArkiusSolarArea): Promise<boolean> {
+  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number }; document?: { rotation?: number } }) | null;
+  const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown> } | undefined;
+  if (!token?.center || !scene?.createEmbeddedDocuments) return false;
+  const userColor = String((game.user as unknown as { color?: string })?.color ?? "#d94122");
+  const templateData: Record<string, unknown> = {
+    t: area.templateType,
+    user: game.user?.id,
+    x: token.center.x,
+    y: token.center.y,
+    distance: area.distance,
+    direction: token.document?.rotation ?? 0,
+    fillColor: userColor,
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueTemplate: "arkius-exaurir-o-sol",
+      },
+    },
+  };
+  if (area.templateType === "cone") templateData.angle = area.angle ?? 90;
+  if (area.templateType === "ray") templateData.width = 5;
+  await scene.createEmbeddedDocuments("MeasuredTemplate", [templateData]);
   return true;
 }
 
@@ -1572,6 +1915,11 @@ export class UniqueMechanicsSystem {
     return normalizePippingState(state.profiles[PIPPING_PROFILE_ID]);
   }
 
+  static getArkiusState(actor: Actor): ArkiusJackerState {
+    const state = this.getState(actor);
+    return normalizeArkiusState(state.profiles[ARKIUS_JACKER_PROFILE_ID]);
+  }
+
   static async setActiveProfile(actor: Actor, profileId: UniqueMechanicProfileId): Promise<void> {
     const state = this.getState(actor);
     const profileCore = getProfileCore(profileId);
@@ -1585,6 +1933,9 @@ export class UniqueMechanicsSystem {
     }
     if (profileId === PIPPING_PROFILE_ID && !state.profiles[PIPPING_PROFILE_ID]) {
       state.profiles[PIPPING_PROFILE_ID] = { ...DEFAULT_PIPPING_STATE };
+    }
+    if (profileId === ARKIUS_JACKER_PROFILE_ID && !state.profiles[ARKIUS_JACKER_PROFILE_ID]) {
+      state.profiles[ARKIUS_JACKER_PROFILE_ID] = foundry.utils.deepClone(DEFAULT_ARKIUS_STATE);
     }
     await this.setState(actor, state);
   }
@@ -1720,6 +2071,443 @@ export class UniqueMechanicsSystem {
     return this.updatePippingState(target, { pulse: clamp(state.pulse + amount, 0, 6) });
   }
 
+  static async updateArkiusState(actor: Actor, patch: PartialArkiusJackerState): Promise<ArkiusJackerState> {
+    const state = this.getState(actor);
+    const current = this.getArkiusState(actor);
+    const next = normalizeArkiusState({
+      ...current,
+      nucleoEmBrasas: {
+        ...current.nucleoEmBrasas,
+        ...(patch.nucleoEmBrasas ?? {}),
+      },
+      bracoEvolutivo: {
+        ...current.bracoEvolutivo,
+        ...(patch.bracoEvolutivo ?? {}),
+      },
+    });
+    state.activeCore = CONCORDIA_CORE_ID;
+    state.activeProfile = ARKIUS_JACKER_PROFILE_ID;
+    state.profiles[ARKIUS_JACKER_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async showConcordiaArkiusStatus(actor?: Actor | null, title = "Arkius Jacker — Núcleo em Brasas"): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
+    const state = this.getArkiusState(target);
+    const solar = getArkiusSolarData(target, state);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>${escapeHtml(title)}</h3>
+          <p><strong>Núcleo:</strong> ${state.nucleoEmBrasas.active ? "Ativo" : "Inativo"} · <strong>Usos:</strong> ${state.nucleoEmBrasas.usesSpent}/${state.nucleoEmBrasas.maxUses}</p>
+          <p><strong>Rodadas restantes:</strong> ${state.nucleoEmBrasas.remainingRounds} · <strong>Sintonia:</strong> ${state.nucleoEmBrasas.attunement}</p>
+          <p><strong>Exaurir o Sol:</strong> ${solar.formula}, Reflexos básico ${solar.dcLabel}.</p>
+          <p><strong>Braço Evolutivo:</strong> ${state.bracoEvolutivo.maxCharges - state.bracoEvolutivo.chargesSpent}/${state.bracoEvolutivo.maxCharges} carga(s), resistência ${escapeHtml(state.bracoEvolutivo.resistanceFormula)}.</p>
+        </div>`,
+    });
+  }
+
+  static async activateNucleoEmBrasas(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (state.nucleoEmBrasas.active) {
+      ui.notifications?.info("Núcleo em Brasas já está ativo.");
+      return state;
+    }
+    if (state.nucleoEmBrasas.usesSpent >= state.nucleoEmBrasas.maxUses) {
+      ui.notifications?.warn("Núcleo em Brasas sem usos até o próximo descanso longo.");
+      return state;
+    }
+    const combat = game.combat;
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        active: true,
+        usesSpent: state.nucleoEmBrasas.usesSpent + 1,
+        startedRound: combat?.round ?? undefined,
+        startedTurn: (combat as (Combat & { turn?: number }) | undefined)?.turn,
+        combatId: combat?.id,
+        remainingRounds: ARKIUS_NUCLEO_MAX_ROUNDS,
+        attunement: "none",
+        firstFireMetalProcUsed: false,
+        exaurirUsed: false,
+      },
+    });
+    await applyArkiusNucleoEffect(target).catch(error => {
+      console.warn("Ethernum RPG Module | Could not apply Arkius Núcleo effect", error);
+      ui.notifications?.warn("Núcleo em Brasas ativado, mas o efeito PF2e não pôde ser criado.");
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Force a Marca: Núcleo em Brasas</h3>
+          <p><strong>Ativação:</strong> 1 ação · <strong>Duração:</strong> até 1 minuto.</p>
+          <p>+1 status na CA, Fogo recebe Metal, Metal recebe Fogo, e o primeiro impulso/ataque Fogo ou Metal causa 2d6 de fogo persistente.</p>
+          <p><strong>Risco:</strong> enquanto ativa, registre perda de imunidade/resistência a Gelo e Eletricidade e fraqueza 5 a ambos.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async endNucleoEmBrasas(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.active) {
+      ui.notifications?.info("Núcleo em Brasas já está inativo.");
+      return state;
+    }
+    await removeActorUniqueEffects(target, [ARKIUS_NUCLEO_EFFECT_SLUG]);
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_END_CLUMSY_EFFECT_SLUG,
+      "Desajeitado 2 — Núcleo Encerrado",
+      "<p>Núcleo em Brasas foi encerrado. Arkius fica Desajeitado 2 até realizar descanso curto de 10 minutos.</p>"
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Arkius end penalty", error));
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        active: false,
+        remainingRounds: 0,
+        attunement: "none",
+        endedPenaltyActive: true,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Núcleo em Brasas encerrado</h3>
+          <p>Arkius recebe <strong>Desajeitado 2</strong> até descanso curto de 10 minutos.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async toggleNucleoEmBrasas(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    return state.nucleoEmBrasas.active ? this.endNucleoEmBrasas(target) : this.activateNucleoEmBrasas(target);
+  }
+
+  static async adjustArkiusNucleoRounds(actor?: Actor | null, amount = 0): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        remainingRounds: clamp(state.nucleoEmBrasas.remainingRounds + amount, 0, ARKIUS_NUCLEO_MAX_ROUNDS),
+      },
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async setSintoniaFluxo(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.active) {
+      ui.notifications?.warn("Ative Núcleo em Brasas antes de escolher Sintonia de Fluxo.");
+      return state;
+    }
+    const turnKey = getCombatTurnKey() ?? "no-combat";
+    if (state.nucleoEmBrasas.fluxoUsedTurnKey === turnKey) {
+      ui.notifications?.warn("Sintonia de Fluxo já foi usada neste turno.");
+      return state;
+    }
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        attunement: "fluxo",
+        fluxoUsedTurnKey: turnKey,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Sintonia de Fluxo</h3>
+          <p>Uma vez neste turno, reduza em 1 o custo de um Impulso Cinético, mínimo de 1 ação.</p>
+          <p><strong>Limite:</strong> não funciona em Overflow nem em Explosão Elemental.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async setSintoniaBrasas(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.active) {
+      ui.notifications?.warn("Ative Núcleo em Brasas antes de escolher Sintonia de Brasas.");
+      return state;
+    }
+    const turnKey = getCombatTurnKey() ?? "no-combat";
+    if (state.nucleoEmBrasas.brasasUsedTurnKey === turnKey) {
+      ui.notifications?.warn("Sintonia de Brasas já foi usada neste turno.");
+      return state;
+    }
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG,
+      "Desajeitado 1 — Sintonia de Brasas",
+      "<p>Sintonia de Brasas: Desajeitado 1 até o início do próximo turno de Arkius.</p>"
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Arkius Brasas effect", error));
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        attunement: "brasas",
+        brasasUsedTurnKey: turnKey,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Sintonia de Brasas</h3>
+          <p>Uma vez neste turno, um Impulso ou Explosão Elemental de pelo menos 2 ações adiciona +1 dado de dano e aumenta o passo do dado.</p>
+          <p><strong>Sacrifício:</strong> Desajeitado 1 até o início do próximo turno.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async markPersistentFireProc(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.active) {
+      ui.notifications?.warn("Núcleo em Brasas precisa estar ativo para usar o proc de fogo persistente.");
+      return null;
+    }
+    if (state.nucleoEmBrasas.firstFireMetalProcUsed) {
+      ui.notifications?.warn("O primeiro proc de fogo persistente já foi marcado neste Núcleo em Brasas.");
+      return null;
+    }
+    const choice = await chooseTargetChoice("Núcleo em Brasas - fogo persistente", target, false);
+    const roll = new Roll("2d6");
+    await roll.evaluate();
+    await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        firstFireMetalProcUsed: true,
+      },
+    });
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flavor: [
+        "<strong>Núcleo em Brasas - fogo persistente</strong>",
+        choice ? `Alvo: ${escapeHtml(choice.name)}` : "",
+        "Aplique como 2d6 de fogo persistente ao primeiro alvo atingido por impulso ativo ou ataque com traço Fogo/Metal.",
+      ].filter(Boolean).join("<br>"),
+    });
+    refreshActorMechanicsViews(target);
+    return roll;
+  }
+
+  static async exaurirOSol(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.active) {
+      ui.notifications?.warn("Exaurir o Sol exige Núcleo em Brasas ativo.");
+      return null;
+    }
+    const solar = getArkiusSolarData(target, state);
+    const area = await chooseArkiusSolarArea(solar);
+    if (!area) return null;
+    const templateCreated = await createArkiusSolarTemplate(target, area).catch(error => {
+      console.warn("Ethernum RPG Module | Could not create Arkius solar template", error);
+      return false;
+    });
+    const roll = new Roll(solar.formula);
+    await roll.evaluate();
+    await removeActorUniqueEffects(target, [ARKIUS_NUCLEO_EFFECT_SLUG]);
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_END_CLUMSY_EFFECT_SLUG,
+      "Desajeitado 2 — Exaurir o Sol",
+      "<p>Exaurir o Sol encerrou Núcleo em Brasas. Arkius fica Desajeitado 2 até descanso curto de 10 minutos.</p>"
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Arkius clumsy after Exaurir", error));
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_DRAINED_EFFECT_SLUG,
+      `Drenado ${solar.drainedValue} — Exaurir o Sol`,
+      `<p>Exaurir o Sol aplica Drenado ${solar.drainedValue} até o próximo descanso longo.</p>`
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Arkius drained after Exaurir", error));
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG,
+      "Impulsos de Fogo e Metal Bloqueados",
+      "<p>Arkius perde acesso a todos os impulsos de Fogo e Metal até realizar descanso curto de 10 minutos.</p>"
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Arkius lock after Exaurir", error));
+    await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        active: false,
+        remainingRounds: 0,
+        attunement: "none",
+        endedPenaltyActive: true,
+        fireMetalImpulsesLocked: true,
+        exaurirUsed: true,
+      },
+    });
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flavor: [
+        "<strong>Exaurir o Sol</strong>",
+        `Área: ${escapeHtml(area.label)}${templateCreated ? " (template criado)" : " (crie/ajuste o template manualmente)"}`,
+        `Reflexos básico contra ${solar.dcLabel}`,
+        `Rodadas usadas no cálculo: ${solar.remainingRoundsUsed} (máximo 6)`,
+        `Penalidades: Desajeitado 2 até descanso curto, Drenado ${solar.drainedValue} até descanso longo, impulsos Fogo/Metal bloqueados até descanso curto.`,
+      ].join("<br>"),
+    });
+    refreshActorMechanicsViews(target);
+    return roll;
+  }
+
+  static async resilienciaReativa(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (state.bracoEvolutivo.chargesSpent >= state.bracoEvolutivo.maxCharges) {
+      ui.notifications?.warn("Braço Evolutivo sem cargas até o próximo descanso curto.");
+      return null;
+    }
+    const choice = await chooseTargetChoice("Resiliência Reativa", target, true);
+    if (!choice) return null;
+    const roll = new Roll(state.bracoEvolutivo.resistanceFormula);
+    await roll.evaluate();
+    const next = await this.updateArkiusState(target, {
+      bracoEvolutivo: {
+        chargesSpent: state.bracoEvolutivo.chargesSpent + 1,
+      },
+    });
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flavor: [
+        "<strong>Braço Evolutivo - Resiliência Reativa</strong>",
+        `Alvo protegido: ${escapeHtml(choice.name)}`,
+        `Cargas restantes: ${next.bracoEvolutivo.maxCharges - next.bracoEvolutivo.chargesSpent}/${next.bracoEvolutivo.maxCharges}`,
+        "A resistência vale contra a fonte do dano do ataque ou efeito gatilho. Preencha/aplique a fonte com o mestre.",
+      ].join("<br>"),
+    });
+    refreshActorMechanicsViews(target);
+    return roll;
+  }
+
+  static async shortRestReset(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [
+      ARKIUS_NUCLEO_EFFECT_SLUG,
+      ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG,
+      ARKIUS_END_CLUMSY_EFFECT_SLUG,
+      ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG,
+    ]);
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        active: false,
+        remainingRounds: 0,
+        attunement: "none",
+        endedPenaltyActive: false,
+        fireMetalImpulsesLocked: false,
+      },
+      bracoEvolutivo: {
+        chargesSpent: 0,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Descanso Curto — Arkius Jacker</h3>
+          <p>Desajeitado 2 narrativo limpo, impulsos Fogo/Metal desbloqueados e cargas do Braço Evolutivo restauradas.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async longRestReset(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [
+      ARKIUS_NUCLEO_EFFECT_SLUG,
+      ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG,
+      ARKIUS_END_CLUMSY_EFFECT_SLUG,
+      ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG,
+      ARKIUS_DRAINED_EFFECT_SLUG,
+    ]);
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        active: false,
+        remainingRounds: 0,
+        attunement: "none",
+        endedPenaltyActive: false,
+        fireMetalImpulsesLocked: false,
+        usesSpent: 0,
+        firstFireMetalProcUsed: false,
+        exaurirUsed: false,
+      },
+      bracoEvolutivo: {
+        chargesSpent: 0,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
+          <h3>Descanso Longo — Arkius Jacker</h3>
+          <p>Usos do Núcleo em Brasas restaurados e Drenado narrativo de Exaurir o Sol limpo.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
   static async handlePF2EChatMessage(message: ChatMessage): Promise<void> {
     if (game.system?.id !== "pf2e") return;
     if (!isPF2EAttackRollMessage(message)) return;
@@ -1796,25 +2584,6 @@ export class UniqueMechanicsSystem {
     });
   }
 
-  static async showConcordiaArkiusStatus(actor?: Actor | null, title = "Arkius Jacker — Concórdia"): Promise<void> {
-    const target = actor ?? getControlledActor();
-    if (!target) {
-      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
-      return;
-    }
-    await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: target }),
-      content: `
-        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
-          <h3>${title}</h3>
-          <p><strong>Núcleo:</strong> Concórdia RPG</p>
-          <p>Estrutura preparada para Thermal Nimbus, Gate Junction, Lorde das Armas, Fulgor Negro e Momentum Fides.</p>
-          <p>A mecânica completa de Arkius Jacker ainda não foi implementada neste módulo.</p>
-        </div>`,
-    });
-  }
-
   static async notifyConcordiaArkiusStandby(action: string, actor?: Actor | null): Promise<void> {
     const target = actor ?? getControlledActor();
     if (!target) {
@@ -1822,7 +2591,7 @@ export class UniqueMechanicsSystem {
       return;
     }
     await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
-    ui.notifications?.info(`${action}: estrutura de Concórdia preparada; automação completa entra na etapa do Arkius Jacker.`);
+    ui.notifications?.info(`${action}: callback legado mantido. A mecânica principal de Arkius agora é Núcleo em Brasas.`);
   }
 
   static calculateGyroMaxSP(actor: Actor, state = this.getGyroState(actor)): number {
@@ -2520,6 +3289,7 @@ export class UniqueMechanicsSystem {
     const gyroState = this.getGyroState(actor);
     const bayleState = this.getBayleState(actor);
     const pippingState = this.getPippingState(actor);
+    const arkiusState = this.getArkiusState(actor);
     const actorLevel = getActorLevel(actor);
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
     const rank = this.getGyroRank(gyroState.currentSP, gyroState);
@@ -2527,6 +3297,14 @@ export class UniqueMechanicsSystem {
     const executionModes = this.buildGyroExecutionModes(actor, gyroState, "forced");
     const bayleStage = getBayleStageData(bayleState.stage);
     const bayleLightningRemaining = Math.max(0, bayleStage.lightningCharges - bayleState.lightningChargesUsed);
+    const arkiusSolar = getArkiusSolarData(actor, arkiusState);
+    const arkiusUsesRemaining = Math.max(0, arkiusState.nucleoEmBrasas.maxUses - arkiusState.nucleoEmBrasas.usesSpent);
+    const arkiusBracoChargesRemaining = Math.max(0, arkiusState.bracoEvolutivo.maxCharges - arkiusState.bracoEvolutivo.chargesSpent);
+    const arkiusAttunementLabels: Record<ArkiusAttunement, string> = {
+      none: "Nenhuma",
+      fluxo: "Fluxo",
+      brasas: "Brasas",
+    };
     const campaignCores = Object.values(ETHERNUM.CAMPAIGN_CORES).map(core => ({
       ...core,
       active: core.id === state.activeCore,
@@ -2604,12 +3382,30 @@ export class UniqueMechanicsSystem {
         : null,
       concordia: {
         arkius: {
+          state: arkiusState,
+          assets: {
+            wide: ARKIUS_FRAME_WIDE_ASSET,
+            tall: ARKIUS_FRAME_TALL_ASSET,
+            balanced: ARKIUS_FRAME_BALANCED_ASSET,
+          },
+          statusLabel: arkiusState.nucleoEmBrasas.active ? "Ativo" : "Inativo",
+          usesRemaining: arkiusUsesRemaining,
+          nucleoPercent: Math.round((arkiusState.nucleoEmBrasas.remainingRounds / ARKIUS_NUCLEO_MAX_ROUNDS) * 100),
+          maxRounds: ARKIUS_NUCLEO_MAX_ROUNDS,
+          attunementLabel: arkiusAttunementLabels[arkiusState.nucleoEmBrasas.attunement],
+          firstProcLabel: arkiusState.nucleoEmBrasas.firstFireMetalProcUsed ? "Usado" : "Disponível",
+          solar: arkiusSolar,
+          bracoChargesRemaining: arkiusBracoChargesRemaining,
           macroSlots: [
             "await game.ethernum.macros.concordia.arkius.showStatus();",
-            "await game.ethernum.macros.concordia.arkius.toggleThermalNimbus();",
-            "await game.ethernum.macros.concordia.arkius.syncThermalNimbusAura();",
-            "await game.ethernum.macros.concordia.arkius.clearThermalNimbusAura();",
-            "await game.ethernum.macros.concordia.arkius.toggleGateJunctionFire();",
+            "await game.ethernum.macros.concordia.arkius.toggleNucleoEmBrasas();",
+            "await game.ethernum.macros.concordia.arkius.setSintoniaFluxo();",
+            "await game.ethernum.macros.concordia.arkius.setSintoniaBrasas();",
+            "await game.ethernum.macros.concordia.arkius.markPersistentFireProc();",
+            "await game.ethernum.macros.concordia.arkius.exaurirOSol();",
+            "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
+            "await game.ethernum.macros.concordia.arkius.shortRestReset();",
+            "await game.ethernum.macros.concordia.arkius.longRestReset();",
           ],
         },
       },

@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq uniqueMechanics.activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if uniqueMechanics.isEthernumCompanyCore}}{{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}}{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq uniqueMechanics.activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if uniqueMechanics.isEthernumCompanyCore}}{{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}}{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}ethernum-unique-arkius-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
   <section class="ethernum-section ethernum-core-selector">
     <div class="ethernum-core-selector-heading">
       <span><i class="fas fa-layer-group"></i> Núcleo de campanha</span>
@@ -42,6 +42,12 @@
       <strong>{{uniqueMechanics.pipping.state.pulse}}/6 PS</strong>
     </div>
     {{/if}}
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}
+    <div class="ethernum-unique-resource-pill ethernum-arkius-resource-pill {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}active{{/if}}">
+      <span>{{uniqueMechanics.concordia.arkius.usesRemaining}}</span>
+      <strong>{{uniqueMechanics.concordia.arkius.statusLabel}} · {{uniqueMechanics.concordia.arkius.attunementLabel}}</strong>
+    </div>
+    {{/if}}
   </div>
 
   {{#if (ethernum-eq uniqueMechanics.activeProfile "")}}
@@ -80,6 +86,171 @@
         {{/each}}
       </div>
       {{/if}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}
+  <section class="ethernum-section ethernum-arkius-hero" style="--arkius-bg-wide: url('{{uniqueMechanics.concordia.arkius.assets.wide}}'); --arkius-bg-tall: url('{{uniqueMechanics.concordia.arkius.assets.tall}}');">
+    <div class="ethernum-arkius-hero-content">
+      <span class="ethernum-arkius-kicker">Concórdia RPG</span>
+      <h2>Arkius Jacker</h2>
+      <p>Force a Marca: Núcleo em Brasas</p>
+      <div class="ethernum-arkius-hero-actions">
+        <button type="button" class="ethernum-button-small ethernum-arkius-show-status">
+          <i class="fas fa-eye"></i> Status
+        </button>
+        <button type="button" class="ethernum-button-small ethernum-arkius-toggle-nucleo">
+          <i class="fas fa-fire-flame-curved"></i> {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}Encerrar{{else}}Ativar{{/if}}
+        </button>
+      </div>
+    </div>
+    <div class="ethernum-arkius-hero-grid">
+      <div>
+        <span>Status</span>
+        <strong>{{uniqueMechanics.concordia.arkius.statusLabel}}</strong>
+        <small>{{uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.usesSpent}}/{{uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.maxUses}} usos no descanso longo</small>
+      </div>
+      <div>
+        <span>Rodadas</span>
+        <strong>{{uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.remainingRounds}}/{{uniqueMechanics.concordia.arkius.maxRounds}}</strong>
+        <small>Exaurir usa até 6 rodadas restantes</small>
+      </div>
+      <div>
+        <span>Sintonia</span>
+        <strong>{{uniqueMechanics.concordia.arkius.attunementLabel}}</strong>
+        <small>Fluxo ou Brasas, 1 vez por turno</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-arkius-nucleo">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-fire"></i> Núcleo em Brasas</span>
+      <button type="button" class="ethernum-button-small ethernum-arkius-toggle-nucleo">
+        <i class="fas fa-power-off"></i> {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}Encerrar postura{{else}}Ativar postura{{/if}}
+      </button>
+    </h2>
+    <div class="ethernum-arkius-state-grid">
+      <div class="ethernum-arkius-meter" style="--arkius-percent: {{uniqueMechanics.concordia.arkius.nucleoPercent}}%">
+        <span>Rodadas restantes</span>
+        <strong>{{uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.remainingRounds}}</strong>
+        <i></i>
+        <div class="ethernum-arkius-meter-actions">
+          <button type="button" class="ethernum-button-small ethernum-arkius-adjust-rounds" data-delta="-1"><i class="fas fa-minus"></i></button>
+          <button type="button" class="ethernum-button-small ethernum-arkius-adjust-rounds" data-delta="1"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+      <div class="ethernum-arkius-warning">
+        <strong>Fraqueza Aberta</strong>
+        <p>Enquanto a postura estiver ativa, registre perda de imunidade/resistência a Gelo e Eletricidade e fraqueza 5 a ambos.</p>
+      </div>
+      <div class="ethernum-arkius-warning {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.fireMetalImpulsesLocked}}danger{{/if}}">
+        <strong>Impulsos Fogo/Metal</strong>
+        <p>{{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.fireMetalImpulsesLocked}}Bloqueados até descanso curto.{{else}}Disponíveis. Fogo recebe Metal e Metal recebe Fogo durante a postura.{{/if}}</p>
+      </div>
+    </div>
+    <div class="ethernum-arkius-action-row">
+      <button type="button" class="ethernum-button-small ethernum-arkius-set-attunement" data-attunement="fluxo" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}}>
+        <i class="fas fa-wind"></i> Fluxo
+      </button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-set-attunement" data-attunement="brasas" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}}>
+        <i class="fas fa-burst"></i> Brasas
+      </button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-mark-proc" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}} {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.firstFireMetalProcUsed}}disabled{{/if}}>
+        <i class="fas fa-droplet"></i> 2d6 fogo persistente: {{uniqueMechanics.concordia.arkius.firstProcLabel}}
+      </button>
+    </div>
+    <div class="ethernum-arkius-details-grid">
+      <details class="ethernum-animated-details ethernum-arkius-details" open>
+        <summary><i class="fas fa-circle-info"></i> Fluxo</summary>
+        <div class="ethernum-arkius-details-body">
+          <p>Uma vez durante o turno, reduz em 1 o custo de um Impulso Cinético, mínimo de 1 ação. Não funciona em Overflow nem em Explosão Elemental.</p>
+        </div>
+      </details>
+      <details class="ethernum-animated-details ethernum-arkius-details">
+        <summary><i class="fas fa-circle-info"></i> Brasas</summary>
+        <div class="ethernum-arkius-details-body">
+          <p>Uma vez neste turno, um Impulso ou Explosão Elemental de pelo menos 2 ações adiciona +1 dado de dano e aumenta o passo do dado. Aplica Desajeitado 1 até o início do próximo turno.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-arkius-solar">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-sun"></i> Exaurir o Sol</span>
+      <button type="button" class="ethernum-button-small ethernum-arkius-exaurir" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}}>
+        <i class="fas fa-dice-d20"></i> Executar
+      </button>
+    </h2>
+    <div class="ethernum-arkius-solar-grid">
+      <div>
+        <span>Fórmula prevista</span>
+        <strong>{{uniqueMechanics.concordia.arkius.solar.formula}}</strong>
+        <small>{{uniqueMechanics.concordia.arkius.solar.baseFormula}} + {{uniqueMechanics.concordia.arkius.solar.extraDice}}{{uniqueMechanics.concordia.arkius.solar.extraDie}}</small>
+      </div>
+      <div>
+        <span>Salvamento</span>
+        <strong>Reflexos básico</strong>
+        <small>{{uniqueMechanics.concordia.arkius.solar.dcLabel}} cinética</small>
+      </div>
+      <div>
+        <span>Colapso</span>
+        <strong>Drenado {{uniqueMechanics.concordia.arkius.solar.drainedValue}}</strong>
+        <small>Desajeitado 2 e bloqueio Fogo/Metal</small>
+      </div>
+    </div>
+    <div class="ethernum-arkius-area-list">
+      {{#each uniqueMechanics.concordia.arkius.solar.areas}}
+      <span>{{this.label}}</span>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-arkius-braco">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-shield-halved"></i> Braço Evolutivo</span>
+      <button type="button" class="ethernum-button-small ethernum-arkius-resilience" {{#unless uniqueMechanics.concordia.arkius.bracoChargesRemaining}}disabled{{/unless}}>
+        <i class="fas fa-shield"></i> Resiliência Reativa
+      </button>
+    </h2>
+    <div class="ethernum-arkius-braco-grid">
+      <div>
+        <span>Cargas por descanso curto</span>
+        <strong>{{uniqueMechanics.concordia.arkius.bracoChargesRemaining}}/{{uniqueMechanics.concordia.arkius.state.bracoEvolutivo.maxCharges}}</strong>
+        <small>Reação quando você ou aliado até 20 ft sofre dano</small>
+      </div>
+      <div>
+        <span>Resistência</span>
+        <strong>{{uniqueMechanics.concordia.arkius.state.bracoEvolutivo.resistanceFormula}}</strong>
+        <small>Fonte do dano definida pelo gatilho</small>
+      </div>
+      <div class="locked">
+        <span>Nível 13</span>
+        <strong>Bloqueado</strong>
+        <small>Upgrade reservado para detalhamento futuro</small>
+      </div>
+      <div class="locked">
+        <span>Nível 17</span>
+        <strong>Bloqueado</strong>
+        <small>Upgrade reservado para detalhamento futuro</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-arkius-rests">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-hourglass-half"></i> Descansos e macros</span>
+    </h2>
+    <div class="ethernum-arkius-action-row">
+      <button type="button" class="ethernum-button-small ethernum-arkius-short-rest"><i class="fas fa-mug-hot"></i> Descanso curto</button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-long-rest"><i class="fas fa-bed"></i> Descanso longo</button>
+    </div>
+    <div class="ethernum-concordia-macro-grid">
+      {{#each uniqueMechanics.concordia.arkius.macroSlots}}
+      <code>{{this}}</code>
+      {{/each}}
     </div>
   </section>
   {{/if}}
