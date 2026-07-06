@@ -5,6 +5,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.3.13] - 2026-07-05
+
+### Alterado
+- O tracker automático agora força atualização visual das fichas abertas após ganhos de SP, Ardor ou Pulso.
+- O parser de mensagens PF2e ficou mais estrito e ignora rolagens de dano, reagindo apenas a rolagens de ataque.
+
+### Adicionado
+- Marca da Proporção agora cria um efeito PF2e no Gyro com +2 de circunstância no próximo Strike e limpa esse efeito após a rolagem de ataque.
+
 ## [3.3.12] - 2026-07-05
 
 ### Adicionado

@@ -11,6 +11,7 @@ export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
+const GYRO_PROPORTION_MARK_EFFECT_SLUG = "gyro-marca-da-proporcao-proximo-strike";
 
 export interface UniqueMechanicsState {
   activeProfile: UniqueMechanicProfileId;
@@ -1350,11 +1351,11 @@ function getChatMessageContext(message: ChatMessage): Record<string, unknown> {
 function isPF2EAttackRollMessage(message: ChatMessage): boolean {
   const context = getChatMessageContext(message);
   const type = String(context.type ?? context.rollType ?? "");
+  if (type.includes("damage")) return false;
   if (type === "attack-roll" || type === "strike-attack-roll") return true;
+  if (type && type !== "check") return false;
   const domains = Array.isArray(context.domains) ? context.domains.map(String) : [];
-  const options = Array.isArray(context.options) ? context.options.map(String) : [];
-  return domains.some(domain => domain.includes("attack-roll") || domain.includes("strike"))
-    || options.some(option => option === "action:strike" || option.includes("attack"));
+  return domains.some(domain => domain.includes("attack-roll"));
 }
 
 function isPF2EHitMessage(message: ChatMessage): boolean {
@@ -1416,6 +1417,30 @@ function targetRefsIncludeActor(refs: Set<string>, actor: Actor): boolean {
   return Array.from(refs).some(ref => ref === actorId || ref === actorUuid || ref.includes(actorId) || ref.includes(actorUuid));
 }
 
+function refreshActorMechanicsViews(actor: Actor): void {
+  window.setTimeout(() => {
+    try {
+      (actor as Actor & { sheet?: Application }).sheet?.render(false);
+      for (const app of Object.values(ui.windows ?? {})) {
+        const actorApp = app as Application & { actor?: Actor };
+        if (actorApp.actor?.id === actor.id) actorApp.render(false);
+      }
+      const appInstances = (foundry.applications as unknown as {
+        instances?: Map<string, Application> | Set<Application>;
+      }).instances;
+      if (appInstances) {
+        const values = "values" in appInstances ? appInstances.values() : [];
+        for (const app of values as Iterable<Application>) {
+          const actorApp = app as Application & { actor?: Actor };
+          if (actorApp.actor?.id === actor.id) actorApp.render(false);
+        }
+      }
+    } catch (error) {
+      console.warn("Ethernum RPG Module | Could not refresh unique mechanics views", error);
+    }
+  }, 75);
+}
+
 export class UniqueMechanicsSystem {
   static getControlledActor(): Actor | null {
     return getControlledActor();
@@ -1443,6 +1468,55 @@ export class UniqueMechanicsSystem {
     await (actor as Actor & {
       update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<Actor>;
     }).update({ [`flags.${ETHERNUM.MODULE_NAME}.uniqueMechanics`]: state }, { render: false });
+  }
+
+  static async removeGyroProportionMarkAttackEffect(actor: Actor): Promise<void> {
+    const items = Array.from((actor.items ?? []) as Collection<Item>);
+    const effects = items.filter(item => {
+      const itemData = item as Item & { slug?: string; getFlag?: (scope: string, key: string) => unknown };
+      const slug = itemData.slug ?? String(asRecord(item.system).slug ?? "");
+      return slug === GYRO_PROPORTION_MARK_EFFECT_SLUG
+        || itemData.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueEffect") === "gyro-proportion-mark-attack";
+    });
+    await Promise.all(effects.map(effect => effect.delete()));
+  }
+
+  static async applyGyroProportionMarkAttackEffect(actor: Actor, target: EthernumTargetChoice): Promise<void> {
+    await this.removeGyroProportionMarkAttackEffect(actor);
+    const level = getActorLevel(actor);
+    const effectData = {
+      name: "Marca da Proporção — próximo Strike",
+      type: "effect",
+      img: GYRO_SPINBALL_ASSET,
+      system: {
+        slug: GYRO_PROPORTION_MARK_EFFECT_SLUG,
+        description: {
+          value: `<p>O próximo Strike de Steel Ball recebe +2 de circunstância contra ${escapeHtml(target.name)}. O alvo marcado continua sincronizado para ganho extra de SP.</p>`,
+        },
+        level: { value: level },
+        duration: { value: -1, unit: "unlimited", sustained: false, expiry: null },
+        tokenIcon: { show: true },
+        traits: { value: [] },
+        rules: [
+          {
+            key: "FlatModifier",
+            selector: "strike-attack-roll",
+            type: "circumstance",
+            value: 2,
+            label: "Marca da Proporção",
+          },
+        ],
+      },
+      flags: {
+        [ETHERNUM.MODULE_NAME]: {
+          uniqueEffect: "gyro-proportion-mark-attack",
+          targetActorKey: target.actorKey,
+        },
+      },
+    };
+    await (actor as Actor & {
+      createEmbeddedDocuments: (embeddedName: "Item", data: Record<string, unknown>[], operation?: Record<string, unknown>) => Promise<Item[]>;
+    }).createEmbeddedDocuments("Item", [effectData], { render: false });
   }
 
   static getGyroState(actor: Actor): GyroSpinState {
@@ -1597,10 +1671,21 @@ export class UniqueMechanicsSystem {
 
   static async handlePF2EChatMessage(message: ChatMessage): Promise<void> {
     if (game.system?.id !== "pf2e") return;
-    if (!isPF2EAttackRollMessage(message) || !isPF2EHitMessage(message)) return;
+    if (!isPF2EAttackRollMessage(message)) return;
 
     const attacker = getActorFromChatMessage(message);
     const targetRefs = chatMessageTargetRefs(message);
+    const touchedActors = new Set<Actor>();
+
+    if (attacker && this.getState(attacker).activeProfile === GYRO_PROFILE_ID) {
+      await this.removeGyroProportionMarkAttackEffect(attacker);
+      touchedActors.add(attacker);
+    }
+
+    if (!isPF2EHitMessage(message)) {
+      touchedActors.forEach(refreshActorMechanicsViews);
+      return;
+    }
 
     if (attacker) {
       const attackerProfile = this.getState(attacker).activeProfile;
@@ -1611,27 +1696,33 @@ export class UniqueMechanicsSystem {
           : false;
         await this.gainGyroSP(attacker, markedHit ? 2 : 1, "");
         if (markedHit) ui.notifications?.info(`${attacker.name}: +2 SP por acerto contra alvo marcado.`);
+        touchedActors.add(attacker);
       }
       if (attackerProfile === BAYLE_PROFILE_ID) {
         await this.adjustBayleArdor(attacker, 1);
         ui.notifications?.info(`${attacker.name}: +1 Ardor por acertar.`);
+        touchedActors.add(attacker);
       }
       if (attackerProfile === PIPPING_PROFILE_ID) {
         const pippingState = this.getPippingState(attacker);
         await this.updatePippingState(attacker, { pulse: clamp(pippingState.pulse + 1, 0, 6) });
         ui.notifications?.info(`${attacker.name}: +1 Pulso Sombrio por acertar.`);
+        touchedActors.add(attacker);
       }
     }
 
-    if (targetRefs.size === 0) return;
-    for (const actor of game.actors ?? []) {
-      if ((actor.type as string) !== "character") continue;
-      if (this.getState(actor).activeProfile !== BAYLE_PROFILE_ID) continue;
-      if (attacker?.id && actor.id === attacker.id) continue;
-      if (!targetRefsIncludeActor(targetRefs, actor)) continue;
-      await this.adjustBayleArdor(actor, 1);
-      ui.notifications?.info(`${actor.name}: +1 Ardor por ser acertado.`);
+    if (targetRefs.size > 0) {
+      for (const actor of game.actors ?? []) {
+        if ((actor.type as string) !== "character") continue;
+        if (this.getState(actor).activeProfile !== BAYLE_PROFILE_ID) continue;
+        if (attacker?.id && actor.id === attacker.id) continue;
+        if (!targetRefsIncludeActor(targetRefs, actor)) continue;
+        await this.adjustBayleArdor(actor, 1);
+        ui.notifications?.info(`${actor.name}: +1 Ardor por ser acertado.`);
+        touchedActors.add(actor);
+      }
     }
+    touchedActors.forEach(refreshActorMechanicsViews);
   }
 
   static async showPippingStatus(actor?: Actor | null, title = "Pipping — Expressão da Noite"): Promise<void> {
@@ -2101,13 +2192,14 @@ export class UniqueMechanicsSystem {
       const choice = await chooseTargetChoice("Marca da Proporção", actor, false);
       if (!choice) return;
       await this.updateGyroState(actor, { proportionMarkTargetId: choice.actorKey });
+      await this.applyGyroProportionMarkAttackEffect(actor, choice);
       await ChatMessage.create({
         speaker: ChatMessage.getSpeaker({ actor }),
         content: `
           <div class="ethernum-unique-chat-card">
             <h3>Marca da Proporção</h3>
             <p><strong>Alvo marcado:</strong> ${escapeHtml(choice.name)}</p>
-            <p>O próximo acerto de Steel Ball contra este alvo pode receber +2 e gera +1 SP adicional.</p>
+            <p>Um efeito PF2e foi criado em Gyro: o próximo Strike recebe +2 de circunstância. Acertos contra o alvo marcado geram +1 SP adicional.</p>
           </div>`,
       });
       void this.playGyroSpinAnimation(choice.actor, "status");
