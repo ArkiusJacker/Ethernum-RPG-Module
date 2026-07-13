@@ -34,7 +34,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--color-bg, #fff);
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 .ethernum-container {
@@ -3148,6 +3148,56 @@
 
 .ethernum-unique-chat-card p {
   margin: 4px 0;
+}
+
+.ethernum-concordia-chat-card {
+  border-color: rgba(255, 106, 31, 0.55);
+  background:
+    radial-gradient(circle at 18% 0, rgba(255, 106, 31, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(7, 3, 3, 0.96), rgba(39, 7, 6, 0.9) 58%, rgba(7, 3, 3, 0.96));
+  color: #f3d2bd;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.46), 0 0 14px rgba(227, 38, 22, 0.18);
+}
+
+.ethernum-concordia-chat-card h3 {
+  color: #ff6a1f;
+  text-shadow: 0 0 10px rgba(255, 106, 31, 0.32);
+}
+
+.ethernum-concordia-chat-card p {
+  color: rgba(243, 210, 189, 0.9);
+}
+
+.ethernum-concordia-chat-card strong {
+  color: #ff9a3d;
+}
+
+.ethernum-arkius-thermal-card {
+  border-color: rgba(255, 106, 31, 0.72);
+}
+
+.ethernum-bayle-chat-card {
+  border-color: rgba(242, 221, 114, 0.46);
+  background:
+    radial-gradient(circle at 16% 0, rgba(224, 74, 47, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(20, 7, 7, 0.94), rgba(67, 19, 14, 0.86));
+  color: var(--bayle-bone, #f3dcc4);
+}
+
+.ethernum-bayle-chat-card strong {
+  color: var(--bayle-lightning, #f2dd72);
+}
+
+.ethernum-pipping-chat-card {
+  border-color: rgba(100, 136, 232, 0.48);
+  background:
+    radial-gradient(circle at 12% 4%, rgba(224, 24, 64, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(5, 7, 19, 0.95), rgba(10, 12, 28, 0.9) 64%, rgba(42, 8, 24, 0.86));
+  color: var(--pipping-ice, #d8e5ff);
+}
+
+.ethernum-pipping-chat-card strong {
+  color: var(--pipping-blue, #6488e8);
 }
 
 .ethernum-unique-tab.ethernum-container {

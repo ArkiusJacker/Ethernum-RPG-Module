@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.5] - 2026-07-13
+
+### Adicionado
+- Botão e macro gerenciado de Thermal Nimbus para Arkius Jacker, integrados à Aura Cinética.
+- Thermal Nimbus tenta aplicar dano automático em inimigos que entram na aura ou iniciam o turno nela, ignorando aliados.
+- Gate Junction de Fogo pode ser alternada na aba para somar o dano extra da aura.
+
+### Alterado
+- Cards de chat de Arkius/Concórdia usam paleta preta, vermelha e laranja em vez do padrão verde do Gyro.
+- Cards de chat de Bayle e Pipping passam a ter estilos baseados no tema de cada personagem.
+- Fraquezas exibidas/aplicadas para Arkius agora são filtradas para Fogo, Metal e Área; Thermal Nimbus consulta apenas fraqueza de Fogo.
+
+### Corrigido
+- O alias `clearThermalNimbusAura` agora limpa a aura em vez de alterná-la acidentalmente.
+- Cliques na aba de Mecânica Única deixam de animar o scroll do topo até a posição anterior.
+- Migração de schema adiciona estado persistente de Thermal Nimbus a atores antigos.
+
 ## [3.4.4] - 2026-07-13
 
 ### Adicionado

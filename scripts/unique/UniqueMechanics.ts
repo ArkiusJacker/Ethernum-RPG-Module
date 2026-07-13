@@ -39,6 +39,7 @@ const ARKIUS_END_CLUMSY_EFFECT_SLUG = "arkius-nucleo-encerrado-desajeitado";
 const ARKIUS_DRAINED_EFFECT_SLUG = "arkius-exaurir-o-sol-drenado";
 const ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG = "arkius-impulsos-fogo-metal-bloqueados";
 const ARKIUS_KINETIC_AURA_EFFECT_SLUG = "arkius-aura-cinetica";
+const ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG = "arkius-thermal-nimbus";
 const ARKIUS_NUCLEO_MAX_ROUNDS = 10;
 const ARKIUS_KINETIC_AURA_DISTANCE = 10;
 
@@ -240,6 +241,11 @@ export interface ArkiusJackerState {
     radius: number;
     templateId?: string;
   };
+  thermalNimbus: {
+    active: boolean;
+    fireAuraJunction: boolean;
+    appliedTurnKeys: Record<string, string>;
+  };
   concordiaAspect: ArkiusConcordiaAspect;
   bracoEvolutivo: {
     chargesSpent: number;
@@ -253,6 +259,7 @@ export interface ArkiusJackerState {
 type PartialArkiusJackerState = {
   nucleoEmBrasas?: Partial<ArkiusJackerState["nucleoEmBrasas"]>;
   kineticAura?: Partial<ArkiusJackerState["kineticAura"]>;
+  thermalNimbus?: Partial<ArkiusJackerState["thermalNimbus"]>;
   concordiaAspect?: ArkiusConcordiaAspect;
   bracoEvolutivo?: Partial<ArkiusJackerState["bracoEvolutivo"]>;
 };
@@ -343,6 +350,11 @@ const DEFAULT_ARKIUS_STATE: ArkiusJackerState = {
   kineticAura: {
     active: false,
     radius: ARKIUS_KINETIC_AURA_DISTANCE,
+  },
+  thermalNimbus: {
+    active: false,
+    fireAuraJunction: false,
+    appliedTurnKeys: {},
   },
   concordiaAspect: "chains",
   bracoEvolutivo: {
@@ -1197,6 +1209,12 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
+function asStringRecord(value: unknown): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(asRecord(value)).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  );
+}
+
 function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
@@ -1391,6 +1409,7 @@ function normalizeArkiusState(raw: unknown): ArkiusJackerState {
   const state = asRecord(raw);
   const nucleo = asRecord(state.nucleoEmBrasas);
   const kineticAura = asRecord(state.kineticAura);
+  const thermalNimbus = asRecord(state.thermalNimbus);
   const braco = asRecord(state.bracoEvolutivo);
   const startedRound = Number(nucleo.startedRound);
   const startedTurn = Number(nucleo.startedTurn);
@@ -1423,6 +1442,12 @@ function normalizeArkiusState(raw: unknown): ArkiusJackerState {
       active: Boolean(kineticAura.active),
       radius: clamp(Number(kineticAura.radius ?? ARKIUS_KINETIC_AURA_DISTANCE) || ARKIUS_KINETIC_AURA_DISTANCE, 5, 60),
       templateId: typeof kineticAura.templateId === "string" ? kineticAura.templateId : undefined,
+    },
+    thermalNimbus: {
+      ...DEFAULT_ARKIUS_STATE.thermalNimbus,
+      active: Boolean(thermalNimbus.active),
+      fireAuraJunction: Boolean(thermalNimbus.fireAuraJunction),
+      appliedTurnKeys: asStringRecord(thermalNimbus.appliedTurnKeys),
     },
     concordiaAspect: normalizeArkiusConcordiaAspect(state.concordiaAspect),
     bracoEvolutivo: {
@@ -1836,6 +1861,17 @@ async function removeArkiusKineticAuraTemplate(actor: Actor, templateId?: string
   if (ids.length > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
 }
 
+function findArkiusKineticAuraTemplate(actor: Actor, templateId?: string): (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null {
+  const actorKey = getActorKey(actor);
+  const template = getSceneMeasuredTemplates().find(template => {
+    const sameTemplate = templateId && template.id === templateId;
+    const sameAura = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG;
+    const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
+    return sameTemplate || (sameAura && sameActor);
+  });
+  return (template ?? null) as (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null;
+}
+
 async function createArkiusKineticAuraTemplate(actor: Actor, radius: number): Promise<string | undefined> {
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
   const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]> } | undefined;
@@ -1858,6 +1894,21 @@ async function createArkiusKineticAuraTemplate(actor: Actor, radius: number): Pr
   }]);
   const template = Array.isArray(created) ? asRecord(created[0]) : {};
   return typeof template.id === "string" ? template.id : undefined;
+}
+
+async function syncArkiusKineticAuraTemplate(actor: Actor): Promise<string | undefined> {
+  const state = normalizeArkiusState(asRecord(UniqueMechanicsSystem.getState(actor).profiles)[ARKIUS_JACKER_PROFILE_ID]);
+  if (!state.kineticAura.active) return undefined;
+  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
+  if (!token?.center) return state.kineticAura.templateId;
+  const template = findArkiusKineticAuraTemplate(actor, state.kineticAura.templateId);
+  if (!template?.update) return createArkiusKineticAuraTemplate(actor, state.kineticAura.radius);
+  await template.update({
+    x: token.center.x,
+    y: token.center.y,
+    distance: state.kineticAura.radius,
+  }, { render: false });
+  return template.id ?? state.kineticAura.templateId;
 }
 
 function getSelectedArkiusSolarArea(data: ArkiusSolarData, state: ArkiusJackerState): ArkiusSolarArea {
@@ -2050,6 +2101,63 @@ function findArkiusSolarTargets(actor: Actor, template: ArkiusTemplateResult | n
     }));
 }
 
+function getTokenLikeActor(token: unknown): Actor | null {
+  const direct = asRecord(token);
+  const object = asRecord(direct.object);
+  return (direct.actor ?? object.actor ?? null) as Actor | null;
+}
+
+function getTokenLikeCenter(token: unknown): { x: number; y: number } | null {
+  const direct = asRecord(token);
+  const object = asRecord(direct.object);
+  const directCenter = asRecord(direct.center);
+  const objectCenter = asRecord(object.center);
+  const centerX = Number(directCenter.x ?? objectCenter.x);
+  const centerY = Number(directCenter.y ?? objectCenter.y);
+  if (Number.isFinite(centerX) && Number.isFinite(centerY)) return { x: centerX, y: centerY };
+
+  const x = Number(direct.x ?? object.x);
+  const y = Number(direct.y ?? object.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const gridSize = getCanvasGridScale().size;
+  const width = Number(direct.width ?? object.width ?? 1) || 1;
+  const height = Number(direct.height ?? object.height ?? 1) || 1;
+  return {
+    x: x + (width * gridSize) / 2,
+    y: y + (height * gridSize) / 2,
+  };
+}
+
+function getTokenLikeDisposition(token: unknown): number {
+  const direct = asRecord(token);
+  const object = asRecord(direct.object);
+  const document = asRecord(direct.document ?? object.document);
+  const value = Number(direct.disposition ?? document.disposition ?? object.disposition);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getCanvasTokenPlaceables(): unknown[] {
+  return Array.from(((canvas as unknown as { tokens?: { placeables?: unknown[] } })?.tokens?.placeables ?? []));
+}
+
+function tokensAreAllied(sourceToken: unknown, targetToken: unknown): boolean {
+  const sourceActor = getTokenLikeActor(sourceToken);
+  const targetActor = getTokenLikeActor(targetToken);
+  if (!sourceActor || !targetActor) return false;
+  if (sourceActor.id === targetActor.id) return true;
+  const sourceDisposition = getTokenLikeDisposition(sourceToken);
+  const targetDisposition = getTokenLikeDisposition(targetToken);
+  return sourceDisposition !== 0 && sourceDisposition === targetDisposition;
+}
+
+function tokenInArkiusKineticAura(sourceToken: unknown, targetToken: unknown, radius: number): boolean {
+  const sourceCenter = getTokenLikeCenter(sourceToken);
+  const targetCenter = getTokenLikeCenter(targetToken);
+  if (!sourceCenter || !targetCenter) return false;
+  const distance = pixelsToSceneDistance(Math.hypot(targetCenter.x - sourceCenter.x, targetCenter.y - sourceCenter.y));
+  return distance <= radius;
+}
+
 async function confirmArkiusSolarTargets(targets: ArkiusSolarTarget[], area: ArkiusSolarArea): Promise<ArkiusSolarTarget[]> {
   if (targets.length === 0) {
     ui.notifications?.info("Exaurir o Sol: nenhum token detectado na área. O dano ficará para resolução manual, se necessário.");
@@ -2069,7 +2177,7 @@ async function confirmArkiusSolarTargets(targets: ArkiusSolarTarget[], area: Ark
             </label>
           `).join("")}
         </div>
-        <p class="hint">Fraquezas de fogo, área e Gate Junction são somadas quando o PF2e expõe esse dado no ator. Resistências e imunidades ainda podem exigir conferência do mestre.</p>
+        <p class="hint">Fraquezas de Fogo, Metal e Área são somadas quando o PF2e expõe esse dado no ator. Resistências e imunidades ainda podem exigir conferência do mestre.</p>
       </form>`;
     new Dialog({
       title: "Exaurir o Sol - alvos",
@@ -2150,7 +2258,13 @@ function readNumericWeaknessValue(entry: Record<string, unknown>): number {
   return 0;
 }
 
-function getArkiusTriggeredWeaknesses(actor: Actor): { total: number; labels: string[] } {
+interface ArkiusWeaknessOptions {
+  fire?: boolean;
+  metal?: boolean;
+  area?: boolean;
+}
+
+function getArkiusTriggeredWeaknesses(actor: Actor, options: ArkiusWeaknessOptions = { fire: true, metal: true, area: true }): { total: number; labels: string[] } {
   const system = asRecord(actor.system);
   const attributes = asRecord(system.attributes);
   const weaknessesRaw = asRecord(attributes.weaknesses);
@@ -2163,14 +2277,14 @@ function getArkiusTriggeredWeaknesses(actor: Actor): { total: number; labels: st
   for (const entryRaw of entries) {
     const entry = asRecord(entryRaw);
     const haystack = Array.from(collectLowercaseStrings(entry)).join(" ");
-    const triggersFire = haystack.includes("fire") || haystack.includes("fogo");
-    const triggersArea = haystack.includes("area") || haystack.includes("área") || haystack.includes("aoe");
-    const triggersGate = haystack.includes("gate") || haystack.includes("junction") || haystack.includes("gate-junction");
-    if (!triggersFire && !triggersArea && !triggersGate) continue;
+    const triggersFire = Boolean(options.fire) && (haystack.includes("fire") || haystack.includes("fogo"));
+    const triggersMetal = Boolean(options.metal) && haystack.includes("metal");
+    const triggersArea = Boolean(options.area) && (haystack.includes("area") || haystack.includes("área") || haystack.includes("aoe"));
+    if (!triggersFire && !triggersMetal && !triggersArea) continue;
 
     const value = readNumericWeaknessValue(entry);
     if (value <= 0) continue;
-    const label = String(entry.label ?? entry.type ?? entry.name ?? (triggersFire ? "Fogo" : triggersArea ? "Área" : "Gate Junction"));
+    const label = triggersFire ? "Fogo" : triggersMetal ? "Metal" : "Área";
     labels.push(`${label} ${value}`);
     total += value;
   }
@@ -2254,6 +2368,47 @@ function buildArkiusSolarChatCard(
         <p>O sol interno foi exaurido. O corpo continua de pé, mas o núcleo está vazio. Resistências, imunidades e fraquezas podem precisar de conferência manual.</p>
       </footer>
     </div>`;
+}
+
+interface ArkiusThermalNimbusResult {
+  sourceName: string;
+  targetName: string;
+  baseDamage: number;
+  junctionDamage: number;
+  weaknessDamage: number;
+  weaknessLabels: string[];
+  totalDamage: number;
+  applied: boolean;
+  trigger: string;
+}
+
+function getArkiusThermalNimbusDamage(actor: Actor): number {
+  return Math.max(1, Math.floor(getActorLevel(actor) / 2));
+}
+
+function buildArkiusThermalNimbusChatCard(result: ArkiusThermalNimbusResult): string {
+  const parts = [
+    `${result.baseDamage} Thermal Nimbus`,
+    result.junctionDamage > 0 ? `${result.junctionDamage} Junction de Fogo` : "",
+    result.weaknessDamage > 0 ? `${result.weaknessDamage} fraqueza` : "",
+  ].filter(Boolean);
+  return `
+    <div class="ethernum-unique-chat-card ethernum-concordia-chat-card ethernum-arkius-thermal-card">
+      <h3>Thermal Nimbus</h3>
+      <p><strong>${escapeHtml(result.targetName)}</strong> sofre <strong>${result.totalDamage}</strong> de dano de fogo.</p>
+      <p><strong>Origem:</strong> ${escapeHtml(result.sourceName)} · <strong>Gatilho:</strong> ${escapeHtml(result.trigger)}</p>
+      <p><strong>Cálculo:</strong> ${parts.map(escapeHtml).join(" + ")}</p>
+      ${result.weaknessLabels.length > 0 ? `<p><strong>Fraquezas aplicadas:</strong> ${result.weaknessLabels.map(escapeHtml).join(", ")}</p>` : ""}
+      ${result.applied ? "" : "<p><strong>Ajuste manual:</strong> o HP automático não pôde ser alterado.</p>"}
+    </div>`;
+}
+
+async function showArkiusThermalNimbusResult(source: Actor, result: ArkiusThermalNimbusResult): Promise<void> {
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor: source }),
+    flags: { [ETHERNUM.MODULE_NAME]: { uniqueMechanics: "arkius-thermal-nimbus" } } as Record<string, unknown>,
+    content: buildArkiusThermalNimbusChatCard(result),
+  });
 }
 
 function getNextDamageDieStep(baseDie: string): string {
@@ -2877,6 +3032,10 @@ export class UniqueMechanicsSystem {
         ...current.kineticAura,
         ...(patch.kineticAura ?? {}),
       },
+      thermalNimbus: {
+        ...current.thermalNimbus,
+        ...(patch.thermalNimbus ?? {}),
+      },
       concordiaAspect: patch.concordiaAspect ?? current.concordiaAspect,
       bracoEvolutivo: {
         ...current.bracoEvolutivo,
@@ -3234,6 +3393,37 @@ export class UniqueMechanicsSystem {
     return next;
   }
 
+  static async clearArkiusKineticAura(actor?: Actor | null, announce = true): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    await removeActorUniqueEffects(target, [ARKIUS_KINETIC_AURA_EFFECT_SLUG, ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG]);
+    await removeArkiusKineticAuraTemplate(target, state.kineticAura.templateId).catch(error => {
+      console.warn("Ethernum RPG Module | Could not remove Arkius kinetic aura template", error);
+    });
+    const next = await this.updateArkiusState(target, {
+      kineticAura: {
+        active: false,
+        templateId: undefined,
+      },
+      thermalNimbus: {
+        active: false,
+        appliedTurnKeys: {},
+      },
+    });
+    if (announce) {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `<div class="ethernum-unique-chat-card ethernum-concordia-chat-card"><h3>Aura Cinética encerrada</h3><p>A área cinética de Jacker foi removida do canvas e Thermal Nimbus foi desligada.</p></div>`,
+      });
+    }
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
   static async toggleArkiusKineticAura(actor?: Actor | null): Promise<ArkiusJackerState | null> {
     const target = actor ?? getControlledActor();
     if (!target) {
@@ -3242,22 +3432,7 @@ export class UniqueMechanicsSystem {
     }
     const state = this.getArkiusState(target);
     if (state.kineticAura.active) {
-      await removeActorUniqueEffects(target, [ARKIUS_KINETIC_AURA_EFFECT_SLUG]);
-      await removeArkiusKineticAuraTemplate(target, state.kineticAura.templateId).catch(error => {
-        console.warn("Ethernum RPG Module | Could not remove Arkius kinetic aura template", error);
-      });
-      const next = await this.updateArkiusState(target, {
-        kineticAura: {
-          active: false,
-          templateId: undefined,
-        },
-      });
-      await ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ actor: target }),
-        content: `<div class="ethernum-unique-chat-card ethernum-concordia-chat-card"><h3>Aura Cinética encerrada</h3><p>A área cinética de Jacker foi removida do canvas.</p></div>`,
-      });
-      refreshActorMechanicsViews(target);
-      return next;
+      return this.clearArkiusKineticAura(target);
     }
 
     const radius = state.kineticAura.radius || ARKIUS_KINETIC_AURA_DISTANCE;
@@ -3281,6 +3456,160 @@ export class UniqueMechanicsSystem {
     });
     refreshActorMechanicsViews(target);
     return next;
+  }
+
+  static async syncArkiusKineticAuraTemplate(actor?: Actor | null): Promise<string | undefined> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return undefined;
+    }
+    const templateId = await syncArkiusKineticAuraTemplate(target).catch(error => {
+      console.warn("Ethernum RPG Module | Could not sync Arkius kinetic aura template", error);
+      return undefined;
+    });
+    if (templateId) {
+      const state = this.getArkiusState(target);
+      if (state.kineticAura.templateId !== templateId) {
+        await this.updateArkiusState(target, { kineticAura: { templateId } });
+      }
+    }
+    return templateId;
+  }
+
+  static async toggleThermalNimbus(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (state.thermalNimbus.active) {
+      await removeActorUniqueEffects(target, [ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG]);
+      const next = await this.updateArkiusState(target, {
+        thermalNimbus: {
+          active: false,
+          appliedTurnKeys: {},
+        },
+      });
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `<div class="ethernum-unique-chat-card ethernum-concordia-chat-card"><h3>Thermal Nimbus encerrada</h3><p>A nuvem térmica deixa de causar dano automático na Aura Cinética.</p></div>`,
+      });
+      refreshActorMechanicsViews(target);
+      return next;
+    }
+
+    const radius = state.kineticAura.radius || ARKIUS_KINETIC_AURA_DISTANCE;
+    let templateId = state.kineticAura.templateId;
+    if (!state.kineticAura.active) {
+      templateId = await createArkiusKineticAuraTemplate(target, radius).catch(error => {
+        console.warn("Ethernum RPG Module | Could not create Arkius kinetic aura template for Thermal Nimbus", error);
+        return undefined;
+      });
+      await applyArkiusKineticAuraEffect(target, radius).catch(error => {
+        console.warn("Ethernum RPG Module | Could not apply Arkius kinetic aura effect for Thermal Nimbus", error);
+      });
+    } else {
+      templateId = await this.syncArkiusKineticAuraTemplate(target) ?? templateId;
+    }
+
+    await applyArkiusNarrativeEffect(
+      target,
+      ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG,
+      "Thermal Nimbus",
+      `<p>Inimigos que entram ou começam o turno na Aura Cinética sofrem ${getArkiusThermalNimbusDamage(target)} de dano de fogo. Aliados são ignorados pela automação.</p>`
+    ).catch(error => console.warn("Ethernum RPG Module | Could not apply Thermal Nimbus effect", error));
+    const next = await this.updateArkiusState(target, {
+      kineticAura: {
+        active: true,
+        radius,
+        templateId,
+      },
+      thermalNimbus: {
+        active: true,
+        appliedTurnKeys: {},
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `<div class="ethernum-unique-chat-card ethernum-concordia-chat-card"><h3>Thermal Nimbus ativa</h3><p>Inimigos na Aura Cinética sofrem dano automático ao entrar ou iniciar o turno nela. Aliados são ignorados.</p></div>`,
+    });
+    await this.applyThermalNimbusToTokensInAura(target, "ativação");
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async toggleGateJunctionFire(actor?: Actor | null): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    const next = await this.updateArkiusState(target, {
+      thermalNimbus: {
+        fireAuraJunction: !state.thermalNimbus.fireAuraJunction,
+      },
+    });
+    ui.notifications?.info(`Gate Junction de Fogo ${next.thermalNimbus.fireAuraJunction ? "ativada" : "desativada"}.`);
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async applyThermalNimbusToTokensInAura(actor: Actor, trigger = "aura"): Promise<void> {
+    const sourceToken = getActorToken(actor);
+    if (!sourceToken) return;
+    const state = this.getArkiusState(actor);
+    if (!state.thermalNimbus.active || !state.kineticAura.active) return;
+    for (const token of getCanvasTokenPlaceables()) {
+      await this.applyThermalNimbusToToken(actor, token, trigger);
+    }
+  }
+
+  static async applyThermalNimbusToToken(actor: Actor, targetToken: unknown, trigger = "entrada na aura"): Promise<boolean> {
+    if (!game.user?.isGM || !game.combat) return false;
+    const state = this.getArkiusState(actor);
+    if (!state.thermalNimbus.active || !state.kineticAura.active) return false;
+    const sourceToken = getActorToken(actor);
+    const targetActor = getTokenLikeActor(targetToken);
+    if (!sourceToken || !targetActor || targetActor.id === actor.id) return false;
+    if (tokensAreAllied(sourceToken, targetToken)) return false;
+    if (!tokenInArkiusKineticAura(sourceToken, targetToken, state.kineticAura.radius)) return false;
+
+    const turnKey = getCombatTurnKey() ?? `${game.combat.id ?? "combat"}:${game.combat.round ?? 0}`;
+    const targetKey = getActorKey(targetActor);
+    if (state.thermalNimbus.appliedTurnKeys[targetKey] === turnKey) return false;
+
+    const baseDamage = getArkiusThermalNimbusDamage(actor);
+    const junctionDamage = state.thermalNimbus.fireAuraJunction ? getArkiusThermalNimbusDamage(actor) : 0;
+    const weakness = getArkiusTriggeredWeaknesses(targetActor, { fire: true });
+    const totalDamage = baseDamage + junctionDamage + weakness.total;
+    const applied = await applyActorHpDelta(targetActor, -totalDamage).catch(error => {
+      console.warn("Ethernum RPG Module | Could not apply Thermal Nimbus damage", error);
+      return false;
+    });
+
+    await this.updateArkiusState(actor, {
+      thermalNimbus: {
+        appliedTurnKeys: {
+          ...state.thermalNimbus.appliedTurnKeys,
+          [targetKey]: turnKey,
+        },
+      },
+    });
+    await showArkiusThermalNimbusResult(actor, {
+      sourceName: String(actor.name ?? "Arkius"),
+      targetName: String(targetActor.name ?? "Alvo"),
+      baseDamage,
+      junctionDamage,
+      weaknessDamage: weakness.total,
+      weaknessLabels: weakness.labels,
+      totalDamage,
+      applied,
+      trigger,
+    });
+    return true;
   }
 
   static async markPersistentFireProc(actor?: Actor | null): Promise<Roll | null> {
@@ -3433,6 +3762,7 @@ export class UniqueMechanicsSystem {
       ARKIUS_BRASAS_CLUMSY_EFFECT_SLUG,
       ARKIUS_END_CLUMSY_EFFECT_SLUG,
       ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG,
+      ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG,
     ]);
     const next = await this.updateArkiusState(target, {
       nucleoEmBrasas: {
@@ -3447,6 +3777,10 @@ export class UniqueMechanicsSystem {
       },
       bracoEvolutivo: {
         chargesSpent: 0,
+      },
+      thermalNimbus: {
+        active: false,
+        appliedTurnKeys: {},
       },
     });
     await ChatMessage.create({
@@ -3473,6 +3807,7 @@ export class UniqueMechanicsSystem {
       ARKIUS_END_CLUMSY_EFFECT_SLUG,
       ARKIUS_FIRE_METAL_LOCK_EFFECT_SLUG,
       ARKIUS_DRAINED_EFFECT_SLUG,
+      ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG,
     ]);
     const next = await this.updateArkiusState(target, {
       nucleoEmBrasas: {
@@ -3490,6 +3825,10 @@ export class UniqueMechanicsSystem {
       },
       bracoEvolutivo: {
         chargesSpent: 0,
+      },
+      thermalNimbus: {
+        active: false,
+        appliedTurnKeys: {},
       },
     });
     await ChatMessage.create({
@@ -3601,6 +3940,7 @@ export class UniqueMechanicsSystem {
   static async handleCombatTurnAdvance(combat: Combat): Promise<void> {
     if (!game.user?.isGM) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
+    await this.handleArkiusThermalNimbusTurnStart(combat);
     const actor = combatData.combatant?.actor;
     if (!actor || (actor.type as string) !== "character") return;
     if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return;
@@ -3631,6 +3971,43 @@ export class UniqueMechanicsSystem {
       },
     });
     refreshActorMechanicsViews(actor);
+  }
+
+  static getActiveThermalNimbusActors(): Actor[] {
+    return Array.from(game.actors ?? []).filter(actor => {
+      if ((actor.type as string) !== "character") return false;
+      if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return false;
+      const state = this.getArkiusState(actor);
+      return state.thermalNimbus.active && state.kineticAura.active;
+    });
+  }
+
+  static async handleArkiusThermalNimbusTurnStart(combat: Combat): Promise<void> {
+    if (!game.user?.isGM) return;
+    const targetToken = (combat as Combat & { combatant?: { token?: unknown; tokenId?: string; actor?: Actor } }).combatant?.token;
+    const targetActor = (combat as Combat & { combatant?: { actor?: Actor } }).combatant?.actor;
+    if (!targetActor) return;
+    const token = targetToken ?? getActorToken(targetActor);
+    if (!token) return;
+    for (const actor of this.getActiveThermalNimbusActors()) {
+      await this.applyThermalNimbusToToken(actor, token, "início do turno");
+    }
+  }
+
+  static async handleTokenUpdate(tokenDocument: unknown, changed: unknown): Promise<void> {
+    if (!game.user?.isGM) return;
+    const changes = asRecord(changed);
+    const moved = "x" in changes || "y" in changes || "elevation" in changes;
+    if (!moved) return;
+    const movedActor = getTokenLikeActor(tokenDocument);
+    for (const actor of this.getActiveThermalNimbusActors()) {
+      if (movedActor?.id === actor.id) {
+        await this.syncArkiusKineticAuraTemplate(actor);
+        await this.applyThermalNimbusToTokensInAura(actor, "aura movida");
+      } else {
+        await this.applyThermalNimbusToToken(actor, tokenDocument, "entrada na aura");
+      }
+    }
   }
 
   static async showPippingStatus(actor?: Actor | null, title = "Pipping — Expressão da Noite"): Promise<void> {
@@ -4566,6 +4943,9 @@ export class UniqueMechanicsSystem {
           nucleoPercent: Math.round((arkiusState.nucleoEmBrasas.remainingRounds / ARKIUS_NUCLEO_MAX_ROUNDS) * 100),
           maxRounds: ARKIUS_NUCLEO_MAX_ROUNDS,
           kineticAuraLabel: arkiusState.kineticAura.active ? `Aura ${arkiusState.kineticAura.radius} ft` : "Aura inativa",
+          thermalNimbusLabel: arkiusState.thermalNimbus.active
+            ? `Thermal Nimbus ${getArkiusThermalNimbusDamage(actor)} fogo${arkiusState.thermalNimbus.fireAuraJunction ? " + Junction" : ""}`
+            : "Thermal Nimbus inativa",
           aspects: arkiusAspects,
           activeAspectClass: `aspect-${arkiusState.concordiaAspect}`,
           attunementLabel: arkiusAttunementLabels[arkiusState.nucleoEmBrasas.attunement],
@@ -4581,6 +4961,9 @@ export class UniqueMechanicsSystem {
             "await game.ethernum.macros.concordia.arkius.consumeSintoniaBrasas();",
             "await game.ethernum.macros.concordia.arkius.setSolarArea(\"cone\");",
             "await game.ethernum.macros.concordia.arkius.toggleKineticAura();",
+            "await game.ethernum.macros.concordia.arkius.toggleThermalNimbus();",
+            "await game.ethernum.macros.concordia.arkius.toggleGateJunctionFire();",
+            "await game.ethernum.macros.concordia.arkius.clearThermalNimbusAura();",
             "await game.ethernum.macros.concordia.arkius.markPersistentFireProc();",
             "await game.ethernum.macros.concordia.arkius.exaurirOSol();",
             "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",

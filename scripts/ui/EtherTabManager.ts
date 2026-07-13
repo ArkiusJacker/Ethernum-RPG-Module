@@ -135,6 +135,8 @@ export class EtherTabManager {
     };
     restore();
     window.requestAnimationFrame(restore);
+    window.setTimeout(restore, 0);
+    window.setTimeout(restore, 80);
   }
 
   static _buildTemplateData(actor: Actor, isGM: boolean): Record<string, unknown> {
@@ -649,11 +651,22 @@ export class EtherTabManager {
     isGM: boolean
   ): Promise<void> {
     this._saveScrollPositions(html, actor.id!);
+    const $container = html.find('.ethernum-content[data-ethernum-tab="ethernum-unique"]');
+    const previousScroll = $container.scrollTop() ?? 0;
+    const previousVisibility = $container.css('visibility');
+    $container.css('visibility', 'hidden');
     const renderTpl = (foundry.applications as Record<string, unknown> & { handlebars?: { renderTemplate?: typeof renderTemplate } })
       ?.handlebars?.renderTemplate ?? renderTemplate;
     const uniqueTemplate = await renderTpl(`${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`, this._buildTemplateData(actor, isGM));
-    html.find('.ethernum-content[data-ethernum-tab="ethernum-unique"]').html(uniqueTemplate);
-    this._restoreScrollPositions(html, actor.id!);
+    $container.html(uniqueTemplate);
+    const restoreUniqueScroll = () => {
+      $container.scrollTop(previousScroll);
+      this._restoreScrollPositions(html, actor.id!);
+      $container.css('visibility', previousVisibility || '');
+    };
+    restoreUniqueScroll();
+    window.requestAnimationFrame(restoreUniqueScroll);
+    window.setTimeout(restoreUniqueScroll, 0);
     this._activateUniqueListeners(app, html, actor, isGM);
   }
 
@@ -910,6 +923,20 @@ export class EtherTabManager {
       ev.preventDefault();
       rememberScroll();
       await UniqueMechanicsSystem.toggleArkiusKineticAura(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-thermal-nimbus').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleThermalNimbus(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-gate-junction').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleGateJunctionFire(actor);
       await refreshUnique();
     });
 

@@ -111,6 +111,9 @@
         <button type="button" class="ethernum-button-small ethernum-arkius-kinetic-aura {{#if uniqueMechanics.concordia.arkius.state.kineticAura.active}}pending{{/if}}">
           <i class="fas fa-circle-nodes"></i> {{#if uniqueMechanics.concordia.arkius.state.kineticAura.active}}Desligar aura{{else}}Aura cinética{{/if}}
         </button>
+        <button type="button" class="ethernum-button-small ethernum-arkius-thermal-nimbus {{#if uniqueMechanics.concordia.arkius.state.thermalNimbus.active}}pending{{/if}}">
+          <i class="fas fa-temperature-three-quarters"></i> {{#if uniqueMechanics.concordia.arkius.state.thermalNimbus.active}}Nimbus ativa{{else}}Thermal Nimbus{{/if}}
+        </button>
       </div>
     </div>
     <div class="ethernum-arkius-hero-grid">
@@ -127,7 +130,7 @@
       <div>
         <span>Sintonia</span>
         <strong>{{uniqueMechanics.concordia.arkius.attunementLabel}}</strong>
-        <small>{{uniqueMechanics.concordia.arkius.kineticAuraLabel}} · Fluxo ou Brasas, 1 vez por turno</small>
+        <small>{{uniqueMechanics.concordia.arkius.kineticAuraLabel}} · {{uniqueMechanics.concordia.arkius.thermalNimbusLabel}}</small>
       </div>
     </div>
   </section>
@@ -173,6 +176,9 @@
       </button>
       <button type="button" class="ethernum-button-small ethernum-arkius-mark-proc" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}} {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.firstFireMetalProcUsed}}disabled{{/if}}>
         <i class="fas fa-droplet"></i> 2d6 fogo persistente: {{uniqueMechanics.concordia.arkius.firstProcLabel}}
+      </button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-gate-junction {{#if uniqueMechanics.concordia.arkius.state.thermalNimbus.fireAuraJunction}}pending{{/if}}">
+        <i class="fas fa-fire-flame-curved"></i> {{#if uniqueMechanics.concordia.arkius.state.thermalNimbus.fireAuraJunction}}Junction Fogo ativa{{else}}Gate Junction Fogo{{/if}}
       </button>
     </div>
     <div class="ethernum-arkius-details-grid">

@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 5;
+const CURRENT_SCHEMA_VERSION = 6;
 
 interface EtherSystem {
   etherMax: number;
@@ -46,6 +46,11 @@ const DEFAULT_ARKIUS_STATE = {
   kineticAura: {
     active: false,
     radius: 10,
+  },
+  thermalNimbus: {
+    active: false,
+    fireAuraJunction: false,
+    appliedTurnKeys: {},
   },
   concordiaAspect: "chains",
   bracoEvolutivo: {
@@ -214,6 +219,7 @@ export async function migrateActor(actor: Actor): Promise<void> {
     const existingArkius = (existingProfiles["arkius-jacker"] ?? {}) as {
       nucleoEmBrasas?: Record<string, unknown>;
       kineticAura?: Record<string, unknown>;
+      thermalNimbus?: Record<string, unknown>;
       bracoEvolutivo?: Record<string, unknown>;
       [key: string]: unknown;
     };
@@ -234,6 +240,10 @@ export async function migrateActor(actor: Actor): Promise<void> {
             ...DEFAULT_ARKIUS_STATE.kineticAura,
             ...(existingArkius.kineticAura ?? {}),
           },
+          thermalNimbus: {
+            ...DEFAULT_ARKIUS_STATE.thermalNimbus,
+            ...(existingArkius.thermalNimbus ?? {}),
+          },
           concordiaAspect: typeof existingArkius.concordiaAspect === "string" ? existingArkius.concordiaAspect : DEFAULT_ARKIUS_STATE.concordiaAspect,
           bracoEvolutivo: {
             ...DEFAULT_ARKIUS_STATE.bracoEvolutivo,
@@ -243,6 +253,34 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v5`);
+  }
+
+  if (schemaVersion < 6) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingArkius = (existingProfiles["arkius-jacker"] ?? {}) as {
+      thermalNimbus?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      profiles: {
+        ...existingProfiles,
+        "arkius-jacker": {
+          ...DEFAULT_ARKIUS_STATE,
+          ...existingArkius,
+          thermalNimbus: {
+            ...DEFAULT_ARKIUS_STATE.thermalNimbus,
+            ...(existingArkius.thermalNimbus ?? {}),
+          },
+        },
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v6`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

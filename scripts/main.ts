@@ -45,6 +45,11 @@ const ARKIUS_MANAGED_MACROS = [
     flag: "arkius-kinetic-aura",
   },
   {
+    name: "Ethernum - Arkius: Thermal Nimbus",
+    command: "await game.ethernum.macros.concordia.arkius.toggleThermalNimbus();",
+    flag: "arkius-thermal-nimbus",
+  },
+  {
     name: "Ethernum - Arkius: Resiliência Reativa",
     command: "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
     flag: "arkius-resiliencia-reativa",
@@ -131,10 +136,10 @@ declare global {
             resilienciaReativa: (actor?: Actor | null) => Promise<unknown>;
             shortRestReset: (actor?: Actor | null) => Promise<unknown>;
             longRestReset: (actor?: Actor | null) => Promise<unknown>;
-            toggleThermalNimbus: (actor?: Actor | null) => Promise<void>;
-            syncThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
-            clearThermalNimbusAura: (actor?: Actor | null) => Promise<void>;
-            toggleGateJunctionFire: (actor?: Actor | null) => Promise<void>;
+            toggleThermalNimbus: (actor?: Actor | null) => Promise<unknown>;
+            syncThermalNimbusAura: (actor?: Actor | null) => Promise<unknown>;
+            clearThermalNimbusAura: (actor?: Actor | null) => Promise<unknown>;
+            toggleGateJunctionFire: (actor?: Actor | null) => Promise<unknown>;
           };
         };
       };
@@ -260,13 +265,13 @@ function buildMacroApi() {
         longRestReset: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.longRestReset(resolveMacroActor(actor)),
         toggleThermalNimbus: async (actor?: Actor | null) =>
-          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Thermal Nimbus", resolveMacroActor(actor)),
+          UniqueMechanicsSystem.toggleThermalNimbus(resolveMacroActor(actor)),
         syncThermalNimbusAura: async (actor?: Actor | null) =>
-          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Sincronizar aura Thermal Nimbus", resolveMacroActor(actor)),
+          UniqueMechanicsSystem.syncArkiusKineticAuraTemplate(resolveMacroActor(actor)),
         clearThermalNimbusAura: async (actor?: Actor | null) =>
-          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Limpar aura Thermal Nimbus", resolveMacroActor(actor)),
+          UniqueMechanicsSystem.clearArkiusKineticAura(resolveMacroActor(actor)),
         toggleGateJunctionFire: async (actor?: Actor | null) =>
-          UniqueMechanicsSystem.notifyConcordiaArkiusStandby("Gate Junction Fire", resolveMacroActor(actor)),
+          UniqueMechanicsSystem.toggleGateJunctionFire(resolveMacroActor(actor)),
       },
     },
   };
@@ -392,6 +397,9 @@ Hooks.on("createChatMessage", (message: ChatMessage) => {
 });
 Hooks.on("updateCombat", (combat: Combat) => {
   void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);
+});
+Hooks.on("updateToken", (tokenDocument: TokenDocument, changed: Record<string, unknown>) => {
+  void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed);
 });
 
 Hooks.once("init", () => {
