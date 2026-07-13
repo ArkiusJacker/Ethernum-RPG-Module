@@ -631,6 +631,14 @@ export class EtherTabManager {
       }
     });
 
+    html.find('.ethernum-rune-profile').on('change', async (ev) => {
+      if (!isGM) return;
+      this._saveScrollPositions(html, actor.id!);
+      const profileId = (ev.target as HTMLSelectElement).value as UniqueMechanicProfileId;
+      await UniqueMechanicsSystem.setActiveProfile(actor, profileId);
+      app.render();
+    });
+
     this._activateUniqueListeners(app, html, actor, isGM);
   }
 
@@ -887,6 +895,21 @@ export class EtherTabManager {
       rememberScroll();
       const area = String($(ev.currentTarget).data('area'));
       await UniqueMechanicsSystem.setArkiusSolarArea(actor, area as "emanation" | "cone" | "line");
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-aspect-option').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      const aspect = String($(ev.currentTarget).data('aspect'));
+      await UniqueMechanicsSystem.setArkiusConcordiaAspect(actor, aspect as "chains" | "ruby" | "convergence");
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-kinetic-aura').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleArkiusKineticAura(actor);
       await refreshUnique();
     });
 

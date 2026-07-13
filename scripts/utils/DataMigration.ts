@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 4;
+const CURRENT_SCHEMA_VERSION = 5;
 
 interface EtherSystem {
   etherMax: number;
@@ -43,6 +43,11 @@ const DEFAULT_ARKIUS_STATE = {
     fireMetalImpulsesLocked: false,
     exaurirUsed: false,
   },
+  kineticAura: {
+    active: false,
+    radius: 10,
+  },
+  concordiaAspect: "chains",
   bracoEvolutivo: {
     chargesSpent: 0,
     maxCharges: 2,
@@ -199,6 +204,45 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v4`);
+  }
+
+  if (schemaVersion < 5) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingArkius = (existingProfiles["arkius-jacker"] ?? {}) as {
+      nucleoEmBrasas?: Record<string, unknown>;
+      kineticAura?: Record<string, unknown>;
+      bracoEvolutivo?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      profiles: {
+        ...existingProfiles,
+        "arkius-jacker": {
+          ...DEFAULT_ARKIUS_STATE,
+          ...existingArkius,
+          nucleoEmBrasas: {
+            ...DEFAULT_ARKIUS_STATE.nucleoEmBrasas,
+            ...(existingArkius.nucleoEmBrasas ?? {}),
+          },
+          kineticAura: {
+            ...DEFAULT_ARKIUS_STATE.kineticAura,
+            ...(existingArkius.kineticAura ?? {}),
+          },
+          concordiaAspect: typeof existingArkius.concordiaAspect === "string" ? existingArkius.concordiaAspect : DEFAULT_ARKIUS_STATE.concordiaAspect,
+          bracoEvolutivo: {
+            ...DEFAULT_ARKIUS_STATE.bracoEvolutivo,
+            ...(existingArkius.bracoEvolutivo ?? {}),
+          },
+        },
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v5`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

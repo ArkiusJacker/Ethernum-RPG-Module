@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.4] - 2026-07-13
+
+### Adicionado
+- Macro gerenciado de Aura Cinética para Arkius Jacker, com efeito narrativo e template circular independente do Núcleo em Brasas.
+- Ressonâncias visuais de Concórdia abaixo de Exaurir o Sol: Correntes Douradas, Escamas Rubras e Convergência.
+- Sistema de Runas agora possui seletor de personagem e painel visual preparado para runas de Concórdia/Arkius Jacker.
+- Controle de turno do encontro atualiza rodadas do Núcleo em Brasas e limpa a penalidade pendente de Brasas no início do turno de Arkius.
+
+### Alterado
+- Sintonia de Brasas agora rola a fórmula corrigida completa: todos os dados sobem um passo e o primeiro grupo ganha +1 dado.
+- Exaurir o Sol agora cria o template primeiro e espera o ajuste manual no canvas antes de detectar alvos e aplicar salvamentos.
+
+### Corrigido
+- Núcleo em Brasas passa a tentar aplicar fraqueza 5 a Gelo e Eletricidade como Rule Elements PF2e.
+- Exaurir o Sol soma fraquezas detectadas de Fogo, Área e Gate Junction ao dano aplicado automaticamente.
+- Tema de Arkius/Concórdia foi reforçado nas abas de mecânicas únicas e runas para remover herança visual esverdeada.
+
 ## [3.4.3] - 2026-07-13
 
 ### Adicionado

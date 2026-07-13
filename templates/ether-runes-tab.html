@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-runes-tab {{#if (ethernum-eq activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq activeCore "concordia")}}ethernum-core-concordia{{/if}}">
+<div class="ethernum-container ethernum-runes-tab {{#if (ethernum-eq activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}ethernum-runes-arkius-theme{{/if}}">
 
   <section class="ethernum-section ethernum-core-selector ethernum-core-selector--runes">
     <div class="ethernum-core-selector-heading">
@@ -15,6 +15,39 @@
       {{/each}}
     </div>
   </section>
+
+  <section class="ethernum-section ethernum-rune-profile-selector">
+    <div class="ethernum-unique-profile-picker">
+      <i class="fas fa-fingerprint"></i>
+      <select class="ethernum-rune-profile" {{#unless isGM}}disabled{{/unless}}>
+        {{#each uniqueMechanics.profiles}}
+        <option value="{{this.id}}" {{#if (ethernum-eq ../uniqueMechanics.activeProfile this.id)}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </section>
+
+  {{#if (ethernum-eq activeCore "concordia")}}
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}
+  <section class="ethernum-section ethernum-arkius-rune-hero">
+    <picture class="ethernum-arkius-frame-bg" aria-hidden="true">
+      <source media="(max-width: 720px)" srcset="{{uniqueMechanics.concordia.arkius.assets.tall}}" />
+      <source media="(max-aspect-ratio: 4/3)" srcset="{{uniqueMechanics.concordia.arkius.assets.balanced}}" />
+      <img src="{{uniqueMechanics.concordia.arkius.assets.wide}}" alt="" loading="eager" />
+    </picture>
+    <div class="ethernum-arkius-rune-content">
+      <span>Concórdia RPG · Sistema de Runas</span>
+      <h2>Arkius Jacker</h2>
+      <p>Runas de Concórdia estão separadas das runas da Ethernum Company. Esta área fica preparada para receber sigilos, vínculos e custos próprios sem misturar campanhas.</p>
+    </div>
+    <div class="ethernum-arkius-rune-grid">
+      <div><strong>Correntes</strong><span>Selos de contenção, pacto e limite.</span><em>Em preparação</em></div>
+      <div><strong>Rubra</strong><span>Runas de fogo, escama e presença dracônica.</span><em>Em preparação</em></div>
+      <div><strong>Convergência</strong><span>Interseção entre marca, metal e brasa.</span><em>Em preparação</em></div>
+    </div>
+  </section>
+  {{/if}}
+  {{/if}}
 
   <!-- Barra de Éter Compacta -->
   <div class="ethernum-ether-topbar">

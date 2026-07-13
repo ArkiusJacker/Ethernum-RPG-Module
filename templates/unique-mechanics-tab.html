@@ -108,6 +108,9 @@
         <button type="button" class="ethernum-button-small ethernum-arkius-toggle-nucleo">
           <i class="fas fa-fire-flame-curved"></i> {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}Encerrar{{else}}Ativar{{/if}}
         </button>
+        <button type="button" class="ethernum-button-small ethernum-arkius-kinetic-aura {{#if uniqueMechanics.concordia.arkius.state.kineticAura.active}}pending{{/if}}">
+          <i class="fas fa-circle-nodes"></i> {{#if uniqueMechanics.concordia.arkius.state.kineticAura.active}}Desligar aura{{else}}Aura cinética{{/if}}
+        </button>
       </div>
     </div>
     <div class="ethernum-arkius-hero-grid">
@@ -124,7 +127,7 @@
       <div>
         <span>Sintonia</span>
         <strong>{{uniqueMechanics.concordia.arkius.attunementLabel}}</strong>
-        <small>Fluxo ou Brasas, 1 vez por turno</small>
+        <small>{{uniqueMechanics.concordia.arkius.kineticAuraLabel}} · Fluxo ou Brasas, 1 vez por turno</small>
       </div>
     </div>
   </section>
@@ -148,7 +151,7 @@
       </div>
       <div class="ethernum-arkius-warning">
         <strong>Fraqueza Aberta</strong>
-        <p>Enquanto a postura estiver ativa, registre perda de imunidade/resistência a Gelo e Eletricidade e fraqueza 5 a ambos.</p>
+        <p>Enquanto a postura estiver ativa, o efeito tenta aplicar fraqueza 5 a Gelo e Eletricidade. Perda de imunidade/resistência ainda fica para conferência do mestre.</p>
       </div>
       <div class="ethernum-arkius-warning {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.fireMetalImpulsesLocked}}danger{{/if}}">
         <strong>Impulsos Fogo/Metal</strong>
@@ -182,7 +185,7 @@
       <details class="ethernum-animated-details ethernum-arkius-details">
         <summary><i class="fas fa-circle-info"></i> Brasas</summary>
         <div class="ethernum-arkius-details-body">
-          <p>Uma vez neste turno, um Impulso ou Explosão Elemental de pelo menos 2 ações adiciona +1 dado de dano e aumenta o passo do dado. Aplica Desajeitado 1 até o início do próximo turno.</p>
+          <p>Uma vez neste turno, um Impulso ou Explosão Elemental de pelo menos 2 ações aumenta o passo de todos os dados de dano e adiciona +1 dado ao primeiro grupo de dados. Exemplo: 3d8 vira 4d10. Aplica Desajeitado 1 até o início do próximo turno.</p>
         </div>
       </details>
     </div>
@@ -217,6 +220,21 @@
       <button type="button" class="ethernum-arkius-area-option {{#if this.selected}}active{{/if}}" data-area="{{this.id}}">
         <i class="fas {{this.icon}}"></i>
         {{this.label}}
+      </button>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-arkius-aspects {{uniqueMechanics.concordia.arkius.activeAspectClass}}">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-circle-nodes"></i> Ressonâncias de Concórdia</span>
+    </h2>
+    <div class="ethernum-arkius-aspect-selector">
+      {{#each uniqueMechanics.concordia.arkius.aspects}}
+      <button type="button" class="ethernum-arkius-aspect-option {{this.id}} {{#if this.active}}active{{/if}}" data-aspect="{{this.id}}">
+        <i class="{{this.icon}}"></i>
+        <strong>{{this.label}}</strong>
+        <span>{{this.text}}</span>
       </button>
       {{/each}}
     </div>

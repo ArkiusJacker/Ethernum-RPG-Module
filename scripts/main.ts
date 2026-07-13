@@ -40,6 +40,11 @@ const ARKIUS_MANAGED_MACROS = [
     flag: "arkius-exaurir-o-sol",
   },
   {
+    name: "Ethernum - Arkius: Aura Cinética",
+    command: "await game.ethernum.macros.concordia.arkius.toggleKineticAura();",
+    flag: "arkius-kinetic-aura",
+  },
+  {
     name: "Ethernum - Arkius: Resiliência Reativa",
     command: "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
     flag: "arkius-resiliencia-reativa",
@@ -119,6 +124,8 @@ declare global {
             consumeSintoniaFluxo: (actor?: Actor | null) => Promise<unknown>;
             consumeSintoniaBrasas: (actor?: Actor | null) => Promise<unknown>;
             setSolarArea: (areaId?: "emanation" | "cone" | "line", actor?: Actor | null) => Promise<unknown>;
+            setConcordiaAspect: (aspect?: "chains" | "ruby" | "convergence", actor?: Actor | null) => Promise<unknown>;
+            toggleKineticAura: (actor?: Actor | null) => Promise<unknown>;
             markPersistentFireProc: (actor?: Actor | null) => Promise<unknown>;
             exaurirOSol: (actor?: Actor | null) => Promise<unknown>;
             resilienciaReativa: (actor?: Actor | null) => Promise<unknown>;
@@ -238,6 +245,10 @@ function buildMacroApi() {
           UniqueMechanicsSystem.consumeSintoniaBrasas(resolveMacroActor(actor)),
         setSolarArea: async (areaId: "emanation" | "cone" | "line" = "emanation", actor?: Actor | null) =>
           UniqueMechanicsSystem.setArkiusSolarArea(resolveMacroActor(actor), areaId),
+        setConcordiaAspect: async (aspect: "chains" | "ruby" | "convergence" = "chains", actor?: Actor | null) =>
+          UniqueMechanicsSystem.setArkiusConcordiaAspect(resolveMacroActor(actor), aspect),
+        toggleKineticAura: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.toggleArkiusKineticAura(resolveMacroActor(actor)),
         markPersistentFireProc: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.markPersistentFireProc(resolveMacroActor(actor)),
         exaurirOSol: async (actor?: Actor | null) =>
@@ -378,6 +389,9 @@ Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: 
 Hooks.on("createActor", (actor: Actor) => initializeActorFlags(actor));
 Hooks.on("createChatMessage", (message: ChatMessage) => {
   void UniqueMechanicsSystem.handlePF2EChatMessage(message);
+});
+Hooks.on("updateCombat", (combat: Combat) => {
+  void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);
 });
 
 Hooks.once("init", () => {
