@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 
 interface EtherSystem {
   etherMax: number;
@@ -35,6 +35,9 @@ const DEFAULT_ARKIUS_STATE = {
     maxUses: 2,
     remainingRounds: 0,
     attunement: "none",
+    pendingFluxoReduction: false,
+    pendingBrasasDamage: false,
+    selectedSolarArea: "emanation",
     firstFireMetalProcUsed: false,
     endedPenaltyActive: false,
     fireMetalImpulsesLocked: false,
@@ -163,6 +166,39 @@ export async function migrateActor(actor: Actor): Promise<void> {
       profiles,
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v3`);
+  }
+
+  if (schemaVersion < 4) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingArkius = (existingProfiles["arkius-jacker"] ?? {}) as {
+      nucleoEmBrasas?: Record<string, unknown>;
+      bracoEvolutivo?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      profiles: {
+        ...existingProfiles,
+        "arkius-jacker": {
+          ...DEFAULT_ARKIUS_STATE,
+          ...existingArkius,
+          nucleoEmBrasas: {
+            ...DEFAULT_ARKIUS_STATE.nucleoEmBrasas,
+            ...(existingArkius.nucleoEmBrasas ?? {}),
+          },
+          bracoEvolutivo: {
+            ...DEFAULT_ARKIUS_STATE.bracoEvolutivo,
+            ...(existingArkius.bracoEvolutivo ?? {}),
+          },
+        },
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v4`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

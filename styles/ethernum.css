@@ -1873,6 +1873,17 @@
     linear-gradient(135deg, rgba(7, 3, 3, 0.98), rgba(23, 5, 5, 0.98) 54%, rgba(4, 3, 3, 0.99));
 }
 
+.ethernum-container.ethernum-unique-tab.ethernum-unique-arkius-theme {
+  background-color: #070303 !important;
+  color: var(--arkius-bone);
+}
+
+.ethernum-container.ethernum-unique-tab.ethernum-unique-arkius-theme .ethernum-core-card,
+.ethernum-container.ethernum-unique-tab.ethernum-unique-arkius-theme .ethernum-unique-profile-picker {
+  border-color: rgba(227, 38, 22, 0.34);
+  background: linear-gradient(135deg, rgba(7, 3, 3, 0.84), rgba(43, 7, 7, 0.55));
+}
+
 .ethernum-unique-arkius-theme .ethernum-section:not(.ethernum-arkius-hero) {
   border-color: rgba(227, 38, 22, 0.42);
   background:
@@ -1916,6 +1927,12 @@
 .ethernum-unique-arkius-theme .ethernum-icon-button:hover {
   border-color: rgba(255, 106, 31, 0.72);
   box-shadow: 0 0 14px rgba(227, 38, 22, 0.18);
+}
+
+.ethernum-unique-arkius-theme .ethernum-button-small.pending {
+  border-color: rgba(255, 106, 31, 0.86);
+  color: #fff1d9;
+  box-shadow: 0 0 16px rgba(255, 106, 31, 0.24), inset 0 0 14px rgba(227, 38, 22, 0.18);
 }
 
 .ethernum-unique-arkius-theme .ethernum-core-card.active {
@@ -2155,7 +2172,7 @@
   margin-top: 12px;
 }
 
-.ethernum-arkius-area-list span {
+.ethernum-arkius-area-option {
   border: 1px solid rgba(227, 38, 22, 0.38);
   border-radius: 999px;
   background: rgba(7, 3, 3, 0.68);
@@ -2163,6 +2180,19 @@
   padding: 5px 9px;
   font-size: 0.82em;
   font-weight: 800;
+  cursor: pointer;
+}
+
+.ethernum-arkius-area-option.active {
+  border-color: rgba(255, 106, 31, 0.86);
+  background: linear-gradient(135deg, rgba(126, 21, 13, 0.88), rgba(20, 4, 4, 0.9));
+  color: #fff1d9;
+  box-shadow: 0 0 16px rgba(255, 106, 31, 0.2);
+}
+
+.ethernum-arkius-area-option i {
+  margin-right: 5px;
+  color: var(--arkius-orange);
 }
 
 .ethernum-arkius-braco-grid .locked {
@@ -2179,6 +2209,142 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.ethernum-arkius-target-choice,
+.ethernum-arkius-target-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ethernum-arkius-target-list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid rgba(227, 38, 22, 0.28);
+  border-radius: var(--eth-radius);
+  background: rgba(7, 3, 3, 0.2);
+}
+
+.ethernum-arkius-target-list small {
+  color: rgba(241, 221, 188, 0.7);
+}
+
+.ethernum-arkius-solar-chat-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 106, 31, 0.62);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 18% 0, rgba(255, 106, 31, 0.24), transparent 32%),
+    linear-gradient(135deg, #070303 0%, #260706 58%, #090404 100%);
+  color: #f3d2bd;
+  padding: 14px;
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.5), 0 0 18px rgba(227, 38, 22, 0.22);
+}
+
+.ethernum-arkius-solar-chat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 0 42%, rgba(255, 106, 31, 0.12) 48%, transparent 58%),
+    radial-gradient(circle at 84% 20%, rgba(227, 38, 22, 0.18), transparent 30%);
+  animation: ethernum-arkius-ember-shift 4.5s ease-in-out infinite alternate;
+}
+
+.ethernum-arkius-solar-chat-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ethernum-arkius-solar-chat-card header span {
+  color: #ff9a3d;
+  font-size: 0.72em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ethernum-arkius-solar-chat-card h2 {
+  margin: 4px 0;
+  color: #ff6a1f;
+  font-size: 1.6em;
+  letter-spacing: 0;
+  text-shadow: 0 0 14px rgba(255, 106, 31, 0.4);
+}
+
+.ethernum-arkius-solar-chat-card header p,
+.ethernum-arkius-solar-chat-card footer p {
+  margin: 4px 0 0;
+  color: rgba(243, 210, 189, 0.84);
+}
+
+.ethernum-arkius-solar-chat-card .solar-result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.ethernum-arkius-solar-chat-card .solar-result div,
+.ethernum-arkius-solar-chat-card .solar-targets {
+  border: 1px solid rgba(227, 38, 22, 0.44);
+  border-radius: 5px;
+  background: rgba(7, 3, 3, 0.68);
+  padding: 8px;
+}
+
+.ethernum-arkius-solar-chat-card .solar-result span,
+.ethernum-arkius-solar-chat-card .solar-result small,
+.ethernum-arkius-solar-chat-card .solar-targets span,
+.ethernum-arkius-solar-chat-card .solar-targets em,
+.ethernum-arkius-solar-chat-card footer span {
+  display: block;
+  color: rgba(243, 210, 189, 0.78);
+  font-size: 0.82em;
+}
+
+.ethernum-arkius-solar-chat-card .solar-result strong {
+  display: block;
+  color: #ff9a3d;
+  font-size: 1.3em;
+}
+
+.ethernum-arkius-solar-chat-card .solar-targets h3 {
+  margin: 0 0 6px;
+  color: #ff9a3d;
+  font-size: 1em;
+}
+
+.ethernum-arkius-solar-chat-card .solar-targets ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ethernum-arkius-solar-chat-card .solar-targets li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid rgba(227, 38, 22, 0.24);
+  padding-top: 6px;
+}
+
+.ethernum-arkius-solar-chat-card footer {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 106, 31, 0.28);
+  padding-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ethernum-arkius-solar-chat-card::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
@@ -2796,11 +2962,27 @@
   color: var(--pipping-ice);
 }
 
+.ethernum-unique-arkius-theme.ethernum-container {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(227, 38, 22, 0.18), transparent 32%),
+    radial-gradient(circle at 86% 78%, rgba(255, 106, 31, 0.1), transparent 34%),
+    linear-gradient(135deg, rgba(7, 3, 3, 0.98), rgba(23, 5, 5, 0.98) 54%, rgba(4, 3, 3, 0.99)) !important;
+  color: var(--arkius-bone);
+}
+
 .ethernum-unique-tab .ethernum-section {
   border-color: var(--gyro-border);
   background: linear-gradient(180deg, rgba(24, 35, 22, 0.96), rgba(13, 21, 14, 0.96));
   color: var(--gyro-bone);
   box-shadow: inset 0 1px 0 rgba(234, 223, 202, 0.06);
+}
+
+.ethernum-unique-arkius-theme .ethernum-section:not(.ethernum-arkius-hero) {
+  border-color: rgba(227, 38, 22, 0.42);
+  background:
+    linear-gradient(135deg, rgba(7, 3, 3, 0.9), rgba(34, 6, 6, 0.78)),
+    radial-gradient(circle at 96% 8%, rgba(255, 106, 31, 0.08), transparent 28%);
+  color: var(--arkius-bone);
 }
 
 .ethernum-unique-company-theme .ethernum-section {
@@ -2843,6 +3025,13 @@
 .ethernum-unique-company-theme .ethernum-unique-topbar {
   border-color: rgba(216, 189, 120, 0.34);
   background: linear-gradient(90deg, rgba(3, 3, 3, 0.92), rgba(43, 34, 14, 0.78));
+}
+
+.ethernum-unique-arkius-theme .ethernum-unique-topbar {
+  border-color: rgba(227, 38, 22, 0.44);
+  background:
+    linear-gradient(135deg, rgba(7, 3, 3, 0.92), rgba(36, 6, 6, 0.78)),
+    radial-gradient(circle at 70% 0, rgba(255, 106, 31, 0.1), transparent 26%);
 }
 
 .ethernum-unique-bayle-theme .ethernum-unique-topbar {
@@ -3533,6 +3722,20 @@
 .ethernum-unique-tab .ethernum-icon-button:hover {
   border-color: var(--gyro-gold);
   color: var(--gyro-gold);
+}
+
+.ethernum-unique-arkius-theme .ethernum-button-small,
+.ethernum-unique-arkius-theme .ethernum-icon-button {
+  border-color: rgba(227, 38, 22, 0.38);
+  background: linear-gradient(135deg, rgba(44, 7, 7, 0.88), rgba(12, 4, 4, 0.86));
+  color: var(--arkius-bone);
+}
+
+.ethernum-unique-arkius-theme .ethernum-button-small:hover,
+.ethernum-unique-arkius-theme .ethernum-icon-button:hover {
+  border-color: rgba(255, 106, 31, 0.72);
+  color: #fff1d9;
+  box-shadow: 0 0 14px rgba(227, 38, 22, 0.18);
 }
 
 .ethernum-gyro-panel,

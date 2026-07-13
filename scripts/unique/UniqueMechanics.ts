@@ -209,6 +209,7 @@ export interface PippingNightState {
 }
 
 export type ArkiusAttunement = "none" | "fluxo" | "brasas";
+export type ArkiusSolarAreaId = "emanation" | "cone" | "line";
 
 export interface ArkiusJackerState {
   nucleoEmBrasas: {
@@ -220,6 +221,9 @@ export interface ArkiusJackerState {
     combatId?: string;
     remainingRounds: number;
     attunement: ArkiusAttunement;
+    pendingFluxoReduction: boolean;
+    pendingBrasasDamage: boolean;
+    selectedSolarArea: ArkiusSolarAreaId;
     fluxoUsedTurnKey?: string;
     brasasUsedTurnKey?: string;
     firstFireMetalProcUsed: boolean;
@@ -316,6 +320,9 @@ const DEFAULT_ARKIUS_STATE: ArkiusJackerState = {
     maxUses: 2,
     remainingRounds: 0,
     attunement: "none",
+    pendingFluxoReduction: false,
+    pendingBrasasDamage: false,
+    selectedSolarArea: "emanation",
     firstFireMetalProcUsed: false,
     endedPenaltyActive: false,
     fireMetalImpulsesLocked: false,
@@ -1225,6 +1232,20 @@ function getGyroAnimationFile(variant: "technique" | "deviation" | "status"): st
   return jb2aModuleId ? `modules/${jb2aModuleId}/${jb2aFiles[variant]}` : GYRO_SPINBALL_ASSET;
 }
 
+function getArkiusAnimationFiles(area: ArkiusSolarArea): { charge: string; release: string } | null {
+  const jb2aModuleId = ["jb2a_patreon", "JB2A_DnD5e", "jb2a_free"].find(moduleId => game.modules?.get(moduleId)?.active);
+  if (!jb2aModuleId) return null;
+  const releaseByArea: Record<ArkiusSolarAreaId, string> = {
+    emanation: "Library/Generic/Explosion/Explosion_05_Regular_Orange_400x400.webm",
+    cone: "Library/Generic/Fire/FireCone_01_Regular_Orange_30ft.webm",
+    line: "Library/Generic/Fire/FireBolt_01_Regular_Orange_30ft.webm",
+  };
+  return {
+    charge: `modules/${jb2aModuleId}/Library/Generic/Particles/ParticlesOutward01_01_Regular_Orange_400x400.webm`,
+    release: `modules/${jb2aModuleId}/${releaseByArea[area.id]}`,
+  };
+}
+
 function getCombatRoundKey(): string | null {
   const combat = game.combat;
   if (!combat) return null;
@@ -1341,6 +1362,10 @@ function normalizeArkiusAttunement(value: unknown): ArkiusAttunement {
   return value === "fluxo" || value === "brasas" ? value : "none";
 }
 
+function normalizeArkiusSolarAreaId(value: unknown): ArkiusSolarAreaId {
+  return value === "cone" || value === "line" || value === "emanation" ? value : "emanation";
+}
+
 function normalizeArkiusState(raw: unknown): ArkiusJackerState {
   const state = asRecord(raw);
   const nucleo = asRecord(state.nucleoEmBrasas);
@@ -1360,6 +1385,9 @@ function normalizeArkiusState(raw: unknown): ArkiusJackerState {
       combatId: typeof nucleo.combatId === "string" ? nucleo.combatId : undefined,
       remainingRounds: clamp(Number(nucleo.remainingRounds ?? 0) || 0, 0, ARKIUS_NUCLEO_MAX_ROUNDS),
       attunement: normalizeArkiusAttunement(nucleo.attunement),
+      pendingFluxoReduction: Boolean(nucleo.pendingFluxoReduction),
+      pendingBrasasDamage: Boolean(nucleo.pendingBrasasDamage),
+      selectedSolarArea: normalizeArkiusSolarAreaId(nucleo.selectedSolarArea),
       fluxoUsedTurnKey: typeof nucleo.fluxoUsedTurnKey === "string" ? nucleo.fluxoUsedTurnKey : undefined,
       brasasUsedTurnKey: typeof nucleo.brasasUsedTurnKey === "string" ? nucleo.brasasUsedTurnKey : undefined,
       firstFireMetalProcUsed: Boolean(nucleo.firstFireMetalProcUsed),
@@ -1401,15 +1429,15 @@ interface EthernumTargetChoice {
   actorKey: string;
 }
 
-interface ArkiusSolarArea {
-  id: "emanation" | "cone" | "line";
+export interface ArkiusSolarArea {
+  id: ArkiusSolarAreaId;
   label: string;
   distance: number;
   templateType: "circle" | "cone" | "ray";
   angle?: number;
 }
 
-interface ArkiusSolarData {
+export interface ArkiusSolarData {
   formula: string;
   baseFormula: string;
   extraDice: number;
@@ -1419,6 +1447,52 @@ interface ArkiusSolarData {
   dcLabel: string;
   drainedValue: number;
   areas: ArkiusSolarArea[];
+}
+
+interface ArkiusTemplateResult {
+  area: ArkiusSolarArea;
+  templateDocument: unknown | null;
+  origin: { x: number; y: number };
+  direction: number;
+  width: number;
+}
+
+interface ArkiusSolarTarget {
+  id: string;
+  name: string;
+  actor: Actor;
+  token: {
+    id?: string;
+    name?: string;
+    actor?: Actor;
+    center?: { x: number; y: number };
+    document?: { disposition?: number; rotation?: number };
+  };
+  distance: number;
+}
+
+interface ArkiusSolarTargetResult {
+  name: string;
+  saveTotal: number;
+  natural: number;
+  degree: "Sucesso crítico" | "Sucesso" | "Falha" | "Falha crítica";
+  damageApplied: number;
+  applied: boolean;
+}
+
+interface ArkiusFluxoConsumption {
+  abilityName: string;
+  originalActions: number;
+  reducedActions: number;
+  auto: boolean;
+}
+
+interface ArkiusBrasasConsumption {
+  abilityName: string;
+  baseDie: string;
+  boostedDie: string;
+  damageType: string;
+  auto: boolean;
 }
 
 function escapeHtml(value: unknown): string {
@@ -1674,18 +1748,18 @@ async function applyArkiusNarrativeEffect(actor: Actor, slug: string, name: stri
   await createActorEffect(actor, buildArkiusEffectData(name, slug, description, []));
 }
 
-async function chooseArkiusSolarArea(data: ArkiusSolarData): Promise<ArkiusSolarArea | null> {
+function getSelectedArkiusSolarArea(data: ArkiusSolarData, state: ArkiusJackerState): ArkiusSolarArea {
+  return data.areas.find(area => area.id === state.nucleoEmBrasas.selectedSolarArea) ?? data.areas[0];
+}
+
+async function confirmArkiusSolarExecution(area: ArkiusSolarArea, data: ArkiusSolarData): Promise<boolean> {
   return new Promise(resolve => {
     let resolved = false;
     const content = `
       <form class="ethernum-arkius-area-choice">
-        <p>Escolha a área de <strong>Exaurir o Sol</strong>. O módulo tentará criar o template a partir do token de Arkius.</p>
-        ${data.areas.map((area, index) => `
-          <label>
-            <input type="radio" name="area" value="${area.id}" ${index === 0 ? "checked" : ""} />
-            <span>${escapeHtml(area.label)}</span>
-          </label>
-        `).join("")}
+        <p><strong>Área selecionada:</strong> ${escapeHtml(area.label)}</p>
+        <p><strong>Dano:</strong> ${escapeHtml(data.formula)} · <strong>Defesa:</strong> Reflexos básico ${escapeHtml(data.dcLabel)}.</p>
+        <p>O módulo criará o template, detectará tokens na área e pedirá confirmação antes de aplicar qualquer dano.</p>
       </form>`;
     new Dialog({
       title: "Exaurir o Sol",
@@ -1693,10 +1767,314 @@ async function chooseArkiusSolarArea(data: ArkiusSolarData): Promise<ArkiusSolar
       buttons: {
         confirm: {
           label: game.i18n!.localize("ETHERNUM.Buttons.Activate"),
+          callback: () => {
+            resolved = true;
+            resolve(true);
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(false);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(false);
+      },
+    }).render(true);
+  });
+}
+
+async function createArkiusSolarTemplate(actor: Actor, area: ArkiusSolarArea): Promise<ArkiusTemplateResult | null> {
+  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number }; document?: { rotation?: number } }) | null;
+  const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]> } | undefined;
+  if (!token?.center || !scene?.createEmbeddedDocuments) return null;
+  const userColor = String((game.user as unknown as { color?: string })?.color ?? "#d94122");
+  const direction = Number(token.document?.rotation ?? 0) || 0;
+  const templateData: Record<string, unknown> = {
+    t: area.templateType,
+    user: game.user?.id,
+    x: token.center.x,
+    y: token.center.y,
+    distance: area.distance,
+    direction,
+    fillColor: userColor,
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueTemplate: "arkius-exaurir-o-sol",
+      },
+    },
+  };
+  if (area.templateType === "cone") templateData.angle = area.angle ?? 90;
+  if (area.templateType === "ray") templateData.width = 5;
+  const created = await scene.createEmbeddedDocuments("MeasuredTemplate", [templateData]);
+  return {
+    area,
+    templateDocument: Array.isArray(created) ? created[0] ?? null : null,
+    origin: { x: token.center.x, y: token.center.y },
+    direction,
+    width: 5,
+  };
+}
+
+function getCanvasGridScale(): { size: number; distance: number } {
+  const grid = (canvas as unknown as { grid?: { size?: number }; scene?: { grid?: { size?: number; distance?: number } } } | undefined);
+  const size = Number(grid?.grid?.size ?? grid?.scene?.grid?.size ?? 100);
+  const distance = Number(grid?.scene?.grid?.distance ?? 5);
+  return {
+    size: Number.isFinite(size) && size > 0 ? size : 100,
+    distance: Number.isFinite(distance) && distance > 0 ? distance : 5,
+  };
+}
+
+function pixelsToSceneDistance(pixels: number): number {
+  const { size, distance } = getCanvasGridScale();
+  return (pixels / size) * distance;
+}
+
+function normalizeDegrees(value: number): number {
+  const normalized = value % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function angleDelta(a: number, b: number): number {
+  const diff = Math.abs(normalizeDegrees(a) - normalizeDegrees(b));
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function tokenCenterInArkiusArea(center: { x: number; y: number }, template: ArkiusTemplateResult): boolean {
+  const { area, origin } = template;
+  const dxPixels = center.x - origin.x;
+  const dyPixels = center.y - origin.y;
+  const dx = pixelsToSceneDistance(dxPixels);
+  const dy = pixelsToSceneDistance(dyPixels);
+  const distance = Math.hypot(dx, dy);
+  if (area.templateType === "circle") return distance <= area.distance;
+
+  const angleToTarget = normalizeDegrees(Math.atan2(dy, dx) * (180 / Math.PI));
+  const direction = normalizeDegrees(template.direction);
+  if (area.templateType === "cone") {
+    return distance <= area.distance && angleDelta(direction, angleToTarget) <= ((area.angle ?? 90) / 2);
+  }
+
+  const radians = direction * (Math.PI / 180);
+  const forward = dx * Math.cos(radians) + dy * Math.sin(radians);
+  const lateral = Math.abs(-dx * Math.sin(radians) + dy * Math.cos(radians));
+  return forward >= 0 && forward <= area.distance && lateral <= (template.width / 2);
+}
+
+function findArkiusSolarTargets(actor: Actor, template: ArkiusTemplateResult | null): ArkiusSolarTarget[] {
+  if (!template) return [];
+  const sourceToken = getActorToken(actor) as { id?: string } | null;
+  const tokens = Array.from(((canvas as unknown as { tokens?: { placeables?: unknown[] } })?.tokens?.placeables ?? [])) as ArkiusSolarTarget["token"][];
+  return tokens
+    .filter(token => token.actor && token.actor.id !== actor.id && token.id !== sourceToken?.id && token.center)
+    .filter(token => tokenCenterInArkiusArea(token.center as { x: number; y: number }, template))
+    .map((token, index): ArkiusSolarTarget => ({
+      id: String(token.id ?? token.actor?.id ?? index),
+      name: String(token.name ?? token.actor?.name ?? `Alvo ${index + 1}`),
+      actor: token.actor as Actor,
+      token,
+      distance: pixelsToSceneDistance(Math.hypot((token.center?.x ?? template.origin.x) - template.origin.x, (token.center?.y ?? template.origin.y) - template.origin.y)),
+    }));
+}
+
+async function confirmArkiusSolarTargets(targets: ArkiusSolarTarget[], area: ArkiusSolarArea): Promise<ArkiusSolarTarget[]> {
+  if (targets.length === 0) {
+    ui.notifications?.info("Exaurir o Sol: nenhum token detectado na área. O dano ficará para resolução manual, se necessário.");
+    return [];
+  }
+
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-arkius-target-choice">
+        <p>Confirme os alvos dentro de <strong>${escapeHtml(area.label)}</strong>. Só os marcados receberão rolagem de Reflexos básico e dano automático.</p>
+        <div class="ethernum-arkius-target-list">
+          ${targets.map(target => `
+            <label>
+              <input type="checkbox" name="target" value="${escapeHtml(target.id)}" checked />
+              <span>${escapeHtml(target.name)} <small>${Math.round(target.distance)} ft</small></span>
+            </label>
+          `).join("")}
+        </div>
+        <p class="hint">Resistências, imunidades e fraquezas podem precisar de ajuste manual após a aplicação de HP.</p>
+      </form>`;
+    new Dialog({
+      title: "Exaurir o Sol - alvos",
+      content,
+      buttons: {
+        confirm: {
+          label: "Aplicar em selecionados",
           callback: (html: JQuery) => {
             resolved = true;
-            const selectedId = String(html.find('[name="area"]:checked').val() ?? "");
-            resolve(data.areas.find(area => area.id === selectedId) ?? data.areas[0]);
+            const selected = new Set(html.find('input[name="target"]:checked').toArray().map(input => String((input as HTMLInputElement).value)));
+            resolve(targets.filter(target => selected.has(target.id)));
+          },
+        },
+        skip: {
+          label: "Sem aplicação automática",
+          callback: () => {
+            resolved = true;
+            resolve([]);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve([]);
+      },
+    }).render(true);
+  });
+}
+
+function getActorSaveModifier(actor: Actor, save: "reflex"): number {
+  const system = asRecord(actor.system);
+  const saves = asRecord(system.saves);
+  const saveData = asRecord(saves[save]);
+  const check = asRecord(saveData.check);
+  const candidates = [saveData.total, saveData.totalModifier, saveData.mod, saveData.value, check.total, check.totalModifier, check.mod];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+function getRollNaturalD20(roll: Roll): number {
+  const dice = (roll as Roll & { dice?: Array<{ total?: number; results?: Array<{ result?: number }> }> }).dice ?? [];
+  const first = dice[0];
+  const total = Number(first?.total ?? first?.results?.[0]?.result);
+  return Number.isFinite(total) ? total : 0;
+}
+
+function getBasicSaveDegree(total: number, dc: number, natural: number): ArkiusSolarTargetResult["degree"] {
+  let rank = total >= dc + 10 ? 3 : total >= dc ? 2 : total <= dc - 10 ? 0 : 1;
+  if (natural === 20) rank = Math.min(3, rank + 1);
+  if (natural === 1) rank = Math.max(0, rank - 1);
+  if (rank >= 3) return "Sucesso crítico";
+  if (rank === 2) return "Sucesso";
+  if (rank === 1) return "Falha";
+  return "Falha crítica";
+}
+
+function getBasicSaveDamage(totalDamage: number, degree: ArkiusSolarTargetResult["degree"]): number {
+  if (degree === "Sucesso crítico") return 0;
+  if (degree === "Sucesso") return Math.floor(totalDamage / 2);
+  if (degree === "Falha crítica") return totalDamage * 2;
+  return totalDamage;
+}
+
+async function resolveArkiusSolarTargetSaves(targets: ArkiusSolarTarget[], dc: number, totalDamage: number): Promise<ArkiusSolarTargetResult[]> {
+  const results: ArkiusSolarTargetResult[] = [];
+  for (const target of targets) {
+    const modifier = getActorSaveModifier(target.actor, "reflex");
+    const roll = new Roll(`1d20 + ${modifier}`);
+    await roll.evaluate();
+    const saveTotal = Number(roll.total ?? 0);
+    const natural = getRollNaturalD20(roll);
+    const degree = getBasicSaveDegree(saveTotal, dc, natural);
+    const damageApplied = getBasicSaveDamage(totalDamage, degree);
+    let applied = damageApplied <= 0;
+    if (damageApplied > 0) {
+      applied = await applyActorHpDelta(target.actor, -damageApplied).catch(error => {
+        console.warn("Ethernum RPG Module | Could not apply Arkius solar damage", error);
+        return false;
+      });
+    }
+    results.push({
+      name: target.name,
+      saveTotal,
+      natural,
+      degree,
+      damageApplied,
+      applied,
+    });
+  }
+  return results;
+}
+
+function buildArkiusSolarChatCard(
+  actor: Actor,
+  solar: ArkiusSolarData,
+  area: ArkiusSolarArea,
+  damageTotal: number,
+  targetResults: ArkiusSolarTargetResult[],
+  templateCreated: boolean
+): string {
+  const targetRows = targetResults.length > 0
+    ? targetResults.map(result => `
+      <li>
+        <strong>${escapeHtml(result.name)}</strong>
+        <span>${escapeHtml(result.degree)} (${result.saveTotal}${result.natural ? `, d20 ${result.natural}` : ""})</span>
+        <em>${result.damageApplied} dano${result.applied ? "" : " - ajuste manual"}</em>
+      </li>
+    `).join("")
+    : `<li><strong>Sem aplicação automática</strong><span>Resolva alvos manualmente se necessário.</span><em>${templateCreated ? "Template criado" : "Template manual"}</em></li>`;
+
+  return `
+    <div class="ethernum-arkius-solar-chat-card">
+      <header>
+        <span>Concórdia · Arkius Jacker</span>
+        <h2>EXAURIR O SOL</h2>
+        <p>O núcleo se apaga para que o campo queime.</p>
+      </header>
+      <section class="solar-result">
+        <div><span>Dano</span><strong>${damageTotal}</strong><small>${escapeHtml(solar.formula)}</small></div>
+        <div><span>Área</span><strong>${escapeHtml(area.label)}</strong><small>${templateCreated ? "Template criado" : "Crie/ajuste manualmente"}</small></div>
+        <div><span>Defesa</span><strong>Reflexos básico</strong><small>${escapeHtml(solar.dcLabel)} cinética</small></div>
+      </section>
+      <section class="solar-targets">
+        <h3>Alvos afetados</h3>
+        <ul>${targetRows}</ul>
+      </section>
+      <footer>
+        <strong>${escapeHtml(actor.name ?? "Arkius")}</strong>
+        <span>Rodadas usadas: ${solar.remainingRoundsUsed}</span>
+        <span>Desajeitado 2 · Drenado ${solar.drainedValue} · Fogo/Metal bloqueados</span>
+        <p>O sol interno foi exaurido. O corpo continua de pé, mas o núcleo está vazio. Resistências, imunidades e fraquezas podem precisar de conferência manual.</p>
+      </footer>
+    </div>`;
+}
+
+function getNextDamageDieStep(baseDie: string): string {
+  const steps = ["d4", "d6", "d8", "d10", "d12"];
+  const normalized = baseDie.toLowerCase().replace(/^1/, "");
+  const index = steps.indexOf(normalized);
+  return steps[Math.min(steps.length - 1, Math.max(0, index) + 1)] ?? "d10";
+}
+
+async function promptArkiusFluxoConsumption(): Promise<ArkiusFluxoConsumption | null> {
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-arkius-area-choice">
+        <label><span>Habilidade</span><input type="text" name="ability" value="Impulso Cinético" /></label>
+        <label><span>Custo original</span>
+          <select name="actions">
+            <option value="1">1 ação</option>
+            <option value="2" selected>2 ações</option>
+            <option value="3">3 ações</option>
+          </select>
+        </label>
+      </form>`;
+    new Dialog({
+      title: "Consumir Sintonia de Fluxo",
+      content,
+      buttons: {
+        confirm: {
+          label: "Consumir",
+          callback: (html: JQuery) => {
+            resolved = true;
+            const abilityName = String(html.find('[name="ability"]').val() ?? "Impulso Cinético").trim() || "Impulso Cinético";
+            const originalActions = clamp(parseInt(String(html.find('[name="actions"]').val())) || 2, 1, 3);
+            resolve({
+              abilityName,
+              originalActions,
+              reducedActions: Math.max(1, originalActions - 1),
+              auto: false,
+            });
           },
         },
         cancel: {
@@ -1714,35 +2092,68 @@ async function chooseArkiusSolarArea(data: ArkiusSolarData): Promise<ArkiusSolar
   });
 }
 
-async function createArkiusSolarTemplate(actor: Actor, area: ArkiusSolarArea): Promise<boolean> {
-  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number }; document?: { rotation?: number } }) | null;
-  const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown> } | undefined;
-  if (!token?.center || !scene?.createEmbeddedDocuments) return false;
-  const userColor = String((game.user as unknown as { color?: string })?.color ?? "#d94122");
-  const templateData: Record<string, unknown> = {
-    t: area.templateType,
-    user: game.user?.id,
-    x: token.center.x,
-    y: token.center.y,
-    distance: area.distance,
-    direction: token.document?.rotation ?? 0,
-    fillColor: userColor,
-    flags: {
-      [ETHERNUM.MODULE_NAME]: {
-        uniqueTemplate: "arkius-exaurir-o-sol",
+async function promptArkiusBrasasConsumption(defaultBaseDie = "d8"): Promise<ArkiusBrasasConsumption | null> {
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-arkius-area-choice">
+        <label><span>Habilidade</span><input type="text" name="ability" value="Elemental Blast" /></label>
+        <label><span>Dado base</span>
+          <select name="baseDie">
+            ${["d4", "d6", "d8", "d10", "d12"].map(die => `<option value="${die}" ${die === defaultBaseDie ? "selected" : ""}>${die}</option>`).join("")}
+          </select>
+        </label>
+        <label><span>Tipo narrativo</span>
+          <select name="damageType">
+            <option value="fogo">Fogo</option>
+            <option value="metal">Metal</option>
+            <option value="fogo/metal">Fogo/Metal</option>
+          </select>
+        </label>
+      </form>`;
+    new Dialog({
+      title: "Consumir Sintonia de Brasas",
+      content,
+      buttons: {
+        confirm: {
+          label: "Rolar dado extra",
+          callback: (html: JQuery) => {
+            resolved = true;
+            const abilityName = String(html.find('[name="ability"]').val() ?? "Elemental Blast").trim() || "Elemental Blast";
+            const baseDie = String(html.find('[name="baseDie"]').val() ?? defaultBaseDie);
+            resolve({
+              abilityName,
+              baseDie,
+              boostedDie: getNextDamageDieStep(baseDie),
+              damageType: String(html.find('[name="damageType"]').val() ?? "fogo/metal"),
+              auto: false,
+            });
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
       },
-    },
-  };
-  if (area.templateType === "cone") templateData.angle = area.angle ?? 90;
-  if (area.templateType === "ray") templateData.width = 5;
-  await scene.createEmbeddedDocuments("MeasuredTemplate", [templateData]);
-  return true;
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
 }
 
 function getChatMessageContext(message: ChatMessage): Record<string, unknown> {
   const flags = asRecord((message as ChatMessage & { flags?: unknown }).flags);
   const pf2e = asRecord(flags.pf2e);
   return asRecord(pf2e.context ?? pf2e);
+}
+
+function isEthernumGeneratedMessage(message: ChatMessage): boolean {
+  const flags = asRecord((message as ChatMessage & { flags?: unknown }).flags);
+  return Boolean(asRecord(flags[ETHERNUM.MODULE_NAME]).uniqueMechanics);
 }
 
 function isPF2EAttackRollMessage(message: ChatMessage): boolean {
@@ -1753,6 +2164,81 @@ function isPF2EAttackRollMessage(message: ChatMessage): boolean {
   if (type && type !== "check") return false;
   const domains = Array.isArray(context.domains) ? context.domains.map(String) : [];
   return domains.some(domain => domain.includes("attack-roll"));
+}
+
+function isPF2EDamageRollMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const type = String(context.type ?? context.rollType ?? "").toLowerCase();
+  if (type.includes("damage")) return true;
+  const domains = Array.isArray(context.domains) ? context.domains.map(value => String(value).toLowerCase()) : [];
+  return domains.some(domain => domain.includes("damage"));
+}
+
+function collectLowercaseStrings(value: unknown, strings = new Set<string>(), depth = 0): Set<string> {
+  if (depth > 6 || value === null || value === undefined) return strings;
+  if (typeof value === "string") {
+    strings.add(value.toLowerCase());
+    return strings;
+  }
+  if (typeof value === "number" || typeof value === "boolean") return strings;
+  if (Array.isArray(value)) {
+    value.forEach(item => collectLowercaseStrings(item, strings, depth + 1));
+    return strings;
+  }
+  if (typeof value !== "object") return strings;
+  Object.values(value as Record<string, unknown>).forEach(item => collectLowercaseStrings(item, strings, depth + 1));
+  return strings;
+}
+
+function getArkiusChatActionLabel(message: ChatMessage): string {
+  const context = getChatMessageContext(message);
+  const flags = asRecord((message as ChatMessage & { flags?: unknown }).flags);
+  const candidates = [
+    context.title,
+    context.name,
+    asRecord(context.item).name,
+    asRecord(context.origin).name,
+    asRecord(asRecord(flags.pf2e).item).name,
+    (message as ChatMessage & { flavor?: string }).flavor,
+  ];
+  for (const candidate of candidates) {
+    const text = String(candidate ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (text && !text.includes("Actor.")) return text.slice(0, 80);
+  }
+  return "Habilidade elegível";
+}
+
+function isArkiusEligibleImpulseChatMessage(message: ChatMessage, options: { fluxo?: boolean } = {}): boolean {
+  const flags = asRecord((message as ChatMessage & { flags?: unknown }).flags);
+  const strings = collectLowercaseStrings({ flags, context: getChatMessageContext(message) });
+  const joined = Array.from(strings).join(" ");
+  if (options.fluxo && (joined.includes("overflow") || joined.includes("explosão elemental") || joined.includes("explosao elemental"))) {
+    return false;
+  }
+  return joined.includes("elemental blast")
+    || joined.includes("elemental-blast")
+    || joined.includes("impulse")
+    || joined.includes("impulso")
+    || joined.includes("kinetic")
+    || joined.includes("cinético")
+    || joined.includes("cinetico")
+    || joined.includes("fire")
+    || joined.includes("fogo")
+    || joined.includes("metal");
+}
+
+function detectDamageDieFromChatMessage(message: ChatMessage): string {
+  const rolls = (message as ChatMessage & { rolls?: Roll[] }).rolls ?? [];
+  const candidates = [
+    ...rolls.map(roll => String((roll as Roll & { formula?: string }).formula ?? "")),
+    String((message as ChatMessage & { content?: string }).content ?? ""),
+    JSON.stringify(getChatMessageContext(message)),
+  ];
+  for (const candidate of candidates) {
+    const matches = Array.from(candidate.matchAll(/\b\d*d(4|6|8|10|12)\b/gi));
+    if (matches.length > 0) return `d${matches[0][1]}`;
+  }
+  return "d8";
 }
 
 function isPF2EHitMessage(message: ChatMessage): boolean {
@@ -2119,6 +2605,7 @@ export class UniqueMechanicsSystem {
     await this.setActiveProfile(target, ARKIUS_JACKER_PROFILE_ID);
     const state = this.getArkiusState(target);
     const solar = getArkiusSolarData(target, state);
+    const area = getSelectedArkiusSolarArea(solar, state);
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: target }),
       content: `
@@ -2126,7 +2613,8 @@ export class UniqueMechanicsSystem {
           <h3>${escapeHtml(title)}</h3>
           <p><strong>Núcleo:</strong> ${state.nucleoEmBrasas.active ? "Ativo" : "Inativo"} · <strong>Usos:</strong> ${state.nucleoEmBrasas.usesSpent}/${state.nucleoEmBrasas.maxUses}</p>
           <p><strong>Rodadas restantes:</strong> ${state.nucleoEmBrasas.remainingRounds} · <strong>Sintonia:</strong> ${state.nucleoEmBrasas.attunement}</p>
-          <p><strong>Exaurir o Sol:</strong> ${solar.formula}, Reflexos básico ${solar.dcLabel}.</p>
+          <p><strong>Pendências:</strong> Fluxo ${state.nucleoEmBrasas.pendingFluxoReduction ? "armado" : "não"} · Brasas ${state.nucleoEmBrasas.pendingBrasasDamage ? "armada" : "não"}.</p>
+          <p><strong>Exaurir o Sol:</strong> ${solar.formula}, ${escapeHtml(area.label)}, Reflexos básico ${solar.dcLabel}.</p>
           <p><strong>Braço Evolutivo:</strong> ${state.bracoEvolutivo.maxCharges - state.bracoEvolutivo.chargesSpent}/${state.bracoEvolutivo.maxCharges} carga(s), resistência ${escapeHtml(state.bracoEvolutivo.resistanceFormula)}.</p>
         </div>`,
     });
@@ -2157,6 +2645,8 @@ export class UniqueMechanicsSystem {
         combatId: combat?.id,
         remainingRounds: ARKIUS_NUCLEO_MAX_ROUNDS,
         attunement: "none",
+        pendingFluxoReduction: false,
+        pendingBrasasDamage: false,
         firstFireMetalProcUsed: false,
         exaurirUsed: false,
       },
@@ -2202,6 +2692,8 @@ export class UniqueMechanicsSystem {
         active: false,
         remainingRounds: 0,
         attunement: "none",
+        pendingFluxoReduction: false,
+        pendingBrasasDamage: false,
         endedPenaltyActive: true,
       },
     });
@@ -2262,6 +2754,8 @@ export class UniqueMechanicsSystem {
     const next = await this.updateArkiusState(target, {
       nucleoEmBrasas: {
         attunement: "fluxo",
+        pendingFluxoReduction: true,
+        pendingBrasasDamage: false,
         fluxoUsedTurnKey: turnKey,
       },
     });
@@ -2271,6 +2765,7 @@ export class UniqueMechanicsSystem {
         <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
           <h3>Sintonia de Fluxo</h3>
           <p>Uma vez neste turno, reduza em 1 o custo de um Impulso Cinético, mínimo de 1 ação.</p>
+          <p><strong>Estado:</strong> redução pendente. Use <strong>Consumir Fluxo</strong> se o PF2e não detectar a habilidade automaticamente.</p>
           <p><strong>Limite:</strong> não funciona em Overflow nem em Explosão Elemental.</p>
         </div>`,
     });
@@ -2303,6 +2798,8 @@ export class UniqueMechanicsSystem {
     const next = await this.updateArkiusState(target, {
       nucleoEmBrasas: {
         attunement: "brasas",
+        pendingBrasasDamage: true,
+        pendingFluxoReduction: false,
         brasasUsedTurnKey: turnKey,
       },
     });
@@ -2312,8 +2809,112 @@ export class UniqueMechanicsSystem {
         <div class="ethernum-unique-chat-card ethernum-concordia-chat-card">
           <h3>Sintonia de Brasas</h3>
           <p>Uma vez neste turno, um Impulso ou Explosão Elemental de pelo menos 2 ações adiciona +1 dado de dano e aumenta o passo do dado.</p>
+          <p><strong>Estado:</strong> dano extra pendente. O módulo tentará detectar a rolagem de dano, ou você pode usar <strong>Consumir Brasas</strong>.</p>
           <p><strong>Sacrifício:</strong> Desajeitado 1 até o início do próximo turno.</p>
         </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async consumeSintoniaFluxo(actor?: Actor | null, consumption?: Partial<ArkiusFluxoConsumption>): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.pendingFluxoReduction) {
+      ui.notifications?.warn("Nenhuma Sintonia de Fluxo pendente para consumir.");
+      return state;
+    }
+    const originalActions = clamp(Number(consumption?.originalActions ?? 2) || 2, 1, 3);
+    const chosen = consumption?.abilityName
+      ? {
+        abilityName: consumption.abilityName,
+        originalActions,
+        reducedActions: Math.max(1, originalActions - 1),
+        auto: Boolean(consumption.auto),
+      }
+      : await promptArkiusFluxoConsumption();
+    if (!chosen) return state;
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        attunement: "none",
+        pendingFluxoReduction: false,
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flags: { [ETHERNUM.MODULE_NAME]: { uniqueMechanics: "arkius-fluxo" } } as Record<string, unknown>,
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card ethernum-arkius-attunement-card">
+          <h3>Sintonia de Fluxo Consumida</h3>
+          <p><strong>Habilidade:</strong> ${escapeHtml(chosen.abilityName)}</p>
+          <p><strong>Custo:</strong> ${chosen.originalActions} ação(ões) → ${chosen.reducedActions} ação(ões).</p>
+          <p>${chosen.auto ? "Detectado automaticamente pelo chat do PF2e." : "Consumo manual registrado para acompanhar o custo de ações."}</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async consumeSintoniaBrasas(actor?: Actor | null, consumption?: Partial<ArkiusBrasasConsumption>): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getArkiusState(target);
+    if (!state.nucleoEmBrasas.pendingBrasasDamage) {
+      ui.notifications?.warn("Nenhuma Sintonia de Brasas pendente para consumir.");
+      return null;
+    }
+    const baseDie = String(consumption?.baseDie ?? "d8");
+    const chosen = consumption?.abilityName
+      ? {
+        abilityName: consumption.abilityName,
+        baseDie,
+        boostedDie: String(consumption.boostedDie ?? getNextDamageDieStep(baseDie)),
+        damageType: String(consumption.damageType ?? "fogo/metal"),
+        auto: Boolean(consumption.auto),
+      }
+      : await promptArkiusBrasasConsumption();
+    if (!chosen) return null;
+    const roll = new Roll(`1${chosen.boostedDie}`);
+    await roll.evaluate();
+    await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        attunement: "none",
+        pendingBrasasDamage: false,
+      },
+    });
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flags: { [ETHERNUM.MODULE_NAME]: { uniqueMechanics: "arkius-brasas" } } as Record<string, unknown>,
+      flavor: `
+        <div class="ethernum-unique-chat-card ethernum-concordia-chat-card ethernum-arkius-attunement-card">
+          <h3>Sintonia de Brasas Consumida</h3>
+          <p><strong>Habilidade:</strong> ${escapeHtml(chosen.abilityName)}</p>
+          <p><strong>Dado:</strong> ${escapeHtml(chosen.baseDie)} → ${escapeHtml(chosen.boostedDie)}; adicione +1${escapeHtml(chosen.boostedDie)} de ${escapeHtml(chosen.damageType)}.</p>
+          <p><strong>Sacrifício:</strong> Desajeitado 1 até o início do próximo turno.</p>
+          <p>${chosen.auto ? "Detectado automaticamente pela rolagem de dano do PF2e." : "Consumo manual registrado para somar ao dano elegível."}</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return roll;
+  }
+
+  static async setArkiusSolarArea(actor?: Actor | null, areaId: ArkiusSolarAreaId = "emanation"): Promise<ArkiusJackerState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const next = await this.updateArkiusState(target, {
+      nucleoEmBrasas: {
+        selectedSolarArea: normalizeArkiusSolarAreaId(areaId),
+      },
     });
     refreshActorMechanicsViews(target);
     return next;
@@ -2366,14 +2967,19 @@ export class UniqueMechanicsSystem {
       return null;
     }
     const solar = getArkiusSolarData(target, state);
-    const area = await chooseArkiusSolarArea(solar);
-    if (!area) return null;
-    const templateCreated = await createArkiusSolarTemplate(target, area).catch(error => {
+    const area = getSelectedArkiusSolarArea(solar, state);
+    const confirmed = await confirmArkiusSolarExecution(area, solar);
+    if (!confirmed) return null;
+    const templateResult = await createArkiusSolarTemplate(target, area).catch(error => {
       console.warn("Ethernum RPG Module | Could not create Arkius solar template", error);
-      return false;
+      return null;
     });
     const roll = new Roll(solar.formula);
     await roll.evaluate();
+    void this.playArkiusExaurirOSolAnimation(target, area, solar, templateResult?.templateDocument ?? null);
+    const possibleTargets = findArkiusSolarTargets(target, templateResult);
+    const selectedTargets = await confirmArkiusSolarTargets(possibleTargets, area);
+    const targetResults = await resolveArkiusSolarTargetSaves(selectedTargets, solar.dc, Math.max(0, Math.floor(Number(roll.total ?? 0) || 0)));
     await removeActorUniqueEffects(target, [ARKIUS_NUCLEO_EFFECT_SLUG]);
     await applyArkiusNarrativeEffect(
       target,
@@ -2398,6 +3004,8 @@ export class UniqueMechanicsSystem {
         active: false,
         remainingRounds: 0,
         attunement: "none",
+        pendingFluxoReduction: false,
+        pendingBrasasDamage: false,
         endedPenaltyActive: true,
         fireMetalImpulsesLocked: true,
         exaurirUsed: true,
@@ -2405,13 +3013,8 @@ export class UniqueMechanicsSystem {
     });
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: target }),
-      flavor: [
-        "<strong>Exaurir o Sol</strong>",
-        `Área: ${escapeHtml(area.label)}${templateCreated ? " (template criado)" : " (crie/ajuste o template manualmente)"}`,
-        `Reflexos básico contra ${solar.dcLabel}`,
-        `Rodadas usadas no cálculo: ${solar.remainingRoundsUsed} (máximo 6)`,
-        `Penalidades: Desajeitado 2 até descanso curto, Drenado ${solar.drainedValue} até descanso longo, impulsos Fogo/Metal bloqueados até descanso curto.`,
-      ].join("<br>"),
+      flags: { [ETHERNUM.MODULE_NAME]: { uniqueMechanics: "arkius-exaurir-o-sol" } } as Record<string, unknown>,
+      flavor: buildArkiusSolarChatCard(target, solar, area, Math.max(0, Math.floor(Number(roll.total ?? 0) || 0)), targetResults, Boolean(templateResult)),
     });
     refreshActorMechanicsViews(target);
     return roll;
@@ -2467,6 +3070,8 @@ export class UniqueMechanicsSystem {
         active: false,
         remainingRounds: 0,
         attunement: "none",
+        pendingFluxoReduction: false,
+        pendingBrasasDamage: false,
         endedPenaltyActive: false,
         fireMetalImpulsesLocked: false,
       },
@@ -2504,6 +3109,8 @@ export class UniqueMechanicsSystem {
         active: false,
         remainingRounds: 0,
         attunement: "none",
+        pendingFluxoReduction: false,
+        pendingBrasasDamage: false,
         endedPenaltyActive: false,
         fireMetalImpulsesLocked: false,
         usesSpent: 0,
@@ -2528,9 +3135,43 @@ export class UniqueMechanicsSystem {
 
   static async handlePF2EChatMessage(message: ChatMessage): Promise<void> {
     if (game.system?.id !== "pf2e") return;
-    if (!isPF2EAttackRollMessage(message)) return;
+    if (isEthernumGeneratedMessage(message)) return;
 
     const attacker = getActorFromChatMessage(message);
+    const isAttackRoll = isPF2EAttackRollMessage(message);
+    const isDamageRoll = isPF2EDamageRollMessage(message);
+
+    if (attacker && this.getState(attacker).activeProfile === ARKIUS_JACKER_PROFILE_ID) {
+      const arkiusState = this.getArkiusState(attacker);
+      if (
+        isAttackRoll
+        && arkiusState.nucleoEmBrasas.pendingFluxoReduction
+        && isArkiusEligibleImpulseChatMessage(message, { fluxo: true })
+      ) {
+        await this.consumeSintoniaFluxo(attacker, {
+          abilityName: getArkiusChatActionLabel(message),
+          originalActions: 2,
+          auto: true,
+        });
+      }
+      if (
+        isDamageRoll
+        && arkiusState.nucleoEmBrasas.pendingBrasasDamage
+        && isArkiusEligibleImpulseChatMessage(message)
+      ) {
+        const baseDie = detectDamageDieFromChatMessage(message);
+        await this.consumeSintoniaBrasas(attacker, {
+          abilityName: getArkiusChatActionLabel(message),
+          baseDie,
+          boostedDie: getNextDamageDieStep(baseDie),
+          damageType: "fogo/metal",
+          auto: true,
+        });
+      }
+    }
+
+    if (!isAttackRoll) return;
+
     const targetRefs = chatMessageTargetRefs(message);
     const touchedActors = new Set<Actor>();
 
@@ -3054,6 +3695,69 @@ export class UniqueMechanicsSystem {
     }
   }
 
+  static async playArkiusExaurirOSolAnimation(
+    actor: Actor,
+    area: ArkiusSolarArea,
+    solar: ArkiusSolarData,
+    templateDocument?: unknown | null
+  ): Promise<boolean> {
+    if (!isSequencerActive()) return false;
+    const token = getActorToken(actor);
+    if (!token) return false;
+    const files = getArkiusAnimationFiles(area);
+    if (!files) return false;
+    const SequenceCtor = (globalThis as { Sequence?: new (options?: Record<string, unknown>) => unknown }).Sequence;
+    if (!SequenceCtor) return false;
+
+    try {
+      const sequence = new SequenceCtor({ moduleName: ETHERNUM.MODULE_NAME, softFail: true }) as {
+        effect: () => Record<string, unknown>;
+        play: () => Promise<unknown> | unknown;
+      };
+      const chainEffect = (effect: Record<string, unknown>, calls: Array<[string, ...unknown[]]>) => {
+        let current = effect;
+        for (const [method, ...args] of calls) {
+          const fn = current[method];
+          if (typeof fn !== "function") continue;
+          const next = (fn as (...callArgs: unknown[]) => unknown).apply(current, args);
+          if (next && typeof next === "object") current = next as Record<string, unknown>;
+        }
+      };
+
+      chainEffect(sequence.effect() as Record<string, unknown>, [
+        ["file", files.charge],
+        ["atLocation", token],
+        ["fadeIn", 120],
+        ["duration", 1400],
+        ["fadeOut", 450],
+        ["opacity", 0.78],
+        ["scaleToObject", 1.8],
+        ["rotateIn", 180, 900],
+        ["scaleIn", 0.35, 220],
+        ["belowTokens"],
+      ]);
+
+      chainEffect(sequence.effect() as Record<string, unknown>, [
+        ["file", files.release],
+        ["atLocation", templateDocument ?? token],
+        ["fadeIn", 80],
+        ["delay", 420],
+        ["duration", area.id === "emanation" ? 1800 : 1350],
+        ["fadeOut", 700],
+        ["opacity", 0.86],
+        ["scaleToObject", area.id === "emanation" ? Math.max(2, area.distance / 10) : Math.max(1.4, area.distance / 20)],
+        ["rotate", area.id === "emanation" ? 0 : undefined],
+      ].filter(call => call[1] !== undefined) as Array<[string, ...unknown[]]>);
+
+      void solar;
+      await sequence.play();
+      return true;
+    } catch (error) {
+      console.warn("Ethernum RPG Module | Arkius Sequencer animation failed", error);
+      return false;
+    }
+  }
+
   static async resolveGyroTechniqueOutcome(actor: Actor, technique: GyroTechnique, state: GyroSpinState): Promise<void> {
     if (technique.id === "proportion-mark") {
       const choice = await chooseTargetChoice("Marca da Proporção", actor, false);
@@ -3316,6 +4020,14 @@ export class UniqueMechanicsSystem {
     const bayleStage = getBayleStageData(bayleState.stage);
     const bayleLightningRemaining = Math.max(0, bayleStage.lightningCharges - bayleState.lightningChargesUsed);
     const arkiusSolar = getArkiusSolarData(actor, arkiusState);
+    const arkiusSolarSheet = {
+      ...arkiusSolar,
+      areas: arkiusSolar.areas.map(area => ({
+        ...area,
+        selected: area.id === arkiusState.nucleoEmBrasas.selectedSolarArea,
+        icon: area.id === "emanation" ? "fa-circle-dot" : area.id === "cone" ? "fa-caret-up" : "fa-grip-lines",
+      })),
+    };
     const arkiusUsesRemaining = Math.max(0, arkiusState.nucleoEmBrasas.maxUses - arkiusState.nucleoEmBrasas.usesSpent);
     const arkiusBracoChargesRemaining = Math.max(0, arkiusState.bracoEvolutivo.maxCharges - arkiusState.bracoEvolutivo.chargesSpent);
     const arkiusAttunementLabels: Record<ArkiusAttunement, string> = {
@@ -3422,13 +4134,16 @@ export class UniqueMechanicsSystem {
           maxRounds: ARKIUS_NUCLEO_MAX_ROUNDS,
           attunementLabel: arkiusAttunementLabels[arkiusState.nucleoEmBrasas.attunement],
           firstProcLabel: arkiusState.nucleoEmBrasas.firstFireMetalProcUsed ? "Usado" : "Disponível",
-          solar: arkiusSolar,
+          solar: arkiusSolarSheet,
           bracoChargesRemaining: arkiusBracoChargesRemaining,
           macroSlots: [
             "await game.ethernum.macros.concordia.arkius.showStatus();",
             "await game.ethernum.macros.concordia.arkius.toggleNucleoEmBrasas();",
             "await game.ethernum.macros.concordia.arkius.setSintoniaFluxo();",
             "await game.ethernum.macros.concordia.arkius.setSintoniaBrasas();",
+            "await game.ethernum.macros.concordia.arkius.consumeSintoniaFluxo();",
+            "await game.ethernum.macros.concordia.arkius.consumeSintoniaBrasas();",
+            "await game.ethernum.macros.concordia.arkius.setSolarArea(\"cone\");",
             "await game.ethernum.macros.concordia.arkius.markPersistentFireProc();",
             "await game.ethernum.macros.concordia.arkius.exaurirOSol();",
             "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",

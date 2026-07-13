@@ -162,6 +162,12 @@
       <button type="button" class="ethernum-button-small ethernum-arkius-set-attunement" data-attunement="brasas" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}}>
         <i class="fas fa-burst"></i> Brasas
       </button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-consume-fluxo {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.pendingFluxoReduction}}pending{{/if}}" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.pendingFluxoReduction}}disabled{{/unless}}>
+        <i class="fas fa-forward-step"></i> Consumir Fluxo
+      </button>
+      <button type="button" class="ethernum-button-small ethernum-arkius-consume-brasas {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.pendingBrasasDamage}}pending{{/if}}" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.pendingBrasasDamage}}disabled{{/unless}}>
+        <i class="fas fa-fire-flame-curved"></i> Consumir Brasas
+      </button>
       <button type="button" class="ethernum-button-small ethernum-arkius-mark-proc" {{#unless uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.active}}disabled{{/unless}} {{#if uniqueMechanics.concordia.arkius.state.nucleoEmBrasas.firstFireMetalProcUsed}}disabled{{/if}}>
         <i class="fas fa-droplet"></i> 2d6 fogo persistente: {{uniqueMechanics.concordia.arkius.firstProcLabel}}
       </button>
@@ -208,7 +214,10 @@
     </div>
     <div class="ethernum-arkius-area-list">
       {{#each uniqueMechanics.concordia.arkius.solar.areas}}
-      <span>{{this.label}}</span>
+      <button type="button" class="ethernum-arkius-area-option {{#if this.selected}}active{{/if}}" data-area="{{this.id}}">
+        <i class="fas {{this.icon}}"></i>
+        {{this.label}}
+      </button>
       {{/each}}
     </div>
   </section>

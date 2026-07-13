@@ -116,6 +116,9 @@ declare global {
             endNucleoEmBrasas: (actor?: Actor | null) => Promise<unknown>;
             setSintoniaFluxo: (actor?: Actor | null) => Promise<unknown>;
             setSintoniaBrasas: (actor?: Actor | null) => Promise<unknown>;
+            consumeSintoniaFluxo: (actor?: Actor | null) => Promise<unknown>;
+            consumeSintoniaBrasas: (actor?: Actor | null) => Promise<unknown>;
+            setSolarArea: (areaId?: "emanation" | "cone" | "line", actor?: Actor | null) => Promise<unknown>;
             markPersistentFireProc: (actor?: Actor | null) => Promise<unknown>;
             exaurirOSol: (actor?: Actor | null) => Promise<unknown>;
             resilienciaReativa: (actor?: Actor | null) => Promise<unknown>;
@@ -229,6 +232,12 @@ function buildMacroApi() {
           UniqueMechanicsSystem.setSintoniaFluxo(resolveMacroActor(actor)),
         setSintoniaBrasas: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.setSintoniaBrasas(resolveMacroActor(actor)),
+        consumeSintoniaFluxo: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.consumeSintoniaFluxo(resolveMacroActor(actor)),
+        consumeSintoniaBrasas: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.consumeSintoniaBrasas(resolveMacroActor(actor)),
+        setSolarArea: async (areaId: "emanation" | "cone" | "line" = "emanation", actor?: Actor | null) =>
+          UniqueMechanicsSystem.setArkiusSolarArea(resolveMacroActor(actor), areaId),
         markPersistentFireProc: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.markPersistentFireProc(resolveMacroActor(actor)),
         exaurirOSol: async (actor?: Actor | null) =>

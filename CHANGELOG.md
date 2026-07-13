@@ -5,6 +5,17 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.3] - 2026-07-13
+
+### Adicionado
+- Sintonia de Fluxo e Sintonia de Brasas agora possuem estado pendente, botões de consumo e cards próprios.
+- Exaurir o Sol agora usa seleção persistente de área, cria template correspondente, detecta tokens na área e confirma alvos antes de aplicar Reflexos básico e dano.
+- Exaurir o Sol recebeu card de chat premium e tentativa cinematográfica via Sequencer/JB2A com fallback silencioso.
+
+### Corrigido
+- Tema visual de Arkius Jacker sobrescreve a herança verde genérica da aba de mecânicas únicas.
+- Migração de schema completa os novos campos de Arkius em atores já existentes.
+
 ## [3.4.2] - 2026-07-06
 
 ### Corrigido

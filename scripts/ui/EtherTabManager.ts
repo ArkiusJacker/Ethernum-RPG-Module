@@ -861,10 +861,32 @@ export class EtherTabManager {
       await refreshUnique();
     });
 
+    html.find('.ethernum-arkius-consume-fluxo').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.consumeSintoniaFluxo(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-consume-brasas').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.consumeSintoniaBrasas(actor);
+      await refreshUnique();
+    });
+
     html.find('.ethernum-arkius-mark-proc').on('click', async (ev) => {
       ev.preventDefault();
       rememberScroll();
       await UniqueMechanicsSystem.markPersistentFireProc(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-arkius-area-option').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      const area = String($(ev.currentTarget).data('area'));
+      await UniqueMechanicsSystem.setArkiusSolarArea(actor, area as "emanation" | "cone" | "line");
       await refreshUnique();
     });
 
