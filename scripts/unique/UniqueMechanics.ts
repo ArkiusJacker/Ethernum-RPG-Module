@@ -1381,6 +1381,7 @@ function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCo
   ) return ETHERNUM_COMPANY_CORE_ID;
   if (
     profileId === ARKIUS_JACKER_PROFILE_ID
+    || profileId === YU_JIU_JI_TAE_PROFILE_ID
     || CONCORDIA_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof CONCORDIA_PLACEHOLDER_PROFILE_IDS[number])
   ) return CONCORDIA_CORE_ID;
   return null;
@@ -1398,6 +1399,7 @@ function isKnownProfile(profileId: unknown): profileId is UniqueMechanicProfileI
     || profileId === BAYLE_PROFILE_ID
     || profileId === PIPPING_PROFILE_ID
     || profileId === ARKIUS_JACKER_PROFILE_ID
+    || profileId === YU_JIU_JI_TAE_PROFILE_ID
     || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
   );
 }

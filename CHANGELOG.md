@@ -5,6 +5,11 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.7] - 2026-07-14
+
+### Corrigido
+- Seleção da mecânica única de Yu, Jiu Ji Tae agora permanece ativa na aba de Concórdia em vez de voltar para "Sem mecânica única".
+
 ## [3.4.6] - 2026-07-14
 
 ### Adicionado
