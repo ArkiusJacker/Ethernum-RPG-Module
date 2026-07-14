@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 6;
+const CURRENT_SCHEMA_VERSION = 7;
 
 interface EtherSystem {
   etherMax: number;
@@ -60,6 +60,16 @@ const DEFAULT_ARKIUS_STATE = {
     level13Unlocked: false,
     level17Unlocked: false,
   },
+};
+
+const DEFAULT_YU_STATE = {
+  active: false,
+  usesSpent: 0,
+  maxUses: 1,
+  remainingRounds: 0,
+  emergencyTriggered: false,
+  collapseDrainedActive: false,
+  collapseEnfeebledActive: false,
 };
 
 export interface ValidationResult {
@@ -281,6 +291,28 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v6`);
+  }
+
+  if (schemaVersion < 7) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingYu = (existingProfiles["yu-jiu-ji-tae"] ?? {}) as Record<string, unknown>;
+
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      activeProfile: existingUnique.activeProfile === "yu-jiu-ji-tae" ? "yu-jiu-ji-tae" : existingUnique.activeProfile,
+      profiles: {
+        ...existingProfiles,
+        "yu-jiu-ji-tae": {
+          ...DEFAULT_YU_STATE,
+          ...existingYu,
+        },
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v7`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

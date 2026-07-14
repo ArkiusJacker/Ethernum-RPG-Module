@@ -21,10 +21,11 @@ export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
 export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
 export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
+export const YU_JIU_JI_TAE_PROFILE_ID: UniqueMechanicProfileId = "yu-jiu-ji-tae";
 export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
 export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
 export const ETHERNUM_PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
-export const CONCORDIA_PLACEHOLDER_PROFILE_IDS = ["atlas-sidarta", "charles", "morgana", "yu-jiu-ji-tae", "unluck"] as const;
+export const CONCORDIA_PLACEHOLDER_PROFILE_IDS = ["atlas-sidarta", "charles", "morgana", "unluck"] as const;
 export const PLACEHOLDER_PROFILE_IDS = [...ETHERNUM_PLACEHOLDER_PROFILE_IDS, ...CONCORDIA_PLACEHOLDER_PROFILE_IDS] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
@@ -42,6 +43,11 @@ const ARKIUS_KINETIC_AURA_EFFECT_SLUG = "arkius-aura-cinetica";
 const ARKIUS_THERMAL_NIMBUS_EFFECT_SLUG = "arkius-thermal-nimbus";
 const ARKIUS_NUCLEO_MAX_ROUNDS = 10;
 const ARKIUS_KINETIC_AURA_DISTANCE = 10;
+const YU_RAGE_EFFECT_SLUG = "yu-rage-in-the-flesh";
+const YU_COLLAPSE_DRAINED_EFFECT_SLUG = "yu-colapso-neural-drenado";
+const YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG = "yu-colapso-neural-enfeebled";
+const YU_FLURRY_FEAR_EFFECT_SLUG = "yu-sobrecarga-de-medo";
+const YU_RAGE_MAX_ROUNDS = 10;
 
 export interface UniqueMechanicsState {
   activeCore: CampaignCoreId;
@@ -256,6 +262,18 @@ export interface ArkiusJackerState {
   };
 }
 
+export interface YuRageState {
+  active: boolean;
+  usesSpent: number;
+  maxUses: number;
+  remainingRounds: number;
+  combatId?: string;
+  lastCombatTurnKey?: string;
+  emergencyTriggered: boolean;
+  collapseDrainedActive: boolean;
+  collapseEnfeebledActive: boolean;
+}
+
 type PartialArkiusJackerState = {
   nucleoEmBrasas?: Partial<ArkiusJackerState["nucleoEmBrasas"]>;
   kineticAura?: Partial<ArkiusJackerState["kineticAura"]>;
@@ -263,6 +281,8 @@ type PartialArkiusJackerState = {
   concordiaAspect?: ArkiusConcordiaAspect;
   bracoEvolutivo?: Partial<ArkiusJackerState["bracoEvolutivo"]>;
 };
+
+type PartialYuRageState = Partial<YuRageState>;
 
 const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
   trained: 2,
@@ -364,6 +384,16 @@ const DEFAULT_ARKIUS_STATE: ArkiusJackerState = {
     level13Unlocked: false,
     level17Unlocked: false,
   },
+};
+
+const DEFAULT_YU_STATE: YuRageState = {
+  active: false,
+  usesSpent: 0,
+  maxUses: 1,
+  remainingRounds: 0,
+  emergencyTriggered: false,
+  collapseDrainedActive: false,
+  collapseEnfeebledActive: false,
 };
 
 export const PIPPING_ABILITIES: PippingAbility[] = [
@@ -1233,6 +1263,29 @@ function getActorLevel(actor: Actor): number {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+function getActorHpSnapshot(actor: Actor): { value: number; max: number } | null {
+  const attributes = asRecord(asRecord(actor.system).attributes);
+  const hp = asRecord(attributes.hp);
+  const value = Number(hp.value);
+  const max = Number(hp.max);
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return null;
+  return { value, max };
+}
+
+async function tryIncreaseActorCondition(actor: Actor, condition: string, value: number): Promise<boolean> {
+  const pf2eActor = actor as Actor & {
+    increaseCondition?: (condition: string, options?: Record<string, unknown>) => Promise<unknown>;
+  };
+  if (typeof pf2eActor.increaseCondition !== "function") return false;
+  try {
+    await pf2eActor.increaseCondition(condition, { value });
+    return true;
+  } catch (error) {
+    console.warn(`Ethernum RPG Module | Could not increase condition ${condition}`, error);
+    return false;
+  }
+}
+
 function getPF2EAbilityMod(actor: Actor, ability: GyroMainAttribute): number {
   const system = (actor as unknown as { system?: Record<string, unknown> }).system ?? {};
   const abilities = asRecord(system.abilities);
@@ -1292,6 +1345,12 @@ function getCombatTurnKey(): string | null {
   if (!combat) return null;
   const combatantId = combat.combatant?.id ?? combat.current?.combatantId ?? "no-combatant";
   return `${combat.id ?? "combat"}:${combat.round ?? 0}:${combat.turn ?? 0}:${combatantId}`;
+}
+
+function getCombatTurnKeyFor(combat: Combat): string {
+  const combatData = combat as Combat & { combatant?: { id?: string }; turn?: number; current?: { combatantId?: string } };
+  const combatantId = combatData.combatant?.id ?? combatData.current?.combatantId ?? "no-combatant";
+  return `${combat.id ?? "combat"}:${combat.round ?? 0}:${combatData.turn ?? 0}:${combatantId}`;
 }
 
 function getSPGainCap(actor: Actor): number {
@@ -1458,6 +1517,23 @@ function normalizeArkiusState(raw: unknown): ArkiusJackerState {
       level13Unlocked: Boolean(braco.level13Unlocked),
       level17Unlocked: Boolean(braco.level17Unlocked),
     },
+  };
+}
+
+function normalizeYuState(raw: unknown): YuRageState {
+  const state = asRecord(raw);
+  const maxUses = clamp(Number(state.maxUses ?? DEFAULT_YU_STATE.maxUses) || 1, 1, 3);
+  return {
+    ...DEFAULT_YU_STATE,
+    active: Boolean(state.active),
+    usesSpent: clamp(Number(state.usesSpent ?? DEFAULT_YU_STATE.usesSpent) || 0, 0, maxUses),
+    maxUses,
+    remainingRounds: clamp(Number(state.remainingRounds ?? DEFAULT_YU_STATE.remainingRounds) || 0, 0, YU_RAGE_MAX_ROUNDS),
+    combatId: typeof state.combatId === "string" ? state.combatId : undefined,
+    lastCombatTurnKey: typeof state.lastCombatTurnKey === "string" ? state.lastCombatTurnKey : undefined,
+    emergencyTriggered: Boolean(state.emergencyTriggered),
+    collapseDrainedActive: Boolean(state.collapseDrainedActive),
+    collapseEnfeebledActive: Boolean(state.collapseEnfeebledActive),
   };
 }
 
@@ -1840,6 +1916,91 @@ async function applyArkiusKineticAuraEffect(actor: Actor, radius: number): Promi
   ));
 }
 
+function buildYuEffectData(
+  name: string,
+  slug: string,
+  description: string,
+  rules: Array<Record<string, unknown>> = [],
+  duration: Record<string, unknown> = { value: -1, unit: "unlimited", sustained: false, expiry: null }
+): Record<string, unknown> {
+  return {
+    name,
+    type: "effect",
+    img: "icons/svg/terror.svg",
+    system: {
+      slug,
+      description: { value: description },
+      level: { value: 1 },
+      duration,
+      tokenIcon: { show: true },
+      traits: { value: ["mental", "emotion", "fear"] },
+      rules,
+    },
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueEffect: slug,
+      },
+    },
+  };
+}
+
+async function applyYuRageEffect(actor: Actor): Promise<void> {
+  await removeActorUniqueEffects(actor, [YU_RAGE_EFFECT_SLUG]);
+  await createActorEffect(actor, buildYuEffectData(
+    "Rage in the Flesh",
+    YU_RAGE_EFFECT_SLUG,
+    [
+      "<p><strong>Imunidade narrativa:</strong> Yu fica imune a Frightened enquanto a postura estiver ativa.</p>",
+      "<p><strong>Força Bruta:</strong> Strikes desarmados ganham +1 dado de dano, +1 dano e +1 status na CA.</p>",
+      "<p><strong>Resistência Mental:</strong> resistência 5 a dano mental.</p>",
+    ].join(""),
+    [
+      {
+        key: "FlatModifier",
+        selector: "ac",
+        type: "status",
+        value: 1,
+        label: "Rage in the Flesh",
+      },
+      {
+        key: "Resistance",
+        type: "mental",
+        value: 5,
+        label: "Rage in the Flesh",
+      },
+    ],
+    { value: YU_RAGE_MAX_ROUNDS, unit: "rounds", sustained: false, expiry: "turn-start" }
+  ));
+}
+
+async function applyYuNarrativeEffect(
+  actor: Actor,
+  slug: string,
+  name: string,
+  description: string,
+  duration: Record<string, unknown> = { value: -1, unit: "unlimited", sustained: false, expiry: null }
+): Promise<void> {
+  await removeActorUniqueEffects(actor, [slug]);
+  await createActorEffect(actor, buildYuEffectData(name, slug, description, [], duration));
+}
+
+async function applyYuCollapseEffects(actor: Actor): Promise<void> {
+  await removeActorUniqueEffects(actor, [YU_RAGE_EFFECT_SLUG, YU_COLLAPSE_DRAINED_EFFECT_SLUG, YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG]);
+  await applyYuNarrativeEffect(
+    actor,
+    YU_COLLAPSE_DRAINED_EFFECT_SLUG,
+    "Colapso Neural — Drenado 1",
+    "<p>Ao término de Rage in the Flesh, Yu sofre Drenado 1 até o próximo descanso curto de 10 minutos.</p>"
+  );
+  await applyYuNarrativeEffect(
+    actor,
+    YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG,
+    "Colapso Neural — Enfeebled 2",
+    "<p>Ao término de Rage in the Flesh, Yu sofre Enfeebled 2 por 1 minuto completo.</p>",
+    { value: 1, unit: "minutes", sustained: false, expiry: "turn-start" }
+  );
+}
+
 function getSceneMeasuredTemplates(): Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }> {
   const templates = (canvas?.scene as unknown as { templates?: Iterable<unknown> })?.templates;
   return Array.from(templates ?? []) as Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }>;
@@ -2206,7 +2367,7 @@ async function confirmArkiusSolarTargets(targets: ArkiusSolarTarget[], area: Ark
   });
 }
 
-function getActorSaveModifier(actor: Actor, save: "reflex"): number {
+function getActorSaveModifier(actor: Actor, save: "reflex" | "will"): number {
   const system = asRecord(actor.system);
   const saves = asRecord(system.saves);
   const saveData = asRecord(saves[save]);
@@ -2271,8 +2432,11 @@ function getArkiusTriggeredWeaknesses(actor: Actor, options: ArkiusWeaknessOptio
   const entries = Array.isArray(attributes.weaknesses)
     ? attributes.weaknesses as unknown[]
     : Object.values(weaknessesRaw);
-  const labels: string[] = [];
-  let total = 0;
+  const values: Record<"Fogo" | "Metal" | "Área", number> = {
+    Fogo: 0,
+    Metal: 0,
+    Área: 0,
+  };
 
   for (const entryRaw of entries) {
     const entry = asRecord(entryRaw);
@@ -2284,11 +2448,15 @@ function getArkiusTriggeredWeaknesses(actor: Actor, options: ArkiusWeaknessOptio
 
     const value = readNumericWeaknessValue(entry);
     if (value <= 0) continue;
-    const label = triggersFire ? "Fogo" : triggersMetal ? "Metal" : "Área";
-    labels.push(`${label} ${value}`);
-    total += value;
+    if (triggersFire) values.Fogo = Math.max(values.Fogo, value);
+    if (triggersMetal) values.Metal = Math.max(values.Metal, value);
+    if (triggersArea) values.Área = Math.max(values.Área, value);
   }
 
+  const labels = Object.entries(values)
+    .filter(([, value]) => value > 0)
+    .map(([label, value]) => `${label} ${value}`);
+  const total = Object.values(values).reduce((sum, value) => sum + value, 0);
   return { total, labels };
 }
 
@@ -2389,7 +2557,7 @@ function getArkiusThermalNimbusDamage(actor: Actor): number {
 function buildArkiusThermalNimbusChatCard(result: ArkiusThermalNimbusResult): string {
   const parts = [
     `${result.baseDamage} Thermal Nimbus`,
-    result.junctionDamage > 0 ? `${result.junctionDamage} Junction de Fogo` : "",
+    result.junctionDamage > 0 ? `${result.junctionDamage} fraqueza da Aura Junction` : "",
     result.weaknessDamage > 0 ? `${result.weaknessDamage} fraqueza` : "",
   ].filter(Boolean);
   return `
@@ -2868,6 +3036,11 @@ export class UniqueMechanicsSystem {
     return normalizeArkiusState(state.profiles[ARKIUS_JACKER_PROFILE_ID]);
   }
 
+  static getYuState(actor: Actor): YuRageState {
+    const state = this.getState(actor);
+    return normalizeYuState(state.profiles[YU_JIU_JI_TAE_PROFILE_ID]);
+  }
+
   static async setActiveProfile(actor: Actor, profileId: UniqueMechanicProfileId): Promise<void> {
     const state = this.getState(actor);
     const profileCore = getProfileCore(profileId);
@@ -2884,6 +3057,9 @@ export class UniqueMechanicsSystem {
     }
     if (profileId === ARKIUS_JACKER_PROFILE_ID && !state.profiles[ARKIUS_JACKER_PROFILE_ID]) {
       state.profiles[ARKIUS_JACKER_PROFILE_ID] = foundry.utils.deepClone(DEFAULT_ARKIUS_STATE);
+    }
+    if (profileId === YU_JIU_JI_TAE_PROFILE_ID && !state.profiles[YU_JIU_JI_TAE_PROFILE_ID]) {
+      state.profiles[YU_JIU_JI_TAE_PROFILE_ID] = { ...DEFAULT_YU_STATE };
     }
     await this.setState(actor, state);
   }
@@ -3045,6 +3221,17 @@ export class UniqueMechanicsSystem {
     state.activeCore = CONCORDIA_CORE_ID;
     state.activeProfile = ARKIUS_JACKER_PROFILE_ID;
     state.profiles[ARKIUS_JACKER_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async updateYuState(actor: Actor, patch: PartialYuRageState): Promise<YuRageState> {
+    const state = this.getState(actor);
+    const current = this.getYuState(actor);
+    const next = normalizeYuState({ ...current, ...patch });
+    state.activeCore = CONCORDIA_CORE_ID;
+    state.activeProfile = YU_JIU_JI_TAE_PROFILE_ID;
+    state.profiles[YU_JIU_JI_TAE_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
   }
@@ -3557,17 +3744,17 @@ export class UniqueMechanicsSystem {
     return next;
   }
 
-  static async applyThermalNimbusToTokensInAura(actor: Actor, trigger = "aura"): Promise<void> {
+  static async applyThermalNimbusToTokensInAura(actor: Actor, trigger = "aura", turnKeyOverride?: string): Promise<void> {
     const sourceToken = getActorToken(actor);
     if (!sourceToken) return;
     const state = this.getArkiusState(actor);
     if (!state.thermalNimbus.active || !state.kineticAura.active) return;
     for (const token of getCanvasTokenPlaceables()) {
-      await this.applyThermalNimbusToToken(actor, token, trigger);
+      await this.applyThermalNimbusToToken(actor, token, trigger, turnKeyOverride);
     }
   }
 
-  static async applyThermalNimbusToToken(actor: Actor, targetToken: unknown, trigger = "entrada na aura"): Promise<boolean> {
+  static async applyThermalNimbusToToken(actor: Actor, targetToken: unknown, trigger = "entrada na aura", turnKeyOverride?: string): Promise<boolean> {
     if (!game.user?.isGM || !game.combat) return false;
     const state = this.getArkiusState(actor);
     if (!state.thermalNimbus.active || !state.kineticAura.active) return false;
@@ -3577,13 +3764,16 @@ export class UniqueMechanicsSystem {
     if (tokensAreAllied(sourceToken, targetToken)) return false;
     if (!tokenInArkiusKineticAura(sourceToken, targetToken, state.kineticAura.radius)) return false;
 
-    const turnKey = getCombatTurnKey() ?? `${game.combat.id ?? "combat"}:${game.combat.round ?? 0}`;
+    const turnKey = turnKeyOverride ?? getCombatTurnKey() ?? `${game.combat.id ?? "combat"}:${game.combat.round ?? 0}`;
     const targetKey = getActorKey(targetActor);
     if (state.thermalNimbus.appliedTurnKeys[targetKey] === turnKey) return false;
 
     const baseDamage = getArkiusThermalNimbusDamage(actor);
     const junctionDamage = state.thermalNimbus.fireAuraJunction ? getArkiusThermalNimbusDamage(actor) : 0;
-    const weakness = getArkiusTriggeredWeaknesses(targetActor, { fire: true });
+    const weakness = getArkiusTriggeredWeaknesses(targetActor, {
+      fire: true,
+      metal: state.nucleoEmBrasas.active,
+    });
     const totalDamage = baseDamage + junctionDamage + weakness.total;
     const applied = await applyActorHpDelta(targetActor, -totalDamage).catch(error => {
       console.warn("Ethernum RPG Module | Could not apply Thermal Nimbus damage", error);
@@ -3941,6 +4131,7 @@ export class UniqueMechanicsSystem {
     if (!game.user?.isGM) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
     await this.handleArkiusThermalNimbusTurnStart(combat);
+    await this.handleYuCombatTurnAdvance(combat);
     const actor = combatData.combatant?.actor;
     if (!actor || (actor.type as string) !== "character") return;
     if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return;
@@ -3989,8 +4180,9 @@ export class UniqueMechanicsSystem {
     if (!targetActor) return;
     const token = targetToken ?? getActorToken(targetActor);
     if (!token) return;
+    const turnKey = getCombatTurnKeyFor(combat);
     for (const actor of this.getActiveThermalNimbusActors()) {
-      await this.applyThermalNimbusToToken(actor, token, "início do turno");
+      await this.applyThermalNimbusToToken(actor, token, "início do turno", turnKey);
     }
   }
 
@@ -4007,6 +4199,274 @@ export class UniqueMechanicsSystem {
       } else {
         await this.applyThermalNimbusToToken(actor, tokenDocument, "entrada na aura");
       }
+    }
+  }
+
+  static async showYuStatus(actor?: Actor | null, title = "Yu, Jiu Ji Tae — Rage in the Flesh"): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    await this.setActiveProfile(target, YU_JIU_JI_TAE_PROFILE_ID);
+    const state = this.getYuState(target);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>${escapeHtml(title)}</h3>
+          <p><strong>Postura:</strong> ${state.active ? "Ativa" : "Inativa"} · <strong>Usos:</strong> ${state.usesSpent}/${state.maxUses}</p>
+          <p><strong>Rodadas restantes:</strong> ${state.remainingRounds}/${YU_RAGE_MAX_ROUNDS} · <strong>Emergência:</strong> ${state.emergencyTriggered ? "acionada" : "disponível se houver uso"}</p>
+          <p><strong>Enquanto ativa:</strong> imune a Frightened, resistência mental 5, +1 status na CA e bônus de Força Bruta em Strikes desarmados.</p>
+          <p><strong>Colapso:</strong> Drenado 1 até descanso curto e Enfeebled 2 por 1 minuto ao encerrar.</p>
+        </div>`,
+    });
+  }
+
+  static async activateYuRage(actor?: Actor | null, emergency = false): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    if (state.active) return state;
+    if (state.usesSpent >= state.maxUses) {
+      if (!emergency) ui.notifications?.warn("Rage in the Flesh sem usos até o próximo descanso longo.");
+      return state;
+    }
+
+    const combat = game.combat;
+    const turnKey = getCombatTurnKey() ?? undefined;
+    const next = await this.updateYuState(target, {
+      active: true,
+      usesSpent: state.usesSpent + 1,
+      remainingRounds: YU_RAGE_MAX_ROUNDS,
+      combatId: combat?.id,
+      lastCombatTurnKey: turnKey,
+      emergencyTriggered: emergency || state.emergencyTriggered,
+    });
+    await applyYuRageEffect(target).catch(error => {
+      console.warn("Ethernum RPG Module | Could not apply Yu Rage effect", error);
+      ui.notifications?.warn("Rage in the Flesh ativada, mas o efeito PF2e não pôde ser criado.");
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>${emergency ? "Gatilho de Emergência" : "Rage in the Flesh"}</h3>
+          <p><strong>Ativação:</strong> ${emergency ? "ação gratuita automática" : "1 ação"} · <strong>Duração:</strong> 1 minuto.</p>
+          <p>Yu entra em sobrecarga física: imune a Frightened, resistência mental 5, +1 status na CA e Força Bruta em Strikes desarmados.</p>
+          <p><strong>Uso:</strong> ${next.usesSpent}/${next.maxUses} até o próximo descanso longo.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async endYuRage(actor?: Actor | null): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    if (!state.active) return state;
+    await applyYuCollapseEffects(target).catch(error => {
+      console.warn("Ethernum RPG Module | Could not apply Yu collapse effects", error);
+    });
+    const next = await this.updateYuState(target, {
+      active: false,
+      remainingRounds: 0,
+      lastCombatTurnKey: undefined,
+      collapseDrainedActive: true,
+      collapseEnfeebledActive: true,
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>Colapso Neural</h3>
+          <p>Rage in the Flesh termina. Yu sofre <strong>Drenado 1</strong> até descanso curto e <strong>Enfeebled 2</strong> por 1 minuto.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async toggleYuRage(actor?: Actor | null): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    return state.active ? this.endYuRage(target) : this.activateYuRage(target);
+  }
+
+  static async adjustYuRounds(actor?: Actor | null, amount = 0): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    const next = await this.updateYuState(target, {
+      remainingRounds: clamp(state.remainingRounds + amount, 0, YU_RAGE_MAX_ROUNDS),
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async rollYuFlurryFear(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    if (!state.active) {
+      ui.notifications?.warn("Rage in the Flesh precisa estar ativa para usar Sobrecarga de Medo.");
+      return null;
+    }
+    const choice = await chooseTargetChoice("Sobrecarga de Medo", target);
+    if (!choice) return null;
+    const dc = getActorClassOrKineticDC(target);
+    const modifier = getActorSaveModifier(choice.actor, "will");
+    const roll = new Roll(`1d20 + ${modifier}`);
+    await roll.evaluate();
+    const total = Number(roll.total ?? 0);
+    const natural = getRollNaturalD20(roll);
+    const degree = getBasicSaveDegree(total, dc, natural);
+    const frightened = degree === "Falha crítica" ? 3 : degree === "Falha" ? 2 : 0;
+    let conditionApplied = false;
+    if (frightened > 0) {
+      conditionApplied = await tryIncreaseActorCondition(choice.actor, "frightened", frightened);
+      if (!conditionApplied) {
+        await applyYuNarrativeEffect(
+          choice.actor,
+          YU_FLURRY_FEAR_EFFECT_SLUG,
+          `Sobrecarga de Medo — Frightened ${frightened}`,
+          `<p>${escapeHtml(choice.name)} falhou contra Sobrecarga de Medo de ${escapeHtml(target.name ?? "Yu")}. Aplique Frightened ${frightened}; criaturas imunes a medo ignoram este efeito.</p>`,
+          { value: 1, unit: "rounds", sustained: false, expiry: "turn-end" }
+        ).catch(error => console.warn("Ethernum RPG Module | Could not apply Yu fear effect", error));
+      }
+    }
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>Sobrecarga de Medo</h3>
+          <p><strong>Alvo:</strong> ${escapeHtml(choice.name)} · <strong>Vontade:</strong> ${total}${natural ? ` (d20 ${natural})` : ""} vs CD ${dc}</p>
+          <p><strong>Resultado:</strong> ${escapeHtml(degree)}${frightened > 0 ? ` · Frightened ${frightened}${conditionApplied ? " aplicado" : " para aplicar"}` : " · sem efeito"}</p>
+          <p>Criaturas imunes a medo ignoram este efeito completamente.</p>
+        </div>`,
+    });
+    return roll;
+  }
+
+  static async rollYuStunningFistDamage(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    if (!state.active) ui.notifications?.warn("Rage in the Flesh não está ativa; role apenas se o mestre confirmar o gatilho.");
+    const roll = new Roll("2d10");
+    await roll.evaluate();
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flags: { [ETHERNUM.MODULE_NAME]: { uniqueMechanics: "yu-stunning-fist" } } as Record<string, unknown>,
+      flavor: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>Stunning Fist — Força Neural</h3>
+          <p>Se Stunning Fist foi aplicado com sucesso, o Strike que aplicou causa <strong>+2d10 de dano contundente</strong>.</p>
+        </div>`,
+    });
+    return roll;
+  }
+
+  static async yuShortRestReset(actor?: Actor | null): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [YU_COLLAPSE_DRAINED_EFFECT_SLUG, YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG]);
+    const next = await this.updateYuState(target, {
+      collapseDrainedActive: false,
+      collapseEnfeebledActive: false,
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `<div class="ethernum-unique-chat-card ethernum-yu-chat-card"><h3>Descanso curto — Yu</h3><p>Colapso Neural narrativo limpo. O uso de Rage in the Flesh só retorna no descanso longo.</p></div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async yuLongRestReset(actor?: Actor | null): Promise<YuRageState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [YU_RAGE_EFFECT_SLUG, YU_COLLAPSE_DRAINED_EFFECT_SLUG, YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG]);
+    const next = await this.updateYuState(target, {
+      active: false,
+      usesSpent: 0,
+      remainingRounds: 0,
+      combatId: undefined,
+      lastCombatTurnKey: undefined,
+      emergencyTriggered: false,
+      collapseDrainedActive: false,
+      collapseEnfeebledActive: false,
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `<div class="ethernum-unique-chat-card ethernum-yu-chat-card"><h3>Descanso longo — Yu</h3><p>Rage in the Flesh restaurada e Colapso Neural limpo.</p></div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async handleYuCombatTurnAdvance(combat: Combat): Promise<void> {
+    if (!game.user?.isGM) return;
+    const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
+    const actor = combatData.combatant?.actor;
+    if (!actor || (actor.type as string) !== "character") return;
+    if (this.getState(actor).activeProfile !== YU_JIU_JI_TAE_PROFILE_ID) return;
+    const state = this.getYuState(actor);
+    if (!state.active || (state.combatId && state.combatId !== combat.id)) return;
+    const turnKey = getCombatTurnKeyFor(combat);
+    if (state.lastCombatTurnKey === turnKey) return;
+    if (state.remainingRounds <= 1) {
+      await this.endYuRage(actor);
+      return;
+    }
+    await this.updateYuState(actor, {
+      combatId: combat.id ?? undefined,
+      remainingRounds: state.remainingRounds - 1,
+      lastCombatTurnKey: turnKey,
+    });
+    refreshActorMechanicsViews(actor);
+  }
+
+  static async handleYuActorUpdate(actor: Actor, changed: unknown): Promise<void> {
+    if (!game.user?.isGM || (actor.type as string) !== "character") return;
+    if (this.getState(actor).activeProfile !== YU_JIU_JI_TAE_PROFILE_ID) return;
+    const changedText = JSON.stringify(changed ?? {}).toLowerCase();
+    if (!changedText.includes("hp")) return;
+    const hp = getActorHpSnapshot(actor);
+    if (!hp) return;
+    const state = this.getYuState(actor);
+    if (state.active && hp.value <= 0) {
+      await this.endYuRage(actor);
+      return;
+    }
+    if (!state.active && state.usesSpent < state.maxUses && hp.value > 0 && hp.value <= Math.floor(hp.max * 0.3)) {
+      await this.activateYuRage(actor, true);
     }
   }
 
@@ -4799,6 +5259,7 @@ export class UniqueMechanicsSystem {
     const bayleState = this.getBayleState(actor);
     const pippingState = this.getPippingState(actor);
     const arkiusState = this.getArkiusState(actor);
+    const yuState = this.getYuState(actor);
     const actorLevel = getActorLevel(actor);
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
     const rank = this.getGyroRank(gyroState.currentSP, gyroState);
@@ -4817,6 +5278,8 @@ export class UniqueMechanicsSystem {
     };
     const arkiusUsesRemaining = Math.max(0, arkiusState.nucleoEmBrasas.maxUses - arkiusState.nucleoEmBrasas.usesSpent);
     const arkiusBracoChargesRemaining = Math.max(0, arkiusState.bracoEvolutivo.maxCharges - arkiusState.bracoEvolutivo.chargesSpent);
+    const yuUsesRemaining = Math.max(0, yuState.maxUses - yuState.usesSpent);
+    const yuPercent = Math.round((yuState.remainingRounds / YU_RAGE_MAX_ROUNDS) * 100);
     const arkiusAttunementLabels: Record<ArkiusAttunement, string> = {
       none: "Nenhuma",
       fluxo: "Fluxo",
@@ -4864,7 +5327,7 @@ export class UniqueMechanicsSystem {
       { id: "atlas-sidarta", label: "Atlas Sidarta - Mecânica em preparação" },
       { id: "charles", label: "Charles - Mecânica em preparação" },
       { id: "morgana", label: "Morgana - Mecânica em preparação" },
-      { id: "yu-jiu-ji-tae", label: "Yu, Jiu Ji Tae - Mecânica em preparação" },
+      { id: YU_JIU_JI_TAE_PROFILE_ID, label: "Yu, Jiu Ji Tae - Rage in the Flesh" },
       { id: "unluck", label: "Unluck - Mecânica em preparação" },
     ];
     const placeholderLabels: Record<string, string> = {
@@ -4969,6 +5432,42 @@ export class UniqueMechanicsSystem {
             "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
             "await game.ethernum.macros.concordia.arkius.shortRestReset();",
             "await game.ethernum.macros.concordia.arkius.longRestReset();",
+          ],
+        },
+        yu: {
+          state: yuState,
+          statusLabel: yuState.active ? "Ativo" : "Inativo",
+          usesRemaining: yuUsesRemaining,
+          ragePercent: yuPercent,
+          maxRounds: YU_RAGE_MAX_ROUNDS,
+          dc: getActorClassOrKineticDC(actor),
+          passives: [
+            "Imune a Frightened enquanto a postura estiver ativa.",
+            "Strikes desarmados ganham +1 dado de dano, +1 dano e +1 status na CA.",
+            "Resistência 5 a dano mental.",
+          ],
+          flurry: [
+            "Após Flurry of Blows, escolha um alvo e role Vontade contra sua CD de Classe.",
+            "Falha: Frightened 2.",
+            "Falha crítica: Frightened 3.",
+            "Criaturas imunes a medo ignoram este efeito completamente.",
+          ],
+          stunning: [
+            "Se Stunning Fist for aplicado com sucesso em um dos ataques, o Strike que aplicou causa +2d10 contundente.",
+            "Use o botão +2d10 quando o mestre confirmar o gatilho.",
+          ],
+          collapse: [
+            "Ao término da postura, Yu sofre Drenado 1 até o próximo descanso curto de 10 minutos.",
+            "Também sofre Enfeebled 2 por 1 minuto completo.",
+            "A postura encerra ao cair inconsciente.",
+          ],
+          macroSlots: [
+            "await game.ethernum.macros.concordia.yu.showStatus();",
+            "await game.ethernum.macros.concordia.yu.toggleRage();",
+            "await game.ethernum.macros.concordia.yu.flurryFear();",
+            "await game.ethernum.macros.concordia.yu.stunningFistDamage();",
+            "await game.ethernum.macros.concordia.yu.shortRestReset();",
+            "await game.ethernum.macros.concordia.yu.longRestReset();",
           ],
         },
       },

@@ -12,6 +12,7 @@ const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
 const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.bayle.showStatus();";
 const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
 const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
+const YU_MACRO_ICON = "icons/svg/terror.svg";
 
 const ARKIUS_MANAGED_MACROS = [
   {
@@ -63,6 +64,29 @@ const ARKIUS_MANAGED_MACROS = [
     name: "Ethernum - Arkius: Descanso Longo",
     command: "await game.ethernum.macros.concordia.arkius.longRestReset();",
     flag: "arkius-long-rest",
+  },
+];
+
+const YU_MANAGED_MACROS = [
+  {
+    name: "Ethernum - Yu: Painel",
+    command: "await game.ethernum.macros.concordia.yu.showStatus();",
+    flag: "concordia-yu-status",
+  },
+  {
+    name: "Ethernum - Yu: Rage in the Flesh",
+    command: "await game.ethernum.macros.concordia.yu.toggleRage();",
+    flag: "yu-rage-in-the-flesh",
+  },
+  {
+    name: "Ethernum - Yu: Sobrecarga de Medo",
+    command: "await game.ethernum.macros.concordia.yu.flurryFear();",
+    flag: "yu-flurry-fear",
+  },
+  {
+    name: "Ethernum - Yu: Stunning Fist +2d10",
+    command: "await game.ethernum.macros.concordia.yu.stunningFistDamage();",
+    flag: "yu-stunning-fist-damage",
   },
 ];
 
@@ -140,6 +164,17 @@ declare global {
             syncThermalNimbusAura: (actor?: Actor | null) => Promise<unknown>;
             clearThermalNimbusAura: (actor?: Actor | null) => Promise<unknown>;
             toggleGateJunctionFire: (actor?: Actor | null) => Promise<unknown>;
+          };
+          yu: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            activateRage: (actor?: Actor | null) => Promise<unknown>;
+            endRage: (actor?: Actor | null) => Promise<unknown>;
+            toggleRage: (actor?: Actor | null) => Promise<unknown>;
+            adjustRounds: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+            flurryFear: (actor?: Actor | null) => Promise<Roll | null>;
+            stunningFistDamage: (actor?: Actor | null) => Promise<Roll | null>;
+            shortRestReset: (actor?: Actor | null) => Promise<unknown>;
+            longRestReset: (actor?: Actor | null) => Promise<unknown>;
           };
         };
       };
@@ -273,6 +308,26 @@ function buildMacroApi() {
         toggleGateJunctionFire: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.toggleGateJunctionFire(resolveMacroActor(actor)),
       },
+      yu: {
+        showStatus: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.showYuStatus(resolveMacroActor(actor)),
+        activateRage: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.activateYuRage(resolveMacroActor(actor)),
+        endRage: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.endYuRage(resolveMacroActor(actor)),
+        toggleRage: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.toggleYuRage(resolveMacroActor(actor)),
+        adjustRounds: async (amount = 0, actor?: Actor | null) =>
+          UniqueMechanicsSystem.adjustYuRounds(resolveMacroActor(actor), amount),
+        flurryFear: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.rollYuFlurryFear(resolveMacroActor(actor)),
+        stunningFistDamage: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.rollYuStunningFistDamage(resolveMacroActor(actor)),
+        shortRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.yuShortRestReset(resolveMacroActor(actor)),
+        longRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.yuLongRestReset(resolveMacroActor(actor)),
+      },
     },
   };
 }
@@ -323,6 +378,9 @@ async function ensureManagedMacros(): Promise<void> {
   await ensureOneMacro(PIPPING_STATUS_MACRO_NAME, PIPPING_STATUS_MACRO_COMMAND, "pipping-status");
   for (const macro of ARKIUS_MANAGED_MACROS) {
     await ensureOneMacro(macro.name, macro.command, macro.flag, ARKIUS_ICON_ASSET);
+  }
+  for (const macro of YU_MANAGED_MACROS) {
+    await ensureOneMacro(macro.name, macro.command, macro.flag, YU_MACRO_ICON);
   }
 }
 
@@ -397,6 +455,9 @@ Hooks.on("createChatMessage", (message: ChatMessage) => {
 });
 Hooks.on("updateCombat", (combat: Combat) => {
   void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);
+});
+Hooks.on("updateActor", (actor: Actor, changed: Record<string, unknown>) => {
+  void UniqueMechanicsSystem.handleYuActorUpdate(actor, changed);
 });
 Hooks.on("updateToken", (tokenDocument: TokenDocument, changed: Record<string, unknown>) => {
   void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed);

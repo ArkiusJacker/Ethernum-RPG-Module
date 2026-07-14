@@ -1694,6 +1694,13 @@
   --pipping-red: #e01840;
   --pipping-ice: #d9e2ff;
   --pipping-muted: #aab4d8;
+  --yu-ink: #08050d;
+  --yu-purple: #6d28d9;
+  --yu-violet: #a855f7;
+  --yu-red: #ef2d56;
+  --yu-pulse: #f0abfc;
+  --yu-bone: #f2e7ff;
+  --yu-muted: #c6b4d8;
 }
 
 .ethernum-core-selector {
@@ -3230,6 +3237,14 @@
   color: var(--pipping-ice);
 }
 
+.ethernum-unique-yu-theme.ethernum-container {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(168, 85, 247, 0.22), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(239, 45, 86, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(8, 5, 13, 0.98), rgba(25, 11, 38, 0.96) 58%, rgba(34, 6, 20, 0.9));
+  color: var(--yu-bone);
+}
+
 .ethernum-unique-arkius-theme.ethernum-container {
   background:
     radial-gradient(circle at 18% 12%, rgba(227, 38, 22, 0.18), transparent 32%),
@@ -3525,8 +3540,208 @@
 .ethernum-animated-details[open] > .ethernum-gyro-details-body,
 .ethernum-animated-details[open] > .ethernum-bayle-details-body,
 .ethernum-animated-details[open] > .ethernum-pipping-details-body,
+.ethernum-animated-details[open] > .ethernum-yu-details-body,
 .ethernum-gyro-category[open] > .ethernum-gyro-technique-list {
   animation: ethernum-details-open 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ethernum-unique-yu-theme .ethernum-section {
+  border-color: rgba(168, 85, 247, 0.38);
+  background:
+    linear-gradient(135deg, rgba(8, 5, 13, 0.88), rgba(36, 12, 46, 0.72)),
+    radial-gradient(circle at 92% 8%, rgba(239, 45, 86, 0.12), transparent 28%);
+  color: var(--yu-bone);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.32);
+}
+
+.ethernum-unique-yu-theme .ethernum-core-selector,
+.ethernum-unique-yu-theme .ethernum-unique-topbar {
+  border-color: rgba(168, 85, 247, 0.42);
+  background: linear-gradient(135deg, rgba(8, 5, 13, 0.92), rgba(36, 12, 46, 0.76));
+}
+
+.ethernum-unique-yu-theme .ethernum-section-title {
+  border-color: rgba(168, 85, 247, 0.34);
+  color: var(--yu-bone);
+}
+
+.ethernum-unique-yu-theme .ethernum-section-title i,
+.ethernum-unique-yu-theme .ethernum-unique-profile-picker > i {
+  color: var(--yu-violet);
+}
+
+.ethernum-unique-yu-theme .ethernum-button-small,
+.ethernum-unique-yu-theme .ethernum-icon-button {
+  background: rgba(46, 16, 65, 0.72);
+  border-color: rgba(168, 85, 247, 0.32);
+  color: var(--yu-bone);
+}
+
+.ethernum-unique-yu-theme .ethernum-button-small:hover,
+.ethernum-unique-yu-theme .ethernum-icon-button:hover {
+  border-color: rgba(240, 171, 252, 0.7);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.22);
+}
+
+.ethernum-yu-resource-pill {
+  color: var(--yu-pulse);
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.ethernum-yu-resource-pill.active {
+  border-color: rgba(239, 45, 86, 0.58);
+  background: rgba(239, 45, 86, 0.16);
+}
+
+.ethernum-yu-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.ethernum-yu-hero::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background:
+    conic-gradient(from 90deg, transparent, rgba(168, 85, 247, 0.18), transparent 34%),
+    linear-gradient(120deg, transparent 0 42%, rgba(239, 45, 86, 0.14) 45%, transparent 48%);
+  animation: ethernum-yu-pulse-drift 16s linear infinite;
+}
+
+@keyframes ethernum-yu-pulse-drift {
+  to { transform: rotate(360deg); }
+}
+
+.ethernum-yu-hero > *,
+.ethernum-yu-details-section > *,
+.ethernum-yu-controls > *,
+.ethernum-yu-macros > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ethernum-yu-hero-main,
+.ethernum-yu-state-grid,
+.ethernum-yu-action-row,
+.ethernum-yu-info-grid,
+.ethernum-yu-macro-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.ethernum-yu-hero-main {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.ethernum-yu-kicker,
+.ethernum-yu-state-grid span,
+.ethernum-yu-details summary {
+  color: var(--yu-muted);
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 0.78em;
+}
+
+.ethernum-yu-hero h2 {
+  margin: 4px 0;
+  color: var(--yu-pulse);
+  font-size: 2em;
+  letter-spacing: 0;
+  text-shadow: 0 0 18px rgba(168, 85, 247, 0.42);
+}
+
+.ethernum-yu-hero p {
+  margin: 0;
+  color: rgba(242, 231, 255, 0.82);
+}
+
+.ethernum-yu-state-grid,
+.ethernum-yu-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ethernum-yu-state-grid > div,
+.ethernum-yu-details {
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  border-radius: var(--eth-radius);
+  background: rgba(8, 5, 13, 0.62);
+  padding: 10px;
+}
+
+.ethernum-yu-state-grid strong,
+.ethernum-yu-meter strong {
+  display: block;
+  color: var(--yu-pulse);
+  font-size: 1.24em;
+}
+
+.ethernum-yu-state-grid small {
+  color: rgba(242, 231, 255, 0.72);
+}
+
+.ethernum-yu-meter i {
+  display: block;
+  height: 5px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--yu-red) var(--yu-percent), rgba(255, 255, 255, 0.12) 0);
+}
+
+.ethernum-yu-action-row {
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  align-items: center;
+  margin-top: 12px;
+}
+
+.ethernum-yu-details summary {
+  cursor: pointer;
+  color: var(--yu-violet);
+}
+
+.ethernum-yu-details-body ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.ethernum-yu-details-body li {
+  margin: 5px 0;
+  color: rgba(242, 231, 255, 0.86);
+}
+
+.ethernum-yu-macro-grid code {
+  display: block;
+  padding: 7px 9px;
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: var(--eth-radius);
+  background: rgba(8, 5, 13, 0.62);
+  color: var(--yu-pulse);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.ethernum-yu-chat-card {
+  border-color: rgba(168, 85, 247, 0.5);
+  background:
+    radial-gradient(circle at 16% 0, rgba(168, 85, 247, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(8, 5, 13, 0.95), rgba(36, 12, 46, 0.86) 60%, rgba(34, 6, 20, 0.9));
+  color: var(--yu-bone);
+}
+
+.ethernum-yu-chat-card h3 {
+  color: var(--yu-pulse);
+}
+
+.ethernum-yu-chat-card strong {
+  color: var(--yu-violet);
+}
+
+@media (max-width: 720px) {
+  .ethernum-yu-state-grid,
+  .ethernum-yu-info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ethernum-bayle-resource-pill {

@@ -967,6 +967,55 @@ export class EtherTabManager {
       await UniqueMechanicsSystem.longRestReset(actor);
       await refreshUnique();
     });
+
+    html.find('.ethernum-yu-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showYuStatus(actor);
+    });
+
+    html.find('.ethernum-yu-toggle-rage').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.toggleYuRage(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-yu-adjust-rounds').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      const delta = parseInt(String($(ev.currentTarget).data('delta'))) || 0;
+      await UniqueMechanicsSystem.adjustYuRounds(actor, delta);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-yu-flurry').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.rollYuFlurryFear(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-yu-stunning').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.rollYuStunningFistDamage(actor);
+    });
+
+    html.find('.ethernum-yu-short-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.yuShortRestReset(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-yu-long-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.yuLongRestReset(actor);
+      await refreshUnique();
+    });
   }
 
   static _activateCampaignCoreListeners(

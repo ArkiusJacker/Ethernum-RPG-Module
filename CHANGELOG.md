@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.6] - 2026-07-14
+
+### Adicionado
+- Perfil funcional de Concórdia para Yu, Jiu Ji Tae com a mecânica Rage in the Flesh.
+- Aba temática do Yu com postura, rodadas, gatilho de emergência, Flurry of Blows, Stunning Fist, colapso e espaço de macros.
+- Macros gerenciados de Yu para painel, ativar postura, Sobrecarga de Medo e dano extra de Stunning Fist.
+- Gatilho de emergência do Yu tenta ativar a postura automaticamente ao cair para 30% dos PV máximos ou menos.
+
+### Alterado
+- Thermal Nimbus usa chave de turno do encontro atualizado para causar dano novamente quando o inimigo ainda inicia o turno dentro da aura.
+- Thermal Nimbus separa dano base, fraqueza da Aura Junction e fraquezas próprias do alvo.
+- Fraquezas de Arkius agora usam o maior valor encontrado por tipo relevante em vez de somar duplicatas internas do PF2e.
+
+### Corrigido
+- Dano de Junction da Thermal Nimbus passa a ser tratado como fraqueza da aura, não como outro pacote de dano base.
+- Migração de schema adiciona estado persistente de Yu a atores antigos.
+
 ## [3.4.5] - 2026-07-13
 
 ### Adicionado
