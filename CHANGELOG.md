@@ -5,6 +5,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.8] - 2026-07-25
+
+### Adicionado
+- Validador de manifesto, referências, imports locais do bundle e conteúdo do ZIP de release.
+- Logs de diagnóstico para mensagens sem ID, reprocessamento idempotente e falhas assíncronas da automação PF2e.
+- Macro gerenciado de Flurry of Blows do Yu, com escolha do Strike desarmado e MAP inicial, dois ataques, danos e salvamentos automáticos.
+
+### Alterado
+- Pipeline de release agora exige `typecheck`, versões coerentes e distribuição válida antes de publicar.
+- Configurações de restauração no descanso, exibição de custo de Éter e permissão de Override passam a controlar seus respectivos fluxos.
+- README e ficha passam a refletir as classes de runa, fórmula de talentos, visibilidade das abas e compatibilidade declarada atuais.
+- Stunning Fist e Sobrecarga de Medo do Yu passam a ser resolvidos dentro do fluxo automático de Flurry of Blows, preservando os macros antigos como aliases compatíveis.
+
+### Corrigido
+- Automações de ataques são processadas por um único GM ativo e no máximo uma vez por mensagem.
+- Atualizações de recursos de Gyro, Bayle, Pipping, Arkius e Yu deixam de trocar o núcleo ou perfil selecionado na ficha.
+- Rage in the Flesh registra imunidade a Frightened na ficha PF2e e aplica os bônus de dano a todos os Strikes desarmados, incluindo os fornecidos por stances de monge.
+- Cards e textos do Yu usam contraste claro sobre o fundo escuro no chat e na aba de mecânica única.
+
 ## [3.4.7] - 2026-07-14
 
 ### Corrigido

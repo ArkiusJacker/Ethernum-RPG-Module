@@ -3697,7 +3697,7 @@
 
 .ethernum-yu-details summary {
   cursor: pointer;
-  color: var(--yu-violet);
+  color: var(--yu-pulse);
 }
 
 .ethernum-yu-details-body ul {
@@ -3707,7 +3707,7 @@
 
 .ethernum-yu-details-body li {
   margin: 5px 0;
-  color: rgba(242, 231, 255, 0.86);
+  color: var(--yu-bone);
 }
 
 .ethernum-yu-macro-grid code {
@@ -3726,15 +3726,18 @@
   background:
     radial-gradient(circle at 16% 0, rgba(168, 85, 247, 0.18), transparent 34%),
     linear-gradient(135deg, rgba(8, 5, 13, 0.95), rgba(36, 12, 46, 0.86) 60%, rgba(34, 6, 20, 0.9));
-  color: var(--yu-bone);
+  color: var(--yu-bone, #f2e7ff) !important;
 }
 
-.ethernum-yu-chat-card h3 {
-  color: var(--yu-pulse);
+.ethernum-yu-chat-card p,
+.ethernum-yu-chat-card li,
+.ethernum-yu-chat-card span {
+  color: var(--yu-bone, #f2e7ff) !important;
 }
 
+.ethernum-yu-chat-card h3,
 .ethernum-yu-chat-card strong {
-  color: var(--yu-violet);
+  color: var(--yu-pulse, #f0abfc) !important;
 }
 
 @media (max-width: 720px) {

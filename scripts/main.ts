@@ -79,6 +79,11 @@ const YU_MANAGED_MACROS = [
     flag: "yu-rage-in-the-flesh",
   },
   {
+    name: "Ethernum - Yu: Flurry of Blows",
+    command: "await game.ethernum.macros.concordia.yu.flurryOfBlows();",
+    flag: "yu-flurry-of-blows",
+  },
+  {
     name: "Ethernum - Yu: Sobrecarga de Medo",
     command: "await game.ethernum.macros.concordia.yu.flurryFear();",
     flag: "yu-flurry-fear",
@@ -171,6 +176,7 @@ declare global {
             endRage: (actor?: Actor | null) => Promise<unknown>;
             toggleRage: (actor?: Actor | null) => Promise<unknown>;
             adjustRounds: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+            flurryOfBlows: (actor?: Actor | null) => Promise<void>;
             flurryFear: (actor?: Actor | null) => Promise<Roll | null>;
             stunningFistDamage: (actor?: Actor | null) => Promise<Roll | null>;
             shortRestReset: (actor?: Actor | null) => Promise<unknown>;
@@ -319,6 +325,8 @@ function buildMacroApi() {
           UniqueMechanicsSystem.toggleYuRage(resolveMacroActor(actor)),
         adjustRounds: async (amount = 0, actor?: Actor | null) =>
           UniqueMechanicsSystem.adjustYuRounds(resolveMacroActor(actor), amount),
+        flurryOfBlows: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.useYuFlurryOfBlows(resolveMacroActor(actor)),
         flurryFear: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.rollYuFlurryFear(resolveMacroActor(actor)),
         stunningFistDamage: async (actor?: Actor | null) =>
@@ -451,7 +459,9 @@ Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html
 Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: HTMLElement) => renderEthernumTabs(app, element));
 Hooks.on("createActor", (actor: Actor) => initializeActorFlags(actor));
 Hooks.on("createChatMessage", (message: ChatMessage) => {
-  void UniqueMechanicsSystem.handlePF2EChatMessage(message);
+  void UniqueMechanicsSystem.handlePF2EChatMessage(message).catch(error => {
+    console.error("Ethernum RPG Module | PF2E chat automation failed", error);
+  });
 });
 Hooks.on("updateCombat", (combat: Combat) => {
   void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);

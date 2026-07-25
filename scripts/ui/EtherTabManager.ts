@@ -1,4 +1,5 @@
 import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute, type CampaignCoreId } from '../config.js';
+import { isLongRestFullRestoreEnabled } from '../settings.js';
 import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '../systems.js';
 import {
   UniqueMechanicsSystem,
@@ -328,9 +329,11 @@ export class EtherTabManager {
     // Éter: descanso longo
     html.find('.ethernum-long-rest').on('click', async (ev) => {
       ev.preventDefault();
-      const maxEther = new EtherSystem().calculateMaxEther(actor);
-      await actor.setFlag(ETHERNUM.MODULE_NAME, "etherSystem.etherCurrent", maxEther);
-      ui.notifications?.info(game.i18n!.localize("ETHERNUM.Notifications.LongRestComplete"));
+      await new EtherSystem().longRest(actor);
+      const notificationKey = isLongRestFullRestoreEnabled()
+        ? "ETHERNUM.Notifications.LongRestComplete"
+        : "ETHERNUM.Notifications.LongRestCompleteNoRestore";
+      ui.notifications?.info(game.i18n!.localize(notificationKey));
       app.render();
     });
 
@@ -992,7 +995,7 @@ export class EtherTabManager {
     html.find('.ethernum-yu-flurry').on('click', async (ev) => {
       ev.preventDefault();
       rememberScroll();
-      await UniqueMechanicsSystem.rollYuFlurryFear(actor);
+      await UniqueMechanicsSystem.useYuFlurryOfBlows(actor);
       await refreshUnique();
     });
 

@@ -48,6 +48,8 @@ const YU_COLLAPSE_DRAINED_EFFECT_SLUG = "yu-colapso-neural-drenado";
 const YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG = "yu-colapso-neural-enfeebled";
 const YU_FLURRY_FEAR_EFFECT_SLUG = "yu-sobrecarga-de-medo";
 const YU_RAGE_MAX_ROUNDS = 10;
+const PROCESSED_CHAT_MESSAGE_LIMIT = 1000;
+const processedChatMessageIds = new Set<string>();
 
 export interface UniqueMechanicsState {
   activeCore: CampaignCoreId;
@@ -1560,6 +1562,40 @@ interface EthernumTargetChoice {
   name: string;
   actor: Actor;
   actorKey: string;
+  token?: {
+    id?: string;
+    name?: string;
+    actor?: Actor;
+    document?: unknown;
+  };
+}
+
+interface PF2EStrikeAction {
+  type?: string;
+  label?: string;
+  slug?: string;
+  item?: Item & {
+    system?: unknown;
+    traits?: { has?: (trait: string) => boolean };
+  };
+  variants?: Array<{
+    label?: string;
+    roll?: (params?: Record<string, unknown>) => Promise<Roll | null>;
+  }>;
+  damage?: (params?: Record<string, unknown>) => Promise<unknown>;
+  critical?: (params?: Record<string, unknown>) => Promise<unknown>;
+  altUsages?: PF2EStrikeAction[];
+}
+
+interface YuFlurryConfiguration {
+  target: EthernumTargetChoice;
+  strike: PF2EStrikeAction;
+  mapIncreases: number;
+}
+
+interface YuFlurryAttackResult {
+  degree: number;
+  mapIncreases: number;
 }
 
 export interface ArkiusSolarArea {
@@ -1659,7 +1695,12 @@ function getActorKey(actor: Actor): string {
 }
 
 function getTargetChoices(fallbackActor?: Actor | null, includeFallback = false): EthernumTargetChoice[] {
-  const targets = Array.from(game.user?.targets ?? []) as Array<{ id?: string; name?: string; actor?: Actor }>;
+  const targets = Array.from(game.user?.targets ?? []) as Array<{
+    id?: string;
+    name?: string;
+    actor?: Actor;
+    document?: unknown;
+  }>;
   const choices = targets
     .filter(token => token.actor)
     .map((token, index): EthernumTargetChoice => {
@@ -1669,6 +1710,7 @@ function getTargetChoices(fallbackActor?: Actor | null, includeFallback = false)
         name: String(token.name ?? actor.name ?? `Alvo ${index + 1}`),
         actor,
         actorKey: getActorKey(actor),
+        token,
       };
     });
 
@@ -1728,6 +1770,115 @@ async function chooseTargetChoice(title: string, fallbackActor?: Actor | null, i
       },
     }).render(true);
   });
+}
+
+function isPF2EUnarmedStrike(action: PF2EStrikeAction): boolean {
+  if (action.type && action.type !== "strike") return false;
+  const itemSystem = asRecord(action.item?.system);
+  const traitValues = asRecord(itemSystem.traits).value;
+  const traits = Array.isArray(traitValues) ? traitValues.map(String) : [];
+  return itemSystem.category === "unarmed"
+    || traits.includes("unarmed")
+    || Boolean(action.item?.traits?.has?.("unarmed"));
+}
+
+function getPF2EUnarmedStrikes(actor: Actor): PF2EStrikeAction[] {
+  const actions = (actor.system as unknown as { actions?: PF2EStrikeAction[] }).actions ?? [];
+  const strikes = actions.flatMap(action => [action, ...(action.altUsages ?? [])]).filter(isPF2EUnarmedStrike);
+  const seen = new Set<string>();
+  return strikes.filter((strike, index) => {
+    const key = `${strike.item?.id ?? "strike"}:${strike.slug ?? strike.label ?? index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function getPF2EStrikeLabel(strike: PF2EStrikeAction, index: number): string {
+  return String(strike.item?.name ?? strike.label ?? strike.slug ?? `Strike ${index + 1}`);
+}
+
+async function chooseYuFlurryConfiguration(actor: Actor): Promise<YuFlurryConfiguration | null> {
+  const targets = getTargetChoices(actor);
+  if (targets.length === 0) {
+    ui.notifications?.warn("Selecione um alvo no canvas antes de usar Flurry of Blows.");
+    return null;
+  }
+
+  const strikes = getPF2EUnarmedStrikes(actor);
+  if (strikes.length === 0) {
+    ui.notifications?.warn("Nenhum Strike desarmado foi encontrado. Ative a stance desejada e tente novamente.");
+    return null;
+  }
+
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-yu-flurry-choice">
+        <label>
+          <span>Alvo</span>
+          <select name="target">
+            ${targets.map(target => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.name)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>Strike desarmado</span>
+          <select name="strike">
+            ${strikes.map((strike, index) => `<option value="${index}">${escapeHtml(getPF2EStrikeLabel(strike, index))}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>MAP inicial</span>
+          <select name="map">
+            <option value="0">Primeiro ataque</option>
+            <option value="1">Segundo ataque</option>
+            <option value="2">Terceiro ataque ou superior</option>
+          </select>
+        </label>
+        <p class="hint">O macro fará os dois ataques, os saves de Stunning Fist e Sobrecarga de Medo e os danos dos acertos.</p>
+      </form>`;
+    new Dialog({
+      title: "Yu — Flurry of Blows",
+      content,
+      buttons: {
+        confirm: {
+          label: "Executar Flurry",
+          callback: (html: JQuery) => {
+            resolved = true;
+            const targetId = String(html.find('[name="target"]').val() ?? "");
+            const strikeIndex = clamp(parseInt(String(html.find('[name="strike"]').val())) || 0, 0, strikes.length - 1);
+            const mapIncreases = clamp(parseInt(String(html.find('[name="map"]').val())) || 0, 0, 2);
+            resolve({
+              target: targets.find(target => target.id === targetId) ?? targets[0],
+              strike: strikes[strikeIndex],
+              mapIncreases,
+            });
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
+}
+
+function getPF2ESkipDialogEvent(type: "check" | "damage"): MouseEvent {
+  const settings = asRecord((game.user as unknown as { settings?: unknown })?.settings);
+  const showDialogs = Boolean(settings[type === "check" ? "showCheckDialogs" : "showDamageDialogs"]);
+  return new MouseEvent("click", { shiftKey: showDialogs });
+}
+
+function getPF2ERollDegree(roll: Roll | null): number {
+  const value = Number(asRecord((roll as unknown as { options?: unknown } | null)?.options).degreeOfSuccess);
+  return Number.isFinite(value) ? clamp(value, 0, 3) : -1;
 }
 
 async function applyActorHpDelta(actor: Actor, amount: number): Promise<boolean> {
@@ -1952,11 +2103,16 @@ async function applyYuRageEffect(actor: Actor): Promise<void> {
     "Rage in the Flesh",
     YU_RAGE_EFFECT_SLUG,
     [
-      "<p><strong>Imunidade narrativa:</strong> Yu fica imune a Frightened enquanto a postura estiver ativa.</p>",
+      "<p><strong>Imunidade:</strong> Yu fica imune a Frightened enquanto a postura estiver ativa.</p>",
       "<p><strong>Força Bruta:</strong> Strikes desarmados ganham +1 dado de dano, +1 dano e +1 status na CA.</p>",
       "<p><strong>Resistência Mental:</strong> resistência 5 a dano mental.</p>",
     ].join(""),
     [
+      {
+        key: "Immunity",
+        type: "frightened",
+        label: "Rage in the Flesh",
+      },
       {
         key: "FlatModifier",
         selector: "ac",
@@ -1969,6 +2125,30 @@ async function applyYuRageEffect(actor: Actor): Promise<void> {
         type: "mental",
         value: 5,
         label: "Rage in the Flesh",
+      },
+      {
+        key: "DamageDice",
+        selector: "strike-damage",
+        diceNumber: 1,
+        predicate: [{ or: ["item:trait:unarmed", "item:category:unarmed"] }],
+        label: "Rage in the Flesh — Força Bruta",
+      },
+      {
+        key: "FlatModifier",
+        selector: "strike-damage",
+        value: 1,
+        predicate: [{ or: ["item:trait:unarmed", "item:category:unarmed"] }],
+        label: "Rage in the Flesh — Força Bruta",
+      },
+      {
+        key: "DamageDice",
+        selector: "strike-damage",
+        diceNumber: 2,
+        dieSize: "d10",
+        damageType: "bludgeoning",
+        critical: false,
+        predicate: ["yu:stunning-fist"],
+        label: "Stunning Fist — Força Neural",
       },
     ],
     { value: YU_RAGE_MAX_ROUNDS, unit: "rounds", sustained: false, expiry: "turn-start" }
@@ -2369,7 +2549,7 @@ async function confirmArkiusSolarTargets(targets: ArkiusSolarTarget[], area: Ark
   });
 }
 
-function getActorSaveModifier(actor: Actor, save: "reflex" | "will"): number {
+function getActorSaveModifier(actor: Actor, save: "fortitude" | "reflex" | "will"): number {
   const system = asRecord(actor.system);
   const saves = asRecord(system.saves);
   const saveData = asRecord(saves[save]);
@@ -2752,6 +2932,34 @@ function isEthernumGeneratedMessage(message: ChatMessage): boolean {
   return Boolean(asRecord(flags[ETHERNUM.MODULE_NAME]).uniqueMechanics);
 }
 
+function isChatAutomationAuthority(): boolean {
+  const activeGMs = Array.from(game.users ?? [])
+    .filter(user => user.active && user.isGM)
+    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+  return activeGMs[0]?.id === game.user?.id;
+}
+
+function canProcessChatAutomation(message: ChatMessage): boolean {
+  if (!isChatAutomationAuthority()) return false;
+
+  const messageId = message.id;
+  if (!messageId) {
+    console.warn("Ethernum RPG Module | Ignoring chat automation without a message ID");
+    return false;
+  }
+  if (processedChatMessageIds.has(messageId)) {
+    console.debug(`Ethernum RPG Module | Chat automation already processed for message ${messageId}`);
+    return false;
+  }
+
+  processedChatMessageIds.add(messageId);
+  if (processedChatMessageIds.size > PROCESSED_CHAT_MESSAGE_LIMIT) {
+    const oldestMessageId = processedChatMessageIds.values().next().value;
+    if (oldestMessageId) processedChatMessageIds.delete(oldestMessageId);
+  }
+  return true;
+}
+
 function isPF2EAttackRollMessage(message: ChatMessage): boolean {
   const context = getChatMessageContext(message);
   const type = String(context.type ?? context.rollType ?? "");
@@ -3084,8 +3292,6 @@ export class UniqueMechanicsSystem {
       delete next.activeDeviationCombatId;
     }
     if (!Number.isFinite(Number(next.maxSPOverride)) || Number(next.maxSPOverride) <= 0) delete next.maxSPOverride;
-    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
-    state.activeProfile = GYRO_PROFILE_ID;
     state.profiles[GYRO_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -3101,8 +3307,6 @@ export class UniqueMechanicsSystem {
       next.lightningChargesUsed = 0;
       next.lancesUsed = false;
     }
-    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
-    state.activeProfile = BAYLE_PROFILE_ID;
     state.profiles[BAYLE_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -3180,8 +3384,6 @@ export class UniqueMechanicsSystem {
     const state = this.getState(actor);
     const current = this.getPippingState(actor);
     const next = normalizePippingState({ ...current, ...patch });
-    state.activeCore = ETHERNUM_COMPANY_CORE_ID;
-    state.activeProfile = PIPPING_PROFILE_ID;
     state.profiles[PIPPING_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -3220,8 +3422,6 @@ export class UniqueMechanicsSystem {
         ...(patch.bracoEvolutivo ?? {}),
       },
     });
-    state.activeCore = CONCORDIA_CORE_ID;
-    state.activeProfile = ARKIUS_JACKER_PROFILE_ID;
     state.profiles[ARKIUS_JACKER_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -3231,8 +3431,6 @@ export class UniqueMechanicsSystem {
     const state = this.getState(actor);
     const current = this.getYuState(actor);
     const next = normalizeYuState({ ...current, ...patch });
-    state.activeCore = CONCORDIA_CORE_ID;
-    state.activeProfile = YU_JIU_JI_TAE_PROFILE_ID;
     state.profiles[YU_JIU_JI_TAE_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -4039,9 +4237,15 @@ export class UniqueMechanicsSystem {
     if (game.system?.id !== "pf2e") return;
     if (isEthernumGeneratedMessage(message)) return;
 
-    const attacker = getActorFromChatMessage(message);
     const isAttackRoll = isPF2EAttackRollMessage(message);
     const isDamageRoll = isPF2EDamageRollMessage(message);
+    if (!isAttackRoll && !isDamageRoll) return;
+    if (!canProcessChatAutomation(message)) return;
+
+    console.debug(
+      `Ethernum RPG Module | Processing PF2E chat automation ${message.id} as authority ${game.user?.id ?? "unknown"}`,
+    );
+    const attacker = getActorFromChatMessage(message);
 
     if (attacker && this.getState(attacker).activeProfile === ARKIUS_JACKER_PROFILE_ID) {
       const arkiusState = this.getArkiusState(attacker);
@@ -4320,19 +4524,73 @@ export class UniqueMechanicsSystem {
     return next;
   }
 
-  static async rollYuFlurryFear(actor?: Actor | null): Promise<Roll | null> {
+  static async useYuFlurryOfBlows(actor?: Actor | null): Promise<void> {
     const target = actor ?? getControlledActor();
     if (!target) {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
-      return null;
+      return;
     }
-    const state = this.getYuState(target);
-    if (!state.active) {
-      ui.notifications?.warn("Rage in the Flesh precisa estar ativa para usar Sobrecarga de Medo.");
-      return null;
+    if (!this.getYuState(target).active) {
+      ui.notifications?.warn("Rage in the Flesh precisa estar ativa para usar o Flurry automatizado.");
+      return;
     }
-    const choice = await chooseTargetChoice("Sobrecarga de Medo", target);
-    if (!choice) return null;
+
+    const configuration = await chooseYuFlurryConfiguration(target);
+    if (!configuration) return;
+    const attackResults: YuFlurryAttackResult[] = [];
+    const rollOptions = ["action:flurry-of-blows", "self:action:slug:flurry-of-blows", "yu:flurry-of-blows"];
+
+    for (let attackIndex = 0; attackIndex < 2; attackIndex += 1) {
+      const mapIncreases = clamp(configuration.mapIncreases + attackIndex, 0, 2);
+      const variant = configuration.strike.variants?.[mapIncreases];
+      if (typeof variant?.roll !== "function") {
+        ui.notifications?.error("O PF2e não expôs a variante de ataque necessária para este Strike.");
+        return;
+      }
+      const roll = await variant.roll({
+        target: configuration.target.token,
+        event: getPF2ESkipDialogEvent("check"),
+        options: rollOptions,
+      });
+      attackResults.push({
+        degree: getPF2ERollDegree(roll),
+        mapIncreases,
+      });
+    }
+
+    const hits = attackResults.filter(result => result.degree >= 2);
+    const stunningTriggered = hits.length > 0
+      ? await this.resolveYuStunningFist(target, configuration.target)
+      : false;
+    await this.resolveYuFlurryFear(target, configuration.target);
+
+    const firstHit = hits[0];
+    for (const hit of hits) {
+      const damageOptions = [...rollOptions];
+      if (stunningTriggered && hit === firstHit) damageOptions.push("yu:stunning-fist");
+      const params = {
+        target: configuration.target.token,
+        mapIncreases: hit.mapIncreases,
+        event: getPF2ESkipDialogEvent("damage"),
+        options: damageOptions,
+      };
+      if (hit.degree >= 3) await configuration.strike.critical?.(params);
+      else await configuration.strike.damage?.(params);
+    }
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>Flurry of Blows — Yu</h3>
+          <p><strong>Strike:</strong> ${escapeHtml(getPF2EStrikeLabel(configuration.strike, 0))} · <strong>Alvo:</strong> ${escapeHtml(configuration.target.name)}</p>
+          <p><strong>Resultado:</strong> ${hits.length}/2 acertos com dano rolado automaticamente.</p>
+          <p>Stunning Fist e Sobrecarga de Medo foram resolvidos no mesmo fluxo.</p>
+        </div>`,
+    });
+  }
+
+  static async resolveYuFlurryFear(target: Actor, choice: EthernumTargetChoice): Promise<Roll> {
     const dc = getActorClassOrKineticDC(target);
     const modifier = getActorSaveModifier(choice.actor, "will");
     const roll = new Roll(`1d20 + ${modifier}`);
@@ -4365,6 +4623,47 @@ export class UniqueMechanicsSystem {
         </div>`,
     });
     return roll;
+  }
+
+  static async rollYuFlurryFear(actor?: Actor | null): Promise<Roll | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getYuState(target);
+    if (!state.active) {
+      ui.notifications?.warn("Rage in the Flesh precisa estar ativa para usar Sobrecarga de Medo.");
+      return null;
+    }
+    const choice = await chooseTargetChoice("Sobrecarga de Medo", target);
+    return choice ? this.resolveYuFlurryFear(target, choice) : null;
+  }
+
+  static async resolveYuStunningFist(target: Actor, choice: EthernumTargetChoice): Promise<boolean> {
+    const dc = getActorClassOrKineticDC(target);
+    const modifier = getActorSaveModifier(choice.actor, "fortitude");
+    const roll = new Roll(`1d20 + ${modifier}`);
+    await roll.evaluate();
+    const total = Number(roll.total ?? 0);
+    const natural = getRollNaturalD20(roll);
+    const degree = getBasicSaveDegree(total, dc, natural);
+    const stunned = degree === "Falha crítica" ? 3 : degree === "Falha" ? 1 : 0;
+    const conditionApplied = stunned > 0
+      ? await tryIncreaseActorCondition(choice.actor, "stunned", stunned)
+      : false;
+
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-yu-chat-card">
+          <h3>Stunning Fist — Força Neural</h3>
+          <p><strong>Alvo:</strong> ${escapeHtml(choice.name)} · <strong>Fortitude:</strong> ${total}${natural ? ` (d20 ${natural})` : ""} vs CD ${dc}</p>
+          <p><strong>Resultado:</strong> ${escapeHtml(degree)}${stunned > 0 ? ` · Stunned ${stunned}${conditionApplied ? " aplicado" : " para aplicar"}` : " · sem efeito"}</p>
+          <p>${stunned > 0 ? "O primeiro Strike que acertou recebe +2d10 contundente automaticamente." : "O dano adicional não é ativado."}</p>
+        </div>`,
+    });
+    return stunned > 0;
   }
 
   static async rollYuStunningFistDamage(actor?: Actor | null): Promise<Roll | null> {
@@ -5449,14 +5748,16 @@ export class UniqueMechanicsSystem {
             "Resistência 5 a dano mental.",
           ],
           flurry: [
-            "Após Flurry of Blows, escolha um alvo e role Vontade contra sua CD de Classe.",
+            "O macro escolhe um Strike desarmado, incluindo strikes de stances, e faz os dois ataques com MAP sequencial.",
+            "Os danos dos acertos e o save de Vontade contra sua CD de Classe são rolados automaticamente.",
             "Falha: Frightened 2.",
             "Falha crítica: Frightened 3.",
             "Criaturas imunes a medo ignoram este efeito completamente.",
           ],
           stunning: [
             "Se Stunning Fist for aplicado com sucesso em um dos ataques, o Strike que aplicou causa +2d10 contundente.",
-            "Use o botão +2d10 quando o mestre confirmar o gatilho.",
+            "O macro de Flurry rola Fortitude, aplica Stunned e inclui o +2d10 no primeiro dano que acertou.",
+            "O macro antigo de +2d10 continua disponível como fallback.",
           ],
           collapse: [
             "Ao término da postura, Yu sofre Drenado 1 até o próximo descanso curto de 10 minutos.",
@@ -5466,6 +5767,7 @@ export class UniqueMechanicsSystem {
           macroSlots: [
             "await game.ethernum.macros.concordia.yu.showStatus();",
             "await game.ethernum.macros.concordia.yu.toggleRage();",
+            "await game.ethernum.macros.concordia.yu.flurryOfBlows();",
             "await game.ethernum.macros.concordia.yu.flurryFear();",
             "await game.ethernum.macros.concordia.yu.stunningFistDamage();",
             "await game.ethernum.macros.concordia.yu.shortRestReset();",

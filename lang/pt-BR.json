@@ -18,8 +18,9 @@
     "Rank": "Rank",
     "TalentRank": "Rank do Talento",
     "AttributeRank": "Rank do Atributo",
-    "FormulaExample": "Ex: 1d20 + 5 (Investigação) + 9 (Rank D) + 3 (Inteligência) + 6 (Rank D) = 1d20+23",
-    "LongRestInfo": "O Éter é restaurado apenas com descanso longo. Não há regeneração passiva.",
+    "TalentFormula": "1d20 + perícia PF2e (ou Talento Ethernum) + Rank do Talento + atributo PF2e (ou Atributo Ethernum) + Rank do Atributo",
+    "FormulaExample": "A mensagem da rolagem detalha a origem PF2e ou Ethernum de cada parcela.",
+    "LongRestInfo": "Com a restauração automática habilitada, o Éter volta ao máximo no descanso longo. Não há regeneração passiva.",
     "TalentsDescription": "Os talentos funcionam com o sistema de ranks. Ao fazer um teste, role:",
     "RankBonusInfo": "Atributos: F=+2, E=+4, D=+6, C=+8, B=+10, A=+12, S=+15, K=+20 | Talentos: F=+3, E=+6, D=+9, C=+12, B=+15, A=+18, S=+21, K=+25",
     "FE": {
@@ -329,14 +330,16 @@
     },
     "Notifications": {
       "EtherRestored": "Éter totalmente restaurado!",
-      "LongRestComplete": "Descanso longo completo! Éter totalmente restaurado."
+      "LongRestComplete": "Descanso longo completo! Éter totalmente restaurado.",
+      "LongRestCompleteNoRestore": "Descanso longo completo. A restauração automática de Éter está desativada."
     },
     "Errors": {
       "NoActor": "Nenhum ator selecionado para fazer a rolagem.",
       "InvalidRune": "Runa inválida ou não encontrada.",
       "NotEnoughEther": "Éter insuficiente para ativar esta runa!",
       "RuneDisabled": "Esta runa está desabilitada pelo Mestre.",
-      "GMOnly": "Apenas o Mestre pode alterar este valor diretamente. Use FE para fazer upgrades."
+      "GMOnly": "Apenas o Mestre pode alterar este valor diretamente. Use FE para fazer upgrades.",
+      "OverrideDisabled": "Esta runa excede a classe permitida e o Override está desativado neste mundo."
     },
     "Warnings": {
       "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
@@ -344,7 +347,7 @@
     "Settings": {
       "LongRestFullRestore": {
         "Name": "Restauração Total no Descanso Longo",
-        "Hint": "Se ativado, o éter será totalmente restaurado quando o personagem fizer um descanso longo."
+        "Hint": "Se ativado, o Éter será totalmente restaurado no descanso longo. Se desativado, o descanso não altera o Éter automaticamente."
       },
       "ShowEtherInChat": {
         "Name": "Mostrar Éter no Chat",

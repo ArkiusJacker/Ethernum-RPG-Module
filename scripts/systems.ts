@@ -1,5 +1,12 @@
 import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute, type CampaignCoreId } from './config.js';
-import { getFECostForRank, getRuneClassDC, getDefaultRuneCost } from './settings.js';
+import {
+  getFECostForRank,
+  getRuneClassDC,
+  getDefaultRuneCost,
+  isLongRestFullRestoreEnabled,
+  isOverrideAllowed,
+  shouldShowEtherInChat,
+} from './settings.js';
 
 interface EtherSystemState {
   etherMax: number;
@@ -98,6 +105,10 @@ export class EtherSystem {
   }
 
   async longRest(actor: Actor): Promise<number> {
+    const etherSystem = (actor.getFlag(ETHERNUM.MODULE_NAME, "etherSystem") as Partial<EtherSystemState> | undefined) ?? {};
+    const currentEther = etherSystem.etherCurrent ?? 0;
+    if (!isLongRestFullRestoreEnabled()) return currentEther;
+
     const maxEther = this.calculateMaxEther(actor);
     await actor.setFlag(ETHERNUM.MODULE_NAME, "etherSystem.etherCurrent", maxEther);
     return maxEther;
@@ -385,6 +396,10 @@ export class EthernumDiceCalculator {
     const runeClass  = rune.runeClass ?? 1;
 
     if (runeClass > maxAllowed) {
+      if (!isOverrideAllowed()) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.OverrideDisabled"));
+        return null;
+      }
       const overrideResult = await RuneSystem.attemptOverride(actor, runeClass);
       if (!overrideResult.success) {
         await this._handleOverrideFailure(actor);
@@ -414,14 +429,18 @@ export class EthernumDiceCalculator {
     await roll.evaluate();
 
     const runeClassInfo = ETHERNUM.RUNE_CLASSES[runeClass as RuneClassKey];
+    const flavorParts = [
+      `<strong>${game.i18n!.localize("ETHERNUM.Rune.Activated")}: ${rune.name}</strong>`,
+      `<em>${game.i18n!.localize("ETHERNUM.Rune.Class")}: ${runeClassInfo?.name ?? runeClass}</em>`,
+    ];
+    if (shouldShowEtherInChat()) {
+      flavorParts.push(`${game.i18n!.localize("ETHERNUM.EtherCost")}: ${etherCost}`);
+    }
+    if (rune.effect) flavorParts.push(`<small>${rune.effect}</small>`);
+
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
-      flavor: [
-        `<strong>${game.i18n!.localize("ETHERNUM.Rune.Activated")}: ${rune.name}</strong>`,
-        `<em>${game.i18n!.localize("ETHERNUM.Rune.Class")}: ${runeClassInfo?.name ?? runeClass}</em>`,
-        `${game.i18n!.localize("ETHERNUM.EtherCost")}: ${etherCost}`,
-        rune.effect ? `<small>${rune.effect}</small>` : ""
-      ].filter(Boolean).join("<br>")
+      flavor: flavorParts.join("<br>")
     });
 
     return roll;

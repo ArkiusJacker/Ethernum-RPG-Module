@@ -1,5 +1,16 @@
 import { ETHERNUM, type Rank, type RuneClassKey } from './config.js';
 
+type BooleanSettingKey = "longRestFullRestore" | "showEtherInChat" | "allowOverride";
+
+function getBooleanSetting(key: BooleanSettingKey, fallback: boolean): boolean {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, key) as boolean | undefined;
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function registerSettings(): void {
   game.settings!.register(ETHERNUM.MODULE_NAME, "defaultRuneCostPerClass", {
     name: "ETHERNUM.Settings.DefaultRuneCostPerClass.Name",
@@ -89,4 +100,16 @@ export function getDefaultRuneCost(runeClass: RuneClassKey): number {
   } catch {
     return 0;
   }
+}
+
+export function isLongRestFullRestoreEnabled(): boolean {
+  return getBooleanSetting("longRestFullRestore", true);
+}
+
+export function shouldShowEtherInChat(): boolean {
+  return getBooleanSetting("showEtherInChat", true);
+}
+
+export function isOverrideAllowed(): boolean {
+  return getBooleanSetting("allowOverride", true);
 }
