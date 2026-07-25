@@ -1,6 +1,6 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
 
-const CURRENT_SCHEMA_VERSION = 7;
+const CURRENT_SCHEMA_VERSION = 8;
 
 interface EtherSystem {
   etherMax: number;
@@ -70,6 +70,40 @@ const DEFAULT_YU_STATE = {
   emergencyTriggered: false,
   collapseDrainedActive: false,
   collapseEnfeebledActive: false,
+};
+
+const DEFAULT_CHARLES_STATE = {
+  chargesSpent: 0,
+  maxCharges: 3,
+  deviceBroken: false,
+  acLeakStacks: 0,
+  net: {
+    active: false,
+    overloaded: false,
+    remainingRounds: 0,
+    radius: 10,
+    appliedTurnKeys: {},
+  },
+};
+
+const DEFAULT_ATLAS_STATE = {
+  usesSpent: 0,
+  exhaustedLocked: false,
+  fatigueStupefied: 0,
+  pending: {
+    active: false,
+    modifications: [],
+    spellRank: 1,
+    originalActions: 2,
+    baptismDamageType: "slashing",
+    overdrive: false,
+  },
+  slowPending: false,
+  slowActive: false,
+  stupefiedPending: false,
+  stupefiedActive: false,
+  overdriveFlatCheckArmed: false,
+  overdriveSpellRank: 1,
 };
 
 export interface ValidationResult {
@@ -313,6 +347,46 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v7`);
+  }
+
+  if (schemaVersion < 8) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingCharles = (existingProfiles.charles ?? {}) as {
+      net?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+    const existingAtlas = (existingProfiles["atlas-sidarta"] ?? {}) as {
+      pending?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      profiles: {
+        ...existingProfiles,
+        charles: {
+          ...DEFAULT_CHARLES_STATE,
+          ...existingCharles,
+          net: {
+            ...DEFAULT_CHARLES_STATE.net,
+            ...(existingCharles.net ?? {}),
+          },
+        },
+        "atlas-sidarta": {
+          ...DEFAULT_ATLAS_STATE,
+          ...existingAtlas,
+          pending: {
+            ...DEFAULT_ATLAS_STATE.pending,
+            ...(existingAtlas.pending ?? {}),
+          },
+        },
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v8`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

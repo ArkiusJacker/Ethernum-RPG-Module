@@ -21,11 +21,13 @@ export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
 export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
 export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
 export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
+export const ATLAS_SIDARTA_PROFILE_ID: UniqueMechanicProfileId = "atlas-sidarta";
+export const CHARLES_PROFILE_ID: UniqueMechanicProfileId = "charles";
 export const YU_JIU_JI_TAE_PROFILE_ID: UniqueMechanicProfileId = "yu-jiu-ji-tae";
 export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
 export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
 export const ETHERNUM_PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
-export const CONCORDIA_PLACEHOLDER_PROFILE_IDS = ["atlas-sidarta", "charles", "morgana", "unluck"] as const;
+export const CONCORDIA_PLACEHOLDER_PROFILE_IDS = ["morgana", "unluck"] as const;
 export const PLACEHOLDER_PROFILE_IDS = [...ETHERNUM_PLACEHOLDER_PROFILE_IDS, ...CONCORDIA_PLACEHOLDER_PROFILE_IDS] as const;
 export const GYRO_SPINBALL_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/spinball.png`;
 export const ETHERNUM_COMPANY_LOGO_ASSET = `modules/${ETHERNUM.MODULE_NAME}/assets/unique/company-logo.png`;
@@ -48,8 +50,28 @@ const YU_COLLAPSE_DRAINED_EFFECT_SLUG = "yu-colapso-neural-drenado";
 const YU_COLLAPSE_ENFEEBLED_EFFECT_SLUG = "yu-colapso-neural-enfeebled";
 const YU_FLURRY_FEAR_EFFECT_SLUG = "yu-sobrecarga-de-medo";
 const YU_RAGE_MAX_ROUNDS = 10;
+const CHARLES_AC_LEAK_EFFECT_SLUG = "charles-vazamento-ca";
+const CHARLES_CLIMB_EFFECT_SLUG = "charles-escalada-de-impulso";
+const CHARLES_FAILURE_CONDITION_SLUG = "charles-falha-do-sistema-enfraquecido";
+const CHARLES_NET_TEMPLATE_SLUG = "charles-rede-de-amortecimento";
+const CHARLES_NET_MAX_ROUNDS = 3;
+const ATLAS_PENDING_EFFECT_SLUG = "atlas-olhar-do-divino-pendente";
+const ATLAS_FATIGUE_EFFECT_SLUG = "atlas-esgotamento-total";
+const ATLAS_FATIGUE_ATTACK_EFFECT_SLUG = "atlas-esgotamento-ataques";
+const ATLAS_FATIGUE_STUPEFIED_SLUG = "atlas-esgotamento-estupefato";
+const ATLAS_OVERDRIVE_STUPEFIED_SLUG = "atlas-fusao-estupefato";
+const ATLAS_THREE_ACTION_SLOWED_SLUG = "atlas-magia-tres-acoes-lento";
+const ATLAS_MODIFICATION_IDS = [
+  "frontline-vigor",
+  "shattering-judgment",
+  "steel-resonance",
+  "spear-reach",
+  "gorum-clamor",
+  "iron-baptism",
+] as const;
 const PROCESSED_CHAT_MESSAGE_LIMIT = 1000;
 const processedChatMessageIds = new Set<string>();
+const processedManagedCombatTurnKeys = new Set<string>();
 
 export interface UniqueMechanicsState {
   activeCore: CampaignCoreId;
@@ -276,6 +298,56 @@ export interface YuRageState {
   collapseEnfeebledActive: boolean;
 }
 
+export interface CharlesState {
+  chargesSpent: number;
+  maxCharges: number;
+  deviceBroken: boolean;
+  acLeakStacks: number;
+  net: {
+    active: boolean;
+    overloaded: boolean;
+    remainingRounds: number;
+    radius: number;
+    templateId?: string;
+    combatId?: string;
+    lastCombatTurnKey?: string;
+    appliedTurnKeys: Record<string, string>;
+  };
+}
+
+export type AtlasModificationId = typeof ATLAS_MODIFICATION_IDS[number];
+export type AtlasBaptismDamageType = "slashing" | "piercing";
+
+export interface AtlasState {
+  usesSpent: number;
+  exhaustedLocked: boolean;
+  fatigueStupefied: number;
+  pending: {
+    active: boolean;
+    modifications: AtlasModificationId[];
+    spellRank: number;
+    originalActions: number;
+    baptismDamageType: AtlasBaptismDamageType;
+    overdrive: boolean;
+  };
+  slowPending: boolean;
+  slowActive: boolean;
+  stupefiedPending: boolean;
+  stupefiedActive: boolean;
+  overdriveFlatCheckArmed: boolean;
+  overdriveSpellRank: number;
+  lastCombatTurnKey?: string;
+}
+
+interface AtlasModification {
+  id: AtlasModificationId;
+  name: string;
+  category: "Seguro" | "Atenção" | "Controle" | "Utilidade";
+  icon: string;
+  summary: string;
+  details: string[];
+}
+
 type PartialArkiusJackerState = {
   nucleoEmBrasas?: Partial<ArkiusJackerState["nucleoEmBrasas"]>;
   kineticAura?: Partial<ArkiusJackerState["kineticAura"]>;
@@ -285,6 +357,8 @@ type PartialArkiusJackerState = {
 };
 
 type PartialYuRageState = Partial<YuRageState>;
+type PartialCharlesState = Partial<Omit<CharlesState, "net">> & { net?: Partial<CharlesState["net"]> };
+type PartialAtlasState = Partial<Omit<AtlasState, "pending">> & { pending?: Partial<AtlasState["pending"]> };
 
 const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
   trained: 2,
@@ -397,6 +471,108 @@ const DEFAULT_YU_STATE: YuRageState = {
   collapseDrainedActive: false,
   collapseEnfeebledActive: false,
 };
+
+const DEFAULT_CHARLES_STATE: CharlesState = {
+  chargesSpent: 0,
+  maxCharges: 3,
+  deviceBroken: false,
+  acLeakStacks: 0,
+  net: {
+    active: false,
+    overloaded: false,
+    remainingRounds: 0,
+    radius: 10,
+    appliedTurnKeys: {},
+  },
+};
+
+const DEFAULT_ATLAS_STATE: AtlasState = {
+  usesSpent: 0,
+  exhaustedLocked: false,
+  fatigueStupefied: 0,
+  pending: {
+    active: false,
+    modifications: [],
+    spellRank: 1,
+    originalActions: 2,
+    baptismDamageType: "slashing",
+    overdrive: false,
+  },
+  slowPending: false,
+  slowActive: false,
+  stupefiedPending: false,
+  stupefiedActive: false,
+  overdriveFlatCheckArmed: false,
+  overdriveSpellRank: 1,
+};
+
+const ATLAS_MODIFICATIONS: AtlasModification[] = [
+  {
+    id: "frontline-vigor",
+    name: "Vigor da Linha de Frente",
+    category: "Seguro",
+    icon: "fas fa-hand-holding-medical",
+    summary: "Converte cura de alvo único em cone de 15 pés, usando somente os dados da cura.",
+    details: [
+      "A cura ignora bônus fixos.",
+      "Aliados curados recebem +2 de status em Atletismo por 1 rodada.",
+    ],
+  },
+  {
+    id: "shattering-judgment",
+    name: "Julgamento Estilhaçante",
+    category: "Atenção",
+    icon: "fas fa-burst",
+    summary: "Aumenta em um passo os dados de dano da próxima magia.",
+    details: [
+      "d8 vira d10, d10 vira d12 e d12 vira d12+1.",
+      "Dano sagrado ignora até 5 de resistência a dano.",
+    ],
+  },
+  {
+    id: "steel-resonance",
+    name: "Ressonância de Aço",
+    category: "Seguro",
+    icon: "fas fa-shield-halved",
+    summary: "Fortalece o alvo de um buff e aliados adjacentes com a defesa de Gorum.",
+    details: [
+      "+1 de status na CA por 2 rodadas para o alvo e aliados a 5 pés.",
+      "O alvo recebe resistência física 5 se estiver usando armadura metálica.",
+    ],
+  },
+  {
+    id: "spear-reach",
+    name: "Alcance da Lança",
+    category: "Seguro",
+    icon: "fas fa-arrows-left-right-to-line",
+    summary: "Magias de toque passam a 35 pés e outros alcances em pés aumentam em 50%.",
+    details: [
+      "A alteração de alcance fica registrada no card da ativação.",
+    ],
+  },
+  {
+    id: "gorum-clamor",
+    name: "Clamor de Gorum",
+    category: "Controle",
+    icon: "fas fa-bullhorn",
+    summary: "Inimigos adjacentes ao aliado beneficiado enfrentam Vontade contra sua CD divina.",
+    details: [
+      "Falha: Abalado 1 até o início do próximo turno.",
+      "Falha crítica: Apavorado 1 até o final do próximo turno.",
+    ],
+  },
+  {
+    id: "iron-baptism",
+    name: "Batismo de Ferro",
+    category: "Utilidade",
+    icon: "fas fa-khanda",
+    summary: "Converte o dano físico, de força, sagrado ou não tipado para cortante ou perfurante metálico.",
+    details: [
+      "Não funciona em magias cujo tipo principal seja fogo, elétrico ou sônico.",
+      "A sinergia com Ressonância de Aço permanece indicada no card para conferência da rodada.",
+    ],
+  },
+];
 
 export const PIPPING_ABILITIES: PippingAbility[] = [
   {
@@ -1296,6 +1472,125 @@ function getPF2EAbilityMod(actor: Actor, ability: GyroMainAttribute): number {
   return Number.isFinite(mod) ? mod : 0;
 }
 
+function getActorSkillModifier(actor: Actor, skill: string): number {
+  const skills = asRecord(asRecord(actor.system).skills);
+  const skillData = asRecord(skills[skill]);
+  const check = asRecord(skillData.check);
+  for (const candidate of [skillData.mod, skillData.total, skillData.value, check.mod, check.total]) {
+    const value = Number(candidate);
+    if (Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+function getActorSaveDC(actor: Actor, save: "fortitude" | "reflex" | "will"): number {
+  const saves = asRecord(asRecord(actor.system).saves);
+  const saveData = asRecord(saves[save]);
+  const check = asRecord(saveData.check);
+  for (const candidate of [saveData.dc, asRecord(saveData.dc).value, check.dc, asRecord(check.dc).value]) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return 10 + getActorSaveModifier(actor, save);
+}
+
+function getActorClassDCBySlug(actor: Actor, slug: string): number {
+  const system = asRecord(actor.system);
+  const attributes = asRecord(system.attributes);
+  const proficiencies = asRecord(system.proficiencies);
+  const classDCs = asRecord(proficiencies.classDCs);
+  const candidates = [
+    asRecord(classDCs[slug]).dc,
+    asRecord(classDCs[slug]).value,
+    asRecord(attributes.classDC).value,
+    asRecord(attributes.classDC).dc,
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return levelBasedDC(getActorLevel(actor));
+}
+
+function getActorDivineSpellDC(actor: Actor): number {
+  const system = asRecord(actor.system);
+  const attributes = asRecord(system.attributes);
+  const proficiencies = asRecord(system.proficiencies);
+  const spellcasting = asRecord(system.spellcasting);
+  const candidates = [
+    asRecord(spellcasting.divine).dc,
+    asRecord(spellcasting.divine).value,
+    asRecord(proficiencies.spellcasting).dc,
+    asRecord(proficiencies.spellcasting).value,
+    asRecord(attributes.spellDC).value,
+    asRecord(attributes.spellDC).dc,
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return getActorClassDCBySlug(actor, "cleric");
+}
+
+function getAtlasMaxUses(actor: Actor): number {
+  return clamp(getPF2EAbilityMod(actor, "wis"), 1, 5);
+}
+
+function getActorLandSpeed(actor: Actor): number {
+  const attributes = asRecord(asRecord(actor.system).attributes);
+  const speed = asRecord(attributes.speed);
+  for (const candidate of [speed.total, speed.value]) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return 25;
+}
+
+function getActorSizeRank(actor: Actor): number {
+  const size = String(asRecord(asRecord(actor.system).traits).size ?? "med").toLowerCase();
+  const ranks: Record<string, number> = {
+    tiny: 0,
+    sm: 1,
+    small: 1,
+    med: 2,
+    medium: 2,
+    lg: 3,
+    large: 3,
+    huge: 4,
+    grg: 5,
+    gargantuan: 5,
+  };
+  return ranks[size] ?? 2;
+}
+
+function actorWearsMetalArmor(actor: Actor): boolean {
+  return Array.from((actor.items ?? []) as Collection<Item>).some(item => {
+    if ((item.type as string) !== "armor") return false;
+    const system = asRecord(item.system);
+    const equipped = asRecord(system.equipped);
+    const carryType = String(equipped.carryType ?? "");
+    if (equipped.inSlot === false || equipped.invested === false || (carryType && carryType !== "worn")) return false;
+    const group = String(system.group ?? asRecord(system.category).group ?? "").toLowerCase();
+    if (group === "chain" || group === "plate") return true;
+    const searchable = JSON.stringify({
+      material: system.material,
+      traits: asRecord(system.traits).value,
+      name: item.name,
+    }).toLowerCase();
+    return [
+      "metal",
+      "steel",
+      "iron",
+      "ferro",
+      "aço",
+      "adamantine",
+      "dawnsilver",
+      "djezet",
+      "orichalcum",
+    ].some(term => searchable.includes(term));
+  });
+}
+
 function getControlledActor(): Actor | null {
   const controlled = canvas?.tokens?.controlled?.[0]?.actor;
   return controlled ?? game.user?.character ?? null;
@@ -1383,6 +1678,8 @@ function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCo
   ) return ETHERNUM_COMPANY_CORE_ID;
   if (
     profileId === ARKIUS_JACKER_PROFILE_ID
+    || profileId === ATLAS_SIDARTA_PROFILE_ID
+    || profileId === CHARLES_PROFILE_ID
     || profileId === YU_JIU_JI_TAE_PROFILE_ID
     || CONCORDIA_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof CONCORDIA_PLACEHOLDER_PROFILE_IDS[number])
   ) return CONCORDIA_CORE_ID;
@@ -1401,6 +1698,8 @@ function isKnownProfile(profileId: unknown): profileId is UniqueMechanicProfileI
     || profileId === BAYLE_PROFILE_ID
     || profileId === PIPPING_PROFILE_ID
     || profileId === ARKIUS_JACKER_PROFILE_ID
+    || profileId === ATLAS_SIDARTA_PROFILE_ID
+    || profileId === CHARLES_PROFILE_ID
     || profileId === YU_JIU_JI_TAE_PROFILE_ID
     || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
   );
@@ -1541,6 +1840,64 @@ function normalizeYuState(raw: unknown): YuRageState {
   };
 }
 
+function normalizeCharlesState(raw: unknown): CharlesState {
+  const state = asRecord(raw);
+  const net = asRecord(state.net);
+  const maxCharges = clamp(Number(state.maxCharges ?? DEFAULT_CHARLES_STATE.maxCharges) || 3, 1, 9);
+  return {
+    ...DEFAULT_CHARLES_STATE,
+    chargesSpent: clamp(Number(state.chargesSpent ?? 0) || 0, 0, maxCharges),
+    maxCharges,
+    deviceBroken: Boolean(state.deviceBroken),
+    acLeakStacks: clamp(Number(state.acLeakStacks ?? 0) || 0, 0, 3),
+    net: {
+      ...DEFAULT_CHARLES_STATE.net,
+      active: Boolean(net.active),
+      overloaded: Boolean(net.overloaded),
+      remainingRounds: clamp(Number(net.remainingRounds ?? 0) || 0, 0, CHARLES_NET_MAX_ROUNDS),
+      radius: clamp(Number(net.radius ?? 10) || 10, 10, 15),
+      templateId: typeof net.templateId === "string" ? net.templateId : undefined,
+      combatId: typeof net.combatId === "string" ? net.combatId : undefined,
+      lastCombatTurnKey: typeof net.lastCombatTurnKey === "string" ? net.lastCombatTurnKey : undefined,
+      appliedTurnKeys: asStringRecord(net.appliedTurnKeys),
+    },
+  };
+}
+
+function normalizeAtlasModificationId(value: unknown): AtlasModificationId | null {
+  return ATLAS_MODIFICATION_IDS.includes(value as AtlasModificationId) ? value as AtlasModificationId : null;
+}
+
+function normalizeAtlasState(raw: unknown): AtlasState {
+  const state = asRecord(raw);
+  const pending = asRecord(state.pending);
+  const modifications = Array.isArray(pending.modifications)
+    ? pending.modifications.map(normalizeAtlasModificationId).filter((value): value is AtlasModificationId => value !== null)
+    : [];
+  return {
+    ...DEFAULT_ATLAS_STATE,
+    usesSpent: clamp(Number(state.usesSpent ?? 0) || 0, 0, 5),
+    exhaustedLocked: Boolean(state.exhaustedLocked),
+    fatigueStupefied: Math.max(0, Math.floor(Number(state.fatigueStupefied ?? 0) || 0)),
+    pending: {
+      ...DEFAULT_ATLAS_STATE.pending,
+      active: Boolean(pending.active) && modifications.length > 0,
+      modifications,
+      spellRank: clamp(Number(pending.spellRank ?? 1) || 1, 1, 10),
+      originalActions: clamp(Number(pending.originalActions ?? 2) || 2, 1, 3),
+      baptismDamageType: pending.baptismDamageType === "piercing" ? "piercing" : "slashing",
+      overdrive: Boolean(pending.overdrive) && modifications.length > 1,
+    },
+    slowPending: Boolean(state.slowPending),
+    slowActive: Boolean(state.slowActive),
+    stupefiedPending: Boolean(state.stupefiedPending),
+    stupefiedActive: Boolean(state.stupefiedActive),
+    overdriveFlatCheckArmed: Boolean(state.overdriveFlatCheckArmed),
+    overdriveSpellRank: clamp(Number(state.overdriveSpellRank ?? 1) || 1, 1, 10),
+    ...(typeof state.lastCombatTurnKey === "string" ? { lastCombatTurnKey: state.lastCombatTurnKey } : {}),
+  };
+}
+
 function getBayleStageData(stage: number): BayleStage {
   return BAYLE_STAGES.find(item => item.stage === stage) ?? BAYLE_STAGES[0];
 }
@@ -1596,6 +1953,19 @@ interface YuFlurryConfiguration {
 interface YuFlurryAttackResult {
   degree: number;
   mapIncreases: number;
+}
+
+interface CharlesContainmentConfiguration {
+  target: EthernumTargetChoice;
+  strike: PF2EStrikeAction;
+  mapIncreases: number;
+}
+
+interface AtlasActivationConfiguration {
+  modifications: AtlasModificationId[];
+  spellRank: number;
+  originalActions: number;
+  baptismDamageType: AtlasBaptismDamageType;
 }
 
 export interface ArkiusSolarArea {
@@ -1794,8 +2164,81 @@ function getPF2EUnarmedStrikes(actor: Actor): PF2EStrikeAction[] {
   });
 }
 
+function getPF2EStrikes(actor: Actor): PF2EStrikeAction[] {
+  const actions = (actor.system as unknown as { actions?: PF2EStrikeAction[] }).actions ?? [];
+  const strikes = actions.flatMap(action => [action, ...(action.altUsages ?? [])]).filter(action => {
+    return (!action.type || action.type === "strike") && Array.isArray(action.variants) && action.variants.length > 0;
+  });
+  const seen = new Set<string>();
+  return strikes.filter((strike, index) => {
+    const key = `${strike.item?.id ?? "strike"}:${strike.slug ?? strike.label ?? index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function getPF2EStrikeLabel(strike: PF2EStrikeAction, index: number): string {
   return String(strike.item?.name ?? strike.label ?? strike.slug ?? `Strike ${index + 1}`);
+}
+
+async function chooseCharlesContainmentConfiguration(actor: Actor): Promise<CharlesContainmentConfiguration | null> {
+  const targets = getTargetChoices(actor);
+  if (targets.length === 0) {
+    ui.notifications?.warn("Selecione o alvo do Disparo de Contenção no canvas.");
+    return null;
+  }
+  const strikes = getPF2EStrikes(actor);
+  if (strikes.length === 0) {
+    ui.notifications?.warn("Nenhum Strike foi encontrado na ficha de Charles.");
+    return null;
+  }
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-charles-choice">
+        <label><span>Alvo</span><select name="target">
+          ${targets.map(choice => `<option value="${escapeHtml(choice.id)}">${escapeHtml(choice.name)}</option>`).join("")}
+        </select></label>
+        <label><span>Strike acoplado</span><select name="strike">
+          ${strikes.map((strike, index) => `<option value="${index}">${escapeHtml(getPF2EStrikeLabel(strike, index))}</option>`).join("")}
+        </select></label>
+        <label><span>MAP</span><select name="map">
+          <option value="0">Primeiro ataque</option>
+          <option value="1">Segundo ataque</option>
+          <option value="2">Terceiro ataque ou superior</option>
+        </select></label>
+      </form>`;
+    new Dialog({
+      title: "Charles - Disparo de Contenção",
+      content,
+      buttons: {
+        confirm: {
+          label: "Disparar",
+          callback: (html: JQuery) => {
+            resolved = true;
+            const targetId = String(html.find('[name="target"]').val() ?? "");
+            const strikeIndex = clamp(parseInt(String(html.find('[name="strike"]').val())) || 0, 0, strikes.length - 1);
+            resolve({
+              target: targets.find(choice => choice.id === targetId) ?? targets[0],
+              strike: strikes[strikeIndex],
+              mapIncreases: clamp(parseInt(String(html.find('[name="map"]').val())) || 0, 0, 2),
+            });
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
 }
 
 async function chooseYuFlurryConfiguration(actor: Actor): Promise<YuFlurryConfiguration | null> {
@@ -1852,6 +2295,72 @@ async function chooseYuFlurryConfiguration(actor: Actor): Promise<YuFlurryConfig
               target: targets.find(target => target.id === targetId) ?? targets[0],
               strike: strikes[strikeIndex],
               mapIncreases,
+            });
+          },
+        },
+        cancel: {
+          label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+          callback: () => {
+            resolved = true;
+            resolve(null);
+          },
+        },
+      },
+      close: () => {
+        if (!resolved) resolve(null);
+      },
+    }).render(true);
+  });
+}
+
+async function promptAtlasActivation(): Promise<AtlasActivationConfiguration | null> {
+  return new Promise(resolve => {
+    let resolved = false;
+    const content = `
+      <form class="ethernum-atlas-choice">
+        <p>Escolha uma modificação, ou duas para ativar Fusão de Guerra.</p>
+        <div class="ethernum-atlas-dialog-mods">
+          ${ATLAS_MODIFICATIONS.map(modification => `
+            <label>
+              <input type="checkbox" name="modification" value="${escapeHtml(modification.id)}" />
+              <span><strong>${escapeHtml(modification.name)}</strong><small>${escapeHtml(modification.category)}</small></span>
+            </label>
+          `).join("")}
+        </div>
+        <label><span>Rank da magia</span><select name="spellRank">
+          ${Array.from({ length: 10 }, (_, index) => `<option value="${index + 1}">${index + 1}</option>`).join("")}
+        </select></label>
+        <label><span>Ações da magia original</span><select name="actions">
+          <option value="1">1 ação</option>
+          <option value="2" selected>2 ações</option>
+          <option value="3">3 ações</option>
+        </select></label>
+        <label><span>Batismo de Ferro</span><select name="baptismType">
+          <option value="slashing">Cortante</option>
+          <option value="piercing">Perfurante</option>
+        </select></label>
+      </form>`;
+    new Dialog({
+      title: "Atlas Sidarta - Olhar do Divino",
+      content,
+      buttons: {
+        confirm: {
+          label: "Preparar magia",
+          callback: (html: JQuery) => {
+            resolved = true;
+            const modifications = html.find('input[name="modification"]:checked').toArray()
+              .map(input => normalizeAtlasModificationId((input as HTMLInputElement).value))
+              .filter((value): value is AtlasModificationId => value !== null);
+            if (modifications.length < 1 || modifications.length > 2) {
+              ui.notifications?.warn("Escolha uma modificação, ou exatamente duas para Fusão de Guerra.");
+              resolve(null);
+              return;
+            }
+            resolve({
+              modifications,
+              spellRank: clamp(parseInt(String(html.find('[name="spellRank"]').val())) || 1, 1, 10),
+              originalActions: clamp(parseInt(String(html.find('[name="actions"]').val())) || 2, 1, 3),
+              baptismDamageType: html.find('[name="baptismType"]').val() === "piercing" ? "piercing" : "slashing",
             });
           },
         },
@@ -1988,6 +2497,90 @@ async function createActorEffect(actor: Actor, data: Record<string, unknown>): P
   await (actor as Actor & {
     createEmbeddedDocuments: (embeddedName: "Item", data: Record<string, unknown>[], operation?: Record<string, unknown>) => Promise<Item[]>;
   }).createEmbeddedDocuments("Item", [data], { render: false });
+}
+
+function buildConcordiaEffectData(
+  name: string,
+  slug: string,
+  description: string,
+  rules: Array<Record<string, unknown>> = [],
+  duration: Record<string, unknown> = { value: -1, unit: "unlimited", sustained: false, expiry: null },
+  traits: string[] = [],
+  img = "icons/svg/aura.svg",
+): Record<string, unknown> {
+  return {
+    name,
+    type: "effect",
+    img,
+    system: {
+      slug,
+      description: { value: description },
+      level: { value: 1 },
+      duration,
+      tokenIcon: { show: true },
+      traits: { value: traits },
+      rules,
+    },
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueEffect: slug,
+      },
+    },
+  };
+}
+
+async function createManagedPF2ECondition(
+  actor: Actor,
+  conditionSlug: string,
+  uniqueEffect: string,
+  options: { value?: number; turnStartsRemaining?: number; sourceName?: string } = {},
+): Promise<boolean> {
+  await removeActorUniqueEffects(actor, [uniqueEffect]);
+  const pf2e = asRecord((game as unknown as { pf2e?: unknown }).pf2e);
+  const manager = pf2e.ConditionManager as {
+    getCondition?: (slug: string) => { toObject?: () => Record<string, unknown> };
+  } | undefined;
+  const condition = manager?.getCondition?.(conditionSlug);
+  const source = condition?.toObject?.();
+  if (!source) return tryIncreaseActorCondition(actor, conditionSlug, options.value ?? 1);
+
+  const system = asRecord(source.system);
+  const valueData = asRecord(system.value);
+  if (typeof valueData.value === "number" && options.value !== undefined) {
+    valueData.value = Math.max(1, Math.floor(options.value));
+    system.value = valueData;
+  }
+  source.system = system;
+  if (options.sourceName) source.name = `${String(source.name ?? conditionSlug)} - ${options.sourceName}`;
+  source.flags = {
+    ...asRecord(source.flags),
+    [ETHERNUM.MODULE_NAME]: {
+      ...asRecord(asRecord(source.flags)[ETHERNUM.MODULE_NAME]),
+      uniqueEffect,
+      ...(options.turnStartsRemaining
+        ? { turnStartsRemaining: Math.max(1, Math.floor(options.turnStartsRemaining)) }
+        : {}),
+    },
+  };
+  await createActorEffect(actor, source);
+  return true;
+}
+
+async function processManagedConditionTurnStart(actor: Actor): Promise<void> {
+  const managedItems = Array.from((actor.items ?? []) as Collection<Item>).filter(item => {
+    const data = asRecord(asRecord((item as Item & { flags?: unknown }).flags)[ETHERNUM.MODULE_NAME]);
+    return Number(data.turnStartsRemaining) > 0;
+  });
+  for (const item of managedItems) {
+    const flags = asRecord((item as Item & { flags?: unknown }).flags);
+    const data = asRecord(flags[ETHERNUM.MODULE_NAME]);
+    const remaining = Math.max(0, Math.floor(Number(data.turnStartsRemaining) || 0));
+    if (remaining <= 1) {
+      await item.delete();
+    } else {
+      await item.update({ [`flags.${ETHERNUM.MODULE_NAME}.turnStartsRemaining`]: remaining - 1 }, { render: false });
+    }
+  }
 }
 
 function buildArkiusEffectData(
@@ -2181,6 +2774,274 @@ async function applyYuCollapseEffects(actor: Actor): Promise<void> {
     "<p>Ao término de Rage in the Flesh, Yu sofre Enfeebled 2 por 1 minuto completo.</p>",
     { value: 1, unit: "minutes", sustained: false, expiry: "turn-start" }
   );
+}
+
+async function applyCharlesLeakEffect(actor: Actor, stacks: number): Promise<void> {
+  await removeActorUniqueEffects(actor, [CHARLES_AC_LEAK_EFFECT_SLUG]);
+  if (stacks <= 0) return;
+  await createActorEffect(actor, buildConcordiaEffectData(
+    `Vazamento do Dispositivo - CA ${-stacks}`,
+    CHARLES_AC_LEAK_EFFECT_SLUG,
+    `<p>O dispositivo de Charles opera sem carga e vaza energia. Penalidade cumulativa de <strong>-${stacks} de status na CA</strong>, máximo -3.</p>`,
+    [{
+      key: "FlatModifier",
+      selector: "ac",
+      type: "status",
+      value: -stacks,
+      label: "Miranha em Ação - Vazamento",
+    }],
+    { value: -1, unit: "unlimited", sustained: false, expiry: null },
+    ["electricity", "tech"],
+    "icons/svg/lightning.svg",
+  ));
+}
+
+async function applyCharlesClimbEffect(actor: Actor): Promise<void> {
+  await removeActorUniqueEffects(actor, [CHARLES_CLIMB_EFFECT_SLUG]);
+  await createActorEffect(actor, buildConcordiaEffectData(
+    "Escalada de Impulso",
+    CHARLES_CLIMB_EFFECT_SLUG,
+    "<p>Até o fim do turno, Charles ganha velocidade de escalada igual à velocidade de caminhada + 10 pés. Se terminar em uma superfície vertical, permanece fixado com as mãos livres.</p>",
+    [{
+      key: "BaseSpeed",
+      selector: "climb",
+      value: getActorLandSpeed(actor) + 10,
+      label: "Escalada de Impulso",
+    }],
+    { value: 1, unit: "rounds", sustained: false, expiry: "turn-end" },
+    ["move"],
+    "icons/svg/up.svg",
+  ));
+}
+
+async function removeCharlesNetTemplate(actor: Actor, templateId?: string): Promise<void> {
+  const scene = canvas?.scene as unknown as {
+    deleteEmbeddedDocuments?: (embeddedName: string, ids: string[]) => Promise<unknown[]>;
+  } | undefined;
+  if (!scene?.deleteEmbeddedDocuments) return;
+  const actorKey = getActorKey(actor);
+  const ids = getSceneMeasuredTemplates()
+    .filter(template => {
+      const sameId = templateId && template.id === templateId;
+      const sameType = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === CHARLES_NET_TEMPLATE_SLUG;
+      const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
+      return sameId || (sameType && sameActor);
+    })
+    .map(template => template.id)
+    .filter((id): id is string => typeof id === "string");
+  if (ids.length > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
+}
+
+function findCharlesNetTemplate(actor: Actor, templateId?: string): (
+  Record<string, unknown> & {
+    id?: string;
+    update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>;
+    getFlag?: (scope: string, key: string) => unknown;
+  }
+) | null {
+  const actorKey = getActorKey(actor);
+  const template = getSceneMeasuredTemplates().find(entry => {
+    const sameId = templateId && entry.id === templateId;
+    const sameType = entry.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === CHARLES_NET_TEMPLATE_SLUG;
+    const sameActor = entry.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
+    return sameId || (sameType && sameActor);
+  });
+  return (template ?? null) as (
+    Record<string, unknown> & {
+      id?: string;
+      update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>;
+      getFlag?: (scope: string, key: string) => unknown;
+    }
+  ) | null;
+}
+
+async function createCharlesNetTemplate(actor: Actor, radius: number, overloaded: boolean): Promise<string | undefined> {
+  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
+  const scene = canvas?.scene as {
+    createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]>;
+  } | undefined;
+  if (!token?.center || !scene?.createEmbeddedDocuments) return undefined;
+  await removeCharlesNetTemplate(actor);
+  const created = await scene.createEmbeddedDocuments("MeasuredTemplate", [{
+    t: "circle",
+    user: game.user?.id,
+    x: token.center.x,
+    y: token.center.y,
+    distance: radius,
+    direction: 0,
+    fillColor: overloaded ? "#ff6b1a" : "#e0a428",
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueTemplate: CHARLES_NET_TEMPLATE_SLUG,
+        actorKey: getActorKey(actor),
+        overloaded,
+      },
+    },
+  }]);
+  const template = Array.isArray(created) ? asRecord(created[0]) : {};
+  return typeof template.id === "string" ? template.id : undefined;
+}
+
+function tokenInCharlesNet(actor: Actor, targetToken: unknown, state: CharlesState): boolean {
+  const targetCenter = getTokenLikeCenter(targetToken);
+  if (!targetCenter) return false;
+  const template = findCharlesNetTemplate(actor, state.net.templateId);
+  const templateX = Number(template?.x);
+  const templateY = Number(template?.y);
+  const sourceCenter = Number.isFinite(templateX) && Number.isFinite(templateY)
+    ? { x: templateX, y: templateY }
+    : getTokenLikeCenter(getActorToken(actor));
+  if (!sourceCenter) return false;
+  return pixelsToSceneDistance(Math.hypot(targetCenter.x - sourceCenter.x, targetCenter.y - sourceCenter.y)) <= state.net.radius;
+}
+
+async function applyAtlasPendingEffect(actor: Actor, state: AtlasState): Promise<void> {
+  await removeActorUniqueEffects(actor, [ATLAS_PENDING_EFFECT_SLUG]);
+  if (!state.pending.active) return;
+  const rules: Array<Record<string, unknown>> = [];
+  if (state.pending.modifications.includes("shattering-judgment")) {
+    rules.push({
+      key: "DamageDice",
+      selector: "spell-damage",
+      override: { upgrade: true },
+      label: "Julgamento Estilhaçante",
+    });
+    rules.push({
+      key: "FlatModifier",
+      selector: "spell-damage",
+      value: 1,
+      predicate: ["item:damage:die:faces:12"],
+      label: "Julgamento Estilhaçante - d12+1",
+    });
+  }
+  if (state.pending.modifications.includes("iron-baptism")) {
+    rules.push({
+      key: "DamageDice",
+      selector: "spell-damage",
+      override: { damageType: state.pending.baptismDamageType },
+      predicate: [{
+        nor: ["item:trait:fire", "item:trait:electricity", "item:trait:sonic"],
+      }],
+      label: "Batismo de Ferro",
+    });
+  }
+  const names = state.pending.modifications
+    .map(id => ATLAS_MODIFICATIONS.find(modification => modification.id === id)?.name ?? id)
+    .join(" + ");
+  await createActorEffect(actor, buildConcordiaEffectData(
+    `Olhar do Divino - ${names}`,
+    ATLAS_PENDING_EFFECT_SLUG,
+    `<p>Modificações preparadas: <strong>${escapeHtml(names)}</strong>. Rank ${state.pending.spellRank}, ${state.pending.originalActions} ação(ões) originais.${state.pending.overdrive ? " Fusão de Guerra: lance 1 rank abaixo." : ""}</p>`,
+    rules,
+    { value: -1, unit: "unlimited", sustained: false, expiry: null },
+    ["divine", "concentrate", "metamagic"],
+    "icons/svg/angel.svg",
+  ));
+}
+
+async function applyAtlasFatigueEffect(actor: Actor): Promise<void> {
+  await removeActorUniqueEffects(actor, [ATLAS_FATIGUE_EFFECT_SLUG, ATLAS_FATIGUE_ATTACK_EFFECT_SLUG]);
+  await createActorEffect(actor, buildConcordiaEffectData(
+    "Esgotamento Total - Olhar do Divino",
+    ATLAS_FATIGUE_EFFECT_SLUG,
+    "<p>Atlas não pode usar Olhar do Divino nem entrar em posturas de combate até o próximo descanso longo.</p>",
+    [],
+    { value: -1, unit: "unlimited", sustained: false, expiry: null },
+    ["divine", "mental"],
+    "icons/svg/daze.svg",
+  ));
+  await createActorEffect(actor, buildConcordiaEffectData(
+    "Fadiga de Guerra - Penalidade em ataques",
+    ATLAS_FATIGUE_ATTACK_EFFECT_SLUG,
+    "<p>-1 de status em ataques físicos e mágicos até um descanso curto.</p>",
+    [
+      {
+        key: "FlatModifier",
+        selector: "attack-roll",
+        type: "status",
+        value: -1,
+        label: "Esgotamento Total",
+      },
+      {
+        key: "FlatModifier",
+        selector: "spell-attack-roll",
+        type: "status",
+        value: -1,
+        label: "Esgotamento Total",
+      },
+    ],
+    { value: -1, unit: "unlimited", sustained: false, expiry: null },
+    ["divine"],
+    "icons/svg/daze.svg",
+  ));
+}
+
+async function applyAtlasVigorEffect(actor: Actor, source: Actor): Promise<void> {
+  const slug = `atlas-vigor-atletismo-${getActorKey(source)}`;
+  await removeActorUniqueEffects(actor, [slug]);
+  await createActorEffect(actor, buildConcordiaEffectData(
+    "Vigor da Linha de Frente",
+    slug,
+    "<p>+2 de status em rolagens de Atletismo por 1 rodada após receber a cura em cone do Olhar do Divino.</p>",
+    [{
+      key: "FlatModifier",
+      selector: "athletics",
+      type: "status",
+      value: 2,
+      label: "Vigor da Linha de Frente",
+    }],
+    { value: 1, unit: "rounds", sustained: false, expiry: "turn-start" },
+    ["divine", "healing"],
+    "icons/svg/regen.svg",
+  ));
+}
+
+async function applyAtlasSteelResonanceEffect(actor: Actor, source: Actor, physicalResistance: boolean): Promise<void> {
+  const slug = `atlas-ressonancia-de-aco-${getActorKey(source)}`;
+  await removeActorUniqueEffects(actor, [slug]);
+  const rules: Array<Record<string, unknown>> = [{
+    key: "FlatModifier",
+    selector: "ac",
+    type: "status",
+    value: 1,
+    label: "Ressonância de Aço",
+  }];
+  if (physicalResistance) {
+    for (const type of ["bludgeoning", "piercing", "slashing"]) {
+      rules.push({
+        key: "Resistance",
+        type,
+        value: 5,
+        label: "Ressonância de Aço - Armadura Metálica",
+      });
+    }
+  }
+  await createActorEffect(actor, buildConcordiaEffectData(
+    "Ressonância de Aço",
+    slug,
+    `<p>+1 de status na CA por 2 rodadas.${physicalResistance ? " Armadura metálica detectada: resistência 5 a dano físico." : ""}</p>`,
+    rules,
+    { value: 2, unit: "rounds", sustained: false, expiry: "turn-start" },
+    ["divine", "metal"],
+    "icons/svg/shield.svg",
+  ));
+}
+
+function getTokensWithinDistance(originToken: unknown, distance: number): unknown[] {
+  const origin = getTokenLikeCenter(originToken);
+  if (!origin) return [];
+  return getCanvasTokenPlaceables().filter(token => {
+    const center = getTokenLikeCenter(token);
+    if (!center) return false;
+    return pixelsToSceneDistance(Math.hypot(center.x - origin.x, center.y - origin.y)) <= distance;
+  });
+}
+
+function isAlliedTargetChoice(source: Actor, choice: EthernumTargetChoice): boolean {
+  if (source.id === choice.actor.id) return true;
+  const sourceToken = getActorToken(source);
+  const targetToken = choice.token ?? getActorToken(choice.actor);
+  return sourceToken && targetToken ? tokensAreAllied(sourceToken, targetToken) : true;
 }
 
 function getSceneMeasuredTemplates(): Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }> {
@@ -2577,6 +3438,14 @@ function getBasicSaveDegree(total: number, dc: number, natural: number): ArkiusS
   if (rank === 2) return "Sucesso";
   if (rank === 1) return "Falha";
   return "Falha crítica";
+}
+
+function improveDegreeOfSuccess(
+  degree: ArkiusSolarTargetResult["degree"],
+): ArkiusSolarTargetResult["degree"] {
+  if (degree === "Falha crítica") return "Falha";
+  if (degree === "Falha") return "Sucesso";
+  return "Sucesso crítico";
 }
 
 function getBasicSaveDamage(totalDamage: number, degree: ArkiusSolarTargetResult["degree"]): number {
@@ -2978,6 +3847,59 @@ function isPF2EDamageRollMessage(message: ChatMessage): boolean {
   return domains.some(domain => domain.includes("damage"));
 }
 
+function isPF2EHealingRollMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const type = String(context.type ?? context.rollType ?? "").toLowerCase();
+  if (type.includes("healing") || type.includes("heal")) return true;
+  const domains = Array.isArray(context.domains) ? context.domains.map(value => String(value).toLowerCase()) : [];
+  return domains.some(domain => domain.includes("healing"));
+}
+
+function isPF2ESpellRollMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const domains = Array.isArray(context.domains) ? context.domains.map(value => String(value).toLowerCase()) : [];
+  if (domains.some(domain => domain.includes("spell"))) return true;
+  return [...collectLowercaseStrings({
+    context,
+    flags: asRecord(message.flags).pf2e,
+  })].some(value => value === "spell" || value.includes("spell-") || value.includes(":spell"));
+}
+
+function isPF2EFlatCheckMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const type = String(context.type ?? context.rollType ?? "").toLowerCase();
+  if (type.includes("flat-check")) return true;
+  const domains = Array.isArray(context.domains) ? context.domains.map(value => String(value).toLowerCase()) : [];
+  return domains.some(domain => domain.includes("flat-check"));
+}
+
+function isAtlasStupefiedFlatCheckMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const strings = collectLowercaseStrings({
+    context,
+    flags: (message as ChatMessage & { flags?: unknown }).flags,
+    flavor: (message as ChatMessage & { flavor?: unknown }).flavor,
+    content: (message as ChatMessage & { content?: unknown }).content,
+  });
+  if ([...strings].some(value => value.includes("stupefied") || value.includes("estupef"))) return true;
+  const dc = Number(asRecord(context.dc).value ?? context.dc);
+  return dc === 7;
+}
+
+function didPF2ECheckFail(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const outcome = String(context.outcome ?? context.degreeOfSuccess ?? "").toLowerCase();
+  if (outcome.includes("failure") || outcome.includes("falha")) return true;
+  if (outcome.includes("success") || outcome.includes("sucesso")) return false;
+  const rolls = (message as ChatMessage & { rolls?: Array<Roll & { options?: unknown }> }).rolls ?? [];
+  const roll = rolls[0];
+  const degree = Number(asRecord(roll?.options).degreeOfSuccess);
+  if (Number.isFinite(degree)) return degree < 2;
+  const dc = Number(asRecord(context.dc).value ?? context.dc);
+  const total = Number(roll?.total);
+  return Number.isFinite(dc) && Number.isFinite(total) ? total < dc : false;
+}
+
 function collectLowercaseStrings(value: unknown, strings = new Set<string>(), depth = 0): Set<string> {
   if (depth > 6 || value === null || value === undefined) return strings;
   if (typeof value === "string") {
@@ -3251,6 +4173,16 @@ export class UniqueMechanicsSystem {
     return normalizeYuState(state.profiles[YU_JIU_JI_TAE_PROFILE_ID]);
   }
 
+  static getCharlesState(actor: Actor): CharlesState {
+    const state = this.getState(actor);
+    return normalizeCharlesState(state.profiles[CHARLES_PROFILE_ID]);
+  }
+
+  static getAtlasState(actor: Actor): AtlasState {
+    const state = this.getState(actor);
+    return normalizeAtlasState(state.profiles[ATLAS_SIDARTA_PROFILE_ID]);
+  }
+
   static async setActiveProfile(actor: Actor, profileId: UniqueMechanicProfileId): Promise<void> {
     const state = this.getState(actor);
     const profileCore = getProfileCore(profileId);
@@ -3270,6 +4202,12 @@ export class UniqueMechanicsSystem {
     }
     if (profileId === YU_JIU_JI_TAE_PROFILE_ID && !state.profiles[YU_JIU_JI_TAE_PROFILE_ID]) {
       state.profiles[YU_JIU_JI_TAE_PROFILE_ID] = { ...DEFAULT_YU_STATE };
+    }
+    if (profileId === CHARLES_PROFILE_ID && !state.profiles[CHARLES_PROFILE_ID]) {
+      state.profiles[CHARLES_PROFILE_ID] = foundry.utils.deepClone(DEFAULT_CHARLES_STATE);
+    }
+    if (profileId === ATLAS_SIDARTA_PROFILE_ID && !state.profiles[ATLAS_SIDARTA_PROFILE_ID]) {
+      state.profiles[ATLAS_SIDARTA_PROFILE_ID] = foundry.utils.deepClone(DEFAULT_ATLAS_STATE);
     }
     await this.setState(actor, state);
   }
@@ -3434,6 +4372,938 @@ export class UniqueMechanicsSystem {
     state.profiles[YU_JIU_JI_TAE_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
+  }
+
+  static async updateCharlesState(actor: Actor, patch: PartialCharlesState): Promise<CharlesState> {
+    const state = this.getState(actor);
+    const current = this.getCharlesState(actor);
+    const next = normalizeCharlesState({
+      ...current,
+      ...patch,
+      net: {
+        ...current.net,
+        ...(patch.net ?? {}),
+      },
+    });
+    state.profiles[CHARLES_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async updateAtlasState(actor: Actor, patch: PartialAtlasState): Promise<AtlasState> {
+    const state = this.getState(actor);
+    const current = this.getAtlasState(actor);
+    const next = normalizeAtlasState({
+      ...current,
+      ...patch,
+      pending: {
+        ...current.pending,
+        ...(patch.pending ?? {}),
+      },
+    });
+    state.profiles[ATLAS_SIDARTA_PROFILE_ID] = next;
+    await this.setStateQuiet(actor, state);
+    return next;
+  }
+
+  static async showCharlesStatus(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const state = this.getCharlesState(target);
+    const remaining = Math.max(0, state.maxCharges - state.chargesSpent);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Miranha em Ação - Charles</h3>
+          <p><strong>Cargas:</strong> ${remaining}/${state.maxCharges} · <strong>Dispositivo:</strong> ${state.deviceBroken ? "Quebrado" : "Operacional"}</p>
+          <p><strong>Vazamento:</strong> ${state.acLeakStacks > 0 ? `-${state.acLeakStacks} de status na CA` : "Nenhum"}</p>
+          <p><strong>Rede:</strong> ${state.net.active ? `${state.net.overloaded ? "Sobrecarregada" : "Normal"}, ${state.net.remainingRounds} rodada(s)` : "Inativa"}</p>
+        </div>`,
+    });
+  }
+
+  static async consumeCharlesCharges(actor: Actor, cost: number, actionName: string): Promise<boolean> {
+    const state = this.getCharlesState(actor);
+    if (state.deviceBroken) {
+      ui.notifications?.warn("O dispositivo de Charles está quebrado e precisa de 10 minutos de reparo.");
+      return false;
+    }
+    const remaining = Math.max(0, state.maxCharges - state.chargesSpent);
+    if (remaining >= cost) {
+      await this.updateCharlesState(actor, { chargesSpent: state.chargesSpent + cost });
+      return true;
+    }
+    if (remaining > 0) {
+      ui.notifications?.warn(`${actionName} exige ${cost} carga(s), mas Charles possui apenas ${remaining}.`);
+      return false;
+    }
+
+    const check = new Roll("1d20");
+    await check.evaluate();
+    await check.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      flavor: `<strong>Falha Crítica do Sistema:</strong> ${escapeHtml(actionName)} sem cargas, teste seco CD 10.`,
+    });
+    const total = Number(check.total ?? 0);
+    if (total >= 10) {
+      const acLeakStacks = Math.min(3, state.acLeakStacks + 1);
+      await this.updateCharlesState(actor, { acLeakStacks });
+      await applyCharlesLeakEffect(actor, acLeakStacks);
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content: `
+          <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+            <h3>Vazamento controlado</h3>
+            <p><strong>${escapeHtml(actionName)}</strong> funciona sem consumir carga.</p>
+            <p>Charles recebe <strong>-${acLeakStacks} de status na CA</strong> enquanto o dispositivo não for reparado.</p>
+          </div>`,
+      });
+      return true;
+    }
+
+    const damage = new Roll("4d6");
+    await damage.evaluate();
+    await damage.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      flavor: "<strong>Falha Crítica do Sistema:</strong> descarga elétrica do dispositivo.",
+    });
+    const damageTotal = Math.max(0, Number(damage.total ?? 0));
+    const enfeebled = state.acLeakStacks >= 3 ? 2 : 1;
+    const hpApplied = await applyActorHpDelta(actor, -damageTotal).catch(() => false);
+    await createManagedPF2ECondition(actor, "enfeebled", CHARLES_FAILURE_CONDITION_SLUG, {
+      value: enfeebled,
+      sourceName: "Falha Crítica do Sistema",
+    });
+    await this.updateCharlesState(actor, { deviceBroken: true });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card danger">
+          <h3>Dispositivo quebrado</h3>
+          <p>Charles sofre <strong>${damageTotal} de dano elétrico</strong>${hpApplied ? "" : " para aplicação manual"} e fica <strong>Enfraquecido ${enfeebled}</strong>.</p>
+          <p>O dispositivo exige 10 minutos de reparo. ${escapeHtml(actionName)} não é executado.</p>
+        </div>`,
+    });
+    return false;
+  }
+
+  static async useCharlesImpulseClimb(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    if (!await this.consumeCharlesCharges(target, 1, "Escalada de Impulso")) return;
+    await applyCharlesClimbEffect(target);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Escalada de Impulso</h3>
+          <p>Até o fim do turno, Charles recebe velocidade de escalada igual à caminhada + 10 pés.</p>
+          <p>Se terminar em superfície vertical, permanece fixado com as mãos livres.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+  }
+
+  static async useCharlesContainmentShot(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const configuration = await chooseCharlesContainmentConfiguration(target);
+    if (!configuration) return;
+    if (!await this.consumeCharlesCharges(target, 1, "Disparo de Contenção")) return;
+
+    const variant = configuration.strike.variants?.[configuration.mapIncreases];
+    if (typeof variant?.roll !== "function") {
+      ui.notifications?.error("O PF2e não expôs a variante escolhida para este Strike.");
+      return;
+    }
+    const attack = await variant.roll({
+      target: configuration.target.token,
+      event: getPF2ESkipDialogEvent("check"),
+      options: ["charles:containment-shot", "action:containment-shot"],
+    });
+    const attackDegree = getPF2ERollDegree(attack);
+    if (attackDegree < 2) {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `
+          <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+            <h3>Disparo de Contenção</h3>
+            <p>O Strike contra <strong>${escapeHtml(configuration.target.name)}</strong> não acertou. A carga foi consumida e a teia não aderiu.</p>
+          </div>`,
+      });
+      refreshActorMechanicsViews(target);
+      return;
+    }
+
+    const damageParams = {
+      target: configuration.target.token,
+      mapIncreases: configuration.mapIncreases,
+      event: getPF2ESkipDialogEvent("damage"),
+      options: ["charles:containment-shot", "action:containment-shot"],
+    };
+    if (attackDegree >= 3) await configuration.strike.critical?.(damageParams);
+    else await configuration.strike.damage?.(damageParams);
+
+    const dc = getActorClassDCBySlug(target, "inventor");
+    const save = new Roll(`1d20 + ${getActorSaveModifier(configuration.target.actor, "reflex")}`);
+    await save.evaluate();
+    const total = Number(save.total ?? 0);
+    const degree = getBasicSaveDegree(total, dc, getRollNaturalD20(save));
+    let condition = "Sem efeito";
+    if (degree === "Falha crítica") {
+      await createManagedPF2ECondition(
+        configuration.target.actor,
+        "restrained",
+        `charles-containment-restrained-${getActorKey(target)}`,
+        { turnStartsRemaining: 2, sourceName: "Disparo de Contenção" },
+      );
+      condition = "Restrained por 1 rodada";
+    } else if (degree === "Falha") {
+      await createManagedPF2ECondition(
+        configuration.target.actor,
+        "grabbed",
+        `charles-containment-grabbed-${getActorKey(target)}`,
+        { sourceName: "Disparo de Contenção" },
+      );
+      condition = "Grabbed pela teia";
+    }
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Disparo de Contenção</h3>
+          <p><strong>Alvo:</strong> ${escapeHtml(configuration.target.name)} · <strong>Reflexos:</strong> ${total} vs CD ${dc}</p>
+          <p><strong>${escapeHtml(degree)}:</strong> ${escapeHtml(condition)}.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+  }
+
+  static async useCharlesVectorPull(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const mode = await new Promise<"creature" | "object" | null>(resolve => {
+      let resolved = false;
+      new Dialog({
+        title: "Charles - Puxão Vetorial",
+        content: "<p>Escolha o tipo de alvo do puxão.</p>",
+        buttons: {
+          creature: {
+            label: "Criatura",
+            callback: () => {
+              resolved = true;
+              resolve("creature");
+            },
+          },
+          object: {
+            label: "Objeto",
+            callback: () => {
+              resolved = true;
+              resolve("object");
+            },
+          },
+          cancel: {
+            label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+            callback: () => {
+              resolved = true;
+              resolve(null);
+            },
+          },
+        },
+        close: () => {
+          if (!resolved) resolve(null);
+        },
+      }).render(true);
+    });
+    if (!mode) return;
+
+    const choice = mode === "creature" ? await chooseTargetChoice("Puxão Vetorial", target) : null;
+    if (mode === "creature" && !choice) return;
+    if (!await this.consumeCharlesCharges(target, 1, "Puxão Vetorial")) return;
+    if (mode === "object") {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `
+          <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+            <h3>Puxão Vetorial - Objeto</h3>
+            <p>Charles puxa um item de Bulk L ou 1 localizado a até 45 pés diretamente para sua mão.</p>
+          </div>`,
+      });
+      refreshActorMechanicsViews(target);
+      return;
+    }
+
+    const dc = getActorSaveDC(choice!.actor, "fortitude");
+    const athletics = getActorSkillModifier(target, "athletics");
+    const roll = new Roll(`1d20 + ${athletics}`);
+    await roll.evaluate();
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      flavor: `<strong>Puxão Vetorial:</strong> Atletismo contra Fortitude CD ${dc} de ${escapeHtml(choice!.name)}.`,
+    });
+    const total = Number(roll.total ?? 0);
+    const degree = getBasicSaveDegree(total, dc, getRollNaturalD20(roll));
+    const success = degree === "Sucesso" || degree === "Sucesso crítico";
+    const offGuard = success && getActorSizeRank(choice!.actor) <= getActorSizeRank(target);
+    if (offGuard) {
+      await createManagedPF2ECondition(
+        choice!.actor,
+        "off-guard",
+        `charles-vector-off-guard-${getActorKey(target)}`,
+        { turnStartsRemaining: 1, sourceName: "Puxão Vetorial" },
+      );
+    }
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Puxão Vetorial</h3>
+          <p><strong>${escapeHtml(choice!.name)}:</strong> ${total} vs Fortitude CD ${dc}, ${escapeHtml(degree)}.</p>
+          <p>${success ? "Puxe o alvo 10 pés em direção a Charles." : "O alvo resiste ao puxão."}${offGuard ? " O alvo fica Off-Guard até o início do turno dele." : ""}</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+  }
+
+  static async deployCharlesCushioningNet(actor?: Actor | null, overloaded = false): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const cost = overloaded ? 2 : 1;
+    if (!await this.consumeCharlesCharges(target, cost, overloaded ? "Rede de Amortecimento sobrecarregada" : "Rede de Amortecimento")) return;
+    const radius = overloaded ? 15 : 10;
+    const templateId = await createCharlesNetTemplate(target, radius, overloaded).catch(error => {
+      console.warn("Ethernum RPG Module | Could not create Charles cushioning net template", error);
+      return undefined;
+    });
+    await this.updateCharlesState(target, {
+      net: {
+        active: true,
+        overloaded,
+        remainingRounds: CHARLES_NET_MAX_ROUNDS,
+        radius,
+        templateId,
+        combatId: game.combat?.id,
+        lastCombatTurnKey: undefined,
+        appliedTurnKeys: {},
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Rede de Amortecimento${overloaded ? " - Sobrecarga" : ""}</h3>
+          <p><strong>Área:</strong> emanação de ${radius} pés por 3 rodadas, ${overloaded ? "Greater Difficult Terrain" : "Terreno Difícil"}.</p>
+          <p>Aliados ignoram os primeiros 20 pés de dano de queda.${overloaded ? " Inimigos que entrarem ou começarem o turno na área fazem Reflexos contra a CD de Inventor ou ficam Immobilized por 1 rodada." : ""}</p>
+        </div>`,
+    });
+    if (overloaded) await this.applyCharlesNetToTokens(target, "ativação");
+    refreshActorMechanicsViews(target);
+  }
+
+  static async useCharlesCraftImagination(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const selection = await new Promise<{ cost: number; creation: string } | null>(resolve => {
+      let resolved = false;
+      const content = `
+        <form class="ethernum-charles-choice">
+          <label><span>Protocolo</span><select name="cost">
+            <option value="1">1 carga - item comum de nível 1-4 ou mundano</option>
+            <option value="2">2 cargas - consumível de até metade do nível</option>
+            <option value="3">3 cargas - utilidade de nível até 4 por 1 rodada</option>
+          </select></label>
+          <label><span>Criação simulada</span><input type="text" name="creation" value="Ferramenta improvisada" /></label>
+        </form>`;
+      new Dialog({
+        title: "Craft da Imaginação",
+        content,
+        buttons: {
+          confirm: {
+            label: "Improvisar",
+            callback: (html: JQuery) => {
+              resolved = true;
+              resolve({
+                cost: clamp(parseInt(String(html.find('[name="cost"]').val())) || 1, 1, 3),
+                creation: String(html.find('[name="creation"]').val() ?? "Criação improvisada").trim() || "Criação improvisada",
+              });
+            },
+          },
+          cancel: {
+            label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+            callback: () => {
+              resolved = true;
+              resolve(null);
+            },
+          },
+        },
+        close: () => {
+          if (!resolved) resolve(null);
+        },
+      }).render(true);
+    });
+    if (!selection || !await this.consumeCharlesCharges(target, selection.cost, "Craft da Imaginação")) return;
+    const result = selection.cost === 1
+      ? "Item comum de nível 1-4 ou item mundano."
+      : selection.cost === 2
+        ? `Consumível de nível até ${Math.floor(getActorLevel(target) / 2)}.`
+        : "Efeito de utilidade de nível até 4 por 1 rodada.";
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Craft da Imaginação</h3>
+          <p><strong>${escapeHtml(selection.creation)}</strong> · custo ${selection.cost} carga(s).</p>
+          <p>${escapeHtml(result)}</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+  }
+
+  static async repairCharlesDevice(actor?: Actor | null, announce = true): Promise<CharlesState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [CHARLES_AC_LEAK_EFFECT_SLUG, CHARLES_FAILURE_CONDITION_SLUG]);
+    const next = await this.updateCharlesState(target, { deviceBroken: false, acLeakStacks: 0 });
+    if (announce) {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `
+          <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+            <h3>Reparo de Campo</h3>
+            <p>Após 10 minutos, o dispositivo volta a operar e todos os vazamentos de CA são removidos.</p>
+          </div>`,
+      });
+    }
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async charlesShortRestReset(actor?: Actor | null): Promise<CharlesState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getCharlesState(target);
+    await removeCharlesNetTemplate(target, state.net.templateId);
+    await this.repairCharlesDevice(target, false);
+    const next = await this.updateCharlesState(target, {
+      chargesSpent: Math.max(0, state.chargesSpent - 1),
+      net: { ...DEFAULT_CHARLES_STATE.net },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Descanso curto - Charles</h3>
+          <p>Uma carga foi recuperada e o dispositivo foi reparado.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async charlesLongRestReset(actor?: Actor | null): Promise<CharlesState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getCharlesState(target);
+    await removeCharlesNetTemplate(target, state.net.templateId);
+    await removeActorUniqueEffects(target, [
+      CHARLES_AC_LEAK_EFFECT_SLUG,
+      CHARLES_CLIMB_EFFECT_SLUG,
+      CHARLES_FAILURE_CONDITION_SLUG,
+    ]);
+    const next = await this.updateCharlesState(target, foundry.utils.deepClone(DEFAULT_CHARLES_STATE));
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Descanso longo - Charles</h3>
+          <p>As três cargas foram restauradas e o dispositivo está operacional.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static getActiveCharlesNetActors(): Actor[] {
+    return Array.from(game.actors ?? []).filter(actor => {
+      if ((actor.type as string) !== "character") return false;
+      if (this.getState(actor).activeProfile !== CHARLES_PROFILE_ID) return false;
+      return this.getCharlesState(actor).net.active;
+    });
+  }
+
+  static async applyCharlesNetToToken(source: Actor, targetToken: unknown, trigger: string, turnKey = ""): Promise<void> {
+    const state = this.getCharlesState(source);
+    if (!state.net.active || !state.net.overloaded) return;
+    const targetActor = getTokenLikeActor(targetToken);
+    if (!targetActor || targetActor.id === source.id) return;
+    const sourceToken = getActorToken(source);
+    if (sourceToken && tokensAreAllied(sourceToken, targetToken)) return;
+    if (!tokenInCharlesNet(source, targetToken, state)) return;
+    const targetKey = getActorKey(targetActor);
+    const applicationKey = turnKey || `${getCombatTurnKey() ?? "no-combat"}:${trigger}`;
+    if (state.net.appliedTurnKeys[targetKey] === applicationKey) return;
+
+    const dc = getActorClassDCBySlug(source, "inventor");
+    const save = new Roll(`1d20 + ${getActorSaveModifier(targetActor, "reflex")}`);
+    await save.evaluate();
+    const total = Number(save.total ?? 0);
+    const baseDegree = getBasicSaveDegree(total, dc, getRollNaturalD20(save));
+    const incapacitation = getActorLevel(targetActor) > getActorLevel(source);
+    const degree = incapacitation ? improveDegreeOfSuccess(baseDegree) : baseDegree;
+    const immobilized = degree === "Falha" || degree === "Falha crítica";
+    if (immobilized) {
+      await createManagedPF2ECondition(
+        targetActor,
+        "immobilized",
+        `charles-net-immobilized-${getActorKey(source)}`,
+        { turnStartsRemaining: 2, sourceName: "Rede de Amortecimento" },
+      );
+    }
+    await this.updateCharlesState(source, {
+      net: {
+        appliedTurnKeys: {
+          ...state.net.appliedTurnKeys,
+          [targetKey]: applicationKey,
+        },
+      },
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: source }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-charles-chat-card">
+          <h3>Rede Sobrecarregada</h3>
+          <p><strong>${escapeHtml(targetActor.name ?? "Alvo")}:</strong> Reflexos ${total} vs CD ${dc}, ${escapeHtml(degree)}${incapacitation ? " após Incapacitação" : ""}.</p>
+          <p>${immobilized ? "Immobilized por 1 rodada." : "Atravessa a rede sem ficar preso."} Gatilho: ${escapeHtml(trigger)}.</p>
+        </div>`,
+    });
+  }
+
+  static async applyCharlesNetToTokens(source: Actor, trigger: string): Promise<void> {
+    const turnKey = `${getCombatTurnKey() ?? "no-combat"}:${trigger}`;
+    for (const token of getCanvasTokenPlaceables()) {
+      await this.applyCharlesNetToToken(source, token, trigger, turnKey);
+    }
+  }
+
+  static async endCharlesNet(actor: Actor): Promise<void> {
+    const state = this.getCharlesState(actor);
+    await removeCharlesNetTemplate(actor, state.net.templateId);
+    await this.updateCharlesState(actor, { net: { ...DEFAULT_CHARLES_STATE.net } });
+    refreshActorMechanicsViews(actor);
+  }
+
+  static async handleCharlesNetTurnAdvance(combat: Combat): Promise<void> {
+    if (!game.user?.isGM) return;
+    const combatData = combat as Combat & { combatant?: { actor?: Actor; token?: unknown }; turn?: number };
+    const currentActor = combatData.combatant?.actor;
+    const currentToken = combatData.combatant?.token ?? (currentActor ? getActorToken(currentActor) : null);
+    const turnKey = getCombatTurnKeyFor(combat);
+    if (currentToken) {
+      for (const source of this.getActiveCharlesNetActors()) {
+        await this.applyCharlesNetToToken(source, currentToken, "início do turno", turnKey);
+      }
+    }
+    if (!currentActor || this.getState(currentActor).activeProfile !== CHARLES_PROFILE_ID) return;
+    const state = this.getCharlesState(currentActor);
+    if (!state.net.active || (state.net.combatId && state.net.combatId !== combat.id)) return;
+    if (state.net.lastCombatTurnKey === turnKey) return;
+    if (state.net.remainingRounds <= 1) {
+      await this.endCharlesNet(currentActor);
+      return;
+    }
+    await this.updateCharlesState(currentActor, {
+      net: {
+        remainingRounds: state.net.remainingRounds - 1,
+        lastCombatTurnKey: turnKey,
+      },
+    });
+    refreshActorMechanicsViews(currentActor);
+  }
+
+  static async showAtlasStatus(actor?: Actor | null): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const state = this.getAtlasState(target);
+    const maxUses = getAtlasMaxUses(target);
+    const remaining = Math.max(0, maxUses - state.usesSpent);
+    const pendingNames = state.pending.modifications
+      .map(id => ATLAS_MODIFICATIONS.find(modification => modification.id === id)?.name ?? id)
+      .join(" + ");
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+          <h3>Atlas Sidarta - Olhar do Divino</h3>
+          <p><strong>Usos:</strong> ${remaining}/${maxUses} · <strong>CD divina:</strong> ${getActorDivineSpellDC(target)}</p>
+          <p><strong>Preparação:</strong> ${state.pending.active ? escapeHtml(pendingNames) : "Nenhuma"}${state.pending.overdrive ? " (Fusão de Guerra)" : ""}</p>
+          <p><strong>Fadiga:</strong> ${state.exhaustedLocked
+            ? state.fatigueStupefied > 0
+              ? `Esgotamento Total, Estupefato ${state.fatigueStupefied}`
+              : "Esgotamento Total; Olhar bloqueado até descanso longo"
+            : "Controlada"}</p>
+        </div>`,
+    });
+  }
+
+  static async resolveAtlasFrontlineVigor(actor: Actor): Promise<string[]> {
+    const choices = getTargetChoices(actor, true).filter(choice => isAlliedTargetChoice(actor, choice));
+    const affected: string[] = [];
+    for (const choice of choices) {
+      await applyAtlasVigorEffect(choice.actor, actor);
+      affected.push(choice.name);
+    }
+    return affected;
+  }
+
+  static async resolveAtlasSteelResonance(actor: Actor): Promise<string[]> {
+    const choice = await chooseTargetChoice("Ressonância de Aço - alvo do buff", actor, true);
+    if (!choice) return [];
+    if (!isAlliedTargetChoice(actor, choice)) {
+      ui.notifications?.warn("Ressonância de Aço exige um aliado como alvo.");
+      return [];
+    }
+    const targetToken = choice.token ?? getActorToken(choice.actor);
+    const tokens = targetToken
+      ? getTokensWithinDistance(targetToken, 5).filter(token => tokensAreAllied(targetToken, token))
+      : [];
+    const actors = new Map<string, Actor>();
+    actors.set(getActorKey(choice.actor), choice.actor);
+    for (const token of tokens) {
+      const ally = getTokenLikeActor(token);
+      if (ally) actors.set(getActorKey(ally), ally);
+    }
+    for (const ally of actors.values()) {
+      await applyAtlasSteelResonanceEffect(
+        ally,
+        actor,
+        ally.id === choice.actor.id && actorWearsMetalArmor(ally),
+      );
+    }
+    return Array.from(actors.values()).map(ally => String(ally.name ?? "Aliado"));
+  }
+
+  static async resolveAtlasGorumClamor(actor: Actor): Promise<string[]> {
+    const choice = await chooseTargetChoice("Clamor de Gorum - aliado beneficiado", actor, true);
+    if (!choice) return [];
+    if (!isAlliedTargetChoice(actor, choice)) {
+      ui.notifications?.warn("Clamor de Gorum exige um aliado como alvo.");
+      return [];
+    }
+    const targetToken = choice.token ?? getActorToken(choice.actor);
+    if (!targetToken) {
+      ui.notifications?.info("Clamor de Gorum: o aliado não possui token ativo; resolva os inimigos adjacentes manualmente.");
+      return [];
+    }
+    const enemies = getTokensWithinDistance(targetToken, 5).filter(token => {
+      const enemy = getTokenLikeActor(token);
+      return enemy && enemy.id !== choice.actor.id && !tokensAreAllied(targetToken, token);
+    });
+    const dc = getActorDivineSpellDC(actor);
+    const results: string[] = [];
+    for (const token of enemies) {
+      const enemy = getTokenLikeActor(token);
+      if (!enemy) continue;
+      const roll = new Roll(`1d20 + ${getActorSaveModifier(enemy, "will")}`);
+      await roll.evaluate();
+      const total = Number(roll.total ?? 0);
+      const degree = getBasicSaveDegree(total, dc, getRollNaturalD20(roll));
+      if (degree === "Falha" || degree === "Falha crítica") {
+        await createManagedPF2ECondition(
+          enemy,
+          "frightened",
+          `atlas-clamor-${getActorKey(actor)}`,
+          {
+            value: 1,
+            turnStartsRemaining: degree === "Falha crítica" ? 2 : 1,
+            sourceName: "Clamor de Gorum",
+          },
+        );
+      }
+      results.push(`${enemy.name ?? "Inimigo"}: ${total} vs CD ${dc}, ${degree}`);
+    }
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+          <h3>Clamor de Gorum</h3>
+          <p><strong>Aliado:</strong> ${escapeHtml(choice.name)} · inimigos adjacentes: ${enemies.length}</p>
+          ${results.length > 0 ? `<ul>${results.map(result => `<li>${escapeHtml(result)}</li>`).join("")}</ul>` : "<p>Nenhum inimigo adjacente foi detectado.</p>"}
+        </div>`,
+    });
+    return results;
+  }
+
+  static async activateAtlasDivineGaze(actor?: Actor | null): Promise<AtlasState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getAtlasState(target);
+    if (state.exhaustedLocked) {
+      ui.notifications?.warn("Atlas está em Esgotamento Total e só recupera Olhar do Divino no descanso longo.");
+      return null;
+    }
+    if (state.pending.active) {
+      ui.notifications?.warn("Conclua ou cancele a preparação atual do Olhar do Divino antes de criar outra.");
+      return null;
+    }
+    const configuration = await promptAtlasActivation();
+    if (!configuration) return null;
+    const cost = configuration.modifications.length;
+    if (cost === 2 && configuration.spellRank <= 1) {
+      ui.notifications?.warn("Fusão de Guerra exige uma magia de rank 2 ou maior para poder reduzir o rank em 1.");
+      return null;
+    }
+    const maxUses = getAtlasMaxUses(target);
+    const remaining = Math.max(0, maxUses - state.usesSpent);
+    if (remaining < cost) {
+      ui.notifications?.warn(`Fusão de Guerra exige ${cost} usos, mas Atlas possui ${remaining}.`);
+      return null;
+    }
+    const usesSpent = state.usesSpent + cost;
+    const exhausted = usesSpent >= maxUses;
+    const fatigueStupefied = exhausted ? state.fatigueStupefied + 1 : state.fatigueStupefied;
+    const overdrive = configuration.modifications.length === 2;
+    const next = await this.updateAtlasState(target, {
+      usesSpent,
+      exhaustedLocked: exhausted || state.exhaustedLocked,
+      fatigueStupefied,
+      pending: {
+        active: true,
+        modifications: configuration.modifications,
+        spellRank: configuration.spellRank,
+        originalActions: configuration.originalActions,
+        baptismDamageType: configuration.baptismDamageType,
+        overdrive,
+      },
+      slowPending: state.slowPending || configuration.originalActions === 3,
+      stupefiedPending: state.stupefiedPending || overdrive,
+      overdriveSpellRank: overdrive ? Math.max(1, configuration.spellRank - 1) : state.overdriveSpellRank,
+    });
+    await applyAtlasPendingEffect(target, next);
+
+    const resolvedNotes: string[] = [];
+    if (configuration.modifications.includes("frontline-vigor")) {
+      const names = await this.resolveAtlasFrontlineVigor(target);
+      resolvedNotes.push(`Vigor aplicado: ${names.join(", ") || "nenhum alvo"}`);
+    }
+    if (configuration.modifications.includes("steel-resonance")) {
+      const names = await this.resolveAtlasSteelResonance(target);
+      resolvedNotes.push(`Ressonância aplicada: ${names.join(", ") || "nenhum alvo"}`);
+    }
+    if (configuration.modifications.includes("gorum-clamor")) {
+      const results = await this.resolveAtlasGorumClamor(target);
+      resolvedNotes.push(`Clamor resolveu ${results.length} inimigo(s)`);
+    }
+
+    if (exhausted) {
+      await applyAtlasFatigueEffect(target);
+      await createManagedPF2ECondition(target, "stupefied", ATLAS_FATIGUE_STUPEFIED_SLUG, {
+        value: fatigueStupefied,
+        sourceName: "Esgotamento Total",
+      });
+    }
+    const names = configuration.modifications
+      .map(id => ATLAS_MODIFICATIONS.find(modification => modification.id === id)?.name ?? id)
+      .join(" + ");
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+          <h3>${overdrive ? "Fusão de Guerra" : "Olhar do Divino"}</h3>
+          <p><strong>Modificação:</strong> ${escapeHtml(names)} · <strong>Rank:</strong> ${configuration.spellRank} · <strong>Ações originais:</strong> ${configuration.originalActions}</p>
+          ${overdrive ? `<p>A magia deve ser lançada no rank ${Math.max(0, configuration.spellRank - 1)}. Estupefato 2 será aplicado no próximo turno.</p>` : ""}
+          ${configuration.originalActions === 3 ? "<p>Lento 1 será aplicado no próximo turno.</p>" : ""}
+          ${configuration.modifications.includes("spear-reach") ? "<p>Alcance da Lança preparado: toque vira 35 pés; outros alcances em pés aumentam 50%.</p>" : ""}
+          ${configuration.modifications.includes("iron-baptism") ? `<p>Batismo converte o dano para ${configuration.baptismDamageType === "piercing" ? "perfurante" : "cortante"} metálico.</p>` : ""}
+          ${configuration.modifications.includes("shattering-judgment") ? "<p>Julgamento aumenta o passo dos dados; dano sagrado ignora até 5 de resistência.</p>" : ""}
+          ${resolvedNotes.length > 0 ? `<ul>${resolvedNotes.map(note => `<li>${escapeHtml(note)}</li>`).join("")}</ul>` : ""}
+          ${exhausted ? `<p><strong>Esgotamento Total:</strong> -1 em ataques, Estupefato ${fatigueStupefied} e bloqueio até descanso longo.</p>` : ""}
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async completeAtlasDivineGaze(actor?: Actor | null, announce = true): Promise<AtlasState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getAtlasState(target);
+    if (!state.pending.active) return state;
+    await removeActorUniqueEffects(target, [ATLAS_PENDING_EFFECT_SLUG]);
+    const next = await this.updateAtlasState(target, {
+      pending: { ...DEFAULT_ATLAS_STATE.pending },
+    });
+    if (announce) {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        content: `
+          <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+            <h3>Olhar do Divino concluído</h3>
+            <p>A preparação da magia foi consumida. Penalidades agendadas continuam sendo resolvidas no turno seguinte.</p>
+          </div>`,
+      });
+    }
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async atlasShortRestReset(actor?: Actor | null): Promise<AtlasState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [
+      ATLAS_FATIGUE_ATTACK_EFFECT_SLUG,
+      ATLAS_FATIGUE_STUPEFIED_SLUG,
+      ATLAS_OVERDRIVE_STUPEFIED_SLUG,
+      ATLAS_THREE_ACTION_SLOWED_SLUG,
+    ]);
+    const next = await this.updateAtlasState(target, {
+      fatigueStupefied: 0,
+      slowPending: false,
+      slowActive: false,
+      stupefiedPending: false,
+      stupefiedActive: false,
+      overdriveFlatCheckArmed: false,
+    });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+          <h3>Descanso curto - Atlas</h3>
+          <p>As penalidades de ataque e Estupefato do esgotamento foram removidas. Os usos e o bloqueio do Olhar do Divino só retornam no descanso longo.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async atlasLongRestReset(actor?: Actor | null): Promise<AtlasState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    await removeActorUniqueEffects(target, [
+      ATLAS_PENDING_EFFECT_SLUG,
+      ATLAS_FATIGUE_EFFECT_SLUG,
+      ATLAS_FATIGUE_ATTACK_EFFECT_SLUG,
+      ATLAS_FATIGUE_STUPEFIED_SLUG,
+      ATLAS_OVERDRIVE_STUPEFIED_SLUG,
+      ATLAS_THREE_ACTION_SLOWED_SLUG,
+    ]);
+    const next = await this.updateAtlasState(target, foundry.utils.deepClone(DEFAULT_ATLAS_STATE));
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card">
+          <h3>Descanso longo - Atlas</h3>
+          <p>Todos os usos do Olhar do Divino foram restaurados e o Esgotamento Total terminou.</p>
+        </div>`,
+    });
+    refreshActorMechanicsViews(target);
+    return next;
+  }
+
+  static async handleAtlasTurnAdvance(combat: Combat): Promise<void> {
+    if (!game.user?.isGM) return;
+    const actor = (combat as Combat & { combatant?: { actor?: Actor } }).combatant?.actor;
+    if (!actor || this.getState(actor).activeProfile !== ATLAS_SIDARTA_PROFILE_ID) return;
+    const state = this.getAtlasState(actor);
+    if (
+      !state.slowPending
+      && !state.slowActive
+      && !state.stupefiedPending
+      && !state.stupefiedActive
+    ) return;
+
+    const turnKey = getCombatTurnKeyFor(combat);
+    if (state.lastCombatTurnKey === turnKey) return;
+    const patch: PartialAtlasState = { lastCombatTurnKey: turnKey };
+
+    if (state.slowActive) {
+      await removeActorUniqueEffects(actor, [ATLAS_THREE_ACTION_SLOWED_SLUG]);
+      patch.slowActive = false;
+    }
+    if (state.stupefiedActive) {
+      await removeActorUniqueEffects(actor, [ATLAS_OVERDRIVE_STUPEFIED_SLUG]);
+      patch.stupefiedActive = false;
+      patch.overdriveFlatCheckArmed = false;
+    }
+    if (state.slowPending) {
+      await createManagedPF2ECondition(actor, "slowed", ATLAS_THREE_ACTION_SLOWED_SLUG, {
+        value: 1,
+        sourceName: "Olhar do Divino - magia de 3 ações",
+      });
+      patch.slowPending = false;
+      patch.slowActive = true;
+    }
+    if (state.stupefiedPending) {
+      await createManagedPF2ECondition(actor, "stupefied", ATLAS_OVERDRIVE_STUPEFIED_SLUG, {
+        value: 2,
+        sourceName: "Fusão de Guerra",
+      });
+      patch.stupefiedPending = false;
+      patch.stupefiedActive = true;
+      patch.overdriveFlatCheckArmed = true;
+    }
+    if (Object.keys(patch).length > 0) {
+      await this.updateAtlasState(actor, patch);
+      refreshActorMechanicsViews(actor);
+    }
+  }
+
+  static async resolveAtlasOverdriveFlatCheckFailure(actor: Actor): Promise<void> {
+    const state = this.getAtlasState(actor);
+    if (!state.overdriveFlatCheckArmed) return;
+    const damage = Math.floor(state.overdriveSpellRank / 2);
+    const applied = damage > 0 ? await applyActorHpDelta(actor, -damage).catch(() => false) : true;
+    await this.updateAtlasState(actor, { overdriveFlatCheckArmed: false });
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content: `
+        <div class="ethernum-unique-chat-card ethernum-atlas-chat-card danger">
+          <h3>Fusão de Guerra - Falha no flat check</h3>
+          <p>Atlas sofre <strong>${damage} de dano mental</strong>${applied ? "" : " para aplicação manual"} pela magia de rank ${state.overdriveSpellRank}.</p>
+        </div>`,
+    });
   }
 
   static async showConcordiaArkiusStatus(actor?: Actor | null, title = "Arkius Jacker — Núcleo em Brasas"): Promise<void> {
@@ -4239,13 +6109,30 @@ export class UniqueMechanicsSystem {
 
     const isAttackRoll = isPF2EAttackRollMessage(message);
     const isDamageRoll = isPF2EDamageRollMessage(message);
-    if (!isAttackRoll && !isDamageRoll) return;
+    const isHealingRoll = isPF2EHealingRollMessage(message);
+    const isFlatCheck = isPF2EFlatCheckMessage(message);
+    if (!isAttackRoll && !isDamageRoll && !isHealingRoll && !isFlatCheck) return;
     if (!canProcessChatAutomation(message)) return;
 
     console.debug(
       `Ethernum RPG Module | Processing PF2E chat automation ${message.id} as authority ${game.user?.id ?? "unknown"}`,
     );
     const attacker = getActorFromChatMessage(message);
+
+    if (attacker && this.getState(attacker).activeProfile === ATLAS_SIDARTA_PROFILE_ID) {
+      const atlasState = this.getAtlasState(attacker);
+      if (
+        isFlatCheck
+        && atlasState.overdriveFlatCheckArmed
+        && isAtlasStupefiedFlatCheckMessage(message)
+        && didPF2ECheckFail(message)
+      ) {
+        await this.resolveAtlasOverdriveFlatCheckFailure(attacker);
+      }
+      if ((isDamageRoll || isHealingRoll) && atlasState.pending.active && isPF2ESpellRollMessage(message)) {
+        await this.completeAtlasDivineGaze(attacker, false);
+      }
+    }
 
     if (attacker && this.getState(attacker).activeProfile === ARKIUS_JACKER_PROFILE_ID) {
       const arkiusState = this.getArkiusState(attacker);
@@ -4336,9 +6223,20 @@ export class UniqueMechanicsSystem {
   static async handleCombatTurnAdvance(combat: Combat): Promise<void> {
     if (!game.user?.isGM) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
-    await this.handleArkiusThermalNimbusTurnStart(combat);
-    await this.handleYuCombatTurnAdvance(combat);
     const actor = combatData.combatant?.actor;
+    const managedTurnKey = getCombatTurnKeyFor(combat);
+    if (actor && !processedManagedCombatTurnKeys.has(managedTurnKey)) {
+      processedManagedCombatTurnKeys.add(managedTurnKey);
+      if (processedManagedCombatTurnKeys.size > PROCESSED_CHAT_MESSAGE_LIMIT) {
+        const oldestTurnKey = processedManagedCombatTurnKeys.values().next().value;
+        if (oldestTurnKey) processedManagedCombatTurnKeys.delete(oldestTurnKey);
+      }
+      await processManagedConditionTurnStart(actor);
+    }
+    await this.handleArkiusThermalNimbusTurnStart(combat);
+    await this.handleCharlesNetTurnAdvance(combat);
+    await this.handleAtlasTurnAdvance(combat);
+    await this.handleYuCombatTurnAdvance(combat);
     if (!actor || (actor.type as string) !== "character") return;
     if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return;
 
@@ -4405,6 +6303,10 @@ export class UniqueMechanicsSystem {
       } else {
         await this.applyThermalNimbusToToken(actor, tokenDocument, "entrada na aura");
       }
+    }
+    for (const actor of this.getActiveCharlesNetActors()) {
+      if (movedActor?.id === actor.id) continue;
+      await this.applyCharlesNetToToken(actor, tokenDocument, "entrada na área");
     }
   }
 
@@ -5560,6 +7462,8 @@ export class UniqueMechanicsSystem {
     const bayleState = this.getBayleState(actor);
     const pippingState = this.getPippingState(actor);
     const arkiusState = this.getArkiusState(actor);
+    const charlesState = this.getCharlesState(actor);
+    const atlasState = this.getAtlasState(actor);
     const yuState = this.getYuState(actor);
     const actorLevel = getActorLevel(actor);
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
@@ -5579,6 +7483,12 @@ export class UniqueMechanicsSystem {
     };
     const arkiusUsesRemaining = Math.max(0, arkiusState.nucleoEmBrasas.maxUses - arkiusState.nucleoEmBrasas.usesSpent);
     const arkiusBracoChargesRemaining = Math.max(0, arkiusState.bracoEvolutivo.maxCharges - arkiusState.bracoEvolutivo.chargesSpent);
+    const charlesChargesRemaining = Math.max(0, charlesState.maxCharges - charlesState.chargesSpent);
+    const atlasMaxUses = getAtlasMaxUses(actor);
+    const atlasUsesRemaining = Math.max(0, atlasMaxUses - atlasState.usesSpent);
+    const atlasPendingNames = atlasState.pending.modifications.map(id =>
+      ATLAS_MODIFICATIONS.find(modification => modification.id === id)?.name ?? id
+    );
     const yuUsesRemaining = Math.max(0, yuState.maxUses - yuState.usesSpent);
     const yuPercent = Math.round((yuState.remainingRounds / YU_RAGE_MAX_ROUNDS) * 100);
     const arkiusAttunementLabels: Record<ArkiusAttunement, string> = {
@@ -5625,8 +7535,8 @@ export class UniqueMechanicsSystem {
     const concordiaProfiles = [
       { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
       { id: ARKIUS_JACKER_PROFILE_ID, label: "Arkius Jacker - Concórdia" },
-      { id: "atlas-sidarta", label: "Atlas Sidarta - Mecânica em preparação" },
-      { id: "charles", label: "Charles - Mecânica em preparação" },
+      { id: ATLAS_SIDARTA_PROFILE_ID, label: "Atlas Sidarta - Olhar do Divino" },
+      { id: CHARLES_PROFILE_ID, label: "Charles - Miranha em Ação" },
       { id: "morgana", label: "Morgana - Mecânica em preparação" },
       { id: YU_JIU_JI_TAE_PROFILE_ID, label: "Yu, Jiu Ji Tae - Rage in the Flesh" },
       { id: "unluck", label: "Unluck - Mecânica em preparação" },
@@ -5694,6 +7604,102 @@ export class UniqueMechanicsSystem {
         }
         : null,
       concordia: {
+        charles: {
+          state: charlesState,
+          chargesRemaining: charlesChargesRemaining,
+          chargePercent: Math.round((charlesChargesRemaining / charlesState.maxCharges) * 100),
+          inventorDC: getActorClassDCBySlug(actor, "inventor"),
+          deviceLabel: charlesState.deviceBroken ? "Quebrado" : "Operacional",
+          netLabel: charlesState.net.active
+            ? `${charlesState.net.overloaded ? "Sobrecarregada" : "Normal"} · ${charlesState.net.remainingRounds} rodada(s)`
+            : "Inativa",
+          actions: [
+            {
+              id: "impulse-climb",
+              name: "Escalada de Impulso",
+              icon: "fas fa-person-hiking",
+              cost: "1 ação · 1 carga",
+              text: "Escalada igual ao deslocamento +10 pés até o fim do turno; pode terminar fixo em uma superfície vertical com as mãos livres.",
+            },
+            {
+              id: "containment-shot",
+              name: "Disparo de Contenção",
+              icon: "fas fa-crosshairs",
+              cost: "1 ação/ataque · 1 carga",
+              text: "Executa o Strike escolhido e testa Reflexos contra a CD de Inventor: Grabbed na falha, Restrained por 1 rodada na falha crítica.",
+            },
+            {
+              id: "vector-pull",
+              name: "Puxão Vetorial",
+              icon: "fas fa-magnet",
+              cost: "1 ação · 1 carga",
+              text: "Puxa objetos leves a 45 pés ou testa Atletismo contra Fortitude para mover uma criatura 10 pés e deixá-la Off-Guard quando aplicável.",
+            },
+            {
+              id: "cushioning-net",
+              name: "Rede de Amortecimento",
+              icon: "fas fa-border-all",
+              cost: "2 ações · 1 carga",
+              text: "Cria uma rede de 10 pés por 3 rodadas, terreno difícil e proteção dos primeiros 20 pés de queda para aliados.",
+            },
+            {
+              id: "overloaded-net",
+              name: "Rede Sobrecarregada",
+              icon: "fas fa-bolt",
+              cost: "2 ações · 2 cargas",
+              text: "Amplia para 15 pés e testa Reflexos de inimigos para Immobilized por 1 rodada ao entrar ou começar o turno na área.",
+            },
+            {
+              id: "craft-imagination",
+              name: "Craft da Imaginação",
+              icon: "fas fa-hammer",
+              cost: "1-3 cargas",
+              text: "Improvisa item comum, consumível ou efeito utilitário conforme o número de cargas investido.",
+            },
+          ],
+          macroSlots: [
+            "await game.ethernum.macros.concordia.charles.showStatus();",
+            "await game.ethernum.macros.concordia.charles.impulseClimb();",
+            "await game.ethernum.macros.concordia.charles.containmentShot();",
+            "await game.ethernum.macros.concordia.charles.vectorPull();",
+            "await game.ethernum.macros.concordia.charles.cushioningNet();",
+            "await game.ethernum.macros.concordia.charles.cushioningNet(null, true);",
+            "await game.ethernum.macros.concordia.charles.craftImagination();",
+            "await game.ethernum.macros.concordia.charles.repairDevice();",
+          ],
+        },
+        atlas: {
+          state: atlasState,
+          maxUses: atlasMaxUses,
+          usesRemaining: atlasUsesRemaining,
+          usePercent: atlasMaxUses > 0 ? Math.round((atlasUsesRemaining / atlasMaxUses) * 100) : 0,
+          divineDC: getActorDivineSpellDC(actor),
+          pendingLabel: atlasState.pending.active ? atlasPendingNames.join(" + ") : "Nenhuma",
+          statusLabel: atlasState.exhaustedLocked
+            ? atlasState.fatigueStupefied > 0
+              ? `Esgotamento Total · Estupefato ${atlasState.fatigueStupefied}`
+              : "Esgotamento Total · Olhar bloqueado"
+            : atlasState.pending.active
+              ? atlasState.pending.overdrive ? "Fusão preparada" : "Olhar preparado"
+              : "Pronto",
+          modifications: ATLAS_MODIFICATIONS.map(modification => ({
+            ...modification,
+            pending: atlasState.pending.modifications.includes(modification.id),
+          })),
+          rules: [
+            "Ativação exige +1 ação e não se combina com outro metamagic.",
+            "Uma magia originalmente de 3 ações deixa Atlas Lento 1 no próximo turno.",
+            "Fusão de Guerra aplica duas modificações diferentes, reduz o rank da magia em 1, consome 2 usos e causa Estupefato 2 no próximo turno.",
+            "Ao gastar o último uso, Atlas sofre -1 de status em ataques e Estupefato cumulativo até descanso curto; Olhar do Divino permanece bloqueado até descanso longo.",
+          ],
+          macroSlots: [
+            "await game.ethernum.macros.concordia.atlas.showStatus();",
+            "await game.ethernum.macros.concordia.atlas.olharDoDivino();",
+            "await game.ethernum.macros.concordia.atlas.completeDivineGaze();",
+            "await game.ethernum.macros.concordia.atlas.shortRestReset();",
+            "await game.ethernum.macros.concordia.atlas.longRestReset();",
+          ],
+        },
         arkius: {
           state: arkiusState,
           assets: {

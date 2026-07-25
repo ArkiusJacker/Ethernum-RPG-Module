@@ -128,6 +128,7 @@ Após ativar o módulo, abra a ficha de um personagem. O GM verá três novas ab
 1. Acesse a aba "Mecânicas Únicas"
 2. Selecione o perfil do personagem
 3. Para Gyro Zeppeli, o módulo controla Spin Points, Nível de Rotação, IKONs, testes de Controle de Spin, Desvio da Rotação e técnicas de rotação
+4. Em Concórdia, Charles possui cargas e ferramentas de engenharia; Atlas Sidarta modifica magias divinas; Arkius Jacker e Yu mantêm seus painéis e automações próprios
 
 #### Macros úteis do Gyro
 
@@ -173,6 +174,26 @@ await game.ethernum.macros.useBayleAction("placidusax-lightning");
 ```js
 await game.ethernum.macros.setUniqueProfile("pipping-night");
 await game.ethernum.macros.showPippingStatus();
+```
+
+#### Macros de Charles e Atlas Sidarta
+
+```js
+await game.ethernum.macros.setUniqueProfile("charles");
+await game.ethernum.macros.concordia.charles.showStatus();
+await game.ethernum.macros.concordia.charles.impulseClimb();
+await game.ethernum.macros.concordia.charles.containmentShot();
+await game.ethernum.macros.concordia.charles.vectorPull();
+await game.ethernum.macros.concordia.charles.cushioningNet();
+await game.ethernum.macros.concordia.charles.cushioningNet(null, true);
+await game.ethernum.macros.concordia.charles.craftImagination();
+```
+
+```js
+await game.ethernum.macros.setUniqueProfile("atlas-sidarta");
+await game.ethernum.macros.concordia.atlas.showStatus();
+await game.ethernum.macros.concordia.atlas.olharDoDivino();
+await game.ethernum.macros.concordia.atlas.completeDivineGaze();
 ```
 
 ## ⚙️ Configurações

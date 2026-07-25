@@ -95,6 +95,57 @@ const YU_MANAGED_MACROS = [
   },
 ];
 
+const CHARLES_MANAGED_MACROS = [
+  {
+    name: "Ethernum - Charles: Painel",
+    command: "await game.ethernum.macros.concordia.charles.showStatus();",
+    flag: "concordia-charles-status",
+  },
+  {
+    name: "Ethernum - Charles: Escalada de Impulso",
+    command: "await game.ethernum.macros.concordia.charles.impulseClimb();",
+    flag: "charles-impulse-climb",
+  },
+  {
+    name: "Ethernum - Charles: Disparo de Contenção",
+    command: "await game.ethernum.macros.concordia.charles.containmentShot();",
+    flag: "charles-containment-shot",
+  },
+  {
+    name: "Ethernum - Charles: Puxão Vetorial",
+    command: "await game.ethernum.macros.concordia.charles.vectorPull();",
+    flag: "charles-vector-pull",
+  },
+  {
+    name: "Ethernum - Charles: Rede de Amortecimento",
+    command: "await game.ethernum.macros.concordia.charles.cushioningNet();",
+    flag: "charles-cushioning-net",
+  },
+  {
+    name: "Ethernum - Charles: Craft da Imaginação",
+    command: "await game.ethernum.macros.concordia.charles.craftImagination();",
+    flag: "charles-craft-imagination",
+  },
+];
+
+const ATLAS_MANAGED_MACROS = [
+  {
+    name: "Ethernum - Atlas: Painel",
+    command: "await game.ethernum.macros.concordia.atlas.showStatus();",
+    flag: "concordia-atlas-status",
+  },
+  {
+    name: "Ethernum - Atlas: Olhar do Divino",
+    command: "await game.ethernum.macros.concordia.atlas.olharDoDivino();",
+    flag: "atlas-olhar-do-divino",
+  },
+  {
+    name: "Ethernum - Atlas: Concluir Olhar",
+    command: "await game.ethernum.macros.concordia.atlas.completeDivineGaze();",
+    flag: "atlas-complete-divine-gaze",
+  },
+];
+
 type EthernumMacroDocument = {
   name?: string;
   command?: string;
@@ -148,6 +199,25 @@ declare global {
           };
         };
         concordia: {
+          charles: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            impulseClimb: (actor?: Actor | null) => Promise<void>;
+            containmentShot: (actor?: Actor | null) => Promise<void>;
+            vectorPull: (actor?: Actor | null) => Promise<void>;
+            cushioningNet: (actor?: Actor | null, overloaded?: boolean) => Promise<void>;
+            craftImagination: (actor?: Actor | null) => Promise<void>;
+            repairDevice: (actor?: Actor | null) => Promise<unknown>;
+            shortRestReset: (actor?: Actor | null) => Promise<unknown>;
+            longRestReset: (actor?: Actor | null) => Promise<unknown>;
+          };
+          atlas: {
+            showStatus: (actor?: Actor | null) => Promise<void>;
+            olharDoDivino: (actor?: Actor | null) => Promise<unknown>;
+            activateDivineGaze: (actor?: Actor | null) => Promise<unknown>;
+            completeDivineGaze: (actor?: Actor | null) => Promise<unknown>;
+            shortRestReset: (actor?: Actor | null) => Promise<unknown>;
+            longRestReset: (actor?: Actor | null) => Promise<unknown>;
+          };
           arkius: {
             showStatus: (actor?: Actor | null) => Promise<void>;
             toggleNucleoEmBrasas: (actor?: Actor | null) => Promise<unknown>;
@@ -272,6 +342,40 @@ function buildMacroApi() {
       },
     },
     concordia: {
+      charles: {
+        showStatus: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.showCharlesStatus(resolveMacroActor(actor)),
+        impulseClimb: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.useCharlesImpulseClimb(resolveMacroActor(actor)),
+        containmentShot: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.useCharlesContainmentShot(resolveMacroActor(actor)),
+        vectorPull: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.useCharlesVectorPull(resolveMacroActor(actor)),
+        cushioningNet: async (actor?: Actor | null, overloaded = false) =>
+          UniqueMechanicsSystem.deployCharlesCushioningNet(resolveMacroActor(actor), overloaded),
+        craftImagination: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.useCharlesCraftImagination(resolveMacroActor(actor)),
+        repairDevice: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.repairCharlesDevice(resolveMacroActor(actor)),
+        shortRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.charlesShortRestReset(resolveMacroActor(actor)),
+        longRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.charlesLongRestReset(resolveMacroActor(actor)),
+      },
+      atlas: {
+        showStatus: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.showAtlasStatus(resolveMacroActor(actor)),
+        olharDoDivino: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.activateAtlasDivineGaze(resolveMacroActor(actor)),
+        activateDivineGaze: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.activateAtlasDivineGaze(resolveMacroActor(actor)),
+        completeDivineGaze: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.completeAtlasDivineGaze(resolveMacroActor(actor)),
+        shortRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.atlasShortRestReset(resolveMacroActor(actor)),
+        longRestReset: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.atlasLongRestReset(resolveMacroActor(actor)),
+      },
       arkius: {
         showStatus: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.showConcordiaArkiusStatus(resolveMacroActor(actor)),
@@ -389,6 +493,12 @@ async function ensureManagedMacros(): Promise<void> {
   }
   for (const macro of YU_MANAGED_MACROS) {
     await ensureOneMacro(macro.name, macro.command, macro.flag, YU_MACRO_ICON);
+  }
+  for (const macro of CHARLES_MANAGED_MACROS) {
+    await ensureOneMacro(macro.name, macro.command, macro.flag, "icons/svg/hammer.svg");
+  }
+  for (const macro of ATLAS_MANAGED_MACROS) {
+    await ensureOneMacro(macro.name, macro.command, macro.flag, "icons/svg/sword.svg");
   }
 }
 

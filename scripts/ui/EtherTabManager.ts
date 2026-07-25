@@ -861,6 +861,78 @@ export class EtherTabManager {
       await UniqueMechanicsSystem.showConcordiaArkiusStatus(actor);
     });
 
+    html.find('.ethernum-charles-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showCharlesStatus(actor);
+    });
+
+    html.find('.ethernum-charles-action').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      const action = String($(ev.currentTarget).data('action'));
+      if (action === 'impulse-climb') await UniqueMechanicsSystem.useCharlesImpulseClimb(actor);
+      if (action === 'containment-shot') await UniqueMechanicsSystem.useCharlesContainmentShot(actor);
+      if (action === 'vector-pull') await UniqueMechanicsSystem.useCharlesVectorPull(actor);
+      if (action === 'cushioning-net') await UniqueMechanicsSystem.deployCharlesCushioningNet(actor, false);
+      if (action === 'overloaded-net') await UniqueMechanicsSystem.deployCharlesCushioningNet(actor, true);
+      if (action === 'craft-imagination') await UniqueMechanicsSystem.useCharlesCraftImagination(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-charles-repair').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.repairCharlesDevice(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-charles-short-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.charlesShortRestReset(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-charles-long-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.charlesLongRestReset(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-atlas-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showAtlasStatus(actor);
+    });
+
+    html.find('.ethernum-atlas-activate').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.activateAtlasDivineGaze(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-atlas-complete').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.completeAtlasDivineGaze(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-atlas-short-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.atlasShortRestReset(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-atlas-long-rest').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.atlasLongRestReset(actor);
+      await refreshUnique();
+    });
+
     html.find('.ethernum-arkius-toggle-nucleo').on('click', async (ev) => {
       ev.preventDefault();
       rememberScroll();

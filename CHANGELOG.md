@@ -5,6 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.9] - 2026-07-25
+
+### Adicionado
+- Perfil funcional de Charles com Miranha em Ação, três cargas, Escalada de Impulso, Disparo de Contenção, Puxão Vetorial, Rede de Amortecimento, Craft da Imaginação e falha do dispositivo sem cargas.
+- Perfil funcional de Atlas Sidarta com Olhar do Divino, seis modificações de magia, Fusão de Guerra, penalidades agendadas e Esgotamento Total.
+- Macros gerenciados e painéis temáticos próprios para Charles e Atlas, com paletas de forja e guerra divina.
+- Automação de templates, salvamentos, condições PF2e e gatilhos de movimento/turno para a Rede de Amortecimento sobrecarregada.
+
+### Alterado
+- Perfis de Charles e Atlas deixam de ser placeholders de Concórdia e passam a preservar estado próprio nas flags do ator.
+- Migração de mundo avança para schema 8 e adiciona os estados novos sem sobrescrever dados existentes.
+- Olhar do Divino consome automaticamente a preparação após o próximo roll de dano ou cura de magia e mantém o alias em português junto ao nome técnico da API.
+
+### Corrigido
+- Atualizações repetidas do mesmo turno não duplicam a expiração de condições nem reaplicam Lento/Estupefato de Atlas.
+- Batismo de Ferro não converte magias puramente de fogo, eletricidade ou sônico.
+- A penalidade curta do Esgotamento Total é separada do bloqueio de Olhar do Divino até o descanso longo.
+
 ## [3.4.8] - 2026-07-25
 
 ### Adicionado

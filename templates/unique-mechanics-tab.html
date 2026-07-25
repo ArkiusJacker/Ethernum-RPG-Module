@@ -1,4 +1,4 @@
-<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq uniqueMechanics.activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if uniqueMechanics.isEthernumCompanyCore}}{{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}}{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}ethernum-unique-arkius-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "yu-jiu-ji-tae")}}ethernum-unique-yu-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
+<div class="ethernum-container ethernum-unique-tab {{#if (ethernum-eq uniqueMechanics.activeCore "ethernum-company")}}ethernum-core-company{{/if}} {{#if (ethernum-eq uniqueMechanics.activeCore "concordia")}}ethernum-core-concordia{{/if}} {{#if uniqueMechanics.isEthernumCompanyCore}}{{#if (ethernum-eq uniqueMechanics.activeProfile "")}}ethernum-unique-company-theme{{/if}}{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "gyro-spin")}}ethernum-unique-gyro-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "bayle-dragon")}}ethernum-unique-bayle-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}ethernum-unique-pipping-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}ethernum-unique-arkius-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "charles")}}ethernum-unique-charles-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "atlas-sidarta")}}ethernum-unique-atlas-theme{{/if}} {{#if (ethernum-eq uniqueMechanics.activeProfile "yu-jiu-ji-tae")}}ethernum-unique-yu-theme{{/if}} {{#if uniqueMechanics.placeholderProfile}}ethernum-unique-placeholder-theme{{/if}}">
   <section class="ethernum-section ethernum-core-selector">
     <div class="ethernum-core-selector-heading">
       <span><i class="fas fa-layer-group"></i> Núcleo de campanha</span>
@@ -48,6 +48,18 @@
       <strong>{{uniqueMechanics.concordia.arkius.statusLabel}} · {{uniqueMechanics.concordia.arkius.attunementLabel}}</strong>
     </div>
     {{/if}}
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "charles")}}
+    <div class="ethernum-unique-resource-pill ethernum-charles-resource-pill {{#if uniqueMechanics.concordia.charles.state.deviceBroken}}danger{{/if}}">
+      <span>{{uniqueMechanics.concordia.charles.chargesRemaining}}</span>
+      <strong>Cargas · {{uniqueMechanics.concordia.charles.deviceLabel}}</strong>
+    </div>
+    {{/if}}
+    {{#if (ethernum-eq uniqueMechanics.activeProfile "atlas-sidarta")}}
+    <div class="ethernum-unique-resource-pill ethernum-atlas-resource-pill {{#if uniqueMechanics.concordia.atlas.state.pending.active}}active{{/if}}">
+      <span>{{uniqueMechanics.concordia.atlas.usesRemaining}}</span>
+      <strong>Olhar · CD {{uniqueMechanics.concordia.atlas.divineDC}}</strong>
+    </div>
+    {{/if}}
     {{#if (ethernum-eq uniqueMechanics.activeProfile "yu-jiu-ji-tae")}}
     <div class="ethernum-unique-resource-pill ethernum-yu-resource-pill {{#if uniqueMechanics.concordia.yu.state.active}}active{{/if}}">
       <span>{{uniqueMechanics.concordia.yu.usesRemaining}}</span>
@@ -92,6 +104,158 @@
         {{/each}}
       </div>
       {{/if}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "charles")}}
+  <section class="ethernum-section ethernum-charles-hero">
+    <div class="ethernum-character-heading">
+      <div>
+        <span class="ethernum-charles-kicker">Engenharia de combate</span>
+        <h2>Charles</h2>
+        <p>Miranha em Ação</p>
+      </div>
+      <button type="button" class="ethernum-icon-button ethernum-charles-show-status" title="Status">
+        <i class="fas fa-gauge-high"></i>
+      </button>
+    </div>
+    <div class="ethernum-character-state-grid">
+      <div class="ethernum-character-meter" style="--mechanic-percent: {{uniqueMechanics.concordia.charles.chargePercent}}%">
+        <span>Cargas</span>
+        <strong>{{uniqueMechanics.concordia.charles.chargesRemaining}}/{{uniqueMechanics.concordia.charles.state.maxCharges}}</strong>
+        <i></i>
+      </div>
+      <div>
+        <span>Dispositivo</span>
+        <strong>{{uniqueMechanics.concordia.charles.deviceLabel}}</strong>
+        <small>Vazamento de CA: {{uniqueMechanics.concordia.charles.state.acLeakStacks}}/3</small>
+      </div>
+      <div>
+        <span>Rede</span>
+        <strong>{{uniqueMechanics.concordia.charles.netLabel}}</strong>
+        <small>CD de Inventor {{uniqueMechanics.concordia.charles.inventorDC}}</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-charles-workbench">
+    <h2 class="ethernum-section-title"><span><i class="fas fa-gears"></i> Bancada tática</span></h2>
+    <div class="ethernum-character-action-grid">
+      {{#each uniqueMechanics.concordia.charles.actions}}
+      <button type="button" class="ethernum-character-action ethernum-charles-action" data-action="{{this.id}}" {{#if ../uniqueMechanics.concordia.charles.state.deviceBroken}}disabled{{/if}}>
+        <i class="{{this.icon}}"></i>
+        <span>
+          <strong>{{this.name}}</strong>
+          <small>{{this.cost}}</small>
+          <em>{{this.text}}</em>
+        </span>
+      </button>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-character-rules">
+    <h2 class="ethernum-section-title"><span><i class="fas fa-temperature-high"></i> Limites do protótipo</span></h2>
+    <div class="ethernum-character-rule-grid">
+      <div>
+        <strong>Sem cargas</strong>
+        <p>Teste seco CD 10. Sucesso executa a função e acumula -1 de status na CA, até -3.</p>
+      </div>
+      <div>
+        <strong>Falha crítica do sistema</strong>
+        <p>4d6 elétrico, Enfraquecido 1 ou 2 e dispositivo quebrado até um reparo de 10 minutos.</p>
+      </div>
+      <div>
+        <strong>Recarga</strong>
+        <p>Recupera 1 carga no descanso curto e todas as 3 cargas no descanso longo.</p>
+      </div>
+    </div>
+    <div class="ethernum-character-control-row">
+      <button type="button" class="ethernum-button-small ethernum-charles-repair"><i class="fas fa-screwdriver-wrench"></i> Reparar</button>
+      <button type="button" class="ethernum-button-small ethernum-charles-short-rest"><i class="fas fa-mug-hot"></i> Descanso curto</button>
+      <button type="button" class="ethernum-button-small ethernum-charles-long-rest"><i class="fas fa-bed"></i> Descanso longo</button>
+    </div>
+    <div class="ethernum-concordia-macro-grid">
+      {{#each uniqueMechanics.concordia.charles.macroSlots}}
+      <code>{{this}}</code>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{#if (ethernum-eq uniqueMechanics.activeProfile "atlas-sidarta")}}
+  <section class="ethernum-section ethernum-atlas-hero">
+    <div class="ethernum-character-heading">
+      <div>
+        <span class="ethernum-atlas-kicker">Clérigo de guerra</span>
+        <h2>Atlas Sidarta</h2>
+        <p>Olhar do Divino</p>
+      </div>
+      <button type="button" class="ethernum-icon-button ethernum-atlas-show-status" title="Status">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+    <div class="ethernum-character-state-grid">
+      <div class="ethernum-character-meter" style="--mechanic-percent: {{uniqueMechanics.concordia.atlas.usePercent}}%">
+        <span>Usos</span>
+        <strong>{{uniqueMechanics.concordia.atlas.usesRemaining}}/{{uniqueMechanics.concordia.atlas.maxUses}}</strong>
+        <i></i>
+      </div>
+      <div>
+        <span>Estado</span>
+        <strong>{{uniqueMechanics.concordia.atlas.statusLabel}}</strong>
+        <small>CD divina {{uniqueMechanics.concordia.atlas.divineDC}}</small>
+      </div>
+      <div>
+        <span>Preparação</span>
+        <strong>{{uniqueMechanics.concordia.atlas.pendingLabel}}</strong>
+        <small>{{#if uniqueMechanics.concordia.atlas.state.pending.overdrive}}Fusão de Guerra{{else}}Uma modificação{{/if}}</small>
+      </div>
+    </div>
+    <div class="ethernum-character-control-row">
+      <button type="button" class="ethernum-button-small ethernum-atlas-activate" {{#if uniqueMechanics.concordia.atlas.state.exhaustedLocked}}disabled{{/if}}>
+        <i class="fas fa-khanda"></i> Preparar Olhar
+      </button>
+      <button type="button" class="ethernum-button-small ethernum-atlas-complete" {{#unless uniqueMechanics.concordia.atlas.state.pending.active}}disabled{{/unless}}>
+        <i class="fas fa-check"></i> Concluir
+      </button>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-atlas-modifications">
+    <h2 class="ethernum-section-title"><span><i class="fas fa-swords"></i> Modificações divinas</span></h2>
+    <div class="ethernum-character-rule-grid ethernum-atlas-mod-grid">
+      {{#each uniqueMechanics.concordia.atlas.modifications}}
+      <div class="{{#if this.pending}}active{{/if}}">
+        <i class="{{this.icon}}"></i>
+        <strong>{{this.name}}</strong>
+        <small>{{this.summary}}</small>
+        <ul>
+          {{#each this.details}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-character-rules">
+    <h2 class="ethernum-section-title"><span><i class="fas fa-scale-balanced"></i> Doutrina de guerra</span></h2>
+    <ul class="ethernum-atlas-rule-list">
+      {{#each uniqueMechanics.concordia.atlas.rules}}
+      <li>{{this}}</li>
+      {{/each}}
+    </ul>
+    <div class="ethernum-character-control-row">
+      <button type="button" class="ethernum-button-small ethernum-atlas-short-rest"><i class="fas fa-mug-hot"></i> Descanso curto</button>
+      <button type="button" class="ethernum-button-small ethernum-atlas-long-rest"><i class="fas fa-bed"></i> Descanso longo</button>
+    </div>
+    <div class="ethernum-concordia-macro-grid">
+      {{#each uniqueMechanics.concordia.atlas.macroSlots}}
+      <code>{{this}}</code>
+      {{/each}}
     </div>
   </section>
   {{/if}}
