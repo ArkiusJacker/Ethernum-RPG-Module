@@ -196,6 +196,27 @@ await game.ethernum.macros.concordia.atlas.olharDoDivino();
 await game.ethernum.macros.concordia.atlas.completeDivineGaze();
 ```
 
+### 9. Rastreador global de combate
+
+O rastreador de Momentum Fides e Fulgor Negro fica disponível sobre o canvas, sem depender de uma ficha aberta.
+
+- A visão **Jogador** acompanha o personagem atribuído ou o token controlado, exibe as marcas e cargas de Fides, a cadeia de Fulgor e os resultados do combate.
+- A visão **Mestre** reúne os personagens dos jogadores e oferece correção de marcas, encerramento de Fulgor e resets de combate ou preparações diárias.
+- Falhas e críticos de testes com d20 são lidos diretamente das mensagens do PF2e. Resultado natural e grau final permanecem separados; Fides e Fulgor continuam restritos a ataques contra CA.
+- O estado diário fica salvo na flag do ator; marcas, estatísticas do encontro e cadeias são limpas ao encerrar o combate.
+
+Os dois macros gerenciados também podem ser chamados pela API:
+
+```js
+await game.ethernum.macros.combat.momentumFides();
+await game.ethernum.macros.combat.fulgorNegro();
+```
+
+Limites conhecidos da integração com o PF2e:
+
+- Rerrolagens são ignoradas pelo tracker para evitar dupla contagem; o mestre pode corrigir o placar pelos controles da mesa.
+- Em um ataque manual convertido por Fides, o card do Ethernum registra a adjudicação, mas não reescreve a mensagem original nem automações de outros módulos que já tenham recebido a falha. O macro de Fides é o fluxo recomendado porque também resolve o dano.
+
 ## ⚙️ Configurações
 
 O módulo oferece as seguintes configurações (acessíveis nas configurações do módulo):

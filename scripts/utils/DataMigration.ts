@@ -1,6 +1,11 @@
 import { ETHERNUM, type EtherAttribute, type Rank } from '../config.js';
+import {
+  createDefaultCombatMomentumState,
+  normalizeCombatMomentumState,
+  type CombatMomentumState,
+} from '../table/CombatMomentumSystem.js';
 
-const CURRENT_SCHEMA_VERSION = 8;
+const CURRENT_SCHEMA_VERSION = 9;
 
 interface EtherSystem {
   etherMax: number;
@@ -161,6 +166,18 @@ function validateUniqueMechanics(value: unknown): value is UniqueMechanics {
     && typeof state.profiles === "object";
 }
 
+function validateCombatMomentum(value: unknown): value is CombatMomentumState {
+  if (!value || typeof value !== "object") return false;
+  const raw = value as Partial<CombatMomentumState>;
+  if (raw.version !== 1 || !raw.fides || !raw.fulgor || !raw.stats || !raw.lastResult) return false;
+  const normalized = normalizeCombatMomentumState(value);
+  return normalized.version === 1
+    && normalized.fides.markers >= 0
+    && normalized.fides.markers <= 3
+    && normalized.fides.charges >= 0
+    && normalized.fides.charges <= 3;
+}
+
 export function validateActorFlags(actor: Actor): ValidationResult {
   const issues: string[] = [];
   const m = ETHERNUM.MODULE_NAME;
@@ -171,6 +188,7 @@ export function validateActorFlags(actor: Actor): ValidationResult {
   if (!validateFE(actor.getFlag(m, "fe"))) issues.push("fe");
   if (!validateRunes(actor.getFlag(m, "runes") ?? [])) issues.push("runes");
   if (!validateUniqueMechanics(actor.getFlag(m, "uniqueMechanics"))) issues.push("uniqueMechanics");
+  if (!validateCombatMomentum(actor.getFlag(m, "combatMomentum"))) issues.push("combatMomentum");
 
   return { valid: issues.length === 0, issues };
 }
@@ -387,6 +405,14 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v8`);
+  }
+
+  if (schemaVersion < 9) {
+    const existingMomentum = actor.getFlag(m, "combatMomentum");
+    updates[`flags.${m}.combatMomentum`] = existingMomentum === undefined
+      ? createDefaultCombatMomentumState()
+      : normalizeCombatMomentumState(existingMomentum);
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v9`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

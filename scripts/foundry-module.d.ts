@@ -1,4 +1,5 @@
 import type { EtherAttribute, CampaignCoreId } from './config.js';
+import type { CombatMomentumState } from './table/CombatMomentumSystem.js';
 
 /**
  * Augmenta as interfaces globais do foundry-vtt-types com as flags e settings
@@ -31,6 +32,7 @@ declare global {
           activeProfile: string;
           profiles: Record<string, unknown>;
         };
+        combatMomentum?: CombatMomentumState;
         schemaVersion?: number;
         [key: string]: unknown;
       };

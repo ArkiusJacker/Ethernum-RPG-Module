@@ -1,6 +1,8 @@
 import { ETHERNUM, type Rank, type CampaignCoreId } from './config.js';
 import { registerSettings, getFECostForRank } from './settings.js';
 import { EtherSystem } from './systems.js';
+import { CombatMomentumSystem, createDefaultCombatMomentumState } from './table/CombatMomentumSystem.js';
+import { CombatMomentumTracker } from './ui/CombatMomentumTracker.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
 import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
@@ -13,6 +15,20 @@ const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.b
 const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
 const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
 const YU_MACRO_ICON = "icons/svg/terror.svg";
+const COMBAT_MOMENTUM_MANAGED_MACROS = [
+  {
+    name: "Ethernum - Momentum Fides",
+    command: "await game.ethernum.macros.combat.momentumFides();",
+    flag: "combat-momentum-fides",
+    img: "icons/svg/d20-highlight.svg",
+  },
+  {
+    name: "Ethernum - Fulgor Negro",
+    command: "await game.ethernum.macros.combat.fulgorNegro();",
+    flag: "combat-fulgor-negro",
+    img: "icons/svg/lightning.svg",
+  },
+];
 
 const ARKIUS_MANAGED_MACROS = [
   {
@@ -181,6 +197,12 @@ declare global {
         useBayleAction: (actionId: string, actor?: Actor | null) => Promise<void>;
         showPippingStatus: (actor?: Actor | null) => Promise<void>;
         adjustPippingPulse: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+        momentumFides: (actor?: Actor | null) => Promise<void>;
+        fulgorNegro: (actor?: Actor | null) => Promise<void>;
+        combat: {
+          momentumFides: (actor?: Actor | null) => Promise<void>;
+          fulgorNegro: (actor?: Actor | null) => Promise<void>;
+        };
         ethernumCompany: {
           gyro: {
             showStatus: (actor?: Actor | null) => Promise<void>;
@@ -320,10 +342,18 @@ function buildMacroApi() {
       UniqueMechanicsSystem.showPippingStatus(resolveMacroActor(actor)),
     adjustPippingPulse: async (amount = 1, actor?: Actor | null) =>
       UniqueMechanicsSystem.adjustPippingPulse(resolveMacroActor(actor), amount),
+    momentumFides: async (actor?: Actor | null) =>
+      CombatMomentumSystem.useMomentumFides(resolveMacroActor(actor)),
+    fulgorNegro: async (actor?: Actor | null) =>
+      CombatMomentumSystem.useFulgorNegro(resolveMacroActor(actor)),
   };
 
   return {
     ...api,
+    combat: {
+      momentumFides: api.momentumFides,
+      fulgorNegro: api.fulgorNegro,
+    },
     ethernumCompany: {
       gyro: {
         showStatus: api.showGyroStatus,
@@ -500,6 +530,9 @@ async function ensureManagedMacros(): Promise<void> {
   for (const macro of ATLAS_MANAGED_MACROS) {
     await ensureOneMacro(macro.name, macro.command, macro.flag, "icons/svg/sword.svg");
   }
+  for (const macro of COMBAT_MOMENTUM_MANAGED_MACROS) {
+    await ensureOneMacro(macro.name, macro.command, macro.flag, macro.img);
+  }
 }
 
 function registerHandlebarsHelpers(): void {
@@ -557,6 +590,9 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
   if (!actor.getFlag(m, "uniqueMechanics"))
     updates[`flags.${m}.uniqueMechanics`] = { activeCore: "ethernum-company", activeProfile: "", profiles: {} };
 
+  if (!actor.getFlag(m, "combatMomentum"))
+    updates[`flags.${m}.combatMomentum`] = createDefaultCombatMomentumState();
+
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
 
@@ -572,15 +608,36 @@ Hooks.on("createChatMessage", (message: ChatMessage) => {
   void UniqueMechanicsSystem.handlePF2EChatMessage(message).catch(error => {
     console.error("Ethernum RPG Module | PF2E chat automation failed", error);
   });
+  void CombatMomentumSystem.handlePF2EChatMessage(message).catch(error => {
+    console.error("Ethernum RPG Module | Combat momentum automation failed", error);
+  });
 });
 Hooks.on("updateCombat", (combat: Combat) => {
   void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);
+  void CombatMomentumSystem.handleCombatUpdate(combat).catch(error => {
+    console.error("Ethernum RPG Module | Combat tracker turn update failed", error);
+  });
+});
+Hooks.on("deleteCombat", (combat: Combat) => {
+  void CombatMomentumSystem.handleCombatDelete(combat).catch(error => {
+    console.error("Ethernum RPG Module | Combat tracker cleanup failed", error);
+  });
 });
 Hooks.on("updateActor", (actor: Actor, changed: Record<string, unknown>) => {
   void UniqueMechanicsSystem.handleYuActorUpdate(actor, changed);
+  void CombatMomentumSystem.handleActorUpdate(actor, changed).catch(error => {
+    console.error("Ethernum RPG Module | Combat tracker actor update failed", error);
+  });
 });
 Hooks.on("updateToken", (tokenDocument: TokenDocument, changed: Record<string, unknown>) => {
   void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed);
+});
+Hooks.on("pf2e.restForTheNight", (actor: Actor) => {
+  if (game.user?.isGM || (actor as Actor & { isOwner?: boolean }).isOwner) {
+    void CombatMomentumSystem.dailyReset(actor).catch(error => {
+      console.error("Ethernum RPG Module | Combat tracker daily reset failed", error);
+    });
+  }
 });
 
 Hooks.once("init", () => {
@@ -611,6 +668,7 @@ Hooks.once("ready", async () => {
   await migrateWorld();
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
+  CombatMomentumTracker.initialize();
 
   if (game.user?.isGM) {
     (game.actors ?? []).filter((a: Actor) => (a.type as string) === "character").forEach((a: Actor) => initializeActorFlags(a));

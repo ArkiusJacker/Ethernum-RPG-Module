@@ -5,6 +5,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.4.10] - 2026-07-28
+
+### Adicionado
+- Rastreador global de combate fora das fichas, com visão do jogador e uma visão de mesa exclusiva do mestre.
+- Registro automático de falhas, falhas críticas, sucessos, sucessos críticos e resultados naturais 1 e 20 por personagem durante o combate.
+- Momentum Fides com três marcas consecutivas, três cargas diárias, consumo automático no próximo ataque e suporte a Strike sem MAP pelo macro gerenciado.
+- Fulgor Negro com gatilho por 20 natural, mesmo alvo, MAP preservada, faixa natural de 17 a 20 e limite pelo modificador da habilidade-chave.
+- Macros gerenciados `Ethernum - Momentum Fides` e `Ethernum - Fulgor Negro`, com aliases públicos em `game.ethernum.macros.combat`.
+- Controles do mestre para corrigir marcas, encerrar Fulgor, limpar um combate e aplicar preparações diárias por personagem ou em toda a mesa.
+
+### Alterado
+- Preparações diárias do PF2e e o descanso longo do Ethernum restauram as três cargas de Fides e limpam estados transitórios de combate.
+- Processamento de ataques do rastreador usa uma fila por ator para preservar a ordem de atividades com múltiplas rolagens.
+- Migração de mundo avança para schema 9 e cria a flag `combatMomentum` sem alterar mecânicas ou dados de personagens existentes.
+
+### Corrigido
+- Fulgor Negro encerra automaticamente ao mudar o turno, trocar de alvo, falhar, obter 16 natural ou menos, alcançar o limite ou derrotar o alvo.
+- Um acerto interrompe corretamente a sequência de falhas de Momentum Fides e o fim do combate remove marcas e cadeias pendentes.
+
 ## [3.4.9] - 2026-07-25
 
 ### Adicionado

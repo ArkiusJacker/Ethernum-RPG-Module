@@ -7,6 +7,7 @@ import {
   isOverrideAllowed,
   shouldShowEtherInChat,
 } from './settings.js';
+import { CombatMomentumSystem } from './table/CombatMomentumSystem.js';
 
 interface EtherSystemState {
   etherMax: number;
@@ -107,6 +108,7 @@ export class EtherSystem {
   async longRest(actor: Actor): Promise<number> {
     const etherSystem = (actor.getFlag(ETHERNUM.MODULE_NAME, "etherSystem") as Partial<EtherSystemState> | undefined) ?? {};
     const currentEther = etherSystem.etherCurrent ?? 0;
+    await CombatMomentumSystem.dailyReset(actor);
     if (!isLongRestFullRestoreEnabled()) return currentEther;
 
     const maxEther = this.calculateMaxEther(actor);
