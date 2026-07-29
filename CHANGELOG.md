@@ -5,6 +5,16 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.1] - 2026-07-29
+
+### Alterado
+- Temporizador passa a ocupar uma faixa de maior destaque dentro do cabeçalho do rastreador, preservando o título completo em painéis estreitos.
+- Aba Jogador exibe somente a contagem do temporizador; estado, combatente atual, duração e ações administrativas ficam exclusivos da aba Mestre.
+- Controles do temporizador do mestre foram reorganizados em grupos estáveis de duração e ações.
+
+### Corrigido
+- Campos de duração, unidade e botões do temporizador deixam de se sobrepor em rastreadores com 390 pixels de largura.
+
 ## [3.5.0] - 2026-07-29
 
 ### Adicionado

@@ -4743,93 +4743,112 @@
 }
 
 /* v3.5 combat timer */
-.ethernum-combat-timer {
+.ethernum-combat-timer-summary {
   display: grid;
+  min-width: 90px;
+  grid-template-columns: 18px minmax(64px, auto);
+  gap: 7px;
+  align-items: center;
+  padding: 4px 8px;
+  color: #f7f7f2;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: #171a1f;
+}
+
+.ethernum-combat-timer-summary > i {
+  color: #79b7d8;
+  font-size: 16px;
+  text-align: center;
+}
+
+.ethernum-combat-timer-summary strong,
+.ethernum-combat-timer-summary span,
+.ethernum-combat-timer-summary small {
+  display: block;
+  letter-spacing: 0;
+}
+
+.ethernum-combat-timer-summary strong {
+  color: #fff;
+  font-size: 27px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ethernum-combat-timer-summary span,
+.ethernum-combat-timer-summary small {
+  max-width: 130px;
+  overflow: hidden;
+  color: #c8ccd4;
+  font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ethernum-combat-timer-summary small {
+  grid-column: 1 / -1;
+}
+
+.ethernum-combat-timer-summary.warning {
+  border-color: #d2a73c;
+}
+
+.ethernum-combat-timer-summary.critical,
+.ethernum-combat-timer-summary.expired {
+  border-color: #df554d;
+}
+
+.ethernum-combat-timer-summary.critical > i,
+.ethernum-combat-timer-summary.expired > i {
+  color: #ff766e;
+}
+
+.ethernum-combat-tracker.animation-reduced .ethernum-combat-timer-summary.critical,
+.ethernum-combat-tracker.animation-off .ethernum-combat-timer-summary.critical {
+  animation: none;
+}
+
+.ethernum-combat-timer-admin {
+  display: grid;
+  grid-template-columns: minmax(174px, 1fr) auto;
   gap: 8px;
-  padding: 9px 10px;
-  border-top: 1px solid #3e4350;
+  align-items: center;
+  padding: 8px 10px 9px;
   border-bottom: 1px solid #3e4350;
   color: #f7f7f2;
   background: #191c22;
 }
 
-.ethernum-combat-timer-readout {
-  display: grid;
-  grid-template-columns: 26px minmax(76px, 1fr) minmax(0, 1.5fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.ethernum-combat-timer-readout > i {
-  color: #79b7d8;
-  font-size: 18px;
-  text-align: center;
-}
-
-.ethernum-combat-timer-readout strong,
-.ethernum-combat-timer-readout span {
+.ethernum-combat-timer-duration > span {
   display: block;
-}
-
-.ethernum-combat-timer-readout strong {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-}
-
-.ethernum-combat-timer-readout span,
-.ethernum-combat-timer-readout small {
+  margin-bottom: 3px;
   color: #c8ccd4;
   font-size: 10px;
 }
 
-.ethernum-combat-timer.warning {
-  border-color: #d2a73c;
-}
-
-.ethernum-combat-timer.critical,
-.ethernum-combat-timer.expired {
-  border-color: #df554d;
-}
-
-.ethernum-combat-timer.critical .ethernum-combat-timer-readout > i,
-.ethernum-combat-timer.expired .ethernum-combat-timer-readout > i {
-  color: #ff766e;
-}
-
-.ethernum-combat-tracker.animation-reduced .ethernum-combat-timer.critical,
-.ethernum-combat-tracker.animation-off .ethernum-combat-timer.critical {
-  animation: none;
-}
-
-.ethernum-combat-timer-controls {
-  display: grid;
-  grid-template-columns: minmax(118px, 1fr) repeat(7, 30px);
+.ethernum-combat-timer-duration > div,
+.ethernum-combat-timer-actions {
+  display: flex;
+  min-width: 0;
   gap: 5px;
-  align-items: end;
-}
-
-.ethernum-combat-timer-controls label {
-  display: grid;
-  grid-template-columns: 1fr 58px 72px;
-  gap: 4px;
   align-items: center;
-  color: #c8ccd4;
-  font-size: 10px;
 }
 
-.ethernum-combat-timer-controls input,
-.ethernum-combat-timer-controls select {
+.ethernum-combat-timer-duration input,
+.ethernum-combat-timer-duration select {
   width: 58px;
   height: 28px;
   color: #fff;
   background: #0e1015;
 }
 
-.ethernum-combat-timer-controls select {
-  width: 72px;
+.ethernum-combat-timer-duration select {
+  width: 80px;
 }
 
-.ethernum-combat-timer-controls button,
+.ethernum-combat-timer-admin button,
 .ethernum-combat-tracker-position-reset {
   width: 30px;
   height: 30px;
@@ -4839,13 +4858,13 @@
   background: #252932;
 }
 
-.ethernum-combat-timer-controls button.active {
+.ethernum-combat-timer-admin button.active {
   border-color: #d2a73c;
   color: #ffe39a;
 }
 
 .ethernum-combat-tracker-header .ethernum-combat-tracker-position-reset {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .ethernum-token-combat-effect {
@@ -4911,19 +4930,19 @@
     grid-template-columns: 1fr;
   }
 
-  .ethernum-combat-timer-controls {
-    grid-template-columns: repeat(4, 30px);
+  .ethernum-combat-timer-admin {
+    grid-template-columns: 1fr;
   }
 
-  .ethernum-combat-timer-controls label {
-    grid-column: 1 / -1;
+  .ethernum-combat-timer-actions {
+    justify-content: flex-end;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ethernum-token-combat-effect,
   .ethernum-combat-event,
-  .ethernum-combat-timer.critical {
+  .ethernum-combat-timer-summary.critical {
     animation: none;
   }
 }
@@ -4985,9 +5004,9 @@
 }
 
 .ethernum-combat-tracker-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px 30px;
   align-items: center;
-  justify-content: space-between;
   min-height: 54px;
   gap: 10px;
   padding: 9px 10px 8px 12px;
@@ -5014,9 +5033,65 @@
   font-size: 11px;
 }
 
+.ethernum-combat-tracker-title {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.ethernum-combat-tracker-title strong,
+.ethernum-combat-tracker-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary {
+  width: auto;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary.compact {
+  grid-template-columns: 18px auto;
+  justify-content: center;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary.detailed {
+  grid-template-columns: 18px auto minmax(0, 1fr);
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary strong {
+  margin: 0;
+  color: #fff;
+  font-size: 27px;
+  line-height: 1;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary span,
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary small {
+  margin: 0;
+  color: #c8ccd4;
+  font-size: 10px;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-timer-summary.detailed small {
+  max-width: none;
+  grid-column: 3;
+  align-self: center;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-tracker-position-reset {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .ethernum-combat-tracker-header .ethernum-combat-tracker-toggle {
   width: 30px;
   height: 30px;
+  grid-column: 3;
+  grid-row: 1;
   flex: 0 0 30px;
 }
 

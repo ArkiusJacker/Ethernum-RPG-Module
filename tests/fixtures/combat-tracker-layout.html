@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ethernum Combat Tracker Layout QA</title>
+  <link rel="stylesheet" href="../../styles/ethernum.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      color: #fff;
+      background: #0d0f12;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .ethernum-combat-tracker {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      width: 390px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="ethernum-combat-tracker animation-full" data-qa-view="player">
+      <header class="ethernum-combat-tracker-header">
+        <div class="ethernum-combat-tracker-title">
+          <strong>Rastreador de Combate</strong>
+          <span>Momentum Fides · Fulgor Negro</span>
+        </div>
+        <div class="ethernum-combat-timer-summary compact normal" data-timer-root>
+          <i>◷</i>
+          <div><strong data-timer-value>01:00</strong></div>
+        </div>
+        <button class="ethernum-combat-tracker-position-reset" title="Restaurar posição">⌾</button>
+        <button class="ethernum-combat-tracker-toggle" title="Minimizar">−</button>
+      </header>
+      <nav class="ethernum-combat-tracker-tabs">
+        <button class="active">Jogador</button>
+        <button>Mestre</button>
+      </nav>
+      <div class="ethernum-combat-tracker-body">
+        <section class="ethernum-combat-player">
+          <div class="ethernum-combat-actor-heading"><strong>Alian</strong></div>
+          <div class="ethernum-combat-mechanics">
+            <section class="fides">
+              <header><span>Momentum Fides</span><small>3/3 cargas</small></header>
+              <p>0/3 falhas consecutivas</p>
+            </section>
+            <section class="fulgor">
+              <header><span>Fulgor Negro</span><small>0 gatilhos</small></header>
+              <p>Aguardando 20 natural</p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="ethernum-combat-tracker animation-full" data-qa-view="gm">
+      <header class="ethernum-combat-tracker-header">
+        <div class="ethernum-combat-tracker-title">
+          <strong>Rastreador de Combate</strong>
+          <span>Momentum Fides · Fulgor Negro</span>
+        </div>
+        <div class="ethernum-combat-timer-summary detailed normal" data-timer-root>
+          <i>◷</i>
+          <div>
+            <strong data-timer-value>01:00</strong>
+            <span data-timer-status>Em andamento</span>
+          </div>
+          <small title="Come-Fio Matriarca Extrema">Turno: Come-Fio Matriarca Extrema</small>
+        </div>
+        <button class="ethernum-combat-tracker-position-reset" title="Restaurar posição">⌾</button>
+        <button class="ethernum-combat-tracker-toggle" title="Minimizar">−</button>
+      </header>
+      <nav class="ethernum-combat-tracker-tabs">
+        <button>Jogador</button>
+        <button class="active">Mestre</button>
+      </nav>
+      <section class="ethernum-combat-timer-admin">
+        <div class="ethernum-combat-timer-duration">
+          <span>Duração</span>
+          <div>
+            <input type="number" value="1" aria-label="Duração">
+            <select aria-label="Unidade da duração"><option>minutos</option></select>
+            <button title="Aplicar duração">✓</button>
+          </div>
+        </div>
+        <div class="ethernum-combat-timer-actions">
+          <button title="Iniciar">▶</button>
+          <button title="Reiniciar turno">↻</button>
+          <button title="Avançar agora">▶|</button>
+          <button title="Avanço automático">»</button>
+          <button title="Desligar">◯</button>
+        </div>
+      </section>
+      <div class="ethernum-combat-tracker-body">
+        <section class="ethernum-combat-gm">
+          <div class="ethernum-combat-gm-toolbar"><span>1 personagem</span></div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

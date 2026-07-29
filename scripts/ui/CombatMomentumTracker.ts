@@ -19,7 +19,11 @@ const TRACKER_MINIMIZED_KEY = "combatTrackerMinimized";
 const TRACKER_POSITION_KEY = "combatTrackerPosition";
 const TRACKER_TAB_KEY = "combatTrackerTab";
 
-type TrackerTab = "player" | "gm";
+export type TrackerTab = "player" | "gm";
+
+export function shouldShowTimerAdministration(isGM: boolean, tab: TrackerTab): boolean {
+  return isGM && tab === "gm";
+}
 
 interface TrackedActor {
   actor: Actor;
@@ -136,14 +140,18 @@ function timerSeverity(remaining: number, duration: number): "normal" | "warning
   return "normal";
 }
 
-function timerHTML(): string {
+function timerHeaderHTML(showDetails: boolean): string {
   const combat = game.combat;
   if (!combat) {
     return `
-      <section class="ethernum-combat-timer disabled">
-        <div><i class="fas fa-stopwatch"></i><strong>${game.i18n!.localize("ETHERNUM.CombatTimer.Title")}</strong></div>
-        <span>${game.i18n!.localize("ETHERNUM.CombatTimer.NoCombat")}</span>
-      </section>`;
+      <div class="ethernum-combat-timer-summary ${showDetails ? "detailed" : "compact"} disabled" data-timer-root
+        aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.NoCombat")}">
+        <i class="fas fa-stopwatch"></i>
+        <div>
+          <strong data-timer-value>--:--</strong>
+          ${showDetails ? `<span data-timer-status>${game.i18n!.localize("ETHERNUM.CombatTimer.NoCombat")}</span>` : ""}
+        </div>
+      </div>`;
   }
   const snapshot = getTimerSnapshot(CombatTurnTimer.getState(combat), timerNow());
   const state = snapshot.state;
@@ -151,42 +159,55 @@ function timerHTML(): string {
   const statusKey = state.enabled
     ? snapshot.status
     : "disabled";
+  return `
+    <div class="ethernum-combat-timer-summary ${showDetails ? "detailed" : "compact"} ${severity}" data-timer-root
+      aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.Title")}">
+      <i class="fas ${snapshot.status === "paused" ? "fa-pause" : snapshot.expired ? "fa-triangle-exclamation" : "fa-stopwatch"}"></i>
+      <div>
+        <strong data-timer-value>${formatTimer(snapshot.remainingSeconds)}</strong>
+        ${showDetails
+          ? `<span data-timer-status>${game.i18n!.localize(`ETHERNUM.CombatTimer.Status.${statusKey}`)}</span>`
+          : ""}
+      </div>
+      ${showDetails
+        ? `<small title="${escapeHTML(currentCombatantName())}">${game.i18n!.localize("ETHERNUM.CombatTimer.Turn")}: ${escapeHTML(currentCombatantName())}</small>`
+        : ""}
+    </div>`;
+}
+
+function timerControlsHTML(showControls: boolean): string {
+  const combat = game.combat;
+  if (!showControls || !combat || !game.user?.isGM) return "";
+  const state = CombatTurnTimer.getState(combat);
   const durationUnit = state.durationSeconds >= 60 && state.durationSeconds % 60 === 0
     ? "minutes"
     : "seconds";
   const durationValue = durationUnit === "minutes"
     ? state.durationSeconds / 60
     : state.durationSeconds;
-  const controls = game.user?.isGM ? `
-    <div class="ethernum-combat-timer-controls">
-      <label>
-        <span>${game.i18n!.localize("ETHERNUM.CombatTimer.Duration")}</span>
-        <input type="number" data-timer-duration min="1" max="86400" value="${durationValue}" />
-        <select data-timer-unit aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.Unit")}">
-          <option value="seconds"${durationUnit === "seconds" ? " selected" : ""}>${game.i18n!.localize("ETHERNUM.CombatTimer.Seconds")}</option>
-          <option value="minutes"${durationUnit === "minutes" ? " selected" : ""}>${game.i18n!.localize("ETHERNUM.CombatTimer.Minutes")}</option>
-        </select>
-      </label>
-      <button type="button" data-timer-action="duration" title="${game.i18n!.localize("ETHERNUM.CombatTimer.ApplyDuration")}"><i class="fas fa-check"></i></button>
-      ${state.running
-        ? `<button type="button" data-timer-action="pause" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Pause")}"><i class="fas fa-pause"></i></button>`
-        : `<button type="button" data-timer-action="${state.enabled ? "resume" : "start"}" title="${game.i18n!.localize(state.enabled ? "ETHERNUM.CombatTimer.Resume" : "ETHERNUM.CombatTimer.Start")}"><i class="fas fa-play"></i></button>`}
-      <button type="button" data-timer-action="reset" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Reset")}"><i class="fas fa-rotate-left"></i></button>
-      <button type="button" data-timer-action="advance" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Advance")}"><i class="fas fa-forward-step"></i></button>
-      <button type="button" data-timer-action="auto" class="${state.autoAdvance ? "active" : ""}" title="${game.i18n!.localize("ETHERNUM.CombatTimer.AutoAdvance")}"><i class="fas fa-forward-fast"></i></button>
-      <button type="button" data-timer-action="disable" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Disable")}"><i class="fas fa-power-off"></i></button>
-    </div>` : "";
   return `
-    <section class="ethernum-combat-timer ${severity}" data-timer-root>
-      <div class="ethernum-combat-timer-readout">
-        <i class="fas ${snapshot.status === "paused" ? "fa-pause" : snapshot.expired ? "fa-triangle-exclamation" : "fa-stopwatch"}"></i>
+    <section class="ethernum-combat-timer-admin" aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.Title")}">
+      <div class="ethernum-combat-timer-duration">
+        <span>${game.i18n!.localize("ETHERNUM.CombatTimer.Duration")}</span>
         <div>
-          <strong data-timer-value>${formatTimer(snapshot.remainingSeconds)}</strong>
-          <span data-timer-status>${game.i18n!.localize(`ETHERNUM.CombatTimer.Status.${statusKey}`)}</span>
+          <input type="number" data-timer-duration min="1" max="86400" value="${durationValue}"
+            aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.Duration")}" />
+          <select data-timer-unit aria-label="${game.i18n!.localize("ETHERNUM.CombatTimer.Unit")}">
+            <option value="seconds"${durationUnit === "seconds" ? " selected" : ""}>${game.i18n!.localize("ETHERNUM.CombatTimer.Seconds")}</option>
+            <option value="minutes"${durationUnit === "minutes" ? " selected" : ""}>${game.i18n!.localize("ETHERNUM.CombatTimer.Minutes")}</option>
+          </select>
+          <button type="button" data-timer-action="duration" title="${game.i18n!.localize("ETHERNUM.CombatTimer.ApplyDuration")}"><i class="fas fa-check"></i></button>
         </div>
-        <small>${game.i18n!.localize("ETHERNUM.CombatTimer.Turn")}: ${escapeHTML(currentCombatantName())}</small>
       </div>
-      ${controls}
+      <div class="ethernum-combat-timer-actions">
+        ${state.running
+          ? `<button type="button" data-timer-action="pause" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Pause")}"><i class="fas fa-pause"></i></button>`
+          : `<button type="button" data-timer-action="${state.enabled ? "resume" : "start"}" title="${game.i18n!.localize(state.enabled ? "ETHERNUM.CombatTimer.Resume" : "ETHERNUM.CombatTimer.Start")}"><i class="fas fa-play"></i></button>`}
+        <button type="button" data-timer-action="reset" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Reset")}"><i class="fas fa-rotate-left"></i></button>
+        <button type="button" data-timer-action="advance" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Advance")}"><i class="fas fa-forward-step"></i></button>
+        <button type="button" data-timer-action="auto" class="${state.autoAdvance ? "active" : ""}" title="${game.i18n!.localize("ETHERNUM.CombatTimer.AutoAdvance")}"><i class="fas fa-forward-fast"></i></button>
+        <button type="button" data-timer-action="disable" title="${game.i18n!.localize("ETHERNUM.CombatTimer.Disable")}"><i class="fas fa-power-off"></i></button>
+      </div>
     </section>`;
 }
 
@@ -559,6 +580,7 @@ export class CombatMomentumTracker {
     } else {
       const playerActor = getPlayerActor();
       const trackedActors = game.user?.isGM ? getTrackedActors() : [];
+      const showGMView = shouldShowTimerAdministration(Boolean(game.user?.isGM), tab);
       const tabs = game.user?.isGM ? `
         <nav class="ethernum-combat-tracker-tabs" aria-label="${t("View")}">
           <button type="button" data-tab="player" class="${tab === "player" ? "active" : ""}">
@@ -568,7 +590,7 @@ export class CombatMomentumTracker {
             <i class="fas fa-users-gear"></i><span>${t("Tabs.GM")}</span>
           </button>
         </nav>` : "";
-      const body = tab === "gm" && game.user?.isGM ? `
+      const body = showGMView ? `
         <section class="ethernum-combat-gm">
           <div class="ethernum-combat-gm-toolbar">
             <span>${tf("CharacterCount", { count: trackedActors.length })}</span>
@@ -585,10 +607,11 @@ export class CombatMomentumTracker {
         </section>` : playerActor ? playerPanelHTML(playerActor) : emptyPlayerHTML();
       root.innerHTML = `
         <header class="ethernum-combat-tracker-header">
-          <div>
+          <div class="ethernum-combat-tracker-title">
             <strong>${t("Title")}</strong>
             <span>Momentum Fides · Fulgor Negro</span>
           </div>
+          ${timerHeaderHTML(showGMView)}
           <button type="button" class="ethernum-combat-tracker-position-reset" title="${game.i18n!.localize("ETHERNUM.CombatTracker.RestorePosition")}">
             <i class="fas fa-location-crosshairs"></i>
           </button>
@@ -597,7 +620,7 @@ export class CombatMomentumTracker {
           </button>
         </header>
         ${tabs}
-        ${timerHTML()}
+        ${timerControlsHTML(showGMView)}
         <div class="ethernum-combat-tracker-body">${body}</div>`;
 
       root.querySelectorAll<HTMLElement>("[data-tab]").forEach(button => {
