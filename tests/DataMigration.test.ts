@@ -79,7 +79,7 @@ describe("DataMigration", () => {
       customRoot: "preserve-me",
     });
     expect(unique.profiles["pipping-night"]).toMatchObject({
-      version: 2,
+      version: 3,
       pulse: 4,
       tier: 2,
       livingNightActive: true,
@@ -110,5 +110,41 @@ describe("DataMigration", () => {
     expect(migrated.flags.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(failed.flags.schemaVersion).toBe(9);
     expect(settingsSet).not.toHaveBeenCalled();
+  });
+
+  it("upgrades a schema 10 Pipping state to v3 without resetting resources", async () => {
+    const actor = new FakeActor("schema-10", {
+      schemaVersion: 10,
+      uniqueMechanics: {
+        activeCore: "ethernum-company",
+        activeProfile: "pipping-night",
+        profiles: {
+          "pipping-night": {
+            version: 2,
+            pulse: 6,
+            tier: 4,
+            expressionChoices: { "4": "order" },
+            recovery: { communeAvailable: true },
+            customState: "kept",
+          },
+        },
+      },
+    }) as unknown as Actor;
+
+    await migrateActor(actor);
+
+    const flags = (actor as unknown as FakeActor).flags;
+    const unique = flags.uniqueMechanics as {
+      profiles: Record<string, Record<string, unknown>>;
+    };
+    expect(flags.schemaVersion).toBe(11);
+    expect(unique.profiles["pipping-night"]).toMatchObject({
+      version: 3,
+      pulse: 6,
+      tier: 4,
+      expressionChoices: { "4": "order" },
+      recovery: { communeAvailable: true },
+      customState: "kept",
+    });
   });
 });

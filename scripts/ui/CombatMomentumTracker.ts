@@ -446,6 +446,8 @@ export class CombatMomentumTracker {
     const handle = root.querySelector<HTMLElement>(".ethernum-combat-tracker-header, .ethernum-combat-tracker-toggle");
     handle?.addEventListener("pointerdown", event => {
       if (event.button !== 0) return;
+      const target = event.target as Element | null;
+      if (target?.closest("button, input, select, textarea, a, summary, [data-no-drag]")) return;
       const startX = event.clientX;
       const startY = event.clientY;
       const rect = root.getBoundingClientRect();
@@ -459,15 +461,23 @@ export class CombatMomentumTracker {
         root.style.right = "auto";
         root.style.bottom = "auto";
       };
-      const onUp = () => {
+      const cleanup = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("blur", onCancel);
+      };
+      const onUp = () => {
+        cleanup();
         const next = root.getBoundingClientRect();
         localStorage.setItem(storageKey(TRACKER_POSITION_KEY), JSON.stringify({ left: next.left, top: next.top }));
         if (moved) root.dataset.dragged = "true";
       };
+      const onCancel = () => cleanup();
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("blur", onCancel);
     });
   }
 
@@ -553,6 +563,9 @@ export class CombatMomentumTracker {
     if (this.timerInterval !== null) window.clearInterval(this.timerInterval);
     this.timerInterval = null;
     if (!this.root?.querySelector("[data-timer-root]")) return;
+    const snapshot = CombatTurnTimer.getActiveSnapshot();
+    this.updateTimerDOM();
+    if (snapshot?.status !== "running") return;
     this.timerInterval = window.setInterval(() => this.updateTimerDOM(), 500);
   }
 

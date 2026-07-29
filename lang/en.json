@@ -362,7 +362,24 @@
         "DarknessScatterResolved": "Scatter: {direction} o'clock direction, {distance} feet away.",
         "DarknessAreaResolution": "Area mode: place the area in a valid region of darkness without locking it to a token.",
         "NightAbilities": "Night Abilities",
+        "Abilities": "abilities",
         "UseAction": "Use",
+        "Execute": "Execute",
+        "ConfirmUse": "Confirm use",
+        "Ally": "Ally",
+        "Enemy": "Enemy",
+        "TargetDialogTitle": "{action} — targets",
+        "TargetDialogHint": "Select up to {maximum} valid target(s). Canvas targets are preselected.",
+        "AssistedHint": "This action depends on positioning or a narrative canvas decision. Confirm only after resolving that step with the GM.",
+        "AssistedResolved": "Use confirmed. Positioning or movement remains under player and GM control.",
+        "ManualAdjustment": "Part of this effect requires a manual adjustment.",
+        "ActionCancelled": "The action was cancelled without spending Shadow Pulse.",
+        "Degrees": {
+          "criticalFailure": "Critical failure",
+          "failure": "Failure",
+          "success": "Success",
+          "criticalSuccess": "Critical success"
+        },
         "MacroSpace": "Night macros",
         "ExpressionUnselected": "Expression not selected",
         "RequiresExpression": "Choose this Tier's Expression to unlock the ability.",
@@ -436,7 +453,13 @@
           "UnknownFinisher": "Pipping finisher not found.",
           "LockedAction": "This ability is still locked.",
           "DailyUsed": "This daily ability has already been used.",
-          "RoundRecoveryUsed": "Pipping has already recovered Pulse this round."
+          "RoundRecoveryUsed": "Pipping has already recovered Pulse this round.",
+          "NoValidTargets": "No valid target was found within range.",
+          "ShadowSpawnFailed": "The shadows could not be manifested. Make sure Pipping has a token on an active scene.",
+          "TemplateFailed": "The Living Night area could not be created. No Pulse was spent.",
+          "RequiresActiveToken": "Pipping needs a token on an active scene to use this ability.",
+          "ActionInProgress": "Pipping already has an action being resolved.",
+          "AutomationFailed": "Automation could not complete the changes. No Pulse was spent."
         },
         "Actions": {
           "AnimatedShadow": {

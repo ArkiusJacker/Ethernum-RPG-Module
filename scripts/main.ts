@@ -8,6 +8,8 @@ import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
 import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 import { ensureManagedMacros as ensureManagedMacroDefinitions } from './core/ManagedMacroService.js';
+import { initializePF2eAdapterSocket } from './core/PF2eAdapter.js';
+import { initializePippingCanvasSocket } from './mechanics/pipping/canvas.js';
 import { AutomationAuthority } from './core/AutomationAuthority.js';
 import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
 import { AnimationService } from './core/AnimationService.js';
@@ -646,7 +648,9 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
 
 function renderEthernumTabs(app: Application & { actor?: Actor }, html: JQuery<HTMLElement> | HTMLElement): void {
   const $html = html instanceof HTMLElement ? $(html) : html;
-  void EtherTabManager.render(app, $html);
+  void EtherTabManager.render(app, $html).catch(error => {
+    console.error("Ethernum RPG Module | Sheet tab rendering failed", error);
+  });
 }
 
 Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => renderEthernumTabs(app, html));
@@ -666,7 +670,9 @@ Hooks.on("createChatMessage", (message: ChatMessage) => {
   });
 });
 Hooks.on("updateCombat", (combat: Combat) => {
-  void UniqueMechanicsSystem.handleCombatTurnAdvance(combat);
+  void UniqueMechanicsSystem.handleCombatTurnAdvance(combat).catch(error => {
+    console.error("Ethernum RPG Module | Unique mechanic turn update failed", error);
+  });
   void CombatMomentumSystem.handleCombatUpdate(combat).catch(error => {
     console.error("Ethernum RPG Module | Combat tracker turn update failed", error);
   });
@@ -681,13 +687,22 @@ Hooks.on("deleteCombat", (combat: Combat) => {
   CombatTurnTimer.handleCombatDelete(combat);
 });
 Hooks.on("updateActor", (actor: Actor, changed: Record<string, unknown>) => {
-  void UniqueMechanicsSystem.handleYuActorUpdate(actor, changed);
+  void UniqueMechanicsSystem.handleYuActorUpdate(actor, changed).catch(error => {
+    console.error("Ethernum RPG Module | Yu actor automation failed", error);
+  });
   void CombatMomentumSystem.handleActorUpdate(actor, changed).catch(error => {
     console.error("Ethernum RPG Module | Combat tracker actor update failed", error);
   });
 });
 Hooks.on("updateToken", (tokenDocument: TokenDocument, changed: Record<string, unknown>) => {
-  void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed);
+  void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed).catch(error => {
+    console.error("Ethernum RPG Module | Token movement automation failed", error);
+  });
+});
+Hooks.on("canvasReady", () => {
+  void UniqueMechanicsSystem.reconcilePippingCanvasDocuments().catch(error => {
+    console.error("Ethernum RPG Module | Pipping canvas reconciliation failed", error);
+  });
 });
 Hooks.on("pf2e.restForTheNight", (actor: Actor) => {
   if (AutomationAuthority.canMutate(actor, true)) {
@@ -728,6 +743,8 @@ Hooks.once("ready", async () => {
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
   await migrateWorld();
+  initializePF2eAdapterSocket();
+  initializePippingCanvasSocket();
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
   CombatMomentumTracker.initialize();

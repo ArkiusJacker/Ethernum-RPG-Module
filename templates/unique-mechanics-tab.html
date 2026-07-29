@@ -801,6 +801,14 @@
       </label>
       {{/each}}
     </div>
+    <div class="ethernum-pipping-expression-legend">
+      {{#each uniqueMechanics.pipping.expressions}}
+      <span class="expression-{{this.id}}">
+        <img src="{{this.asset}}" alt="" />
+        <strong>{{this.label}}</strong>
+      </span>
+      {{/each}}
+    </div>
   </section>
   {{/if}}
 
@@ -827,33 +835,53 @@
     <h2 class="ethernum-section-title">
       <span><i class="fas fa-eye"></i> {{localize "ETHERNUM.Unique.Pipping.NightAbilities"}}</span>
     </h2>
-    <div class="ethernum-pipping-ability-list">
-      {{#each uniqueMechanics.pipping.abilities}}
-      <article class="ethernum-pipping-ability {{#unless this.unlocked}}locked{{/unless}}">
-        <header>
-          <span>{{this.tag}}</span>
-          <strong>{{this.name}}</strong>
-          <small>{{this.cost}} · {{this.aspect}}{{#if this.formula}} · {{this.formula}}{{/if}}</small>
-        </header>
-        <p>{{this.text}}</p>
-        {{#if this.unlocked}}
-        <button type="button" class="ethernum-pipping-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
-          <i class="fas fa-play"></i> {{localize "ETHERNUM.Unique.Pipping.UseAction"}}
-        </button>
-        {{else}}
-        <div class="ethernum-pipping-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</div>
-        {{/if}}
-        <details class="ethernum-animated-details ethernum-pipping-details">
-          <summary><i class="fas fa-circle-info"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
-          <div class="ethernum-pipping-details-body">
-            <ul>
-              {{#each this.details}}
-              <li>{{this}}</li>
-              {{/each}}
-            </ul>
+    <div class="ethernum-pipping-tier-list">
+      {{#each uniqueMechanics.pipping.tierGroups}}
+      <details class="ethernum-pipping-tier" data-tier="{{this.tier}}" {{#if this.open}}open{{/if}}>
+        <summary>
+          <span class="ethernum-pipping-tier-index">{{this.id}}</span>
+          <span>
+            <strong>{{this.name}}</strong>
+            <small>{{localize "ETHERNUM.Unique.Pipping.Level"}} {{this.minLevel}} · {{this.abilities.length}} {{localize "ETHERNUM.Unique.Pipping.Abilities"}}</small>
+          </span>
+          <i class="fas {{#if this.unlocked}}fa-chevron-down{{else}}fa-lock{{/if}}"></i>
+        </summary>
+        <div class="ethernum-pipping-tier-body">
+          {{#each this.passives}}<p class="ethernum-pipping-tier-passive"><i class="fas fa-moon"></i> {{this}}</p>{{/each}}
+          <div class="ethernum-pipping-ability-list">
+            {{#each this.abilities}}
+            <article class="ethernum-pipping-ability expression-{{this.visualExpression}} {{#unless this.unlocked}}locked{{/unless}}">
+              <header>
+                <img src="{{this.visualAsset}}" alt="" />
+                <span>
+                  <small>{{this.tag}}</small>
+                  <strong><i class="fas {{this.icon}}"></i> {{this.name}}</strong>
+                  <em>{{this.cost}} · {{this.aspect}}{{#if this.formula}} · {{this.formula}}{{/if}}</em>
+                </span>
+              </header>
+              <p>{{this.text}}</p>
+              {{#if this.unlocked}}
+              <button type="button" class="ethernum-pipping-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
+                <i class="fas fa-play"></i> {{localize "ETHERNUM.Unique.Pipping.UseAction"}}
+              </button>
+              {{else}}
+              <div class="ethernum-pipping-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</div>
+              {{/if}}
+              <details class="ethernum-animated-details ethernum-pipping-details">
+                <summary><i class="fas fa-circle-info"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
+                <div class="ethernum-pipping-details-body">
+                  <ul>
+                    {{#each this.details}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                  </ul>
+                </div>
+              </details>
+            </article>
+            {{/each}}
           </div>
-        </details>
-      </article>
+        </div>
+      </details>
       {{/each}}
     </div>
   </section>

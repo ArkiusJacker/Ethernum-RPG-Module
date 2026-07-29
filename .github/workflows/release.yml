@@ -31,6 +31,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Test
+        run: npm test
+
       - name: Validate manifest
         run: npm run validate:manifest -- --expected-version "${{ steps.version.outputs.VERSION }}"
 

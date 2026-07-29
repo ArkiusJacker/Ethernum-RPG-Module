@@ -53,4 +53,44 @@ describe("normalizePippingState", () => {
       "5": "chaos",
     });
   });
+
+  it("migrates v2 canvas references, manifestations, frequencies, and pending actions safely", () => {
+    const migrated = normalizePippingState({
+      version: 2,
+      pulse: 1,
+      darkness: {
+        templateId: "template-1",
+        templateUuid: "Scene.scene.MeasuredTemplate.template-1",
+        sourceTokenUuid: "Scene.scene.Token.token-1",
+      },
+      shadowManifestations: [
+        { id: "tile-1", sceneId: "scene", variant: "chaos", kind: "mirrored" },
+        { id: "", sceneId: "scene", variant: "order", kind: "mirrored" },
+      ],
+      frequencies: { "void-echoes": "combat:4" },
+      pendingAction: {
+        actionId: "ruin-note",
+        pulseCost: 1,
+        startedAt: 1234,
+        userId: "user",
+      },
+    });
+
+    expect(migrated.version).toBe(3);
+    expect(migrated.darkness.templateId).toBe("template-1");
+    expect(migrated.darkness.templateUuid).toContain("MeasuredTemplate");
+    expect(migrated.shadowManifestations).toEqual([
+      { id: "tile-1", sceneId: "scene", variant: "chaos", kind: "mirrored" },
+    ]);
+    expect(migrated.frequencies).toEqual({ "void-echoes": "combat:4" });
+    expect(migrated.pendingAction?.actionId).toBe("ruin-note");
+  });
+
+  it("does not infer commune availability from a legacy pulse value", () => {
+    expect(normalizePippingState({ pulse: 0 }).recovery.communeAvailable).toBe(false);
+    expect(normalizePippingState({
+      pulse: 0,
+      recovery: { communeAvailable: true },
+    }).recovery.communeAvailable).toBe(true);
+  });
 });

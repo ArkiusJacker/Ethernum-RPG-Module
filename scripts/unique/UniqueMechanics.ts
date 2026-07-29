@@ -24,8 +24,10 @@ import {
   getPippingActionFormula,
   normalizePippingState as normalizePippingProfileState,
   PIPPING_ACTIONS,
+  PIPPING_SHADOW_ASSETS,
   PIPPING_TIERS,
   pippingTierForLevel,
+  pippingTierGroupOpen,
   resolveDarknessTarget,
   affectedDarknessCandidates,
   type DarknessCandidate,
@@ -34,6 +36,12 @@ import {
   type PippingNightState,
   type PippingTier,
 } from '../mechanics/pipping/profile.js';
+import {
+  removePippingLivingNightTemplate,
+  removePippingShadowManifestations,
+  syncPippingLivingNightTemplate,
+} from '../mechanics/pipping/canvas.js';
+import { executePippingAction } from '../mechanics/pipping/runtime.js';
 import {
   ARKIUS_JACKER_PROFILE_ID,
   DEFAULT_ARKIUS_STATE,
@@ -3999,6 +4007,27 @@ export class UniqueMechanicsSystem {
       return state;
     }
     const effectiveTier = Math.max(state.tier, pippingTierForLevel(getActorLevel(target))) as PippingTier;
+    const radius = effectiveTier >= 3 ? 15 : 10;
+    let templateReference;
+    try {
+      templateReference = await syncPippingLivingNightTemplate(
+        target,
+        normalizePippingState({
+          ...state,
+          livingNightActive: true,
+          darkness: { ...state.darkness, active: true, radius },
+        }),
+        radius,
+      );
+    } catch (error) {
+      console.warn("Ethernum | Pipping Living Night template could not be created", error);
+      ui.notifications?.error(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.TemplateFailed"));
+      return state;
+    }
+    if (!templateReference) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.RequiresActiveToken"));
+      return state;
+    }
     const next = await this.updatePippingState(target, {
       pulse: state.pulse - 1,
       livingNightActive: true,
@@ -4006,7 +4035,8 @@ export class UniqueMechanicsSystem {
       livingNightRounds: 1,
       darkness: {
         active: true,
-        radius: effectiveTier >= 3 ? 15 : 10,
+        radius,
+        ...templateReference,
       },
       recovery: { communeAvailable: true },
     });
@@ -4020,11 +4050,20 @@ export class UniqueMechanicsSystem {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
       return null;
     }
+    const state = this.getPippingState(target);
+    await removePippingLivingNightTemplate(target, state).catch(error => {
+      console.warn("Ethernum | Pipping Living Night template could not be removed", error);
+    });
     const next = await this.updatePippingState(target, {
       livingNightActive: false,
       livingNightTurnKey: undefined,
       livingNightRounds: 0,
-      darkness: { active: false },
+      darkness: {
+        active: false,
+        templateId: undefined,
+        templateUuid: undefined,
+        sourceTokenUuid: undefined,
+      },
     });
     await this.showPippingStatus(target, game.i18n!.localize("ETHERNUM.Unique.Pipping.LivingNightEnded"));
     return next;
@@ -4123,13 +4162,28 @@ export class UniqueMechanicsSystem {
     const target = actor ?? getControlledActor();
     if (!target) return null;
     const state = this.getPippingState(target);
+    await removePippingLivingNightTemplate(target, state).catch(error => {
+      console.warn("Ethernum | Pipping Living Night template cleanup failed", error);
+    });
+    const remainingManifestations = await removePippingShadowManifestations(target, state).catch(error => {
+      console.warn("Ethernum | Pipping shadow cleanup failed", error);
+      return state.shadowManifestations;
+    });
     return this.updatePippingState(target, {
       pulse: this.getPippingPulseMaximum(target, state),
       livingNightActive: false,
       livingNightTurnKey: undefined,
       livingNightRounds: 0,
       mirroredShadows: 0,
-      darkness: { active: false },
+      shadowManifestations: remainingManifestations,
+      frequencies: {},
+      pendingAction: undefined,
+      darkness: {
+        active: false,
+        templateId: undefined,
+        templateUuid: undefined,
+        sourceTokenUuid: undefined,
+      },
       recovery: {
         communeAvailable: false,
         lastCombatRecoveryTurnKey: undefined,
@@ -4154,8 +4208,16 @@ export class UniqueMechanicsSystem {
       await this.activatePippingLivingNight(target);
       return;
     }
+    if (action.id === "void-echoes") {
+      await this.usePippingReaction(target, action.id);
+      return;
+    }
 
     const state = this.getPippingState(target);
+    if (state.pendingAction && Date.now() - state.pendingAction.startedAt < 30_000) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.ActionInProgress"));
+      return;
+    }
     const actorLevel = getActorLevel(target);
     const effectiveTier = Math.max(state.tier, pippingTierForLevel(actorLevel)) as PippingTier;
     const availability = getPippingActionAvailability(action, state, actorLevel, effectiveTier);
@@ -4178,8 +4240,41 @@ export class UniqueMechanicsSystem {
       getActorCharismaModifier(target),
       effectiveTier,
     );
+    await this.updatePippingState(target, {
+      pendingAction: {
+        actionId: action.id,
+        pulseCost: action.pulseCost,
+        startedAt: Date.now(),
+        userId: game.user?.id,
+      },
+    });
+    let execution;
+    try {
+      execution = await executePippingAction({
+        actor: target,
+        action,
+        state,
+        tier: effectiveTier,
+        formula,
+        dc: getActorOccultSpellDC(target),
+      });
+    } catch (error) {
+      console.error(`Ethernum | Pipping action ${action.id} failed`, error);
+      execution = { completed: false };
+    }
+    if (!execution.completed) {
+      await this.updatePippingState(target, { pendingAction: undefined });
+      ui.notifications?.info(game.i18n!.localize("ETHERNUM.Unique.Pipping.ActionCancelled"));
+      return;
+    }
+
     const nextPatch: PartialPippingNightState = {
       pulse: state.pulse - action.pulseCost,
+      pendingAction: undefined,
+      frequencies: {
+        ...state.frequencies,
+        ...(action.frequency ? { [action.id]: getCombatRoundKey() ?? new Date().toISOString().slice(0, 10) } : {}),
+      },
       recovery: action.pulseCost > 0 ? { communeAvailable: true } : undefined,
       daily: action.id === "beyond-form"
         ? { beyondFormUsed: true }
@@ -4190,51 +4285,11 @@ export class UniqueMechanicsSystem {
     if (action.id === "mirrored-shadows") {
       nextPatch.mirroredShadows = effectiveTier >= 5 ? 4 : effectiveTier >= 3 ? 3 : 2;
     }
-    await this.updatePippingState(target, nextPatch);
-
-    const actionName = game.i18n!.localize(action.nameKey);
-    const dc = action.defense ? getActorOccultSpellDC(target) : null;
-    const formulaLine = formula
-      ? `<p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Roll"))}:</strong> ${escapeHtml(formula)}</p>`
-      : "";
-    const defenseLine = action.defense
-      ? `<p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Defense"))}:</strong> ${escapeHtml(game.i18n!.localize(`ETHERNUM.Unique.Pipping.Defenses.${action.defense}`))} CD ${dc}${action.basicSave ? ` (${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Basic"))})` : ""}</p>`
-      : "";
-    const content = `
-      <div class="ethernum-unique-chat-card ethernum-pipping-chat-card">
-        <h3>${escapeHtml(actionName)}</h3>
-        <p>${escapeHtml(game.i18n!.localize(action.descriptionKey))}</p>
-        ${formulaLine}
-        ${defenseLine}
-      </div>
-    `;
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: target }),
-      content,
-      flags: {
-        [ETHERNUM.MODULE_NAME]: {
-          generated: true,
-          uniqueMechanics: true,
-          pippingActionId: action.id,
-        },
-      } as never,
-    });
-
-    if (formula) {
-      const roll = new Roll(formula);
-      await roll.evaluate();
-      await roll.toMessage({
-        speaker: ChatMessage.getSpeaker({ actor: target }),
-        flavor: actionName,
-        flags: {
-          [ETHERNUM.MODULE_NAME]: {
-            generated: true,
-            uniqueMechanics: true,
-            pippingActionId: action.id,
-          },
-        } as never,
-      });
+    if (execution.manifestations) {
+      nextPatch.shadowManifestations = execution.manifestations;
     }
+    await this.updatePippingState(target, nextPatch);
+    refreshActorMechanicsViews(target);
   }
 
   static async usePippingReaction(actor?: Actor | null, actionId = "void-echoes"): Promise<void> {
@@ -4247,8 +4302,9 @@ export class UniqueMechanicsSystem {
       const target = actor ?? getControlledActor();
       if (!target) return;
       const state = this.getPippingState(target);
-      const roundKey = getCombatRoundKey() ?? "outside-combat";
-      if (state.recovery.recoveredByEchoTurnKeys[roundKey]) {
+      const combatRoundKey = getCombatRoundKey();
+      const roundKey = combatRoundKey ?? `outside-combat:${Date.now()}`;
+      if (combatRoundKey && state.recovery.recoveredByEchoTurnKeys[roundKey]) {
         ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.RoundRecoveryUsed"));
         return;
       }
@@ -4262,7 +4318,12 @@ export class UniqueMechanicsSystem {
           lastCombatRecoveryTurnKey: roundKey,
           recoveredByEchoTurnKeys: Object.fromEntries(Object.entries(recoveredByEchoTurnKeys).slice(-20)),
         },
+        frequencies: {
+          ...state.frequencies,
+          [action.id]: roundKey,
+        },
       });
+      await this.showPippingStatus(target, game.i18n!.localize(action.nameKey));
       return;
     }
     await this.usePippingAction(actor, actionId);
@@ -6251,6 +6312,36 @@ export class UniqueMechanicsSystem {
     refreshActorMechanicsViews(actor);
   }
 
+  static async reconcilePippingCanvasDocuments(): Promise<void> {
+    if (!AutomationAuthority.isPrimaryGM() || !canvas?.ready) return;
+    for (const actor of Array.from(game.actors ?? [])) {
+      const state = this.getPippingState(actor);
+      if (!state.livingNightActive) {
+        if (state.darkness.templateId || state.darkness.templateUuid) {
+          await removePippingLivingNightTemplate(actor, state).catch(error => {
+            console.warn("Ethernum | Stale Pipping template cleanup failed", error);
+          });
+          await this.updatePippingState(actor, {
+            darkness: {
+              active: false,
+              templateId: undefined,
+              templateUuid: undefined,
+              sourceTokenUuid: undefined,
+            },
+          });
+        }
+        continue;
+      }
+      const reference = await syncPippingLivingNightTemplate(actor, state).catch(error => {
+        console.warn("Ethernum | Pipping template reconciliation failed", error);
+        return null;
+      });
+      if (reference) {
+        await this.updatePippingState(actor, { darkness: reference });
+      }
+    }
+  }
+
   static getActiveThermalNimbusActors(): Actor[] {
     return Array.from(game.actors ?? []).filter(actor => {
       if ((actor.type as string) !== "character") return false;
@@ -6279,6 +6370,20 @@ export class UniqueMechanicsSystem {
     const moved = "x" in changes || "y" in changes || "elevation" in changes;
     if (!moved) return;
     const movedActor = getTokenLikeActor(tokenDocument);
+    if (movedActor && this.getState(movedActor).activeProfile === PIPPING_PROFILE_ID) {
+      const pippingState = this.getPippingState(movedActor);
+      if (pippingState.livingNightActive) {
+        const templateReference = await syncPippingLivingNightTemplate(movedActor, pippingState).catch(error => {
+          console.warn("Ethernum | Pipping Living Night template sync failed", error);
+          return null;
+        });
+        if (templateReference) {
+          await this.updatePippingState(movedActor, {
+            darkness: templateReference,
+          });
+        }
+      }
+    }
     for (const actor of this.getActiveThermalNimbusActors()) {
       if (movedActor?.id === actor.id) {
         await this.syncArkiusKineticAuraTemplate(actor);
@@ -7583,6 +7688,77 @@ export class UniqueMechanicsSystem {
         executionModes: modes,
       };
     });
+    const pippingAbilities = PIPPING_ACTIONS.map(action => {
+      const availability = getPippingActionAvailability(action, pippingState, actorLevel, pippingTier);
+      const formula = getPippingActionFormula(
+        action.formulaId,
+        actorLevel,
+        getActorCharismaModifier(actor),
+        pippingTier,
+      );
+      const actionLabel = typeof action.actions === "number"
+        ? game.i18n!.format("ETHERNUM.Unique.Pipping.ActionCount", { count: action.actions })
+        : game.i18n!.localize(`ETHERNUM.Unique.Pipping.ActionTypes.${action.actions}`);
+      const visualExpression = action.expression ?? "order";
+      const icon = action.category === "shadow"
+        ? "fa-user-secret"
+        : action.category === "voice"
+          ? "fa-music"
+          : action.category === "vampiric"
+            ? "fa-heart-pulse"
+            : action.category === "field"
+              ? "fa-circle-nodes"
+              : action.category === "reaction"
+                ? "fa-bolt"
+                : "fa-star";
+      return {
+        ...action,
+        name: game.i18n!.localize(action.nameKey),
+        text: game.i18n!.localize(action.descriptionKey),
+        details: action.detailKeys.map(key => game.i18n!.localize(key)),
+        tag: actionLabel,
+        cost: action.pulseCost > 0
+          ? game.i18n!.format("ETHERNUM.Unique.Pipping.PulseCost", { cost: action.pulseCost })
+          : game.i18n!.localize("ETHERNUM.Unique.Pipping.NoCost"),
+        aspect: action.traits
+          .map(trait => game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`))
+          .join(" / "),
+        formula,
+        icon,
+        visualExpression,
+        visualAsset: PIPPING_SHADOW_ASSETS[visualExpression],
+        unlocked: availability.tierUnlocked && availability.selected,
+        ...availability,
+        lockReason: availability.reason === "tier"
+          ? game.i18n!.format("ETHERNUM.Unique.Pipping.RequiresTierLevel", {
+            tier: action.requiredTier,
+            level: action.requiredLevel,
+          })
+          : availability.reason === "expression"
+            ? game.i18n!.localize("ETHERNUM.Unique.Pipping.RequiresExpression")
+            : availability.reason === "pulse"
+              ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse")
+              : availability.reason === "daily"
+                ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.DailyUsed")
+                : "",
+      };
+    });
+    const pippingTierGroups = PIPPING_TIERS.map(tier => {
+      const selectedExpression = pippingState.expressionChoices[tier.id] ?? "";
+      return {
+        ...tier,
+        name: game.i18n!.localize(tier.nameKey),
+        passives: tier.passiveKeys.map(key => game.i18n!.localize(key)),
+        unlocked: pippingTier >= tier.tier && actorLevel >= tier.minLevel,
+        selectedExpression,
+        open: pippingTierGroupOpen(
+          tier.tier,
+          pippingTier,
+          Boolean(pippingState.pendingAction),
+        ),
+        abilities: pippingAbilities.filter(action => action.requiredTier === tier.tier),
+      };
+    });
 
     return {
       activeCore: state.activeCore,
@@ -7789,60 +7965,13 @@ export class UniqueMechanicsSystem {
         darknessTargets: pippingDarknessTargets,
         darknessTargetCount: pippingDarknessTargets.length,
         expressions: [
-          { id: "destruction", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.destruction") },
-          { id: "order", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.order") },
-          { id: "chaos", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.chaos") },
+          { id: "destruction", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.destruction"), asset: PIPPING_SHADOW_ASSETS.destruction },
+          { id: "order", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.order"), asset: PIPPING_SHADOW_ASSETS.order },
+          { id: "chaos", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.chaos"), asset: PIPPING_SHADOW_ASSETS.chaos },
         ],
-        tiers: PIPPING_TIERS.map(tier => {
-          const selectedExpression = pippingState.expressionChoices[tier.id] ?? "";
-          return {
-            ...tier,
-            name: game.i18n!.localize(tier.nameKey),
-            passives: tier.passiveKeys.map(key => game.i18n!.localize(key)),
-            unlocked: pippingTier >= tier.tier && actorLevel >= tier.minLevel,
-            selectedExpression,
-          };
-        }),
-        abilities: PIPPING_ACTIONS.map(action => {
-          const availability = getPippingActionAvailability(action, pippingState, actorLevel, pippingTier);
-          const formula = getPippingActionFormula(
-            action.formulaId,
-            actorLevel,
-            getActorCharismaModifier(actor),
-            pippingTier,
-          );
-          const actionLabel = typeof action.actions === "number"
-            ? game.i18n!.format("ETHERNUM.Unique.Pipping.ActionCount", { count: action.actions })
-            : game.i18n!.localize(`ETHERNUM.Unique.Pipping.ActionTypes.${action.actions}`);
-          return {
-            ...action,
-            name: game.i18n!.localize(action.nameKey),
-            text: game.i18n!.localize(action.descriptionKey),
-            details: action.detailKeys.map(key => game.i18n!.localize(key)),
-            tag: actionLabel,
-            cost: action.pulseCost > 0
-              ? game.i18n!.format("ETHERNUM.Unique.Pipping.PulseCost", { cost: action.pulseCost })
-              : game.i18n!.localize("ETHERNUM.Unique.Pipping.NoCost"),
-            aspect: action.traits
-              .map(trait => game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`))
-              .join(" / "),
-            formula,
-            unlocked: availability.tierUnlocked && availability.selected,
-            ...availability,
-            lockReason: availability.reason === "tier"
-              ? game.i18n!.format("ETHERNUM.Unique.Pipping.RequiresTierLevel", {
-                tier: action.requiredTier,
-                level: action.requiredLevel,
-              })
-              : availability.reason === "expression"
-                ? game.i18n!.localize("ETHERNUM.Unique.Pipping.RequiresExpression")
-                : availability.reason === "pulse"
-                  ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse")
-                  : availability.reason === "daily"
-                    ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.DailyUsed")
-                    : "",
-          };
-        }),
+        tiers: pippingTierGroups,
+        tierGroups: pippingTierGroups,
+        abilities: pippingAbilities,
         macroSlots: [
           "await game.ethernum.macros.setUniqueProfile(\"pipping-night\");",
           "await game.ethernum.macros.ethernumCompany.pipping.showStatus();",

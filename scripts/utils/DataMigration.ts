@@ -11,7 +11,7 @@ import { DEFAULT_ATLAS_STATE } from '../mechanics/atlas/profile.js';
 import { normalizePippingState } from '../mechanics/pipping/profile.js';
 import { AutomationAuthority } from '../core/AutomationAuthority.js';
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 interface EtherSystem {
   etherMax: number;
@@ -361,6 +361,25 @@ export async function migrateActor(actor: Actor): Promise<void> {
       },
     };
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v10`);
+  }
+
+  if (schemaVersion < 11) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined;
+    if (existingUnique) {
+      const existingProfiles = existingUnique.profiles ?? {};
+      const existingPipping = existingProfiles["pipping-night"];
+      updates[`flags.${m}.uniqueMechanics`] = {
+        ...existingUnique,
+        profiles: {
+          ...existingProfiles,
+          ...(existingPipping === undefined
+            ? {}
+            : { "pipping-night": normalizePippingState(existingPipping) }),
+        },
+      };
+    }
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v11`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

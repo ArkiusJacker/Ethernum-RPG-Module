@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  COMBAT_TURN_TIMER_FLAG,
   CombatTurnTimer,
   createDefaultCombatTurnTimerState,
   getCombatTurnTimerKey,
+  getPreferredCombatTimerDuration,
   getTimerRemainingSeconds,
   normalizeCombatTurnTimerState,
 } from "../scripts/combat/CombatTurnTimer.js";
@@ -57,10 +59,12 @@ describe("CombatTurnTimer", () => {
       ],
       i18n: { localize: (key: string) => key },
       modules: new Map(),
+      settings: { get: vi.fn(() => 60) },
     });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -74,6 +78,43 @@ describe("CombatTurnTimer", () => {
     }, "combat", "turn");
     expect(state.durationSeconds).toBe(5);
     expect(state.pausedRemainingSeconds).toBe(3);
+  });
+
+  it("uses the preferred duration for a combat without a persisted timer flag", () => {
+    const combat = fakeCombat();
+    vi.mocked(game.settings!.get).mockReturnValue(90);
+
+    expect(CombatTurnTimer.getState(combat as unknown as Combat)).toMatchObject({
+      enabled: false,
+      running: false,
+      durationSeconds: 90,
+      pausedRemainingSeconds: 90,
+    });
+  });
+
+  it("does not overwrite the duration of a persisted combat timer", () => {
+    const combat = fakeCombat();
+    combat.flags[COMBAT_TURN_TIMER_FLAG] = createDefaultCombatTurnTimerState(
+      combat.id,
+      getCombatTurnTimerKey(combat as unknown as Combat),
+      30,
+    );
+    vi.mocked(game.settings!.get).mockReturnValue(120);
+
+    expect(CombatTurnTimer.getState(combat as unknown as Combat).durationSeconds).toBe(30);
+  });
+
+  it("clamps invalid preferred durations and survives setting read failures", () => {
+    vi.mocked(game.settings!.get).mockReturnValue(1);
+    expect(getPreferredCombatTimerDuration()).toBe(5);
+
+    vi.mocked(game.settings!.get).mockReturnValue(100_000);
+    expect(getPreferredCombatTimerDuration()).toBe(86_400);
+
+    vi.mocked(game.settings!.get).mockImplementation(() => {
+      throw new Error("settings unavailable");
+    });
+    expect(getPreferredCombatTimerDuration()).toBe(60);
   });
 
   it("calculates remaining time from timestamps without writes", () => {
@@ -170,5 +211,64 @@ describe("CombatTurnTimer", () => {
     await vi.advanceTimersByTimeAsync(5_100);
 
     expect(combat.nextTurnCalls).toBe(0);
+  });
+
+  it("clears the old GM schedule and lets the new primary GM resume it", async () => {
+    const combat = fakeCombat();
+    const typedCombat = combat as unknown as Combat;
+    (game as Game).combat = typedCombat;
+    await CombatTurnTimer.setDuration(typedCombat, 10);
+    await CombatTurnTimer.start(typedCombat);
+    await CombatTurnTimer.setAutoAdvance(typedCombat, true);
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    const users = Array.from(game.users ?? []) as Array<User & { active: boolean }>;
+    users[1].active = false;
+    await CombatTurnTimer.handleAuthorityChange();
+
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(combat.nextTurnCalls).toBe(0);
+
+    (game as Game).user = users[0];
+    await CombatTurnTimer.handleAuthorityChange();
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(combat.nextTurnCalls).toBe(1);
+    CombatTurnTimer.handleCombatDelete(typedCombat);
+  });
+
+  it("advances an already expired timer once when the new GM takes authority", async () => {
+    const combat = fakeCombat();
+    const typedCombat = combat as unknown as Combat;
+    (game as Game).combat = typedCombat;
+    await CombatTurnTimer.setDuration(typedCombat, 5);
+    await CombatTurnTimer.start(typedCombat);
+    await CombatTurnTimer.setAutoAdvance(typedCombat, true);
+
+    const users = Array.from(game.users ?? []) as Array<User & { active: boolean }>;
+    users[1].active = false;
+    await CombatTurnTimer.handleAuthorityChange();
+    await vi.advanceTimersByTimeAsync(5_100);
+    expect(combat.nextTurnCalls).toBe(0);
+
+    (game as Game).user = users[0];
+    await CombatTurnTimer.handleAuthorityChange();
+    await CombatTurnTimer.handleAuthorityChange();
+
+    expect(combat.nextTurnCalls).toBe(1);
+    CombatTurnTimer.handleCombatDelete(typedCombat);
+  });
+
+  it("debounces repeated authority change signals", async () => {
+    const handleAuthorityChange = vi
+      .spyOn(CombatTurnTimer, "handleAuthorityChange")
+      .mockResolvedValue();
+
+    CombatTurnTimer.queueAuthorityChange();
+    CombatTurnTimer.queueAuthorityChange();
+    await vi.advanceTimersByTimeAsync(149);
+    expect(handleAuthorityChange).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(handleAuthorityChange).toHaveBeenCalledOnce();
   });
 });

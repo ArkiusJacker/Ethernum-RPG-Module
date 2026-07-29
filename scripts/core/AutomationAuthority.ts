@@ -8,8 +8,12 @@ export interface AuthorityUser {
 
 export function selectPrimaryGM(users: Iterable<AuthorityUser>): AuthorityUser | null {
   return [...users]
-    .filter(user => user.active && user.isGM && typeof user.id === "string")
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)))[0] ?? null;
+    .filter(user => user.active && user.isGM && typeof user.id === "string" && user.id.length > 0)
+    .sort((left, right) => {
+      const leftId = String(left.id);
+      const rightId = String(right.id);
+      return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+    })[0] ?? null;
 }
 
 export class AutomationAuthority {

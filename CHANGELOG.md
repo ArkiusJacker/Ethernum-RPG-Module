@@ -5,6 +5,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.2] - 2026-07-29
+
+### Adicionado
+- Executor operacional das habilidades de Pipping com seleção de alvos, salvamentos PF2e, dano, cura, condições temporárias, efeitos e confirmação assistida para movimentos narrativos.
+- Três manifestações visuais transparentes de Destruição, Ordem e Caos, com sorteio uniforme ao criar Sombra Animada e Sombras Espelhadas no canvas.
+- `MeasuredTemplate` persistente para a Canção da Noite Viva, sincronizado com o token e reconciliado ao carregar a cena.
+- Abas recolhíveis por Tier, identidade visual por Expressão e cards de resultado legíveis no chat.
+- Ponte de autoridade por socket para jogadores solicitarem ao mestre primário alterações protegidas de atores e documentos do canvas.
+- Workflow de CI com typecheck, testes, build e validação de manifesto/distribuição; releases também passam a exigir a suíte verde.
+
+### Alterado
+- Schema de mundo avança para 11 e o estado interno de Pipping recebe migração segura para a versão 3, preservando campos desconhecidos, recursos e escolhas existentes.
+- Pulso e usos diários são confirmados somente depois da execução; cancelamentos e falhas de autoridade não gastam recursos.
+- Temporizador respeita a duração preferida apenas em combates novos e reassume a contagem após troca do mestre primário.
+
+### Corrigido
+- Habilidades de Pipping deixam de publicar apenas placeholders e passam a produzir resultados mecânicos rastreáveis.
+- Ticker do relógio é interrompido quando a contagem não está rodando; arraste do tracker ignora controles e limpa eventos cancelados.
+- Hooks assíncronos de ficha, combate, ator e token passam a registrar falhas sem gerar rejeições não tratadas.
+
 ## [3.5.1] - 2026-07-29
 
 ### Alterado

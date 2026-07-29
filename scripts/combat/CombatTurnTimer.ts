@@ -5,6 +5,7 @@ export const COMBAT_TURN_TIMER_FLAG = "combatTurnTimer";
 export const DEFAULT_TURN_DURATION_SECONDS = 60;
 const MIN_DURATION_SECONDS = 5;
 const MAX_DURATION_SECONDS = 24 * 60 * 60;
+const AUTHORITY_CHANGE_DEBOUNCE_MS = 150;
 
 export interface CombatTurnTimerState {
   version: 1;
@@ -31,10 +32,21 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-function clampDuration(value: unknown): number {
+export function clampCombatTurnTimerDuration(value: unknown): number {
   const duration = Math.floor(Number(value));
   if (!Number.isFinite(duration)) return DEFAULT_TURN_DURATION_SECONDS;
   return Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, duration));
+}
+
+export function getPreferredCombatTimerDuration(): number {
+  try {
+    return clampCombatTurnTimerDuration(
+      game.settings?.get(ETHERNUM.MODULE_NAME, "combatTimerPreferredDuration"),
+    );
+  } catch (error) {
+    console.warn("Ethernum | Falha ao recuperar a duração preferida do temporizador", error);
+    return DEFAULT_TURN_DURATION_SECONDS;
+  }
 }
 
 export function timerNow(): number {
@@ -57,7 +69,7 @@ export function createDefaultCombatTurnTimerState(
   turnKey = "",
   durationSeconds = DEFAULT_TURN_DURATION_SECONDS,
 ): CombatTurnTimerState {
-  const duration = clampDuration(durationSeconds);
+  const duration = clampCombatTurnTimerDuration(durationSeconds);
   return {
     version: 1,
     enabled: false,
@@ -77,9 +89,12 @@ export function normalizeCombatTurnTimerState(
   value: unknown,
   combatId = "",
   turnKey = "",
+  defaultDurationSeconds = DEFAULT_TURN_DURATION_SECONDS,
 ): CombatTurnTimerState {
   const state = asRecord(value);
-  const durationSeconds = clampDuration(state.durationSeconds);
+  const durationSeconds = state.durationSeconds === undefined
+    ? clampCombatTurnTimerDuration(defaultDurationSeconds)
+    : clampCombatTurnTimerDuration(state.durationSeconds);
   const paused = Number(state.pausedRemainingSeconds);
   const startedAt = Number(state.startedAt);
   return {
@@ -138,10 +153,20 @@ function isCombatStarted(combat: Combat): boolean {
 export class CombatTurnTimer {
   private static timeoutByCombat = new Map<string, ReturnType<typeof setTimeout>>();
   private static queueByCombat = new Map<string, Promise<unknown>>();
+  private static authorityChangeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private static authorityHooksInitialized = false;
 
   static getState(combat: Combat): CombatTurnTimerState {
     const raw = combat.getFlag(ETHERNUM.MODULE_NAME, COMBAT_TURN_TIMER_FLAG);
-    return normalizeCombatTurnTimerState(raw, combat.id ?? "", getCombatTurnTimerKey(combat));
+    const defaultDuration = raw === undefined
+      ? getPreferredCombatTimerDuration()
+      : DEFAULT_TURN_DURATION_SECONDS;
+    return normalizeCombatTurnTimerState(
+      raw,
+      combat.id ?? "",
+      getCombatTurnTimerKey(combat),
+      defaultDuration,
+    );
   }
 
   static getActiveSnapshot(now = timerNow()): TimerSnapshot | null {
@@ -182,7 +207,7 @@ export class CombatTurnTimer {
     if (!this.requireAuthority()) return this.getState(combat);
     return this.enqueue(combat, async () => {
       const current = this.getState(combat);
-      const duration = clampDuration(durationSeconds);
+      const duration = clampCombatTurnTimerDuration(durationSeconds);
       return this.persist(combat, {
         ...current,
         durationSeconds: duration,
@@ -345,6 +370,55 @@ export class CombatTurnTimer {
     this.queueByCombat.delete(combat.id ?? "");
   }
 
+  static initializeAuthorityHooks(): void {
+    if (this.authorityHooksInitialized || typeof Hooks === "undefined") return;
+    this.authorityHooksInitialized = true;
+    const reevaluate = () => this.queueAuthorityChange();
+    Hooks.on("updateUser", reevaluate);
+    Hooks.on("createUser", reevaluate);
+    Hooks.on("deleteUser", reevaluate);
+    void this.handleAuthorityChange().catch(error => {
+      console.error("Ethernum | Falha ao inicializar a autoridade do temporizador", error);
+    });
+  }
+
+  static queueAuthorityChange(): void {
+    if (this.authorityChangeTimeout) clearTimeout(this.authorityChangeTimeout);
+    this.authorityChangeTimeout = setTimeout(() => {
+      this.authorityChangeTimeout = null;
+      void this.handleAuthorityChange().catch(error => {
+        console.error("Ethernum | Falha ao reavaliar a autoridade do temporizador", error);
+      });
+    }, AUTHORITY_CHANGE_DEBOUNCE_MS);
+  }
+
+  static async handleAuthorityChange(): Promise<void> {
+    this.clearAllSchedules();
+    const combat = game.combat;
+    if (!combat || !AutomationAuthority.isPrimaryGM()) return;
+
+    const state = this.getState(combat);
+    const turnKey = getCombatTurnTimerKey(combat);
+    if (state.enabled && state.turnKey !== turnKey) {
+      await this.handleCombatUpdate(combat);
+      return;
+    }
+
+    if (
+      state.enabled
+      && state.running
+      && state.autoAdvance
+      && isCombatStarted(combat)
+      && state.turnKey === turnKey
+      && getTimerRemainingSeconds(state) <= 0
+    ) {
+      await this.advanceTurnOnce(combat, true);
+      return;
+    }
+
+    this.schedule(combat, state);
+  }
+
   static schedule(combat: Combat, state = this.getState(combat)): void {
     const combatId = combat.id ?? "";
     this.clearSchedule(combatId);
@@ -369,4 +443,13 @@ export class CombatTurnTimer {
     if (timeout) clearTimeout(timeout);
     this.timeoutByCombat.delete(combatId);
   }
+
+  private static clearAllSchedules(): void {
+    for (const timeout of this.timeoutByCombat.values()) clearTimeout(timeout);
+    this.timeoutByCombat.clear();
+  }
+}
+
+if (typeof Hooks !== "undefined") {
+  Hooks.once("ready", () => CombatTurnTimer.initializeAuthorityHooks());
 }

@@ -362,7 +362,24 @@
         "DarknessScatterResolved": "Dispersão: direção {direction} no relógio, a {distance} pés.",
         "DarknessAreaResolution": "Modo área: posicione a área em uma região válida da escuridão sem fixá-la em um token.",
         "NightAbilities": "Habilidades da Noite",
+        "Abilities": "habilidades",
         "UseAction": "Usar",
+        "Execute": "Executar",
+        "ConfirmUse": "Confirmar uso",
+        "Ally": "Aliado",
+        "Enemy": "Inimigo",
+        "TargetDialogTitle": "{action} — alvos",
+        "TargetDialogHint": "Selecione até {maximum} alvo(s) válido(s). Alvos já marcados no canvas aparecem pré-selecionados.",
+        "AssistedHint": "Esta ação depende de posicionamento ou decisão narrativa no canvas. Confirme somente depois de resolver essa etapa com o mestre.",
+        "AssistedResolved": "Uso confirmado. O posicionamento ou movimento permanece sob controle do jogador e do mestre.",
+        "ManualAdjustment": "Uma parte do efeito requer ajuste manual.",
+        "ActionCancelled": "A ação foi cancelada sem gastar Pulso Sombrio.",
+        "Degrees": {
+          "criticalFailure": "Falha crítica",
+          "failure": "Falha",
+          "success": "Sucesso",
+          "criticalSuccess": "Sucesso crítico"
+        },
         "MacroSpace": "Macros da Noite",
         "ExpressionUnselected": "Expressão não escolhida",
         "RequiresExpression": "Escolha a Expressão deste Tier para liberar a habilidade.",
@@ -436,7 +453,13 @@
           "UnknownFinisher": "Finalizador de Pipping não encontrado.",
           "LockedAction": "Esta habilidade ainda está bloqueada.",
           "DailyUsed": "Esta habilidade diária já foi usada.",
-          "RoundRecoveryUsed": "Pipping já recuperou Pulso nesta rodada."
+          "RoundRecoveryUsed": "Pipping já recuperou Pulso nesta rodada.",
+          "NoValidTargets": "Nenhum alvo válido foi encontrado no alcance.",
+          "ShadowSpawnFailed": "Não foi possível manifestar as sombras. Verifique se Pipping possui um token em uma cena ativa.",
+          "TemplateFailed": "Não foi possível criar a área da Noite Viva. O Pulso não foi gasto.",
+          "RequiresActiveToken": "Pipping precisa de um token em uma cena ativa para usar esta habilidade.",
+          "ActionInProgress": "Pipping já possui uma ação em resolução.",
+          "AutomationFailed": "A automação não pôde concluir as alterações. Nenhum Pulso foi gasto."
         },
         "Actions": {
           "AnimatedShadow": {

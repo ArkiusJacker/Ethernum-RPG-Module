@@ -1,9 +1,23 @@
 import { asRecord, asStringRecord, clampNumber, optionalString } from "../state.js";
 
-export const PIPPING_STATE_VERSION = 2;
+export const PIPPING_STATE_VERSION = 3;
 export type PippingExpression = "destruction" | "order" | "chaos";
 export type PippingDarknessMode = "manual" | "random" | "scatter" | "area";
 export type PippingTier = 1 | 2 | 3 | 4 | 5;
+
+export interface PippingShadowManifestation {
+  id: string;
+  sceneId: string;
+  variant: PippingExpression;
+  kind: "animated" | "mirrored";
+}
+
+export interface PippingPendingAction {
+  actionId: string;
+  pulseCost: number;
+  startedAt: number;
+  userId?: string;
+}
 
 export interface PippingNightState {
   version: number;
@@ -19,8 +33,13 @@ export interface PippingNightState {
     mode: PippingDarknessMode;
     radius: number;
     templateId?: string;
+    templateUuid?: string;
+    sourceTokenUuid?: string;
     [key: string]: unknown;
   };
+  shadowManifestations: PippingShadowManifestation[];
+  frequencies: Record<string, string>;
+  pendingAction?: PippingPendingAction;
   recovery: {
     communeAvailable: boolean;
     lastCombatRecoveryTurnKey?: string;
@@ -48,6 +67,8 @@ export const DEFAULT_PIPPING_STATE: PippingNightState = {
     mode: "manual",
     radius: 10,
   },
+  shadowManifestations: [],
+  frequencies: {},
   recovery: {
     communeAvailable: false,
     recoveredByEchoTurnKeys: {},
@@ -64,6 +85,35 @@ function normalizeExpression(value: unknown): PippingExpression | null {
 
 function normalizeDarknessMode(value: unknown): PippingDarknessMode {
   return value === "random" || value === "scatter" || value === "area" ? value : "manual";
+}
+
+function normalizeShadowManifestations(value: unknown): PippingShadowManifestation[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(entry => {
+    const record = asRecord(entry);
+    const id = optionalString(record.id);
+    const sceneId = optionalString(record.sceneId);
+    const variant = normalizeExpression(record.variant);
+    const kind: PippingShadowManifestation["kind"] | null = record.kind === "animated"
+      ? "animated"
+      : record.kind === "mirrored"
+        ? "mirrored"
+        : null;
+    return id && sceneId && variant && kind ? [{ id, sceneId, variant, kind }] : [];
+  }).slice(-12);
+}
+
+function normalizePendingAction(value: unknown): PippingPendingAction | undefined {
+  const pending = asRecord(value);
+  const actionId = optionalString(pending.actionId);
+  const startedAt = Number(pending.startedAt);
+  if (!actionId || !Number.isFinite(startedAt) || startedAt <= 0) return undefined;
+  return {
+    actionId,
+    pulseCost: clampNumber(pending.pulseCost, 0, 0, 20),
+    startedAt,
+    userId: optionalString(pending.userId),
+  };
 }
 
 export function normalizePippingState(value: unknown): PippingNightState {
@@ -98,11 +148,16 @@ export function normalizePippingState(value: unknown): PippingNightState {
       mode: normalizeDarknessMode(darkness.mode),
       radius: clampNumber(darkness.radius, 10, 5, 60),
       templateId: optionalString(darkness.templateId),
+      templateUuid: optionalString(darkness.templateUuid),
+      sourceTokenUuid: optionalString(darkness.sourceTokenUuid),
     },
+    shadowManifestations: normalizeShadowManifestations(state.shadowManifestations),
+    frequencies: asStringRecord(state.frequencies),
+    pendingAction: normalizePendingAction(state.pendingAction),
     recovery: {
       ...DEFAULT_PIPPING_STATE.recovery,
       ...recovery,
-      communeAvailable: Boolean(recovery.communeAvailable ?? Number(state.pulse ?? 0) < 6),
+      communeAvailable: Boolean(recovery.communeAvailable),
       lastCombatRecoveryTurnKey: optionalString(recovery.lastCombatRecoveryTurnKey),
       recoveredByEchoTurnKeys: asStringRecord(recovery.recoveredByEchoTurnKeys),
     },
