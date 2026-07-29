@@ -4594,6 +4594,340 @@
   }
 }
 
+/* v3.5 Pipping progression */
+.ethernum-unique-pipping-theme {
+  --pipping-surface: #11131c;
+  --pipping-surface-raised: #1a1d2a;
+  --pipping-border: #4e3f72;
+  --pipping-text: #f4f1ff;
+  --pipping-muted-v35: #c5c6d8;
+}
+
+.ethernum-unique-pipping-theme .ethernum-pipping-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) minmax(90px, 120px);
+  align-items: center;
+}
+
+.ethernum-pipping-night-dc {
+  display: grid;
+  min-height: 72px;
+  place-content: center;
+  border: 1px solid var(--pipping-red);
+  border-radius: 6px;
+  background: #171019;
+  text-align: center;
+}
+
+.ethernum-pipping-night-dc span {
+  color: var(--pipping-muted-v35);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ethernum-pipping-night-dc strong {
+  color: #fff;
+  font-size: 26px;
+}
+
+.ethernum-pipping-action-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ethernum-pipping-action-toolbar button,
+.ethernum-pipping-use-action {
+  min-height: 34px;
+  border: 1px solid var(--pipping-border);
+  border-radius: 6px;
+  color: var(--pipping-text);
+  background: var(--pipping-surface-raised);
+}
+
+.ethernum-pipping-action-toolbar button:hover:not(:disabled),
+.ethernum-pipping-use-action:hover:not(:disabled) {
+  border-color: var(--pipping-blue);
+  color: #fff;
+  background: #25283a;
+}
+
+.ethernum-pipping-control-row select,
+.ethernum-pipping-expression-grid select {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid var(--pipping-border);
+  border-radius: 5px;
+  color: var(--pipping-text);
+  background: #0d0f17;
+}
+
+.ethernum-pipping-expression-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ethernum-pipping-expression-grid label {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid var(--pipping-border);
+  border-radius: 6px;
+  color: var(--pipping-muted-v35);
+  background: var(--pipping-surface);
+}
+
+.ethernum-pipping-expression-grid label.locked {
+  border-style: dashed;
+}
+
+.ethernum-pipping-darkness {
+  border-left: 4px solid #8b5ee8;
+  color: var(--pipping-text);
+  background: #10121a;
+}
+
+.ethernum-pipping-darkness.active {
+  border-left-color: var(--pipping-red);
+  box-shadow: inset 0 0 22px rgba(224, 24, 64, 0.08);
+}
+
+.ethernum-pipping-darkness p,
+.ethernum-pipping-darkness-targets {
+  color: var(--pipping-muted-v35);
+}
+
+.ethernum-pipping-darkness-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.ethernum-pipping-darkness-targets span {
+  padding: 3px 7px;
+  border: 1px solid #6e5b92;
+  border-radius: 4px;
+  color: #fff;
+  background: #222131;
+}
+
+.ethernum-unique-pipping-theme .ethernum-pipping-ability {
+  color: var(--pipping-text);
+  background: var(--pipping-surface);
+}
+
+.ethernum-unique-pipping-theme .ethernum-pipping-ability p,
+.ethernum-unique-pipping-theme .ethernum-pipping-details-body {
+  color: var(--pipping-muted-v35);
+}
+
+.ethernum-pipping-ability.locked {
+  border-left-color: #555867;
+  filter: saturate(0.55);
+}
+
+.ethernum-pipping-lock-reason {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  color: #d7cce9;
+  font-size: 11px;
+}
+
+.ethernum-pipping-use-action {
+  margin-top: 8px;
+  padding: 5px 9px;
+}
+
+/* v3.5 combat timer */
+.ethernum-combat-timer {
+  display: grid;
+  gap: 8px;
+  padding: 9px 10px;
+  border-top: 1px solid #3e4350;
+  border-bottom: 1px solid #3e4350;
+  color: #f7f7f2;
+  background: #191c22;
+}
+
+.ethernum-combat-timer-readout {
+  display: grid;
+  grid-template-columns: 26px minmax(76px, 1fr) minmax(0, 1.5fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.ethernum-combat-timer-readout > i {
+  color: #79b7d8;
+  font-size: 18px;
+  text-align: center;
+}
+
+.ethernum-combat-timer-readout strong,
+.ethernum-combat-timer-readout span {
+  display: block;
+}
+
+.ethernum-combat-timer-readout strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ethernum-combat-timer-readout span,
+.ethernum-combat-timer-readout small {
+  color: #c8ccd4;
+  font-size: 10px;
+}
+
+.ethernum-combat-timer.warning {
+  border-color: #d2a73c;
+}
+
+.ethernum-combat-timer.critical,
+.ethernum-combat-timer.expired {
+  border-color: #df554d;
+}
+
+.ethernum-combat-timer.critical .ethernum-combat-timer-readout > i,
+.ethernum-combat-timer.expired .ethernum-combat-timer-readout > i {
+  color: #ff766e;
+}
+
+.ethernum-combat-tracker.animation-reduced .ethernum-combat-timer.critical,
+.ethernum-combat-tracker.animation-off .ethernum-combat-timer.critical {
+  animation: none;
+}
+
+.ethernum-combat-timer-controls {
+  display: grid;
+  grid-template-columns: minmax(118px, 1fr) repeat(7, 30px);
+  gap: 5px;
+  align-items: end;
+}
+
+.ethernum-combat-timer-controls label {
+  display: grid;
+  grid-template-columns: 1fr 58px 72px;
+  gap: 4px;
+  align-items: center;
+  color: #c8ccd4;
+  font-size: 10px;
+}
+
+.ethernum-combat-timer-controls input,
+.ethernum-combat-timer-controls select {
+  width: 58px;
+  height: 28px;
+  color: #fff;
+  background: #0e1015;
+}
+
+.ethernum-combat-timer-controls select {
+  width: 72px;
+}
+
+.ethernum-combat-timer-controls button,
+.ethernum-combat-tracker-position-reset {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #4c5362;
+  border-radius: 5px;
+  color: #e8ebf2;
+  background: #252932;
+}
+
+.ethernum-combat-timer-controls button.active {
+  border-color: #d2a73c;
+  color: #ffe39a;
+}
+
+.ethernum-combat-tracker-header .ethernum-combat-tracker-position-reset {
+  margin-left: auto;
+}
+
+.ethernum-token-combat-effect {
+  position: fixed;
+  z-index: 110;
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  border: 2px solid #f4d36a;
+  border-radius: 50%;
+  color: #fff2ad;
+  background: rgba(28, 24, 39, 0.58);
+  box-shadow: 0 0 18px #f4d36a;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: ethernum-combat-token-burst 900ms ease-out forwards;
+}
+
+.ethernum-token-combat-effect[class*="fulgor"] {
+  border-color: #7158a8;
+  color: #e7ddff;
+  box-shadow: 0 0 20px #2e243f;
+  background: rgba(7, 7, 10, 0.72);
+}
+
+.ethernum-token-combat-effect.reduced {
+  animation-duration: 400ms;
+}
+
+.ethernum-combat-event {
+  animation: ethernum-combat-tracker-pulse 700ms ease-out;
+}
+
+@keyframes ethernum-combat-token-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); }
+}
+
+@keyframes ethernum-combat-tracker-pulse {
+  0%, 100% { box-shadow: none; }
+  35% { box-shadow: inset 0 0 20px rgba(244, 211, 106, 0.24); }
+}
+
+@media (max-width: 900px) {
+  .ethernum-pipping-expression-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ethernum-unique-pipping-theme .ethernum-pipping-hero {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ethernum-pipping-hero > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .ethernum-pipping-expression-grid,
+  .ethernum-unique-pipping-theme .ethernum-pipping-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-combat-timer-controls {
+    grid-template-columns: repeat(4, 30px);
+  }
+
+  .ethernum-combat-timer-controls label {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ethernum-token-combat-effect,
+  .ethernum-combat-event,
+  .ethernum-combat-timer.critical {
+    animation: none;
+  }
+}
+
 /* Global combat tracker: Momentum Fides and Fulgor Negro */
 .ethernum-combat-tracker {
   --tracker-surface: #17191d;

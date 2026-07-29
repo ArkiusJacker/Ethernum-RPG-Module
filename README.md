@@ -160,7 +160,7 @@ await game.ethernum.macros.useGyroTechnique("spiral-ricochet", "forced");
 await game.ethernum.macros.useGyroTechnique("absolute-rotation", "perfect");
 ```
 
-#### Macros iniciais de Bayle e Pipping
+#### Macros de Bayle e Pipping
 
 ```js
 await game.ethernum.macros.setUniqueProfile("bayle-dragon");
@@ -174,7 +174,18 @@ await game.ethernum.macros.useBayleAction("placidusax-lightning");
 ```js
 await game.ethernum.macros.setUniqueProfile("pipping-night");
 await game.ethernum.macros.showPippingStatus();
+await game.ethernum.macros.adjustPippingPulse(1);
+await game.ethernum.macros.ethernumCompany.pipping.activateLivingNight();
+await game.ethernum.macros.ethernumCompany.pipping.endLivingNight();
+await game.ethernum.macros.ethernumCompany.pipping.communeWithNight();
+await game.ethernum.macros.ethernumCompany.pipping.useAction("ruin-note");
+await game.ethernum.macros.ethernumCompany.pipping.useReaction("void-echoes");
+await game.ethernum.macros.ethernumCompany.pipping.useFinisher("dead-sun-epitaph");
+await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();
+await game.ethernum.macros.ethernumCompany.pipping.resolveDarkness();
 ```
+
+Pipping possui cinco Tiers liberados pelos níveis 3, 5, 9, 13 e 17. Cada Tier permite escolher Destruição, Ordem ou Caos; habilidades de escolhas diferentes permanecem visíveis, mas bloqueadas. Os Tiers II-V usam os valores da revisão mecânica como regras assistidas e ainda exigem validação prática de balanceamento no PF2e.
 
 #### Macros de Charles e Atlas Sidarta
 
@@ -204,6 +215,8 @@ O rastreador de Momentum Fides e Fulgor Negro fica disponível sobre o canvas, s
 - A visão **Mestre** reúne os personagens dos jogadores e oferece correção de marcas, encerramento de Fulgor e resets de combate ou preparações diárias.
 - Falhas e críticos de testes com d20 são lidos diretamente das mensagens do PF2e. Resultado natural e grau final permanecem separados; Fides e Fulgor continuam restritos a ataques contra CA.
 - O estado diário fica salvo na flag do ator; marcas, estatísticas do encontro e cadeias são limpas ao encerrar o combate.
+- O temporizador de turnos fica visível para todos e é controlado pelo mestre, com duração em segundos ou minutos, pausa, reset e avanço automático opcional.
+- O timer usa timestamps e flags do combate apenas em eventos importantes; a contagem visual local não grava dados a cada segundo.
 
 Os dois macros gerenciados também podem ser chamados pela API:
 
@@ -224,6 +237,10 @@ O módulo oferece as seguintes configurações (acessíveis nas configurações 
 - **Restauração Total no Descanso Longo**: Se ativado, o Éter será totalmente restaurado; se desativado, o descanso não altera o recurso (padrão: ativado)
 - **Mostrar Éter no Chat**: Se ativado, mostra o custo de Éter nas mensagens de ativação de runa; o custo continua sendo aplicado quando a opção está desativada (padrão: ativado)
 - **Permitir Override**: Se ativado, jogadores podem tentar usar runas de classes superiores às permitidas (padrão: ativado)
+- **Exibir rastreador de combate Ethernum**: Mostra ou oculta o painel para o cliente atual
+- **Rastreador somente durante combate**: Oculta o painel fora de encontros iniciados
+- **Exibir estatísticas detalhadas**: Controla a exibição dos contadores expandidos
+- **Animações de Fides e Fulgor**: Seleciona efeitos completos, reduzidos ou desativados para o cliente atual
 
 ## 🔧 Requisitos
 

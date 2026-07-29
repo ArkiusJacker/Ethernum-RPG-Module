@@ -1,29 +1,103 @@
 import { ETHERNUM, type CampaignCoreId } from '../config.js';
+import type { UniqueMechanicsState, UniqueMechanicProfileId } from '../mechanics/types.js';
+import {
+  DEFAULT_GYRO_STATE,
+  GYRO_PROFILE_ID,
+  normalizeGyroState as normalizeGyroProfileState,
+  type GyroExecutionMode,
+  type GyroMainAttribute,
+  type GyroProficiencyRank,
+  type GyroSpinState,
+} from '../mechanics/gyro/profile.js';
+import {
+  BAYLE_PROFILE_ID,
+  DEFAULT_BAYLE_STATE,
+  normalizeBayleState as normalizeBayleProfileState,
+  type BayleDragonState,
+} from '../mechanics/bayle/profile.js';
+import {
+  PIPPING_PROFILE_ID,
+  calculatePippingPulseMaximum,
+  DEFAULT_PIPPING_STATE,
+  getPippingAction,
+  getPippingActionAvailability,
+  getPippingActionFormula,
+  normalizePippingState as normalizePippingProfileState,
+  PIPPING_ACTIONS,
+  PIPPING_TIERS,
+  pippingTierForLevel,
+  resolveDarknessTarget,
+  affectedDarknessCandidates,
+  type DarknessCandidate,
+  type PippingDarknessMode,
+  type PippingExpression,
+  type PippingNightState,
+  type PippingTier,
+} from '../mechanics/pipping/profile.js';
+import {
+  ARKIUS_JACKER_PROFILE_ID,
+  DEFAULT_ARKIUS_STATE,
+  normalizeArkiusState as normalizeArkiusProfileState,
+  type ArkiusAttunement,
+  type ArkiusConcordiaAspect,
+  type ArkiusJackerState,
+  type ArkiusSolarAreaId,
+} from '../mechanics/arkius/profile.js';
+import {
+  DEFAULT_YU_STATE,
+  normalizeYuState as normalizeYuProfileState,
+  YU_JIU_JI_TAE_PROFILE_ID,
+  type YuRageState,
+} from '../mechanics/yu/profile.js';
+import {
+  CHARLES_PROFILE_ID,
+  DEFAULT_CHARLES_STATE,
+  normalizeCharlesState as normalizeCharlesProfileState,
+  type CharlesState,
+} from '../mechanics/charles/profile.js';
+import {
+  ATLAS_MODIFICATION_IDS,
+  ATLAS_SIDARTA_PROFILE_ID,
+  DEFAULT_ATLAS_STATE,
+  normalizeAtlasState as normalizeAtlasProfileState,
+  type AtlasBaptismDamageType,
+  type AtlasModificationId,
+  type AtlasState,
+} from '../mechanics/atlas/profile.js';
+import {
+  getProfileOptions,
+  getUniqueMechanicProfile,
+  isKnownUniqueMechanicProfileId,
+} from '../mechanics/registry.js';
+import { AutomationAuthority } from '../core/AutomationAuthority.js';
 
-export type UniqueMechanicProfileId = ""
-  | "gyro-spin"
-  | "bayle-dragon"
-  | "pipping-night"
-  | "kaitake"
-  | "cinerio"
-  | "ailan"
-  | "arkius-jacker"
-  | "atlas-sidarta"
-  | "charles"
-  | "morgana"
-  | "yu-jiu-ji-tae"
-  | "unluck";
-export type GyroMainAttribute = "dex" | "wis";
-export type GyroProficiencyRank = "trained" | "expert" | "master" | "legendary";
-export type GyroExecutionMode = "stable" | "forced" | "corpse" | "perfect";
-
-export const GYRO_PROFILE_ID: UniqueMechanicProfileId = "gyro-spin";
-export const BAYLE_PROFILE_ID: UniqueMechanicProfileId = "bayle-dragon";
-export const PIPPING_PROFILE_ID: UniqueMechanicProfileId = "pipping-night";
-export const ARKIUS_JACKER_PROFILE_ID: UniqueMechanicProfileId = "arkius-jacker";
-export const ATLAS_SIDARTA_PROFILE_ID: UniqueMechanicProfileId = "atlas-sidarta";
-export const CHARLES_PROFILE_ID: UniqueMechanicProfileId = "charles";
-export const YU_JIU_JI_TAE_PROFILE_ID: UniqueMechanicProfileId = "yu-jiu-ji-tae";
+export type {
+  UniqueMechanicProfileId,
+  GyroExecutionMode,
+  GyroMainAttribute,
+  GyroProficiencyRank,
+  GyroSpinState,
+  BayleDragonState,
+  PippingNightState,
+  ArkiusAttunement,
+  ArkiusConcordiaAspect,
+  ArkiusJackerState,
+  ArkiusSolarAreaId,
+  YuRageState,
+  CharlesState,
+  AtlasBaptismDamageType,
+  AtlasModificationId,
+  AtlasState,
+};
+export {
+  GYRO_PROFILE_ID,
+  BAYLE_PROFILE_ID,
+  PIPPING_PROFILE_ID,
+  ARKIUS_JACKER_PROFILE_ID,
+  ATLAS_SIDARTA_PROFILE_ID,
+  CHARLES_PROFILE_ID,
+  YU_JIU_JI_TAE_PROFILE_ID,
+};
 export const ETHERNUM_COMPANY_CORE_ID: CampaignCoreId = "ethernum-company";
 export const CONCORDIA_CORE_ID: CampaignCoreId = "concordia";
 export const ETHERNUM_PLACEHOLDER_PROFILE_IDS = ["kaitake", "cinerio", "ailan"] as const;
@@ -61,42 +135,8 @@ const ATLAS_FATIGUE_ATTACK_EFFECT_SLUG = "atlas-esgotamento-ataques";
 const ATLAS_FATIGUE_STUPEFIED_SLUG = "atlas-esgotamento-estupefato";
 const ATLAS_OVERDRIVE_STUPEFIED_SLUG = "atlas-fusao-estupefato";
 const ATLAS_THREE_ACTION_SLOWED_SLUG = "atlas-magia-tres-acoes-lento";
-const ATLAS_MODIFICATION_IDS = [
-  "frontline-vigor",
-  "shattering-judgment",
-  "steel-resonance",
-  "spear-reach",
-  "gorum-clamor",
-  "iron-baptism",
-] as const;
-const PROCESSED_CHAT_MESSAGE_LIMIT = 1000;
-const processedChatMessageIds = new Set<string>();
 const processedManagedCombatTurnKeys = new Set<string>();
-
-export interface UniqueMechanicsState {
-  activeCore: CampaignCoreId;
-  activeProfile: UniqueMechanicProfileId;
-  profiles: Record<string, unknown>;
-}
-
-export interface GyroSpinState {
-  currentSP: number;
-  maxSPOverride?: number;
-  mainAttribute: GyroMainAttribute;
-  proficiencyRank: GyroProficiencyRank;
-  sacredScars: number;
-  corpsePartNumber: number;
-  torsoBonus: boolean;
-  heartRegen: boolean;
-  absoluteReady: boolean;
-  unlockedIkons: string[];
-  activeDeviation?: string;
-  activeDeviationCombatId?: string;
-  proportionMarkTargetId?: string;
-  spGainedThisRound?: number;
-  lastSPRoundKey?: string;
-  lastBallBreakerTurnKey?: string;
-}
+const PROCESSED_COMBAT_TURN_LIMIT = 1000;
 
 type GyroTechniqueCategory = "technique" | "ikon" | "ball-breaker" | "final";
 
@@ -212,133 +252,6 @@ interface BayleStage {
   }>;
 }
 
-export interface BayleDragonState {
-  stage: number;
-  ardor: number;
-  rageActive: boolean;
-  awakeningActive: boolean;
-  lightningChargesUsed: number;
-  breathUsed: boolean;
-  roarUsed: boolean;
-  lancesUsed: boolean;
-  closureUsed: boolean;
-}
-
-interface PippingAbility {
-  id: string;
-  name: string;
-  tag: string;
-  cost: string;
-  aspect: string;
-  text: string;
-  details: string[];
-}
-
-export interface PippingNightState {
-  pulse: number;
-  tier: number;
-  livingNightActive: boolean;
-  mirroredShadows: number;
-}
-
-export type ArkiusAttunement = "none" | "fluxo" | "brasas";
-export type ArkiusSolarAreaId = "emanation" | "cone" | "line";
-export type ArkiusConcordiaAspect = "chains" | "ruby" | "convergence";
-
-export interface ArkiusJackerState {
-  nucleoEmBrasas: {
-    active: boolean;
-    usesSpent: number;
-    maxUses: number;
-    startedRound?: number;
-    startedTurn?: number;
-    combatId?: string;
-    remainingRounds: number;
-    attunement: ArkiusAttunement;
-    pendingFluxoReduction: boolean;
-    pendingBrasasDamage: boolean;
-    selectedSolarArea: ArkiusSolarAreaId;
-    fluxoUsedTurnKey?: string;
-    brasasUsedTurnKey?: string;
-    lastCombatTurnKey?: string;
-    firstFireMetalProcUsed: boolean;
-    endedPenaltyActive: boolean;
-    fireMetalImpulsesLocked: boolean;
-    exaurirUsed: boolean;
-  };
-  kineticAura: {
-    active: boolean;
-    radius: number;
-    templateId?: string;
-  };
-  thermalNimbus: {
-    active: boolean;
-    fireAuraJunction: boolean;
-    appliedTurnKeys: Record<string, string>;
-  };
-  concordiaAspect: ArkiusConcordiaAspect;
-  bracoEvolutivo: {
-    chargesSpent: number;
-    maxCharges: number;
-    resistanceFormula: string;
-    level13Unlocked: boolean;
-    level17Unlocked: boolean;
-  };
-}
-
-export interface YuRageState {
-  active: boolean;
-  usesSpent: number;
-  maxUses: number;
-  remainingRounds: number;
-  combatId?: string;
-  lastCombatTurnKey?: string;
-  emergencyTriggered: boolean;
-  collapseDrainedActive: boolean;
-  collapseEnfeebledActive: boolean;
-}
-
-export interface CharlesState {
-  chargesSpent: number;
-  maxCharges: number;
-  deviceBroken: boolean;
-  acLeakStacks: number;
-  net: {
-    active: boolean;
-    overloaded: boolean;
-    remainingRounds: number;
-    radius: number;
-    templateId?: string;
-    combatId?: string;
-    lastCombatTurnKey?: string;
-    appliedTurnKeys: Record<string, string>;
-  };
-}
-
-export type AtlasModificationId = typeof ATLAS_MODIFICATION_IDS[number];
-export type AtlasBaptismDamageType = "slashing" | "piercing";
-
-export interface AtlasState {
-  usesSpent: number;
-  exhaustedLocked: boolean;
-  fatigueStupefied: number;
-  pending: {
-    active: boolean;
-    modifications: AtlasModificationId[];
-    spellRank: number;
-    originalActions: number;
-    baptismDamageType: AtlasBaptismDamageType;
-    overdrive: boolean;
-  };
-  slowPending: boolean;
-  slowActive: boolean;
-  stupefiedPending: boolean;
-  stupefiedActive: boolean;
-  overdriveFlatCheckArmed: boolean;
-  overdriveSpellRank: number;
-  lastCombatTurnKey?: string;
-}
-
 interface AtlasModification {
   id: AtlasModificationId;
   name: string;
@@ -359,6 +272,11 @@ type PartialArkiusJackerState = {
 type PartialYuRageState = Partial<YuRageState>;
 type PartialCharlesState = Partial<Omit<CharlesState, "net">> & { net?: Partial<CharlesState["net"]> };
 type PartialAtlasState = Partial<Omit<AtlasState, "pending">> & { pending?: Partial<AtlasState["pending"]> };
+type PartialPippingNightState = Partial<Omit<PippingNightState, "darkness" | "recovery" | "daily">> & {
+  darkness?: Partial<PippingNightState["darkness"]>;
+  recovery?: Partial<PippingNightState["recovery"]>;
+  daily?: Partial<PippingNightState["daily"]>;
+};
 
 const PROFICIENCY_RANK_BONUS: Record<GyroProficiencyRank, number> = {
   trained: 2,
@@ -395,115 +313,6 @@ const DEFAULT_UNIQUE_STATE: UniqueMechanicsState = {
   activeCore: ETHERNUM_COMPANY_CORE_ID,
   activeProfile: "",
   profiles: {},
-};
-
-const DEFAULT_GYRO_STATE: GyroSpinState = {
-  currentSP: 0,
-  mainAttribute: "dex",
-  proficiencyRank: "trained",
-  sacredScars: 0,
-  corpsePartNumber: 1,
-  torsoBonus: false,
-  heartRegen: false,
-  absoluteReady: false,
-  unlockedIkons: [],
-};
-
-const DEFAULT_BAYLE_STATE: BayleDragonState = {
-  stage: 1,
-  ardor: 0,
-  rageActive: false,
-  awakeningActive: false,
-  lightningChargesUsed: 0,
-  breathUsed: false,
-  roarUsed: false,
-  lancesUsed: false,
-  closureUsed: false,
-};
-
-const DEFAULT_PIPPING_STATE: PippingNightState = {
-  pulse: 2,
-  tier: 1,
-  livingNightActive: false,
-  mirroredShadows: 0,
-};
-
-const DEFAULT_ARKIUS_STATE: ArkiusJackerState = {
-  nucleoEmBrasas: {
-    active: false,
-    usesSpent: 0,
-    maxUses: 2,
-    remainingRounds: 0,
-    attunement: "none",
-    pendingFluxoReduction: false,
-    pendingBrasasDamage: false,
-    selectedSolarArea: "emanation",
-    firstFireMetalProcUsed: false,
-    endedPenaltyActive: false,
-    fireMetalImpulsesLocked: false,
-    exaurirUsed: false,
-  },
-  kineticAura: {
-    active: false,
-    radius: ARKIUS_KINETIC_AURA_DISTANCE,
-  },
-  thermalNimbus: {
-    active: false,
-    fireAuraJunction: false,
-    appliedTurnKeys: {},
-  },
-  concordiaAspect: "chains",
-  bracoEvolutivo: {
-    chargesSpent: 0,
-    maxCharges: 2,
-    resistanceFormula: "2d6 + 5",
-    level13Unlocked: false,
-    level17Unlocked: false,
-  },
-};
-
-const DEFAULT_YU_STATE: YuRageState = {
-  active: false,
-  usesSpent: 0,
-  maxUses: 1,
-  remainingRounds: 0,
-  emergencyTriggered: false,
-  collapseDrainedActive: false,
-  collapseEnfeebledActive: false,
-};
-
-const DEFAULT_CHARLES_STATE: CharlesState = {
-  chargesSpent: 0,
-  maxCharges: 3,
-  deviceBroken: false,
-  acLeakStacks: 0,
-  net: {
-    active: false,
-    overloaded: false,
-    remainingRounds: 0,
-    radius: 10,
-    appliedTurnKeys: {},
-  },
-};
-
-const DEFAULT_ATLAS_STATE: AtlasState = {
-  usesSpent: 0,
-  exhaustedLocked: false,
-  fatigueStupefied: 0,
-  pending: {
-    active: false,
-    modifications: [],
-    spellRank: 1,
-    originalActions: 2,
-    baptismDamageType: "slashing",
-    overdrive: false,
-  },
-  slowPending: false,
-  slowActive: false,
-  stupefiedPending: false,
-  stupefiedActive: false,
-  overdriveFlatCheckArmed: false,
-  overdriveSpellRank: 1,
 };
 
 const ATLAS_MODIFICATIONS: AtlasModification[] = [
@@ -570,80 +379,6 @@ const ATLAS_MODIFICATIONS: AtlasModification[] = [
     details: [
       "Não funciona em magias cujo tipo principal seja fogo, elétrico ou sônico.",
       "A sinergia com Ressonância de Aço permanece indicada no card para conferência da rodada.",
-    ],
-  },
-];
-
-export const PIPPING_ABILITIES: PippingAbility[] = [
-  {
-    id: "animated-shadow",
-    name: "Sombra Animada",
-    tag: "Passivo Permanente",
-    cost: "Sem custo",
-    aspect: "Véu",
-    text: "A sombra de Pipping se move independente e funciona como extensão silenciosa da vontade dele, criando pressão tática mesmo quando ele não ocupa o espaço.",
-    details: [
-      "A sombra deve ser representada por marcador, template ou token auxiliar a critério do mestre.",
-      "Flanqueio Sombrio: 1 vez por rodada, se aliado e sombra estão adjacentes ao mesmo inimigo, o próximo ataque desse aliado deixa o alvo off-guard contra ele.",
-      "A sombra se estende até 10 pés em qualquer direção e não ocupa espaço físico real.",
-      "Luz intensa suprime a sombra por 1 rodada, mas não a destrói.",
-    ],
-  },
-  {
-    id: "mirrored-shadows",
-    name: "Sombras Espelhadas",
-    tag: "2 ações",
-    cost: "1 PS",
-    aspect: "Véu / Vazio",
-    text: "Convoca silhuetas negras adjacentes que confundem mira, puxam agressão e punem ataques mal direcionados.",
-    details: [
-      "Número de sombras: 2 + 1 por Tier desbloqueado.",
-      "Cada sombra tem CA 10 + nível de Pipping e 1 HP.",
-      "Quando uma sombra é destruída por ataque não área/splash, o atacante sofre 1d6 de energia negativa; se for imune, converta para frio.",
-      "Enquanto houver sombra em campo, Pipping recebe +1 circunstância na CA contra ataques à distância.",
-      "O dano de sombra aumenta para 2d6 no Tier 3 e 3d6 no Tier 4.",
-    ],
-  },
-  {
-    id: "dark-whisper",
-    name: "Sussurro das Trevas",
-    tag: "1 ação",
-    cost: "1 PS",
-    aspect: "Véu / Voz",
-    text: "Um aliado a 30 pés que possa ouvi-lo recebe bônus pela linguagem da noite.",
-    details: [
-      "Até o início do próximo turno de Pipping, o aliado recebe +1 circunstância no próximo ataque ou saving throw.",
-      "Se o aliado estiver em escuridão completa, o bônus sobe para +2.",
-      "Se o bônus transformar falha em sucesso, Pipping recupera 1 PS, no máximo 1 vez por rodada.",
-    ],
-  },
-  {
-    id: "void-echoes",
-    name: "Ecos do Vazio",
-    tag: "Reação",
-    cost: "Sem custo",
-    aspect: "Vazio",
-    text: "Quando uma criatura falha num save contra habilidade ou magia de Pipping, a noite devolve Pulso.",
-    details: [
-      "Gatilho: criatura a 30 pés falha ou falha criticamente num save contra habilidade ou magia de Pipping.",
-      "Pipping recupera 1 PS.",
-      "Frequência: 1 vez por rodada.",
-      "O tracker automático cobre acertos de ataque; falhas em saves ainda dependem de macro/manual por enquanto.",
-    ],
-  },
-  {
-    id: "living-night-song",
-    name: "Canção da Noite Viva",
-    tag: "2 ações",
-    cost: "1 PS inicial",
-    aspect: "Composição / Véu / Vazio / Voz",
-    text: "Pipping performa a noite: a escuridão se adensa e protege quem conhece seu ritmo.",
-    details: [
-      "Área: 30 pés de presença, com 10 pés de escuridão mágica para inimigos.",
-      "Duração: sustentada com ação livre, máximo 1 minuto.",
-      "A área é difícil para inimigos que dependem de visão comum, conforme decisão do mestre.",
-      "Aliados na área recebem +1 circunstância contra medo e efeitos de visão.",
-      "Quando Pipping acerta um ataque enquanto a Canção está ativa, o tracker pode recuperar 1 PS até o máximo.",
     ],
   },
 ];
@@ -1532,6 +1267,33 @@ function getActorDivineSpellDC(actor: Actor): number {
   return getActorClassDCBySlug(actor, "cleric");
 }
 
+function getActorCharismaModifier(actor: Actor): number {
+  const abilities = asRecord(asRecord(actor.system).abilities);
+  const charisma = asRecord(abilities.cha);
+  const modifier = Number(charisma.mod ?? charisma.value ?? 0);
+  return Number.isFinite(modifier) ? modifier : 0;
+}
+
+function getActorOccultSpellDC(actor: Actor): number {
+  const system = asRecord(actor.system);
+  const attributes = asRecord(system.attributes);
+  const proficiencies = asRecord(system.proficiencies);
+  const spellcasting = asRecord(system.spellcasting);
+  const candidates = [
+    asRecord(spellcasting.occult).dc,
+    asRecord(spellcasting.occult).value,
+    asRecord(proficiencies.spellcasting).dc,
+    asRecord(proficiencies.spellcasting).value,
+    asRecord(attributes.spellDC).value,
+    asRecord(attributes.spellDC).dc,
+  ];
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return getActorClassDCBySlug(actor, "bard");
+}
+
 function getAtlasMaxUses(actor: Actor): number {
   return clamp(getPF2EAbilityMod(actor, "wis"), 1, 5);
 }
@@ -1657,32 +1419,16 @@ function getSPGainCap(actor: Actor): number {
   return 2;
 }
 
-function normalizeProficiencyRank(value: unknown): GyroProficiencyRank {
-  if (value === "legendary" || value === 8) return "legendary";
-  if (value === "master" || value === 6) return "master";
-  if (value === "expert" || value === 4) return "expert";
-  return "trained";
-}
-
 export function normalizeCampaignCore(value: unknown): CampaignCoreId {
   return value === CONCORDIA_CORE_ID ? CONCORDIA_CORE_ID : ETHERNUM_COMPANY_CORE_ID;
 }
 
 function getProfileCore(profileId: UniqueMechanicProfileId | string): CampaignCoreId | null {
   if (profileId === "") return null;
-  if (
-    profileId === GYRO_PROFILE_ID
-    || profileId === BAYLE_PROFILE_ID
-    || profileId === PIPPING_PROFILE_ID
-    || ETHERNUM_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof ETHERNUM_PLACEHOLDER_PROFILE_IDS[number])
-  ) return ETHERNUM_COMPANY_CORE_ID;
-  if (
-    profileId === ARKIUS_JACKER_PROFILE_ID
-    || profileId === ATLAS_SIDARTA_PROFILE_ID
-    || profileId === CHARLES_PROFILE_ID
-    || profileId === YU_JIU_JI_TAE_PROFILE_ID
-    || CONCORDIA_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof CONCORDIA_PLACEHOLDER_PROFILE_IDS[number])
-  ) return CONCORDIA_CORE_ID;
+  const registered = getUniqueMechanicProfile(profileId);
+  if (registered) return registered.core;
+  if (ETHERNUM_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof ETHERNUM_PLACEHOLDER_PROFILE_IDS[number])) return ETHERNUM_COMPANY_CORE_ID;
+  if (CONCORDIA_PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof CONCORDIA_PLACEHOLDER_PROFILE_IDS[number])) return CONCORDIA_CORE_ID;
   return null;
 }
 
@@ -1692,67 +1438,19 @@ function profileBelongsToCore(profileId: UniqueMechanicProfileId | string, coreI
 }
 
 function isKnownProfile(profileId: unknown): profileId is UniqueMechanicProfileId {
-  return typeof profileId === "string" && (
-    profileId === ""
-    || profileId === GYRO_PROFILE_ID
-    || profileId === BAYLE_PROFILE_ID
-    || profileId === PIPPING_PROFILE_ID
-    || profileId === ARKIUS_JACKER_PROFILE_ID
-    || profileId === ATLAS_SIDARTA_PROFILE_ID
-    || profileId === CHARLES_PROFILE_ID
-    || profileId === YU_JIU_JI_TAE_PROFILE_ID
-    || PLACEHOLDER_PROFILE_IDS.includes(profileId as typeof PLACEHOLDER_PROFILE_IDS[number])
-  );
+  return isKnownUniqueMechanicProfileId(profileId);
 }
 
 function normalizeGyroState(raw: unknown): GyroSpinState {
-  const state = asRecord(raw);
-  return {
-    ...DEFAULT_GYRO_STATE,
-    currentSP: Number(state.currentSP ?? DEFAULT_GYRO_STATE.currentSP) || 0,
-    maxSPOverride: state.maxSPOverride === undefined ? undefined : Number(state.maxSPOverride),
-    mainAttribute: state.mainAttribute === "wis" ? "wis" : "dex",
-    proficiencyRank: normalizeProficiencyRank(state.proficiencyRank ?? state.proficiencyBonus ?? DEFAULT_GYRO_STATE.proficiencyRank),
-    sacredScars: Number(state.sacredScars ?? DEFAULT_GYRO_STATE.sacredScars) || 0,
-    corpsePartNumber: clamp(Number(state.corpsePartNumber ?? DEFAULT_GYRO_STATE.corpsePartNumber) || 1, 1, 9),
-    torsoBonus: Boolean(state.torsoBonus),
-    heartRegen: Boolean(state.heartRegen),
-    absoluteReady: Boolean(state.absoluteReady),
-    unlockedIkons: Array.isArray(state.unlockedIkons) ? state.unlockedIkons.map(String) : [],
-    activeDeviation: typeof state.activeDeviation === "string" ? state.activeDeviation : undefined,
-    activeDeviationCombatId: typeof state.activeDeviationCombatId === "string" ? state.activeDeviationCombatId : undefined,
-    proportionMarkTargetId: typeof state.proportionMarkTargetId === "string" ? state.proportionMarkTargetId : undefined,
-    spGainedThisRound: Number(state.spGainedThisRound ?? 0) || 0,
-    lastSPRoundKey: typeof state.lastSPRoundKey === "string" ? state.lastSPRoundKey : undefined,
-    lastBallBreakerTurnKey: typeof state.lastBallBreakerTurnKey === "string" ? state.lastBallBreakerTurnKey : undefined,
-  };
+  return normalizeGyroProfileState(raw);
 }
 
 function normalizeBayleState(raw: unknown): BayleDragonState {
-  const state = asRecord(raw);
-  return {
-    ...DEFAULT_BAYLE_STATE,
-    stage: clamp(Number(state.stage ?? DEFAULT_BAYLE_STATE.stage) || 1, 1, 4),
-    ardor: clamp(Number(state.ardor ?? DEFAULT_BAYLE_STATE.ardor) || 0, 0, 3),
-    rageActive: Boolean(state.rageActive),
-    awakeningActive: Boolean(state.awakeningActive),
-    lightningChargesUsed: clamp(Number(state.lightningChargesUsed ?? 0) || 0, 0, 2),
-    breathUsed: Boolean(state.breathUsed),
-    roarUsed: Boolean(state.roarUsed),
-    lancesUsed: Boolean(state.lancesUsed),
-    closureUsed: Boolean(state.closureUsed),
-  };
+  return normalizeBayleProfileState(raw);
 }
 
 function normalizePippingState(raw: unknown): PippingNightState {
-  const state = asRecord(raw);
-  return {
-    ...DEFAULT_PIPPING_STATE,
-    pulse: clamp(Number(state.pulse ?? DEFAULT_PIPPING_STATE.pulse) || 0, 0, 6),
-    tier: clamp(Number(state.tier ?? DEFAULT_PIPPING_STATE.tier) || 1, 1, 4),
-    livingNightActive: Boolean(state.livingNightActive),
-    mirroredShadows: clamp(Number(state.mirroredShadows ?? DEFAULT_PIPPING_STATE.mirroredShadows) || 0, 0, 8),
-  };
+  return normalizePippingProfileState(raw);
 }
 
 function normalizeArkiusAttunement(value: unknown): ArkiusAttunement {
@@ -1768,100 +1466,15 @@ function normalizeArkiusConcordiaAspect(value: unknown): ArkiusConcordiaAspect {
 }
 
 function normalizeArkiusState(raw: unknown): ArkiusJackerState {
-  const state = asRecord(raw);
-  const nucleo = asRecord(state.nucleoEmBrasas);
-  const kineticAura = asRecord(state.kineticAura);
-  const thermalNimbus = asRecord(state.thermalNimbus);
-  const braco = asRecord(state.bracoEvolutivo);
-  const startedRound = Number(nucleo.startedRound);
-  const startedTurn = Number(nucleo.startedTurn);
-  const maxUses = clamp(Number(nucleo.maxUses ?? DEFAULT_ARKIUS_STATE.nucleoEmBrasas.maxUses) || 2, 1, 9);
-  const maxCharges = clamp(Number(braco.maxCharges ?? DEFAULT_ARKIUS_STATE.bracoEvolutivo.maxCharges) || 2, 1, 9);
-  return {
-    nucleoEmBrasas: {
-      ...DEFAULT_ARKIUS_STATE.nucleoEmBrasas,
-      active: Boolean(nucleo.active),
-      usesSpent: clamp(Number(nucleo.usesSpent ?? DEFAULT_ARKIUS_STATE.nucleoEmBrasas.usesSpent) || 0, 0, maxUses),
-      maxUses,
-      startedRound: Number.isFinite(startedRound) ? startedRound : undefined,
-      startedTurn: Number.isFinite(startedTurn) ? startedTurn : undefined,
-      combatId: typeof nucleo.combatId === "string" ? nucleo.combatId : undefined,
-      remainingRounds: clamp(Number(nucleo.remainingRounds ?? 0) || 0, 0, ARKIUS_NUCLEO_MAX_ROUNDS),
-      attunement: normalizeArkiusAttunement(nucleo.attunement),
-      pendingFluxoReduction: Boolean(nucleo.pendingFluxoReduction),
-      pendingBrasasDamage: Boolean(nucleo.pendingBrasasDamage),
-      selectedSolarArea: normalizeArkiusSolarAreaId(nucleo.selectedSolarArea),
-      fluxoUsedTurnKey: typeof nucleo.fluxoUsedTurnKey === "string" ? nucleo.fluxoUsedTurnKey : undefined,
-      brasasUsedTurnKey: typeof nucleo.brasasUsedTurnKey === "string" ? nucleo.brasasUsedTurnKey : undefined,
-      lastCombatTurnKey: typeof nucleo.lastCombatTurnKey === "string" ? nucleo.lastCombatTurnKey : undefined,
-      firstFireMetalProcUsed: Boolean(nucleo.firstFireMetalProcUsed),
-      endedPenaltyActive: Boolean(nucleo.endedPenaltyActive),
-      fireMetalImpulsesLocked: Boolean(nucleo.fireMetalImpulsesLocked),
-      exaurirUsed: Boolean(nucleo.exaurirUsed),
-    },
-    kineticAura: {
-      ...DEFAULT_ARKIUS_STATE.kineticAura,
-      active: Boolean(kineticAura.active),
-      radius: clamp(Number(kineticAura.radius ?? ARKIUS_KINETIC_AURA_DISTANCE) || ARKIUS_KINETIC_AURA_DISTANCE, 5, 60),
-      templateId: typeof kineticAura.templateId === "string" ? kineticAura.templateId : undefined,
-    },
-    thermalNimbus: {
-      ...DEFAULT_ARKIUS_STATE.thermalNimbus,
-      active: Boolean(thermalNimbus.active),
-      fireAuraJunction: Boolean(thermalNimbus.fireAuraJunction),
-      appliedTurnKeys: asStringRecord(thermalNimbus.appliedTurnKeys),
-    },
-    concordiaAspect: normalizeArkiusConcordiaAspect(state.concordiaAspect),
-    bracoEvolutivo: {
-      ...DEFAULT_ARKIUS_STATE.bracoEvolutivo,
-      chargesSpent: clamp(Number(braco.chargesSpent ?? DEFAULT_ARKIUS_STATE.bracoEvolutivo.chargesSpent) || 0, 0, maxCharges),
-      maxCharges,
-      resistanceFormula: typeof braco.resistanceFormula === "string" ? braco.resistanceFormula : DEFAULT_ARKIUS_STATE.bracoEvolutivo.resistanceFormula,
-      level13Unlocked: Boolean(braco.level13Unlocked),
-      level17Unlocked: Boolean(braco.level17Unlocked),
-    },
-  };
+  return normalizeArkiusProfileState(raw);
 }
 
 function normalizeYuState(raw: unknown): YuRageState {
-  const state = asRecord(raw);
-  const maxUses = clamp(Number(state.maxUses ?? DEFAULT_YU_STATE.maxUses) || 1, 1, 3);
-  return {
-    ...DEFAULT_YU_STATE,
-    active: Boolean(state.active),
-    usesSpent: clamp(Number(state.usesSpent ?? DEFAULT_YU_STATE.usesSpent) || 0, 0, maxUses),
-    maxUses,
-    remainingRounds: clamp(Number(state.remainingRounds ?? DEFAULT_YU_STATE.remainingRounds) || 0, 0, YU_RAGE_MAX_ROUNDS),
-    combatId: typeof state.combatId === "string" ? state.combatId : undefined,
-    lastCombatTurnKey: typeof state.lastCombatTurnKey === "string" ? state.lastCombatTurnKey : undefined,
-    emergencyTriggered: Boolean(state.emergencyTriggered),
-    collapseDrainedActive: Boolean(state.collapseDrainedActive),
-    collapseEnfeebledActive: Boolean(state.collapseEnfeebledActive),
-  };
+  return normalizeYuProfileState(raw);
 }
 
 function normalizeCharlesState(raw: unknown): CharlesState {
-  const state = asRecord(raw);
-  const net = asRecord(state.net);
-  const maxCharges = clamp(Number(state.maxCharges ?? DEFAULT_CHARLES_STATE.maxCharges) || 3, 1, 9);
-  return {
-    ...DEFAULT_CHARLES_STATE,
-    chargesSpent: clamp(Number(state.chargesSpent ?? 0) || 0, 0, maxCharges),
-    maxCharges,
-    deviceBroken: Boolean(state.deviceBroken),
-    acLeakStacks: clamp(Number(state.acLeakStacks ?? 0) || 0, 0, 3),
-    net: {
-      ...DEFAULT_CHARLES_STATE.net,
-      active: Boolean(net.active),
-      overloaded: Boolean(net.overloaded),
-      remainingRounds: clamp(Number(net.remainingRounds ?? 0) || 0, 0, CHARLES_NET_MAX_ROUNDS),
-      radius: clamp(Number(net.radius ?? 10) || 10, 10, 15),
-      templateId: typeof net.templateId === "string" ? net.templateId : undefined,
-      combatId: typeof net.combatId === "string" ? net.combatId : undefined,
-      lastCombatTurnKey: typeof net.lastCombatTurnKey === "string" ? net.lastCombatTurnKey : undefined,
-      appliedTurnKeys: asStringRecord(net.appliedTurnKeys),
-    },
-  };
+  return normalizeCharlesProfileState(raw);
 }
 
 function normalizeAtlasModificationId(value: unknown): AtlasModificationId | null {
@@ -1869,33 +1482,7 @@ function normalizeAtlasModificationId(value: unknown): AtlasModificationId | nul
 }
 
 function normalizeAtlasState(raw: unknown): AtlasState {
-  const state = asRecord(raw);
-  const pending = asRecord(state.pending);
-  const modifications = Array.isArray(pending.modifications)
-    ? pending.modifications.map(normalizeAtlasModificationId).filter((value): value is AtlasModificationId => value !== null)
-    : [];
-  return {
-    ...DEFAULT_ATLAS_STATE,
-    usesSpent: clamp(Number(state.usesSpent ?? 0) || 0, 0, 5),
-    exhaustedLocked: Boolean(state.exhaustedLocked),
-    fatigueStupefied: Math.max(0, Math.floor(Number(state.fatigueStupefied ?? 0) || 0)),
-    pending: {
-      ...DEFAULT_ATLAS_STATE.pending,
-      active: Boolean(pending.active) && modifications.length > 0,
-      modifications,
-      spellRank: clamp(Number(pending.spellRank ?? 1) || 1, 1, 10),
-      originalActions: clamp(Number(pending.originalActions ?? 2) || 2, 1, 3),
-      baptismDamageType: pending.baptismDamageType === "piercing" ? "piercing" : "slashing",
-      overdrive: Boolean(pending.overdrive) && modifications.length > 1,
-    },
-    slowPending: Boolean(state.slowPending),
-    slowActive: Boolean(state.slowActive),
-    stupefiedPending: Boolean(state.stupefiedPending),
-    stupefiedActive: Boolean(state.stupefiedActive),
-    overdriveFlatCheckArmed: Boolean(state.overdriveFlatCheckArmed),
-    overdriveSpellRank: clamp(Number(state.overdriveSpellRank ?? 1) || 1, 1, 10),
-    ...(typeof state.lastCombatTurnKey === "string" ? { lastCombatTurnKey: state.lastCombatTurnKey } : {}),
-  };
+  return normalizeAtlasProfileState(raw);
 }
 
 function getBayleStageData(stage: number): BayleStage {
@@ -3802,31 +3389,12 @@ function isEthernumGeneratedMessage(message: ChatMessage): boolean {
 }
 
 function isChatAutomationAuthority(): boolean {
-  const activeGMs = Array.from(game.users ?? [])
-    .filter(user => user.active && user.isGM)
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
-  return activeGMs[0]?.id === game.user?.id;
+  return AutomationAuthority.isPrimaryGM();
 }
 
 function canProcessChatAutomation(message: ChatMessage): boolean {
   if (!isChatAutomationAuthority()) return false;
-
-  const messageId = message.id;
-  if (!messageId) {
-    console.warn("Ethernum RPG Module | Ignoring chat automation without a message ID");
-    return false;
-  }
-  if (processedChatMessageIds.has(messageId)) {
-    console.debug(`Ethernum RPG Module | Chat automation already processed for message ${messageId}`);
-    return false;
-  }
-
-  processedChatMessageIds.add(messageId);
-  if (processedChatMessageIds.size > PROCESSED_CHAT_MESSAGE_LIMIT) {
-    const oldestMessageId = processedChatMessageIds.values().next().value;
-    if (oldestMessageId) processedChatMessageIds.delete(oldestMessageId);
-  }
-  return true;
+  return AutomationAuthority.claimChatMessage(message, "unique-mechanics", 1000);
 }
 
 function isPF2EAttackRollMessage(message: ChatMessage): boolean {
@@ -3871,6 +3439,18 @@ function isPF2EFlatCheckMessage(message: ChatMessage): boolean {
   if (type.includes("flat-check")) return true;
   const domains = Array.isArray(context.domains) ? context.domains.map(value => String(value).toLowerCase()) : [];
   return domains.some(domain => domain.includes("flat-check"));
+}
+
+function isPF2ESaveRollMessage(message: ChatMessage): boolean {
+  const context = getChatMessageContext(message);
+  const type = String(context.type ?? context.rollType ?? "").toLowerCase();
+  const statistic = String(context.statistic ?? asRecord(context.check).statistic ?? "").toLowerCase();
+  const domains = Array.isArray(context.domains)
+    ? context.domains.map(value => String(value).toLowerCase())
+    : [];
+  return type.includes("saving")
+    || statistic.includes("saving")
+    || domains.some(domain => domain.includes("saving-throw"));
 }
 
 function isAtlasStupefiedFlatCheckMessage(message: ChatMessage): boolean {
@@ -4042,6 +3622,21 @@ function targetRefsIncludeActor(refs: Set<string>, actor: Actor): boolean {
   const actorId = String(actor.id ?? "");
   const actorUuid = getActorKey(actor);
   return Array.from(refs).some(ref => ref === actorId || ref === actorUuid || ref.includes(actorId) || ref.includes(actorUuid));
+}
+
+function findPippingSaveOrigin(message: ChatMessage): Actor | null {
+  const flags = asRecord(asRecord((message as ChatMessage & { flags?: unknown }).flags).pf2e);
+  const context = getChatMessageContext(message);
+  const refs = collectActorRefs(flags.origin);
+  collectActorRefs(context.origin, refs);
+  collectActorRefs(flags.item, refs);
+  collectActorRefs(context.item, refs);
+  if (refs.size === 0) return null;
+  return Array.from(game.actors ?? []).find(actor =>
+    (actor.type as string) === "character"
+    && UniqueMechanicsSystem.getState(actor).activeProfile === PIPPING_PROFILE_ID
+    && targetRefsIncludeActor(refs, actor)
+  ) ?? null;
 }
 
 function refreshActorMechanicsViews(actor: Actor): void {
@@ -4318,13 +3913,35 @@ export class UniqueMechanicsSystem {
     return next;
   }
 
-  static async updatePippingState(actor: Actor, patch: Partial<PippingNightState>): Promise<PippingNightState> {
+  static async updatePippingState(actor: Actor, patch: PartialPippingNightState): Promise<PippingNightState> {
     const state = this.getState(actor);
     const current = this.getPippingState(actor);
-    const next = normalizePippingState({ ...current, ...patch });
+    const next = normalizePippingState({
+      ...current,
+      ...patch,
+      darkness: {
+        ...current.darkness,
+        ...(patch.darkness ?? {}),
+      },
+      recovery: {
+        ...current.recovery,
+        ...(patch.recovery ?? {}),
+      },
+      daily: {
+        ...current.daily,
+        ...(patch.daily ?? {}),
+      },
+    });
+    const effectiveTier = Math.max(next.tier, pippingTierForLevel(getActorLevel(actor))) as PippingTier;
+    next.pulse = clamp(next.pulse, 0, calculatePippingPulseMaximum(getActorCharismaModifier(actor), effectiveTier));
     state.profiles[PIPPING_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
+  }
+
+  static getPippingPulseMaximum(actor: Actor, state = this.getPippingState(actor)): number {
+    const tier = Math.max(state.tier, pippingTierForLevel(getActorLevel(actor))) as PippingTier;
+    return calculatePippingPulseMaximum(getActorCharismaModifier(actor), tier);
   }
 
   static async adjustPippingPulse(actor?: Actor | null, amount = 1): Promise<PippingNightState | null> {
@@ -4334,7 +3951,330 @@ export class UniqueMechanicsSystem {
       return null;
     }
     const state = this.getPippingState(target);
-    return this.updatePippingState(target, { pulse: clamp(state.pulse + amount, 0, 6) });
+    return this.updatePippingState(target, {
+      pulse: clamp(state.pulse + amount, 0, this.getPippingPulseMaximum(target, state)),
+      recovery: amount < 0 ? { communeAvailable: true } : undefined,
+    });
+  }
+
+  static async setPippingExpression(
+    actor: Actor,
+    tier: PippingTier,
+    expression: PippingExpression | "",
+  ): Promise<PippingNightState> {
+    const state = this.getPippingState(actor);
+    const expressionChoices = { ...state.expressionChoices };
+    const tierKey = String(tier) as `${PippingTier}`;
+    if (expression) expressionChoices[tierKey] = expression;
+    else delete expressionChoices[tierKey];
+    return this.updatePippingState(actor, { expressionChoices });
+  }
+
+  static getPippingDarknessTargets(actor: Actor, state = this.getPippingState(actor)): Array<{ id: string; name: string }> {
+    if (!state.darkness.active) return [];
+    const sourceToken = getActorToken(actor);
+    if (!sourceToken) return [];
+    return getTokensWithinDistance(sourceToken, state.darkness.radius)
+      .filter(token => token !== sourceToken && !tokensAreAllied(sourceToken, token))
+      .map(token => {
+        const tokenData = token as { id?: string; name?: string; actor?: Actor };
+        return {
+          id: String(tokenData.id ?? tokenData.actor?.id ?? ""),
+          name: String(tokenData.name ?? tokenData.actor?.name ?? game.i18n!.localize("ETHERNUM.Unique.Pipping.UnknownTarget")),
+        };
+      })
+      .filter(target => target.id.length > 0);
+  }
+
+  static async activatePippingLivingNight(actor?: Actor | null): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getPippingState(target);
+    if (state.livingNightActive) return state;
+    if (state.pulse < 1) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse"));
+      return state;
+    }
+    const effectiveTier = Math.max(state.tier, pippingTierForLevel(getActorLevel(target))) as PippingTier;
+    const next = await this.updatePippingState(target, {
+      pulse: state.pulse - 1,
+      livingNightActive: true,
+      livingNightTurnKey: getCombatTurnKey() ?? undefined,
+      livingNightRounds: 1,
+      darkness: {
+        active: true,
+        radius: effectiveTier >= 3 ? 15 : 10,
+      },
+      recovery: { communeAvailable: true },
+    });
+    await this.showPippingStatus(target, game.i18n!.localize("ETHERNUM.Unique.Pipping.LivingNightActivated"));
+    return next;
+  }
+
+  static async endPippingLivingNight(actor?: Actor | null): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const next = await this.updatePippingState(target, {
+      livingNightActive: false,
+      livingNightTurnKey: undefined,
+      livingNightRounds: 0,
+      darkness: { active: false },
+    });
+    await this.showPippingStatus(target, game.i18n!.localize("ETHERNUM.Unique.Pipping.LivingNightEnded"));
+    return next;
+  }
+
+  static async configurePippingDarkness(
+    actor?: Actor | null,
+    requestedMode?: PippingDarknessMode,
+  ): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    if (requestedMode) {
+      return this.updatePippingState(target, { darkness: { mode: requestedMode } });
+    }
+
+    const state = this.getPippingState(target);
+    return new Promise(resolve => {
+      const modes: PippingDarknessMode[] = ["manual", "random", "scatter", "area"];
+      const options = modes
+        .map(mode => `<option value="${mode}"${state.darkness.mode === mode ? " selected" : ""}>${escapeHtml(game.i18n!.localize(`ETHERNUM.Unique.Pipping.DarknessModes.${mode}`))}</option>`)
+        .join("");
+      new Dialog({
+        title: game.i18n!.localize("ETHERNUM.Unique.Pipping.ConfigureDarkness"),
+        content: `<form><div class="form-group"><label>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.DarknessMode"))}</label><select name="mode">${options}</select></div></form>`,
+        buttons: {
+          save: {
+            label: game.i18n!.localize("ETHERNUM.Buttons.Save"),
+            callback: async (html: JQuery) => {
+              const mode = String(html.find('select[name="mode"]').val()) as PippingDarknessMode;
+              resolve(await this.updatePippingState(target, { darkness: { mode } }));
+            },
+          },
+          cancel: { label: game.i18n!.localize("ETHERNUM.Buttons.Cancel"), callback: () => resolve(state) },
+        },
+        close: () => resolve(state),
+      }).render(true);
+    });
+  }
+
+  static async resolvePippingDarknessTarget(actor?: Actor | null): Promise<string | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) return null;
+    const state = this.getPippingState(target);
+    const targets = this.getPippingDarknessTargets(target, state);
+    const candidates: DarknessCandidate[] = affectedDarknessCandidates(
+      targets.map(entry => ({ id: entry.id, allied: false, distance: 0 })),
+      state.darkness.radius,
+    );
+    if (state.darkness.mode === "manual") {
+      ui.notifications?.info(game.i18n!.localize("ETHERNUM.Unique.Pipping.DarknessManualResolution"));
+      return null;
+    }
+    if (state.darkness.mode === "scatter") {
+      const direction = Math.floor(Math.random() * 12) + 1;
+      const distance = Math.max(5, Math.ceil((Math.random() * state.darkness.radius) / 5) * 5);
+      ui.notifications?.info(game.i18n!.format("ETHERNUM.Unique.Pipping.DarknessScatterResolved", {
+        direction,
+        distance,
+      }));
+      return null;
+    }
+    if (state.darkness.mode === "area") {
+      ui.notifications?.info(game.i18n!.localize("ETHERNUM.Unique.Pipping.DarknessAreaResolution"));
+      return null;
+    }
+    const resolved = resolveDarknessTarget(candidates, state.darkness.mode);
+    if (!resolved) return null;
+    const resolvedName = targets.find(entry => entry.id === resolved.id)?.name ?? resolved.id;
+    ui.notifications?.info(game.i18n!.format("ETHERNUM.Unique.Pipping.DarknessResolved", {
+      target: resolvedName,
+    }));
+    return resolved.id;
+  }
+
+  static async communePippingWithNight(actor?: Actor | null): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return null;
+    }
+    const state = this.getPippingState(target);
+    if (!state.recovery.communeAvailable) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.CommuneUnavailable"));
+      return state;
+    }
+    return this.updatePippingState(target, {
+      pulse: Math.min(this.getPippingPulseMaximum(target, state), state.pulse + 1),
+      recovery: { communeAvailable: false },
+    });
+  }
+
+  static async pippingDailyPreparations(actor?: Actor | null): Promise<PippingNightState | null> {
+    const target = actor ?? getControlledActor();
+    if (!target) return null;
+    const state = this.getPippingState(target);
+    return this.updatePippingState(target, {
+      pulse: this.getPippingPulseMaximum(target, state),
+      livingNightActive: false,
+      livingNightTurnKey: undefined,
+      livingNightRounds: 0,
+      mirroredShadows: 0,
+      darkness: { active: false },
+      recovery: {
+        communeAvailable: false,
+        lastCombatRecoveryTurnKey: undefined,
+        recoveredByEchoTurnKeys: {},
+      },
+      daily: { beyondFormUsed: false, tierFiveFinisherUsed: false },
+    });
+  }
+
+  static async usePippingAction(actor?: Actor | null, actionId = ""): Promise<void> {
+    const target = actor ?? getControlledActor();
+    if (!target) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
+      return;
+    }
+    const action = getPippingAction(actionId);
+    if (!action) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.UnknownAction"));
+      return;
+    }
+    if (action.id === "living-night-song") {
+      await this.activatePippingLivingNight(target);
+      return;
+    }
+
+    const state = this.getPippingState(target);
+    const actorLevel = getActorLevel(target);
+    const effectiveTier = Math.max(state.tier, pippingTierForLevel(actorLevel)) as PippingTier;
+    const availability = getPippingActionAvailability(action, state, actorLevel, effectiveTier);
+    if (availability.reason === "tier" || availability.reason === "expression") {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.LockedAction"));
+      return;
+    }
+    if (availability.reason === "pulse") {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse"));
+      return;
+    }
+    if (availability.reason === "daily") {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.DailyUsed"));
+      return;
+    }
+
+    const formula = getPippingActionFormula(
+      action.formulaId,
+      actorLevel,
+      getActorCharismaModifier(target),
+      effectiveTier,
+    );
+    const nextPatch: PartialPippingNightState = {
+      pulse: state.pulse - action.pulseCost,
+      recovery: action.pulseCost > 0 ? { communeAvailable: true } : undefined,
+      daily: action.id === "beyond-form"
+        ? { beyondFormUsed: true }
+        : action.frequency === "daily"
+          ? { tierFiveFinisherUsed: true }
+          : undefined,
+    };
+    if (action.id === "mirrored-shadows") {
+      nextPatch.mirroredShadows = effectiveTier >= 5 ? 4 : effectiveTier >= 3 ? 3 : 2;
+    }
+    await this.updatePippingState(target, nextPatch);
+
+    const actionName = game.i18n!.localize(action.nameKey);
+    const dc = action.defense ? getActorOccultSpellDC(target) : null;
+    const formulaLine = formula
+      ? `<p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Roll"))}:</strong> ${escapeHtml(formula)}</p>`
+      : "";
+    const defenseLine = action.defense
+      ? `<p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Defense"))}:</strong> ${escapeHtml(game.i18n!.localize(`ETHERNUM.Unique.Pipping.Defenses.${action.defense}`))} CD ${dc}${action.basicSave ? ` (${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Basic"))})` : ""}</p>`
+      : "";
+    const content = `
+      <div class="ethernum-unique-chat-card ethernum-pipping-chat-card">
+        <h3>${escapeHtml(actionName)}</h3>
+        <p>${escapeHtml(game.i18n!.localize(action.descriptionKey))}</p>
+        ${formulaLine}
+        ${defenseLine}
+      </div>
+    `;
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: target }),
+      content,
+      flags: {
+        [ETHERNUM.MODULE_NAME]: {
+          generated: true,
+          uniqueMechanics: true,
+          pippingActionId: action.id,
+        },
+      } as never,
+    });
+
+    if (formula) {
+      const roll = new Roll(formula);
+      await roll.evaluate();
+      await roll.toMessage({
+        speaker: ChatMessage.getSpeaker({ actor: target }),
+        flavor: actionName,
+        flags: {
+          [ETHERNUM.MODULE_NAME]: {
+            generated: true,
+            uniqueMechanics: true,
+            pippingActionId: action.id,
+          },
+        } as never,
+      });
+    }
+  }
+
+  static async usePippingReaction(actor?: Actor | null, actionId = "void-echoes"): Promise<void> {
+    const action = getPippingAction(actionId);
+    if (!action || action.actions !== "reaction") {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.UnknownReaction"));
+      return;
+    }
+    if (action.id === "void-echoes") {
+      const target = actor ?? getControlledActor();
+      if (!target) return;
+      const state = this.getPippingState(target);
+      const roundKey = getCombatRoundKey() ?? "outside-combat";
+      if (state.recovery.recoveredByEchoTurnKeys[roundKey]) {
+        ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.RoundRecoveryUsed"));
+        return;
+      }
+      const recoveredByEchoTurnKeys = {
+        ...state.recovery.recoveredByEchoTurnKeys,
+        [roundKey]: "manual",
+      };
+      await this.updatePippingState(target, {
+        pulse: Math.min(this.getPippingPulseMaximum(target, state), state.pulse + 1),
+        recovery: {
+          lastCombatRecoveryTurnKey: roundKey,
+          recoveredByEchoTurnKeys: Object.fromEntries(Object.entries(recoveredByEchoTurnKeys).slice(-20)),
+        },
+      });
+      return;
+    }
+    await this.usePippingAction(actor, actionId);
+  }
+
+  static async usePippingFinisher(actor?: Actor | null, actionId = "beyond-form"): Promise<void> {
+    const action = getPippingAction(actionId);
+    if (!action || action.category !== "finisher") {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.UnknownFinisher"));
+      return;
+    }
+    await this.usePippingAction(actor, actionId);
   }
 
   static async updateArkiusState(actor: Actor, patch: PartialArkiusJackerState): Promise<ArkiusJackerState> {
@@ -4921,7 +4861,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleCharlesNetTurnAdvance(combat: Combat): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor; token?: unknown }; turn?: number };
     const currentActor = combatData.combatant?.actor;
     const currentToken = combatData.combatant?.token ?? (currentActor ? getActorToken(currentActor) : null);
@@ -5243,7 +5183,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleAtlasTurnAdvance(combat: Combat): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const actor = (combat as Combat & { combatant?: { actor?: Actor } }).combatant?.actor;
     if (!actor || this.getState(actor).activeProfile !== ATLAS_SIDARTA_PROFILE_ID) return;
     const state = this.getAtlasState(actor);
@@ -5825,7 +5765,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async applyThermalNimbusToToken(actor: Actor, targetToken: unknown, trigger = "entrada na aura", turnKeyOverride?: string): Promise<boolean> {
-    if (!game.user?.isGM || !game.combat) return false;
+    if (!AutomationAuthority.isPrimaryGM() || !game.combat) return false;
     const state = this.getArkiusState(actor);
     if (!state.thermalNimbus.active || !state.kineticAura.active) return false;
     const sourceToken = getActorToken(actor);
@@ -6111,13 +6051,40 @@ export class UniqueMechanicsSystem {
     const isDamageRoll = isPF2EDamageRollMessage(message);
     const isHealingRoll = isPF2EHealingRollMessage(message);
     const isFlatCheck = isPF2EFlatCheckMessage(message);
-    if (!isAttackRoll && !isDamageRoll && !isHealingRoll && !isFlatCheck) return;
+    const isSaveRoll = isPF2ESaveRollMessage(message);
+    if (!isAttackRoll && !isDamageRoll && !isHealingRoll && !isFlatCheck && !isSaveRoll) return;
     if (!canProcessChatAutomation(message)) return;
 
     console.debug(
       `Ethernum RPG Module | Processing PF2E chat automation ${message.id} as authority ${game.user?.id ?? "unknown"}`,
     );
     const attacker = getActorFromChatMessage(message);
+
+    if (isSaveRoll && didPF2ECheckFail(message)) {
+      const pipping = findPippingSaveOrigin(message);
+      if (pipping) {
+        const state = this.getPippingState(pipping);
+        const roundKey = getCombatRoundKey() ?? `message:${message.id}`;
+        if (!state.recovery.recoveredByEchoTurnKeys[roundKey]) {
+          const recoveredByEchoTurnKeys = {
+            ...state.recovery.recoveredByEchoTurnKeys,
+            [roundKey]: String(message.id),
+          };
+          const entries = Object.entries(recoveredByEchoTurnKeys).slice(-20);
+          await this.updatePippingState(pipping, {
+            pulse: Math.min(this.getPippingPulseMaximum(pipping, state), state.pulse + 1),
+            recovery: {
+              lastCombatRecoveryTurnKey: roundKey,
+              recoveredByEchoTurnKeys: Object.fromEntries(entries),
+            },
+          });
+          ui.notifications?.info(game.i18n!.format("ETHERNUM.Unique.Pipping.VoidEchoRecovered", {
+            actor: pipping.name,
+          }));
+          refreshActorMechanicsViews(pipping);
+        }
+      }
+    }
 
     if (attacker && this.getState(attacker).activeProfile === ATLAS_SIDARTA_PROFILE_ID) {
       const atlasState = this.getAtlasState(attacker);
@@ -6198,12 +6165,6 @@ export class UniqueMechanicsSystem {
         ui.notifications?.info(`${attacker.name}: +1 Ardor por acertar.`);
         touchedActors.add(attacker);
       }
-      if (attackerProfile === PIPPING_PROFILE_ID) {
-        const pippingState = this.getPippingState(attacker);
-        await this.updatePippingState(attacker, { pulse: clamp(pippingState.pulse + 1, 0, 6) });
-        ui.notifications?.info(`${attacker.name}: +1 Pulso Sombrio por acertar.`);
-        touchedActors.add(attacker);
-      }
     }
 
     if (targetRefs.size > 0) {
@@ -6221,13 +6182,13 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleCombatTurnAdvance(combat: Combat): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
     const actor = combatData.combatant?.actor;
     const managedTurnKey = getCombatTurnKeyFor(combat);
     if (actor && !processedManagedCombatTurnKeys.has(managedTurnKey)) {
       processedManagedCombatTurnKeys.add(managedTurnKey);
-      if (processedManagedCombatTurnKeys.size > PROCESSED_CHAT_MESSAGE_LIMIT) {
+      if (processedManagedCombatTurnKeys.size > PROCESSED_COMBAT_TURN_LIMIT) {
         const oldestTurnKey = processedManagedCombatTurnKeys.values().next().value;
         if (oldestTurnKey) processedManagedCombatTurnKeys.delete(oldestTurnKey);
       }
@@ -6237,6 +6198,7 @@ export class UniqueMechanicsSystem {
     await this.handleCharlesNetTurnAdvance(combat);
     await this.handleAtlasTurnAdvance(combat);
     await this.handleYuCombatTurnAdvance(combat);
+    await this.handlePippingLivingNightTurnStart(combat);
     if (!actor || (actor.type as string) !== "character") return;
     if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return;
 
@@ -6268,6 +6230,27 @@ export class UniqueMechanicsSystem {
     refreshActorMechanicsViews(actor);
   }
 
+  static async handlePippingLivingNightTurnStart(combat: Combat): Promise<void> {
+    if (!AutomationAuthority.isPrimaryGM()) return;
+    const actor = (combat as Combat & { combatant?: { actor?: Actor } }).combatant?.actor;
+    if (!actor || this.getState(actor).activeProfile !== PIPPING_PROFILE_ID) return;
+    const state = this.getPippingState(actor);
+    if (!state.livingNightActive) return;
+    const turnKey = getCombatTurnKeyFor(combat);
+    if (state.livingNightTurnKey === turnKey) return;
+    if (state.livingNightRounds >= 10 || state.pulse < 1) {
+      await this.endPippingLivingNight(actor);
+      return;
+    }
+    await this.updatePippingState(actor, {
+      pulse: state.pulse - 1,
+      livingNightTurnKey: turnKey,
+      livingNightRounds: state.livingNightRounds + 1,
+      recovery: { communeAvailable: true },
+    });
+    refreshActorMechanicsViews(actor);
+  }
+
   static getActiveThermalNimbusActors(): Actor[] {
     return Array.from(game.actors ?? []).filter(actor => {
       if ((actor.type as string) !== "character") return false;
@@ -6278,7 +6261,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleArkiusThermalNimbusTurnStart(combat: Combat): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const targetToken = (combat as Combat & { combatant?: { token?: unknown; tokenId?: string; actor?: Actor } }).combatant?.token;
     const targetActor = (combat as Combat & { combatant?: { actor?: Actor } }).combatant?.actor;
     if (!targetActor) return;
@@ -6291,7 +6274,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleTokenUpdate(tokenDocument: unknown, changed: unknown): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const changes = asRecord(changed);
     const moved = "x" in changes || "y" in changes || "elevation" in changes;
     if (!moved) return;
@@ -6635,7 +6618,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleYuCombatTurnAdvance(combat: Combat): Promise<void> {
-    if (!game.user?.isGM) return;
+    if (!AutomationAuthority.isPrimaryGM()) return;
     const combatData = combat as Combat & { combatant?: { actor?: Actor }; turn?: number };
     const actor = combatData.combatant?.actor;
     if (!actor || (actor.type as string) !== "character") return;
@@ -6657,7 +6640,7 @@ export class UniqueMechanicsSystem {
   }
 
   static async handleYuActorUpdate(actor: Actor, changed: unknown): Promise<void> {
-    if (!game.user?.isGM || (actor.type as string) !== "character") return;
+    if (!AutomationAuthority.isPrimaryGM() || (actor.type as string) !== "character") return;
     if (this.getState(actor).activeProfile !== YU_JIU_JI_TAE_PROFILE_ID) return;
     const changedText = JSON.stringify(changed ?? {}).toLowerCase();
     if (!changedText.includes("hp")) return;
@@ -6673,23 +6656,35 @@ export class UniqueMechanicsSystem {
     }
   }
 
-  static async showPippingStatus(actor?: Actor | null, title = "Pipping — Expressão da Noite"): Promise<void> {
+  static async showPippingStatus(actor?: Actor | null, title?: string): Promise<void> {
     const target = actor ?? getControlledActor();
     if (!target) {
       ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Errors.NoActor"));
       return;
     }
     const state = this.getPippingState(target);
+    const effectiveTier = Math.max(state.tier, pippingTierForLevel(getActorLevel(target))) as PippingTier;
+    const maxPulse = this.getPippingPulseMaximum(target, state);
+    const statusTitle = title ?? game.i18n!.localize("ETHERNUM.Unique.Pipping.Title");
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: target }),
       content: `
         <div class="ethernum-unique-chat-card ethernum-pipping-chat-card">
-          <h3>${title}</h3>
-          <p><strong>Tier:</strong> ${state.tier}</p>
-          <p><strong>Pulso Sombrio:</strong> ${state.pulse} / 6</p>
-          <p><strong>Sombras Espelhadas:</strong> ${state.mirroredShadows}</p>
-          <p><strong>Canção da Noite Viva:</strong> ${state.livingNightActive ? "Ativa" : "Inativa"}</p>
+          <h3>${escapeHtml(statusTitle)}</h3>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Tier"))}:</strong> ${effectiveTier}</p>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Pulse"))}:</strong> ${state.pulse} / ${maxPulse}</p>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.NightDC"))}:</strong> ${getActorOccultSpellDC(target)}</p>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.MirroredShadows"))}:</strong> ${state.mirroredShadows}</p>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.LivingNight"))}:</strong> ${escapeHtml(game.i18n!.localize(state.livingNightActive ? "ETHERNUM.Common.Active" : "ETHERNUM.Common.Inactive"))}</p>
+          <p><strong>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.DarknessMode"))}:</strong> ${escapeHtml(game.i18n!.localize(`ETHERNUM.Unique.Pipping.DarknessModes.${state.darkness.mode}`))}</p>
         </div>`,
+      flags: {
+        [ETHERNUM.MODULE_NAME]: {
+          generated: true,
+          uniqueMechanics: true,
+          pippingStatus: true,
+        },
+      } as never,
     });
   }
 
@@ -7466,6 +7461,9 @@ export class UniqueMechanicsSystem {
     const atlasState = this.getAtlasState(actor);
     const yuState = this.getYuState(actor);
     const actorLevel = getActorLevel(actor);
+    const pippingTier = Math.max(pippingState.tier, pippingTierForLevel(actorLevel)) as PippingTier;
+    const pippingPulseMaximum = this.getPippingPulseMaximum(actor, pippingState);
+    const pippingDarknessTargets = isGM ? this.getPippingDarknessTargets(actor, pippingState) : [];
     const maxSP = this.calculateGyroMaxSP(actor, gyroState);
     const rank = this.getGyroRank(gyroState.currentSP, gyroState);
     const spinPercent = maxSP > 0 ? Math.round((gyroState.currentSP / maxSP) * 100) : 0;
@@ -7525,21 +7523,21 @@ export class UniqueMechanicsSystem {
     }));
     const ethernumCompanyProfiles = [
       { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
-      { id: GYRO_PROFILE_ID, label: "Gyro Zeppeli - Via da Rotação Sagrada" },
-      { id: BAYLE_PROFILE_ID, label: "Bayle, o Horror - Corpo Dracônico" },
-      { id: PIPPING_PROFILE_ID, label: "Pipping Baldwin Black - Expressão da Noite" },
-      { id: "kaitake", label: "Kaitake - Mecânica em preparação" },
-      { id: "cinerio", label: "Cinério - Mecânica em preparação" },
-      { id: "ailan", label: "Ailan - Mecânica em preparação" },
+      ...getProfileOptions(ETHERNUM_COMPANY_CORE_ID).map(profile => ({
+        id: profile.id,
+        label: profile.placeholder
+          ? `${game.i18n!.localize(`ETHERNUM.Unique.Profile.Labels.${profile.id}`)} - ${game.i18n!.localize("ETHERNUM.Unique.Profile.InPreparation")}`
+          : game.i18n!.localize(`ETHERNUM.Unique.Profile.Labels.${profile.id}`),
+      })),
     ];
     const concordiaProfiles = [
       { id: "", label: game.i18n!.localize("ETHERNUM.Unique.Profile.None") },
-      { id: ARKIUS_JACKER_PROFILE_ID, label: "Arkius Jacker - Concórdia" },
-      { id: ATLAS_SIDARTA_PROFILE_ID, label: "Atlas Sidarta - Olhar do Divino" },
-      { id: CHARLES_PROFILE_ID, label: "Charles - Miranha em Ação" },
-      { id: "morgana", label: "Morgana - Mecânica em preparação" },
-      { id: YU_JIU_JI_TAE_PROFILE_ID, label: "Yu, Jiu Ji Tae - Rage in the Flesh" },
-      { id: "unluck", label: "Unluck - Mecânica em preparação" },
+      ...getProfileOptions(CONCORDIA_CORE_ID).map(profile => ({
+        id: profile.id,
+        label: profile.placeholder
+          ? `${game.i18n!.localize(`ETHERNUM.Unique.Profile.Labels.${profile.id}`)} - ${game.i18n!.localize("ETHERNUM.Unique.Profile.InPreparation")}`
+          : game.i18n!.localize(`ETHERNUM.Unique.Profile.Labels.${profile.id}`),
+      })),
     ];
     const placeholderLabels: Record<string, string> = {
       kaitake: "Kaitake",
@@ -7783,14 +7781,80 @@ export class UniqueMechanicsSystem {
       },
       pipping: {
         state: pippingState,
-        pulsePercent: Math.round((pippingState.pulse / 6) * 100),
-        shadowCountExpected: 2 + pippingState.tier,
-        abilities: PIPPING_ABILITIES,
+        tier: pippingTier,
+        pulseMaximum: pippingPulseMaximum,
+        pulsePercent: pippingPulseMaximum > 0 ? Math.round((pippingState.pulse / pippingPulseMaximum) * 100) : 0,
+        nightDC: getActorOccultSpellDC(actor),
+        shadowCountExpected: pippingTier >= 5 ? 4 : pippingTier >= 3 ? 3 : 2,
+        darknessTargets: pippingDarknessTargets,
+        darknessTargetCount: pippingDarknessTargets.length,
+        expressions: [
+          { id: "destruction", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.destruction") },
+          { id: "order", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.order") },
+          { id: "chaos", label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Expressions.chaos") },
+        ],
+        tiers: PIPPING_TIERS.map(tier => {
+          const selectedExpression = pippingState.expressionChoices[tier.id] ?? "";
+          return {
+            ...tier,
+            name: game.i18n!.localize(tier.nameKey),
+            passives: tier.passiveKeys.map(key => game.i18n!.localize(key)),
+            unlocked: pippingTier >= tier.tier && actorLevel >= tier.minLevel,
+            selectedExpression,
+          };
+        }),
+        abilities: PIPPING_ACTIONS.map(action => {
+          const availability = getPippingActionAvailability(action, pippingState, actorLevel, pippingTier);
+          const formula = getPippingActionFormula(
+            action.formulaId,
+            actorLevel,
+            getActorCharismaModifier(actor),
+            pippingTier,
+          );
+          const actionLabel = typeof action.actions === "number"
+            ? game.i18n!.format("ETHERNUM.Unique.Pipping.ActionCount", { count: action.actions })
+            : game.i18n!.localize(`ETHERNUM.Unique.Pipping.ActionTypes.${action.actions}`);
+          return {
+            ...action,
+            name: game.i18n!.localize(action.nameKey),
+            text: game.i18n!.localize(action.descriptionKey),
+            details: action.detailKeys.map(key => game.i18n!.localize(key)),
+            tag: actionLabel,
+            cost: action.pulseCost > 0
+              ? game.i18n!.format("ETHERNUM.Unique.Pipping.PulseCost", { cost: action.pulseCost })
+              : game.i18n!.localize("ETHERNUM.Unique.Pipping.NoCost"),
+            aspect: action.traits
+              .map(trait => game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`))
+              .join(" / "),
+            formula,
+            unlocked: availability.tierUnlocked && availability.selected,
+            ...availability,
+            lockReason: availability.reason === "tier"
+              ? game.i18n!.format("ETHERNUM.Unique.Pipping.RequiresTierLevel", {
+                tier: action.requiredTier,
+                level: action.requiredLevel,
+              })
+              : availability.reason === "expression"
+                ? game.i18n!.localize("ETHERNUM.Unique.Pipping.RequiresExpression")
+                : availability.reason === "pulse"
+                  ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse")
+                  : availability.reason === "daily"
+                    ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.DailyUsed")
+                    : "",
+          };
+        }),
         macroSlots: [
           "await game.ethernum.macros.setUniqueProfile(\"pipping-night\");",
-          "await game.ethernum.macros.showPippingStatus();",
-          "await game.ethernum.macros.adjustPippingPulse(1);",
-          "await game.ethernum.macros.adjustPippingPulse(-1);",
+          "await game.ethernum.macros.ethernumCompany.pipping.showStatus();",
+          "await game.ethernum.macros.ethernumCompany.pipping.activateLivingNight();",
+          "await game.ethernum.macros.ethernumCompany.pipping.endLivingNight();",
+          "await game.ethernum.macros.ethernumCompany.pipping.useAction(\"ruin-note\");",
+          "await game.ethernum.macros.ethernumCompany.pipping.useReaction(\"void-echoes\");",
+          "await game.ethernum.macros.ethernumCompany.pipping.useFinisher(\"beyond-form\");",
+          "await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();",
+          "await game.ethernum.macros.ethernumCompany.pipping.resolveDarkness();",
+          "await game.ethernum.macros.ethernumCompany.pipping.communeWithNight();",
+          "await game.ethernum.macros.ethernumCompany.pipping.dailyPreparations();",
         ],
       },
       bayle: {

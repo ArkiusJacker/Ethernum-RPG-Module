@@ -56,7 +56,9 @@
       "Disable": "Desabilitar",
       "Minimize": "Minimizar",
       "Expand": "Expandir",
-      "Close": "Fechar"
+      "Close": "Fechar",
+      "Save": "Salvar",
+      "Cancel": "Cancelar"
     },
     "Attribute": {
       "Name": "Atributo",
@@ -204,7 +206,22 @@
     "Unique": {
       "Empty": "Nenhuma mecânica única selecionada para este personagem.",
       "Profile": {
-        "None": "Sem mecânica única"
+        "None": "Sem mecânica única",
+        "InPreparation": "Mecânica em preparação",
+        "Labels": {
+          "gyro-spin": "Gyro Zeppeli - Via da Rotação Sagrada",
+          "bayle-dragon": "Bayle, o Horror - Corpo Dracônico",
+          "pipping-night": "Pipping Baldwin Black - Expressão da Noite",
+          "kaitake": "Kaitake",
+          "cinerio": "Cinério",
+          "ailan": "Ailan",
+          "arkius-jacker": "Arkius Jacker - Concórdia",
+          "atlas-sidarta": "Atlas Sidarta - Olhar do Divino",
+          "charles": "Charles - Miranha em Ação",
+          "morgana": "Morgana",
+          "yu-jiu-ji-tae": "Yu, Jiu Ji Tae - Rage in the Flesh",
+          "unluck": "Unluck"
+        }
       },
       "Errors": {
         "TechniqueNotFound": "Técnica não encontrada."
@@ -317,7 +334,226 @@
         "OncePerAwakening": "Esta ação já foi usada neste Despertar."
       },
       "Pipping": {
-        "Controls": "Controle da Noite"
+        "Title": "Expressão da Noite",
+        "Subtitle": "Véu, Vazio e Voz transformam sombra, fome e performance em controle de campo.",
+        "Controls": "Controle da Noite",
+        "ShowStatus": "Exibir estado da Noite",
+        "Tier": "Tier",
+        "Level": "Nível",
+        "Pulse": "Pulso Sombrio",
+        "NightDC": "CD da Noite",
+        "MirroredShadows": "Sombras Espelhadas",
+        "LivingNight": "Canção da Noite Viva",
+        "LivingNightActivated": "Canção da Noite Viva ativada",
+        "LivingNightEnded": "Canção da Noite Viva encerrada",
+        "VoidEchoRecovered": "{actor} recuperou 1 Pulso Sombrio com Ecos do Vazio.",
+        "ActivateLivingNight": "Ativar Noite Viva",
+        "EndLivingNight": "Encerrar Noite Viva",
+        "Commune": "Comungar com a Noite",
+        "ConfigureDarkness": "Configurar escuridão",
+        "Darkness": "Escuridão mágica",
+        "DarknessMode": "Resolução da escuridão",
+        "DarknessHint": "O módulo identifica inimigos no raio sem revelar essa lista aos jogadores. O modo escolhido orienta a resolução de alvos.",
+        "AffectedTargets": "Inimigos detectados",
+        "UnknownTarget": "Alvo desconhecido",
+        "ResolveDarkness": "Resolver alvo",
+        "DarknessResolved": "A escuridão selecionou: {target}.",
+        "DarknessManualResolution": "Modo manual: o mestre escolhe o alvo válido.",
+        "DarknessScatterResolved": "Dispersão: direção {direction} no relógio, a {distance} pés.",
+        "DarknessAreaResolution": "Modo área: posicione a área em uma região válida da escuridão sem fixá-la em um token.",
+        "NightAbilities": "Habilidades da Noite",
+        "UseAction": "Usar",
+        "MacroSpace": "Macros da Noite",
+        "ExpressionUnselected": "Expressão não escolhida",
+        "RequiresExpression": "Escolha a Expressão deste Tier para liberar a habilidade.",
+        "RequiresTierLevel": "Requer Tier {tier} e nível {level}.",
+        "ActionCount": "{count} ação(ões)",
+        "PulseCost": "{cost} PS",
+        "NoCost": "Sem custo",
+        "Roll": "Rolagem",
+        "Defense": "Defesa",
+        "Basic": "básico",
+        "ActionTypes": {
+          "reaction": "Reação",
+          "free": "Ação livre",
+          "passive": "Passivo"
+        },
+        "Defenses": {
+          "fortitude": "Fortitude",
+          "reflex": "Reflexos",
+          "will": "Vontade"
+        },
+        "Traits": {
+          "Veil": "Véu",
+          "Shadow": "Sombra",
+          "Void": "Vazio",
+          "Illusion": "Ilusão",
+          "Occult": "Oculto",
+          "Voice": "Voz",
+          "Auditory": "Auditivo",
+          "Composition": "Composição",
+          "Mental": "Mental",
+          "Healing": "Cura",
+          "Teleportation": "Teleporte",
+          "Fear": "Medo",
+          "Cold": "Frio",
+          "Linguistic": "Linguístico",
+          "Incapacitation": "Incapacitação",
+          "Polymorph": "Polimorfia",
+          "Fortune": "Fortuna",
+          "Darkness": "Escuridão"
+        },
+        "Expressions": {
+          "destruction": "Destruição",
+          "order": "Ordem",
+          "chaos": "Caos"
+        },
+        "DarknessModes": {
+          "manual": "Manual",
+          "random": "Alvo aleatório",
+          "scatter": "Dispersão",
+          "area": "Área"
+        },
+        "Tiers": {
+          "1": "I — Despertar",
+          "2": "II — Comunhão",
+          "3": "III — Encarnação",
+          "4": "IV — Transcendência",
+          "5": "V — A Noite"
+        },
+        "TierPassives": {
+          "1": "Kit-base de Sombra Animada, imagens, sussurro, Ecos e Noite Viva.",
+          "2": "Forma das Sombras amplia a mobilidade entre luz fraca e escuridão.",
+          "3": "Sombra a 20 pés, 3 imagens, escuridão a 15 pés e resistência a vazio e frio igual ao Tier.",
+          "4": "Resistência 10 a vazio e frio, sombra imune à luz solar comum e neutralização pela CD da Noite.",
+          "5": "Controle de iluminação em 30 pés, Sombra a 30 pés e 4 imagens."
+        },
+        "Errors": {
+          "NotEnoughPulse": "Pulso Sombrio insuficiente.",
+          "CommuneUnavailable": "Pipping precisa gastar Pulso antes de Comungar novamente.",
+          "UnknownAction": "Ação de Pipping não encontrada.",
+          "UnknownReaction": "Reação de Pipping não encontrada.",
+          "UnknownFinisher": "Finalizador de Pipping não encontrado.",
+          "LockedAction": "Esta habilidade ainda está bloqueada.",
+          "DailyUsed": "Esta habilidade diária já foi usada.",
+          "RoundRecoveryUsed": "Pipping já recuperou Pulso nesta rodada."
+        },
+        "Actions": {
+          "AnimatedShadow": {
+            "Name": "Sombra Animada",
+            "Description": "Pipping posiciona sua sombra como extensão tática da própria vontade.",
+            "Detail1": "No início do turno, posicione a sombra em um espaço dentro do alcance do Tier.",
+            "Detail2": "Uma vez por rodada, um inimigo adjacente à sombra pode ficar Off-Guard contra o Strike de um aliado."
+          },
+          "MirroredShadows": {
+            "Name": "Sombras Espelhadas",
+            "Description": "Imagens sombrias desviam ataques e retaliam quando são destruídas.",
+            "Detail1": "Cria 2 imagens nos Tiers I–II, 3 nos Tiers III–IV e 4 no Tier V.",
+            "Detail2": "Um ataque contra Pipping testa CD 5; na falha, destrói uma imagem e sofre dano de vazio, ou frio contra imunidade a vazio."
+          },
+          "DarkWhisper": {
+            "Name": "Sussurro das Trevas",
+            "Description": "Um aliado a 30 pés recebe bônus circunstancial no próximo ataque ou salvamento.",
+            "Detail1": "O bônus é +1 até o início do próximo turno de Pipping.",
+            "Detail2": "Em escuridão completa, Pipping pode gastar 1 PS adicional para elevar o bônus a +2."
+          },
+          "VoidEchoes": {
+            "Name": "Ecos do Vazio",
+            "Description": "Uma falha contra magia ocultista ou habilidade única devolve 1 PS.",
+            "Detail1": "Reação, uma vez por rodada, com alvo a até 30 pés."
+          },
+          "LivingNight": {
+            "Name": "Canção da Noite Viva",
+            "Description": "Uma composição sustentada cria escuridão mágica que favorece aliados e enfraquece inimigos.",
+            "Detail1": "Área de presença de 30 pés e escuridão de 10 pés, ampliada para 15 pés no Tier III.",
+            "Detail2": "Inimigos na escuridão sofrem –1 de status nos salvamentos contra Pipping; aliados enxergam normalmente."
+          },
+          "RuinNote": {
+            "Name": "Nota de Ruína",
+            "Description": "Uma nota impossível causa dano de vazio com salvamento básico de Vontade.",
+            "Detail1": "Na falha crítica, o alvo também fica Frightened 1."
+          },
+          "RestoringPulse": {
+            "Name": "Pulso Restaurador",
+            "Description": "A sombra fecha ferimentos de uma criatura viva voluntária.",
+            "Detail1": "Em luz fraca ou escuridão, o alvo ignora Frightened 1 até o próximo turno de Pipping."
+          },
+          "BrokenMeter": {
+            "Name": "Compasso Quebrado",
+            "Description": "Pipping altera o ritmo percebido e força movimento seguro.",
+            "Detail1": "Vontade: na falha, move 5 pés e deixa Off-Guard; na falha crítica, move 10 pés e bloqueia reações."
+          },
+          "ShadowForm": {
+            "Name": "Forma das Sombras",
+            "Description": "Pipping se teleporta entre áreas de luz fraca ou escuridão.",
+            "Detail1": "Alcance 30 pés, 60 no nível 9 e 120 no nível 17."
+          },
+          "VoidTouch": {
+            "Name": "Toque do Vazio",
+            "Description": "Uma extensão da sombra atravessa o alvo e causa dano de vazio.",
+            "Detail1": "Fortitude básico; falha causa dano persistente e falha crítica também causa Enfeebled 1."
+          },
+          "BlackOrderMantle": {
+            "Name": "Manto da Ordem Negra",
+            "Description": "Reação que reduz o dano sofrido por Pipping ou um aliado.",
+            "Detail1": "Redução igual à metade do nível, arredondada para cima, mais Carisma; na escuridão concede PV temporários iguais ao Tier."
+          },
+          "ShadowResonance": {
+            "Name": "Ressonância Sombria",
+            "Description": "A dor retorna ao agressor como uma nota dissonante.",
+            "Detail1": "Vontade: falha causa Frightened 1 e bloqueia reações; falha crítica causa Frightened 2."
+          },
+          "NightEmanation": {
+            "Name": "Emanação da Noite",
+            "Description": "Uma emanação de 15 pés causa dano de vazio ou frio.",
+            "Detail1": "Fortitude básico; falha causa Enfeebled 1 e falha crítica causa Enfeebled 2 por 1 rodada."
+          },
+          "RequiemPersist": {
+            "Name": "Réquiem dos Que Persistem",
+            "Description": "Até três aliados recuperam PV e recebem proteção para o próximo salvamento.",
+            "Detail1": "Cada alvo recebe +1 de status no próximo salvamento antes do próximo turno de Pipping."
+          },
+          "ShadowKing": {
+            "Name": "Sombra-Rei",
+            "Description": "Um domínio vivo de sombra cria terreno difícil para inimigos.",
+            "Detail1": "Vontade uma vez por uso: falha deixa Off-Guard; falha crítica também causa Frightened 1."
+          },
+          "EndingChorus": {
+            "Name": "Coro do Fim",
+            "Description": "Um cone de 30 pés causa 10d6 de dano de vazio.",
+            "Detail1": "Vontade básico; falha causa Frightened 1 e falha crítica causa Frightened 2 e Stupefied 1."
+          },
+          "GentleNightLiturgy": {
+            "Name": "Liturgia da Noite Mansa",
+            "Description": "Pipping e aliados em 30 pés recuperam PV.",
+            "Detail1": "Cada alvo reduz em 1 Frightened, Sickened ou Stupefied; conta como composição."
+          },
+          "AbyssVoice": {
+            "Name": "Voz do Abismo",
+            "Description": "Uma ordem sombria força as primeiras ações do próximo turno.",
+            "Detail1": "Vontade com Incapacitação; falha obriga uma ação e falha crítica obriga duas ações válidas."
+          },
+          "BeyondForm": {
+            "Name": "Além da Forma",
+            "Description": "Pipping abandona a forma física até o início do próximo turno.",
+            "Detail1": "Recebe voo, atravessa criaturas e objetos e resistência 15, exceto contra força e espírito."
+          },
+          "DeadSunEpitaph": {
+            "Name": "Epitáfio do Sol Morto",
+            "Description": "Uma explosão de 20 pés causa 14d6 de vazio ou frio e deixa escuridão mágica.",
+            "Detail1": "Fortitude básico; falha causa dano persistente e falha crítica também causa Enfeebled 2."
+          },
+          "NightRefusesEnd": {
+            "Name": "A Noite Recusa o Fim",
+            "Description": "Reação que impede a morte de Pipping ou de um aliado.",
+            "Detail1": "O alvo permanece vivo, recupera 8d8 + Carisma, não aumenta Wounded e recebe Doomed 1."
+          },
+          "ForbiddenPerformance": {
+            "Name": "A Performance Proibida",
+            "Description": "Aliados ficam Quickened e inimigos enfrentam Vontade em uma emanação de 60 pés.",
+            "Detail1": "Sucesso deixa Off-Guard; falha causa Slowed 1 e falha crítica causa Slowed 2."
+          }
+        }
       }
     },
     "DiceRoll": {
@@ -344,6 +580,109 @@
     "Warnings": {
       "NotPF2E": "Este módulo foi projetado para funcionar com o sistema Pathfinder 2E. Algumas funcionalidades podem não estar disponíveis."
     },
+    "Common": {
+      "Active": "Ativa",
+      "Inactive": "Inativa"
+    },
+    "ManagedMacros": {
+      "PersonalCollision": "Uma macro pessoal possui o mesmo nome de uma macro Ethernum. Ela foi preservada e a macro gerenciada recebeu um nome distinto."
+    },
+    "Initialization": {
+      "Failed": "A inicialização terminou com {failed} falha(s) em {total} personagens. Consulte o console."
+    },
+    "Migrations": {
+      "Success": "Migração concluída para {total} personagem(ns).",
+      "Failed": "A migração falhou em {failed} de {total} personagens. O schema global não foi avançado."
+    },
+    "CombatTracker": {
+      "Title": "Rastreador de Combate",
+      "RestorePosition": "Restaurar posição padrão",
+      "Open": "Abrir rastreador de combate",
+      "Minimize": "Minimizar rastreador",
+      "View": "Visão do rastreador",
+      "Player": "Jogador",
+      "OutsideCombat": "Fora de combate",
+      "CombatRound": "Combate · Rodada {round}",
+      "CharacterCount": "{count} personagem(ns)",
+      "LastResult": "Último: {result}{natural}",
+      "NoAttacks": "Nenhum ataque registrado neste combate",
+      "Summary": "Fides {fides} · Conversões {conversions} · Extensões {extensions}",
+      "Tabs": {
+        "Player": "Jogador",
+        "GM": "Mestre"
+      },
+      "Stats": {
+        "Results": "Resultados deste combate",
+        "Failures": "Falhas",
+        "CriticalFailures": "Falhas críticas",
+        "Successes": "Sucessos",
+        "CriticalSuccesses": "Sucessos críticos",
+        "Natural1": "Resultados 1 naturais",
+        "Natural20": "Resultados 20 naturais"
+      },
+      "Fides": {
+        "Ready": "Pronto para o próximo ataque",
+        "NoCharges": "Sem cargas até as preparações diárias",
+        "Markers": "{markers}/3 falhas consecutivas",
+        "Charges": "{charges}/3 cargas",
+        "ChargeLabel": "Cargas"
+      },
+      "Fulgor": {
+        "Waiting": "Aguardando 20 natural",
+        "SameTarget": "o mesmo alvo",
+        "Chain": "{current}/{max} contra {target}",
+        "Triggers": "{triggers} gatilho(s)",
+        "State": "Estado do Fulgor Negro"
+      },
+      "Actions": {
+        "UseFides": "Executar Momentum Fides",
+        "UseFulgor": "Executar o ataque livre de Fulgor Negro",
+        "RemoveMarker": "Remover uma marca de Fides",
+        "AddMarker": "Adicionar uma marca de Fides",
+        "EndFulgor": "Encerrar Fulgor Negro",
+        "ResetCombatActor": "Limpar rastreio deste combate",
+        "ResetDailyActor": "Restaurar preparações diárias",
+        "ResetCombat": "Limpar dados do combate",
+        "ResetDaily": "Aplicar preparações diárias",
+        "Combat": "Combate",
+        "Daily": "Diário"
+      },
+      "Empty": {
+        "Title": "Nenhum personagem disponível",
+        "Hint": "Atribua um personagem ao usuário ou controle um token que você possua."
+      },
+      "Errors": {
+        "ActionFailed": "Não foi possível concluir a ação do rastreador."
+      }
+    },
+    "CombatTimer": {
+      "Title": "Temporizador de turnos",
+      "NoCombat": "Nenhum combate ativo",
+      "NoCombatant": "Sem combatente",
+      "Duration": "Duração",
+      "Unit": "Unidade da duração",
+      "Seconds": "segundos",
+      "Minutes": "minutos",
+      "Turn": "Turno",
+      "ApplyDuration": "Aplicar duração",
+      "Start": "Iniciar",
+      "Pause": "Pausar",
+      "Resume": "Continuar",
+      "Reset": "Reiniciar turno",
+      "Advance": "Avançar agora",
+      "AutoAdvance": "Alternar avanço automático",
+      "Disable": "Desligar temporizador",
+      "Status": {
+        "disabled": "Desativado",
+        "paused": "Pausado",
+        "running": "Em andamento",
+        "expired": "Tempo esgotado"
+      },
+      "Errors": {
+        "NotAuthority": "Somente o mestre responsável pela automação pode controlar o temporizador.",
+        "ActionFailed": "Não foi possível concluir a ação do temporizador."
+      }
+    },
     "Settings": {
       "LongRestFullRestore": {
         "Name": "Restauração Total no Descanso Longo",
@@ -368,6 +707,25 @@
       "DefaultRuneCostPerClass": {
         "Name": "Custo Padrão de Runa por Classe",
         "Hint": "Define o custo de éter padrão (adicional ao custo base da classe) para novas runas de cada classe."
+      },
+      "CombatTrackerEnabled": {
+        "Name": "Exibir rastreador de combate Ethernum",
+        "Hint": "Mostra ou oculta o rastreador global para este cliente."
+      },
+      "CombatTrackerOnlyInCombat": {
+        "Name": "Rastreador somente durante combate",
+        "Hint": "Oculta o rastreador quando não houver combate iniciado."
+      },
+      "CombatTrackerDetailedStats": {
+        "Name": "Exibir estatísticas detalhadas",
+        "Hint": "Mostra falhas, sucessos e resultados naturais no rastreador."
+      },
+      "CombatAnimations": {
+        "Name": "Animações de Fides e Fulgor",
+        "Hint": "Controla os efeitos visuais locais das mecânicas universais.",
+        "Full": "Completas",
+        "Reduced": "Reduzidas",
+        "Off": "Desativadas"
       }
     }
   }

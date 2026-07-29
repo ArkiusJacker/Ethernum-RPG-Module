@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.0] - 2026-07-29
+
+### Adicionado
+- Progressão modular completa de Pipping Baldwin Black em cinco Tiers, com escolhas de Destruição, Ordem ou Caos, Pulso Sombrio escalável, habilidades futuras bloqueadas e CD da Noite baseada na ficha.
+- Ações assistidas de Pipping, Sustento automático da Canção da Noite Viva, Ecos do Vazio limitado a uma vez por rodada, Comungar com a Noite, preparações diárias e finalizadores de uso diário.
+- Resolução assistida da escuridão de Pipping nos modos manual, aleatório, dispersão e área, mantendo a identidade dos alvos visível somente ao mestre.
+- Temporizador global de turnos persistido no combate, configurável em segundos ou minutos, com pausa, continuação, reset, avanço manual e avanço automático protegido contra duplicação.
+- Animações locais de Momentum Fides e Fulgor Negro com modos completo, reduzido e desativado, suporte opcional a Sequencer/JB2A e fallback em CSS.
+- Configurações de cliente para visibilidade do rastreador, uso somente durante combate, estatísticas detalhadas, animações e restauração de posição.
+- Registro central de perfis, serviços de autoridade de automação, macros gerenciadas e animações, além de módulos próprios de estado para todos os personagens existentes.
+- Suíte Vitest cobrindo autoridade, macros gerenciadas, timer, migrações, progressão e escuridão de Pipping, Momentum Fides e Fulgor Negro.
+
+### Alterado
+- Macros gerenciadas passam a priorizar flags do módulo, respeitar `userModified` e não sobrescrever macros pessoais que compartilhem o mesmo nome.
+- Inicialização e migração de atores passam a usar processamento individual com relatório de falhas; o schema global não avança quando algum ator não puder ser validado.
+- Rastreador filtra atualizações irrelevantes do ator e atualiza a contagem visual do timer sem escrever flags a cada segundo.
+- Estados padrão e normalizadores de Gyro, Bayle, Pipping, Arkius, Yu, Charles e Atlas foram extraídos para perfis próprios sem alterar IDs, flags ou aliases públicos.
+- Migração de mundo avança para schema 10 e converte somente estados existentes de Pipping para a versão interna 2, preservando perfil, núcleo, recursos e campos desconhecidos.
+
+### Corrigido
+- Inserções de valores customizados na interface deixam de interpolar HTML diretamente.
+- Escolha da autoridade principal fica consistente entre automações de chat, descanso, inicialização, tracker e temporizador.
+- Atualizações automáticas do temporizador não avançam duas vezes, preservam a pausa em mudanças manuais de turno e encerram seus agendamentos ao apagar o combate.
+
 ## [3.4.10] - 2026-07-28
 
 ### Adicionado

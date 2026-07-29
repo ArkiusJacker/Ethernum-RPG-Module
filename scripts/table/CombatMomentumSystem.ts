@@ -1,11 +1,25 @@
 import { ETHERNUM } from "../config.js";
+import { AutomationAuthority } from "../core/AutomationAuthority.js";
 
 const MAX_FIDES_MARKERS = 3;
 const MAX_FIDES_CHARGES = 3;
-const PROCESSED_MESSAGE_LIMIT = 500;
-const processedMessageIds = new Set<string>();
 
 type CombatOutcome = "criticalFailure" | "failure" | "success" | "criticalSuccess";
+export type CombatVisualEventType =
+  | "fides-mark"
+  | "fides-ready"
+  | "fides-consumed"
+  | "fulgor-start"
+  | "fulgor-continue"
+  | "fulgor-end";
+
+export interface CombatVisualEvent {
+  id: string;
+  type: CombatVisualEventType;
+  at: number;
+  intensity: number;
+  reason: string;
+}
 
 export interface CombatMomentumState {
   version: 1;
@@ -44,6 +58,7 @@ export interface CombatMomentumState {
     natural: number;
     label: string;
   };
+  visualEvent: CombatVisualEvent | null;
 }
 
 interface TargetChoice {
@@ -163,6 +178,7 @@ export function createDefaultCombatMomentumState(charges = MAX_FIDES_CHARGES): C
       natural: 0,
       label: "",
     },
+    visualEvent: null,
   };
 }
 
@@ -172,6 +188,7 @@ export function normalizeCombatMomentumState(value: unknown): CombatMomentumStat
   const rawFulgor = asRecord(raw.fulgor);
   const rawStats = asRecord(raw.stats);
   const rawLastResult = asRecord(raw.lastResult);
+  const rawVisualEvent = asRecord(raw.visualEvent);
   const markers = clamp(Number(rawFides.markers), 0, MAX_FIDES_MARKERS);
   const charges = clamp(
     rawFides.charges === undefined ? MAX_FIDES_CHARGES : Number(rawFides.charges),
@@ -220,6 +237,157 @@ export function normalizeCombatMomentumState(value: unknown): CombatMomentumStat
       natural: clamp(Number(rawLastResult.natural), 0, 20),
       label: String(rawLastResult.label ?? "").slice(0, 120),
     },
+    visualEvent: typeof rawVisualEvent.id === "string" && typeof rawVisualEvent.type === "string"
+      ? {
+        id: rawVisualEvent.id,
+        type: rawVisualEvent.type as CombatVisualEventType,
+        at: Number(rawVisualEvent.at ?? 0) || 0,
+        intensity: clamp(Number(rawVisualEvent.intensity ?? 1), 1, 10),
+        reason: String(rawVisualEvent.reason ?? "").slice(0, 160),
+      }
+      : null,
+  };
+}
+
+function createVisualEvent(
+  type: CombatVisualEventType,
+  intensity = 1,
+  reason = "",
+): CombatVisualEvent {
+  return {
+    id: `${type}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    at: Date.now(),
+    intensity,
+    reason,
+  };
+}
+
+export interface FidesAttackResolution {
+  fides: CombatMomentumState["fides"];
+  applied: boolean;
+  converted: boolean;
+  visualEvent: CombatVisualEvent | null;
+}
+
+export function resolveFidesAttack(
+  fides: CombatMomentumState["fides"],
+  degree: number,
+  forcedMomentum = false,
+): FidesAttackResolution {
+  const applied = fides.charges > 0
+    && fides.markers >= MAX_FIDES_MARKERS
+    && (fides.armed || forcedMomentum);
+  if (applied) {
+    return {
+      fides: {
+        markers: 0,
+        charges: fides.charges - 1,
+        armed: false,
+      },
+      applied: true,
+      converted: degree < 2,
+      visualEvent: createVisualEvent("fides-consumed", 3),
+    };
+  }
+  if (degree < 2) {
+    const markers = clamp(fides.markers + 1, 0, MAX_FIDES_MARKERS);
+    return {
+      fides: {
+        ...fides,
+        markers,
+        armed: markers >= MAX_FIDES_MARKERS && fides.charges > 0,
+      },
+      applied: false,
+      converted: false,
+      visualEvent: createVisualEvent(
+        markers >= MAX_FIDES_MARKERS ? "fides-ready" : "fides-mark",
+        markers,
+      ),
+    };
+  }
+  return {
+    fides: {
+      ...fides,
+      markers: 0,
+      armed: false,
+    },
+    applied: false,
+    converted: false,
+    visualEvent: null,
+  };
+}
+
+export type FulgorEndReason =
+  | "turn-changed"
+  | "target-changed"
+  | "target-defeated"
+  | "miss"
+  | "natural-below-17"
+  | "limit-reached";
+
+export interface FulgorContinuationResolution {
+  fulgor: CombatMomentumState["fulgor"];
+  extendsChain: boolean;
+  chainCount: number;
+  reason: FulgorEndReason | "";
+}
+
+export function resolveFulgorContinuation(
+  fulgor: CombatMomentumState["fulgor"],
+  context: {
+    sameTurn: boolean;
+    sameTarget: boolean;
+    targetStanding: boolean;
+    effectiveDegree: number;
+    natural: number;
+  },
+): FulgorContinuationResolution {
+  const chainCount = fulgor.chainCount + 1;
+  const extendsChain = context.sameTurn
+    && context.sameTarget
+    && context.targetStanding
+    && context.effectiveDegree >= 2
+    && context.natural >= 17
+    && chainCount < fulgor.maxChain;
+  const reason = extendsChain
+    ? ""
+    : !context.sameTurn
+      ? "turn-changed"
+      : !context.sameTarget
+        ? "target-changed"
+        : !context.targetStanding
+          ? "target-defeated"
+          : context.effectiveDegree < 2
+            ? "miss"
+            : context.natural < 17
+              ? "natural-below-17"
+              : "limit-reached";
+  return {
+    fulgor: extendsChain ? { ...fulgor, chainCount } : createEmptyFulgor(),
+    extendsChain,
+    chainCount,
+    reason,
+  };
+}
+
+export function createFulgorTrigger(
+  natural: number,
+  maxChain: number,
+  target: AttackTarget,
+  mapIncreases: number,
+  turnKey: string,
+): CombatMomentumState["fulgor"] | null {
+  if (natural !== 20 || maxChain <= 0) return null;
+  return {
+    active: true,
+    chainCount: 0,
+    maxChain,
+    targetActorRef: target.actorRef,
+    targetTokenRef: target.tokenRef,
+    targetName: target.name,
+    mapIncreases,
+    turnKey,
   };
 }
 
@@ -480,11 +648,8 @@ function isDefeatedTarget(target: AttackTarget): boolean {
 }
 
 function isAutomationAuthority(message?: ChatMessage, actor?: Actor): boolean {
-  const activeGMs = Array.from(game.users ?? [])
-    .filter(user => user.active && user.isGM)
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)));
-  if (activeGMs.length > 0) return activeGMs[0].id === game.user?.id;
-  if (!message || !actor) return Boolean((actor as Actor & { isOwner?: boolean }).isOwner);
+  if (AutomationAuthority.getPrimaryGM()) return AutomationAuthority.isPrimaryGM();
+  if (!message || !actor || !AutomationAuthority.canMutate(actor, true)) return false;
   const messageUsers = message as unknown as {
     user?: { id?: string };
     author?: { id?: string };
@@ -494,14 +659,7 @@ function isAutomationAuthority(message?: ChatMessage, actor?: Actor): boolean {
 }
 
 function markMessageProcessed(message: ChatMessage): boolean {
-  const messageId = String(message.id ?? "");
-  if (!messageId || processedMessageIds.has(messageId)) return false;
-  processedMessageIds.add(messageId);
-  if (processedMessageIds.size > PROCESSED_MESSAGE_LIMIT) {
-    const oldest = processedMessageIds.values().next().value;
-    if (oldest) processedMessageIds.delete(oldest);
-  }
-  return true;
+  return AutomationAuthority.claimChatMessage(message, "combat-momentum", 500);
 }
 
 function getPF2EStrikes(actor: Actor): PF2EStrikeAction[] {
@@ -749,23 +907,19 @@ export class CombatMomentumSystem {
       const target = getAttackTarget(message);
       const options = getMessageOptions(message);
       const forcedMomentum = options.includes("ethernum:momentum-fides");
-      const fidesApplied = state.fides.charges > 0
-        && state.fides.markers >= MAX_FIDES_MARKERS
-        && (state.fides.armed || forcedMomentum);
+      const fidesResolution = resolveFidesAttack(state.fides, rawDegree, forcedMomentum);
+      const fidesApplied = fidesResolution.applied;
       const effectiveDegree = fidesApplied ? (natural === 20 ? 3 : 2) : rawDegree;
       let fidesCard = "";
       let fulgorCard = "";
+      let visualEvent = state.visualEvent;
 
       if (fidesApplied) {
         nextStats.fidesUses += 1;
-        if (rawDegree < 2) nextStats.fidesConversions += 1;
+        if (fidesResolution.converted) nextStats.fidesConversions += 1;
         state = {
           ...state,
-          fides: {
-            markers: 0,
-            charges: state.fides.charges - 1,
-            armed: false,
-          },
+          fides: fidesResolution.fides,
         };
         fidesCard = `
           <section class="fides">
@@ -774,25 +928,13 @@ export class CombatMomentumSystem {
             <strong>${natural === 20 ? "sucesso crítico" : "sucesso"}</strong>, sem MAP, com resultado-base igual à CA.</p>
             <p><strong>Cargas restantes:</strong> ${state.fides.charges}/${MAX_FIDES_CHARGES}</p>
           </section>`;
-      } else if (rawDegree < 2) {
-        const markers = clamp(state.fides.markers + 1, 0, MAX_FIDES_MARKERS);
-        state = {
-          ...state,
-          fides: {
-            ...state.fides,
-            markers,
-            armed: markers >= MAX_FIDES_MARKERS && state.fides.charges > 0,
-          },
-        };
+        visualEvent = fidesResolution.visualEvent;
       } else {
         state = {
           ...state,
-          fides: {
-            ...state.fides,
-            markers: 0,
-            armed: false,
-          },
+          fides: fidesResolution.fides,
         };
+        if (fidesResolution.visualEvent) visualEvent = fidesResolution.visualEvent;
       }
 
       if (state.fulgor.active) {
@@ -800,32 +942,36 @@ export class CombatMomentumSystem {
         const sameTurn = !state.fulgor.turnKey || state.fulgor.turnKey === getCombatTurnKey(combat);
         const sameTarget = targetsMatch(state.fulgor, target);
         const targetStanding = !isDefeatedTarget(target);
-        const chainCount = state.fulgor.chainCount + 1;
-        const extendsChain = sameTurn
-          && sameTarget
-          && targetStanding
-          && effectiveDegree >= 2
-          && natural >= 17
-          && chainCount < state.fulgor.maxChain;
+        const fulgorResolution = resolveFulgorContinuation(state.fulgor, {
+          sameTurn,
+          sameTarget,
+          targetStanding,
+          effectiveDegree,
+          natural,
+        });
+        const { chainCount, extendsChain } = fulgorResolution;
         nextStats.longestFulgor = Math.max(nextStats.longestFulgor, chainCount);
         if (extendsChain) nextStats.fulgorExtensions += 1;
-        const reason = !sameTurn
+        const reason = fulgorResolution.reason === "turn-changed"
           ? "o turno mudou"
-          : !sameTarget
+          : fulgorResolution.reason === "target-changed"
             ? "o ataque não manteve o mesmo alvo"
-            : !targetStanding
+            : fulgorResolution.reason === "target-defeated"
               ? "o alvo foi derrotado"
-              : effectiveDegree < 2
+              : fulgorResolution.reason === "miss"
                 ? "o ataque não atingiu a CA"
-                : natural < 17
+                : fulgorResolution.reason === "natural-below-17"
                   ? `o d20 natural foi ${natural}`
                   : "o limite da habilidade-chave foi alcançado";
         state = {
           ...state,
-          fulgor: extendsChain
-            ? { ...state.fulgor, chainCount }
-            : createEmptyFulgor(),
+          fulgor: fulgorResolution.fulgor,
         };
+        visualEvent = createVisualEvent(
+          extendsChain ? "fulgor-continue" : "fulgor-end",
+          Math.max(1, chainCount),
+          extendsChain ? "" : reason,
+        );
         fulgorCard = `
           <section class="fulgor">
             <h3>Fulgor Negro ${extendsChain ? "continua" : "encerrado"}</h3>
@@ -834,20 +980,19 @@ export class CombatMomentumSystem {
           </section>`;
       } else if (natural === 20) {
         const maxChain = getKeyAbilityModifier(actor);
+        const triggeredFulgor = createFulgorTrigger(
+          natural,
+          maxChain,
+          target,
+          getMapIncreases(message),
+          getCombatTurnKey(combat),
+        );
         nextStats.fulgorTriggers += 1;
         state = {
           ...state,
-          fulgor: maxChain > 0 ? {
-            active: true,
-            chainCount: 0,
-            maxChain,
-            targetActorRef: target.actorRef,
-            targetTokenRef: target.tokenRef,
-            targetName: target.name,
-            mapIncreases: getMapIncreases(message),
-            turnKey: getCombatTurnKey(combat),
-          } : createEmptyFulgor(),
+          fulgor: triggeredFulgor ?? createEmptyFulgor(),
         };
+        if (triggeredFulgor) visualEvent = createVisualEvent("fulgor-start", 3);
         fulgorCard = `
           <section class="fulgor">
             <h3>Fulgor Negro ativado</h3>
@@ -867,6 +1012,7 @@ export class CombatMomentumSystem {
             ? `${outcomeLabel(outcome)} convertida em ${natural === 20 ? "sucesso crítico" : "sucesso"}`
             : outcomeLabel(outcome),
         },
+        visualEvent,
       };
       await this.setState(actor, state);
       if (fidesCard || fulgorCard) await createMechanicCard(actor, `${fidesCard}${fulgorCard}`);
@@ -1009,6 +1155,9 @@ export class CombatMomentumSystem {
           markers,
           armed: markers >= MAX_FIDES_MARKERS && state.fides.charges > 0,
         },
+        visualEvent: amount > 0
+          ? createVisualEvent(markers >= MAX_FIDES_MARKERS ? "fides-ready" : "fides-mark", Math.max(1, markers))
+          : state.visualEvent,
       });
     });
   }
@@ -1018,7 +1167,11 @@ export class CombatMomentumSystem {
     return this.enqueue(actor, async () => {
       const state = this.getState(actor);
       if (!state.fulgor.active) return state;
-      const next = await this.setState(actor, { ...state, fulgor: createEmptyFulgor() });
+      const next = await this.setState(actor, {
+        ...state,
+        fulgor: createEmptyFulgor(),
+        visualEvent: createVisualEvent("fulgor-end", 1, reason),
+      });
       if (reason) {
         await createMechanicCard(actor, `
           <section class="fulgor">

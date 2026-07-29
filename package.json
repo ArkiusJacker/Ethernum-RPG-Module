@@ -1,11 +1,13 @@
 {
   "name": "ethernum-rpg-module",
-  "version": "3.4.10",
+  "version": "3.5.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "validate:manifest": "node tools/validate-release.mjs --manifest module.json --root .",
     "validate:dist": "node tools/validate-release.mjs --manifest dist/module.json --root dist --check-imports"
   },
@@ -13,6 +15,7 @@
     "@league-of-foundry-developers/foundry-vtt-types": "^12.0.0",
     "typescript": "^5.0.0",
     "vite": "^6.0.0",
-    "vite-plugin-static-copy": "^2.0.0"
+    "vite-plugin-static-copy": "^2.0.0",
+    "vitest": "^4.1.10"
   }
 }

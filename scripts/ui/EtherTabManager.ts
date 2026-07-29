@@ -618,10 +618,10 @@ export class EtherTabManager {
       const val      = (ev.target as HTMLSelectElement).value;
       const $content = $chip.find('.ethernum-chip-val, .ethernum-chip-empty');
       if (val) {
-        $content.replaceWith(`<span class="ethernum-chip-val">${val}</span>`);
+        $content.replaceWith($('<span>').addClass('ethernum-chip-val').text(val));
       } else {
         const placeholder = $select.find('option:first').text();
-        $content.replaceWith(`<span class="ethernum-chip-empty">${placeholder}</span>`);
+        $content.replaceWith($('<span>').addClass('ethernum-chip-empty').text(placeholder));
       }
       $select.hide();
       $chip.show();
@@ -853,6 +853,64 @@ export class EtherTabManager {
         mirroredShadows: number;
         livingNightActive: boolean;
       }>);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-show-status').on('click', async (ev) => {
+      ev.preventDefault();
+      await UniqueMechanicsSystem.showPippingStatus(actor);
+    });
+
+    html.find('.ethernum-pipping-activate-night').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.activatePippingLivingNight(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-end-night').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.endPippingLivingNight(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-commune').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.communePippingWithNight(actor);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-darkness-mode').on('change', async (ev) => {
+      if (!isGM) return;
+      rememberScroll();
+      await UniqueMechanicsSystem.configurePippingDarkness(
+        actor,
+        String($(ev.currentTarget).val()) as "manual" | "random" | "scatter" | "area",
+      );
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-resolve-darkness').on('click', async (ev) => {
+      ev.preventDefault();
+      if (!isGM) return;
+      await UniqueMechanicsSystem.resolvePippingDarknessTarget(actor);
+    });
+
+    html.find('.ethernum-pipping-expression').on('change', async (ev) => {
+      if (!isGM) return;
+      rememberScroll();
+      const tier = Number($(ev.currentTarget).data('tier')) as 1 | 2 | 3 | 4 | 5;
+      const expression = String($(ev.currentTarget).val()) as "" | "destruction" | "order" | "chaos";
+      await UniqueMechanicsSystem.setPippingExpression(actor, tier, expression);
+      await refreshUnique();
+    });
+
+    html.find('.ethernum-pipping-use-action').on('click', async (ev) => {
+      ev.preventDefault();
+      rememberScroll();
+      await UniqueMechanicsSystem.usePippingAction(actor, String($(ev.currentTarget).data('action-id')));
       await refreshUnique();
     });
 

@@ -56,7 +56,9 @@
       "Disable": "Disable",
       "Minimize": "Minimize",
       "Expand": "Expand",
-      "Close": "Close"
+      "Close": "Close",
+      "Save": "Save",
+      "Cancel": "Cancel"
     },
     "Attribute": {
       "Name": "Attribute",
@@ -204,7 +206,22 @@
     "Unique": {
       "Empty": "No unique mechanic selected for this character.",
       "Profile": {
-        "None": "No unique mechanic"
+        "None": "No unique mechanic",
+        "InPreparation": "Mechanic in preparation",
+        "Labels": {
+          "gyro-spin": "Gyro Zeppeli - Path of Sacred Rotation",
+          "bayle-dragon": "Bayle, the Dread - Draconic Body",
+          "pipping-night": "Pipping Baldwin Black - Expression of the Night",
+          "kaitake": "Kaitake",
+          "cinerio": "Cinerio",
+          "ailan": "Ailan",
+          "arkius-jacker": "Arkius Jacker - Concordia",
+          "atlas-sidarta": "Atlas Sidarta - Divine Gaze",
+          "charles": "Charles - Miranha in Action",
+          "morgana": "Morgana",
+          "yu-jiu-ji-tae": "Yu, Jiu Ji Tae - Rage in the Flesh",
+          "unluck": "Unluck"
+        }
       },
       "Errors": {
         "TechniqueNotFound": "Technique not found."
@@ -317,7 +334,226 @@
         "OncePerAwakening": "This action has already been used in this Awakening."
       },
       "Pipping": {
-        "Controls": "Night Control"
+        "Title": "Expression of the Night",
+        "Subtitle": "Veil, Void, and Voice turn shadow, hunger, and performance into battlefield control.",
+        "Controls": "Night Control",
+        "ShowStatus": "Show Night status",
+        "Tier": "Tier",
+        "Level": "Level",
+        "Pulse": "Shadow Pulse",
+        "NightDC": "Night DC",
+        "MirroredShadows": "Mirrored Shadows",
+        "LivingNight": "Song of the Living Night",
+        "LivingNightActivated": "Song of the Living Night activated",
+        "LivingNightEnded": "Song of the Living Night ended",
+        "VoidEchoRecovered": "{actor} recovered 1 Shadow Pulse with Echoes of the Void.",
+        "ActivateLivingNight": "Activate Living Night",
+        "EndLivingNight": "End Living Night",
+        "Commune": "Commune with the Night",
+        "ConfigureDarkness": "Configure darkness",
+        "Darkness": "Magical darkness",
+        "DarknessMode": "Darkness resolution",
+        "DarknessHint": "The module identifies enemies in the radius without revealing that list to players. The selected mode guides target resolution.",
+        "AffectedTargets": "Detected enemies",
+        "UnknownTarget": "Unknown target",
+        "ResolveDarkness": "Resolve target",
+        "DarknessResolved": "The darkness selected: {target}.",
+        "DarknessManualResolution": "Manual mode: the GM chooses a valid target.",
+        "DarknessScatterResolved": "Scatter: {direction} o'clock direction, {distance} feet away.",
+        "DarknessAreaResolution": "Area mode: place the area in a valid region of darkness without locking it to a token.",
+        "NightAbilities": "Night Abilities",
+        "UseAction": "Use",
+        "MacroSpace": "Night macros",
+        "ExpressionUnselected": "Expression not selected",
+        "RequiresExpression": "Choose this Tier's Expression to unlock the ability.",
+        "RequiresTierLevel": "Requires Tier {tier} and level {level}.",
+        "ActionCount": "{count} action(s)",
+        "PulseCost": "{cost} SP",
+        "NoCost": "No cost",
+        "Roll": "Roll",
+        "Defense": "Defense",
+        "Basic": "basic",
+        "ActionTypes": {
+          "reaction": "Reaction",
+          "free": "Free action",
+          "passive": "Passive"
+        },
+        "Defenses": {
+          "fortitude": "Fortitude",
+          "reflex": "Reflex",
+          "will": "Will"
+        },
+        "Traits": {
+          "Veil": "Veil",
+          "Shadow": "Shadow",
+          "Void": "Void",
+          "Illusion": "Illusion",
+          "Occult": "Occult",
+          "Voice": "Voice",
+          "Auditory": "Auditory",
+          "Composition": "Composition",
+          "Mental": "Mental",
+          "Healing": "Healing",
+          "Teleportation": "Teleportation",
+          "Fear": "Fear",
+          "Cold": "Cold",
+          "Linguistic": "Linguistic",
+          "Incapacitation": "Incapacitation",
+          "Polymorph": "Polymorph",
+          "Fortune": "Fortune",
+          "Darkness": "Darkness"
+        },
+        "Expressions": {
+          "destruction": "Destruction",
+          "order": "Order",
+          "chaos": "Chaos"
+        },
+        "DarknessModes": {
+          "manual": "Manual",
+          "random": "Random target",
+          "scatter": "Scatter",
+          "area": "Area"
+        },
+        "Tiers": {
+          "1": "I — Awakening",
+          "2": "II — Communion",
+          "3": "III — Incarnation",
+          "4": "IV — Transcendence",
+          "5": "V — The Night"
+        },
+        "TierPassives": {
+          "1": "Core kit of Animated Shadow, images, whisper, Echoes, and Living Night.",
+          "2": "Shadow Form expands movement between dim light and darkness.",
+          "3": "20-foot shadow, 3 images, 15-foot darkness, and void/cold resistance equal to Tier.",
+          "4": "Resistance 10 to void and cold, shadow unaffected by normal sunlight, and counteraction through the Night DC.",
+          "5": "Light control within 30 feet, 30-foot shadow, and 4 images."
+        },
+        "Errors": {
+          "NotEnoughPulse": "Not enough Shadow Pulse.",
+          "CommuneUnavailable": "Pipping must spend Pulse before communing again.",
+          "UnknownAction": "Pipping action not found.",
+          "UnknownReaction": "Pipping reaction not found.",
+          "UnknownFinisher": "Pipping finisher not found.",
+          "LockedAction": "This ability is still locked.",
+          "DailyUsed": "This daily ability has already been used.",
+          "RoundRecoveryUsed": "Pipping has already recovered Pulse this round."
+        },
+        "Actions": {
+          "AnimatedShadow": {
+            "Name": "Animated Shadow",
+            "Description": "Pipping positions his shadow as a tactical extension of his will.",
+            "Detail1": "At the start of the turn, place the shadow in a space within the Tier's range.",
+            "Detail2": "Once per round, an enemy adjacent to the shadow can be Off-Guard against an ally's Strike."
+          },
+          "MirroredShadows": {
+            "Name": "Mirrored Shadows",
+            "Description": "Shadow images divert attacks and retaliate when destroyed.",
+            "Detail1": "Creates 2 images at Tiers I–II, 3 at Tiers III–IV, and 4 at Tier V.",
+            "Detail2": "An attack against Pipping attempts DC 5; on failure it destroys an image and takes void damage, or cold against void immunity."
+          },
+          "DarkWhisper": {
+            "Name": "Dark Whisper",
+            "Description": "An ally within 30 feet gains a circumstance bonus to its next attack or save.",
+            "Detail1": "The bonus is +1 until the start of Pipping's next turn.",
+            "Detail2": "In complete darkness, Pipping can spend 1 additional SP to increase the bonus to +2."
+          },
+          "VoidEchoes": {
+            "Name": "Echoes of the Void",
+            "Description": "A failed save against an occult spell or unique ability restores 1 SP.",
+            "Detail1": "Reaction, once per round, with a target within 30 feet."
+          },
+          "LivingNight": {
+            "Name": "Song of the Living Night",
+            "Description": "A sustained composition creates magical darkness that aids allies and hinders enemies.",
+            "Detail1": "30-foot presence with 10-foot darkness, increased to 15 feet at Tier III.",
+            "Detail2": "Enemies in the darkness take –1 status to saves against Pipping; allies see normally."
+          },
+          "RuinNote": {
+            "Name": "Note of Ruin",
+            "Description": "An impossible note deals void damage with a basic Will save.",
+            "Detail1": "On a critical failure, the target is also Frightened 1."
+          },
+          "RestoringPulse": {
+            "Name": "Restoring Pulse",
+            "Description": "The shadow closes the wounds of a willing living creature.",
+            "Detail1": "In dim light or darkness, the target ignores Frightened 1 until Pipping's next turn."
+          },
+          "BrokenMeter": {
+            "Name": "Broken Meter",
+            "Description": "Pipping changes the perceived rhythm and forces safe movement.",
+            "Detail1": "Will: failure moves 5 feet and makes Off-Guard; critical failure moves 10 feet and blocks reactions."
+          },
+          "ShadowForm": {
+            "Name": "Shadow Form",
+            "Description": "Pipping teleports between areas of dim light or darkness.",
+            "Detail1": "Range 30 feet, 60 at level 9, and 120 at level 17."
+          },
+          "VoidTouch": {
+            "Name": "Touch of the Void",
+            "Description": "An extension of the shadow passes through the target and deals void damage.",
+            "Detail1": "Basic Fortitude; failure deals persistent damage and critical failure also applies Enfeebled 1."
+          },
+          "BlackOrderMantle": {
+            "Name": "Mantle of Black Order",
+            "Description": "A reaction that reduces damage taken by Pipping or an ally.",
+            "Detail1": "Reduction equals half level rounded up plus Charisma; in darkness grants temporary HP equal to Tier."
+          },
+          "ShadowResonance": {
+            "Name": "Shadow Resonance",
+            "Description": "Pain returns to the attacker as a dissonant note.",
+            "Detail1": "Will: failure causes Frightened 1 and blocks reactions; critical failure causes Frightened 2."
+          },
+          "NightEmanation": {
+            "Name": "Emanation of Night",
+            "Description": "A 15-foot emanation deals void or cold damage.",
+            "Detail1": "Basic Fortitude; failure causes Enfeebled 1 and critical failure causes Enfeebled 2 for 1 round."
+          },
+          "RequiemPersist": {
+            "Name": "Requiem for Those Who Persist",
+            "Description": "Up to three allies recover HP and gain protection for their next save.",
+            "Detail1": "Each target gains +1 status to its next save before Pipping's next turn."
+          },
+          "ShadowKing": {
+            "Name": "Shadow King",
+            "Description": "A living shadow domain creates difficult terrain for enemies.",
+            "Detail1": "Will once per use: failure makes Off-Guard; critical failure also causes Frightened 1."
+          },
+          "EndingChorus": {
+            "Name": "Chorus of the End",
+            "Description": "A 30-foot cone deals 10d6 void damage.",
+            "Detail1": "Basic Will; failure causes Frightened 1 and critical failure causes Frightened 2 and Stupefied 1."
+          },
+          "GentleNightLiturgy": {
+            "Name": "Liturgy of the Gentle Night",
+            "Description": "Pipping and allies within 30 feet recover HP.",
+            "Detail1": "Each target reduces Frightened, Sickened, or Stupefied by 1; this is a composition."
+          },
+          "AbyssVoice": {
+            "Name": "Voice of the Abyss",
+            "Description": "A shadow command forces the first actions of the target's next turn.",
+            "Detail1": "Will with Incapacitation; failure forces one action and critical failure forces two valid actions."
+          },
+          "BeyondForm": {
+            "Name": "Beyond Form",
+            "Description": "Pipping abandons physical form until the start of his next turn.",
+            "Detail1": "Gains flight, passes through creatures and objects, and resistance 15 except against force and spirit."
+          },
+          "DeadSunEpitaph": {
+            "Name": "Epitaph of the Dead Sun",
+            "Description": "A 20-foot burst deals 14d6 void or cold damage and leaves magical darkness.",
+            "Detail1": "Basic Fortitude; failure deals persistent damage and critical failure also causes Enfeebled 2."
+          },
+          "NightRefusesEnd": {
+            "Name": "The Night Refuses the End",
+            "Description": "A reaction that prevents Pipping or an ally from dying.",
+            "Detail1": "The target stays alive, heals 8d8 + Charisma, does not increase Wounded, and gains Doomed 1."
+          },
+          "ForbiddenPerformance": {
+            "Name": "The Forbidden Performance",
+            "Description": "Allies become Quickened and enemies attempt Will in a 60-foot emanation.",
+            "Detail1": "Success makes Off-Guard; failure causes Slowed 1 and critical failure causes Slowed 2."
+          }
+        }
       }
     },
     "DiceRoll": {
@@ -344,6 +580,109 @@
     "Warnings": {
       "NotPF2E": "This module is designed to work with the Pathfinder 2E system. Some features may not be available."
     },
+    "Common": {
+      "Active": "Active",
+      "Inactive": "Inactive"
+    },
+    "ManagedMacros": {
+      "PersonalCollision": "A personal macro has the same name as an Ethernum macro. It was preserved and the managed macro received a distinct name."
+    },
+    "Initialization": {
+      "Failed": "Initialization finished with {failed} failure(s) across {total} characters. Check the console."
+    },
+    "Migrations": {
+      "Success": "Migration completed for {total} character(s).",
+      "Failed": "Migration failed for {failed} of {total} characters. The world schema was not advanced."
+    },
+    "CombatTracker": {
+      "Title": "Combat Tracker",
+      "RestorePosition": "Restore default position",
+      "Open": "Open combat tracker",
+      "Minimize": "Minimize tracker",
+      "View": "Tracker view",
+      "Player": "Player",
+      "OutsideCombat": "Outside combat",
+      "CombatRound": "Combat · Round {round}",
+      "CharacterCount": "{count} character(s)",
+      "LastResult": "Last: {result}{natural}",
+      "NoAttacks": "No attacks recorded in this combat",
+      "Summary": "Fides {fides} · Conversions {conversions} · Extensions {extensions}",
+      "Tabs": {
+        "Player": "Player",
+        "GM": "Game Master"
+      },
+      "Stats": {
+        "Results": "Results in this combat",
+        "Failures": "Failures",
+        "CriticalFailures": "Critical failures",
+        "Successes": "Successes",
+        "CriticalSuccesses": "Critical successes",
+        "Natural1": "Natural 1 results",
+        "Natural20": "Natural 20 results"
+      },
+      "Fides": {
+        "Ready": "Ready for the next attack",
+        "NoCharges": "No charges until daily preparations",
+        "Markers": "{markers}/3 consecutive failures",
+        "Charges": "{charges}/3 charges",
+        "ChargeLabel": "Charges"
+      },
+      "Fulgor": {
+        "Waiting": "Waiting for a natural 20",
+        "SameTarget": "the same target",
+        "Chain": "{current}/{max} against {target}",
+        "Triggers": "{triggers} trigger(s)",
+        "State": "Black Radiance state"
+      },
+      "Actions": {
+        "UseFides": "Use Momentum Fides",
+        "UseFulgor": "Use the free Black Radiance attack",
+        "RemoveMarker": "Remove a Fides mark",
+        "AddMarker": "Add a Fides mark",
+        "EndFulgor": "End Black Radiance",
+        "ResetCombatActor": "Clear this combat's tracking",
+        "ResetDailyActor": "Restore daily preparations",
+        "ResetCombat": "Clear combat data",
+        "ResetDaily": "Apply daily preparations",
+        "Combat": "Combat",
+        "Daily": "Daily"
+      },
+      "Empty": {
+        "Title": "No character available",
+        "Hint": "Assign a character to the user or control a token you own."
+      },
+      "Errors": {
+        "ActionFailed": "The tracker action could not be completed."
+      }
+    },
+    "CombatTimer": {
+      "Title": "Turn timer",
+      "NoCombat": "No active combat",
+      "NoCombatant": "No combatant",
+      "Duration": "Duration",
+      "Unit": "Duration unit",
+      "Seconds": "seconds",
+      "Minutes": "minutes",
+      "Turn": "Turn",
+      "ApplyDuration": "Apply duration",
+      "Start": "Start",
+      "Pause": "Pause",
+      "Resume": "Resume",
+      "Reset": "Reset turn",
+      "Advance": "Advance now",
+      "AutoAdvance": "Toggle automatic advance",
+      "Disable": "Disable timer",
+      "Status": {
+        "disabled": "Disabled",
+        "paused": "Paused",
+        "running": "Running",
+        "expired": "Time expired"
+      },
+      "Errors": {
+        "NotAuthority": "Only the GM responsible for automation can control the timer.",
+        "ActionFailed": "The timer action could not be completed."
+      }
+    },
     "Settings": {
       "LongRestFullRestore": {
         "Name": "Full Restoration on Long Rest",
@@ -368,6 +707,25 @@
       "DefaultRuneCostPerClass": {
         "Name": "Default Rune Cost per Class",
         "Hint": "Set the default ether cost (additional to class base cost) for new runes of each class."
+      },
+      "CombatTrackerEnabled": {
+        "Name": "Show Ethernum combat tracker",
+        "Hint": "Shows or hides the global tracker for this client."
+      },
+      "CombatTrackerOnlyInCombat": {
+        "Name": "Tracker only during combat",
+        "Hint": "Hides the tracker while no combat is started."
+      },
+      "CombatTrackerDetailedStats": {
+        "Name": "Show detailed statistics",
+        "Hint": "Shows failures, successes, and natural results in the tracker."
+      },
+      "CombatAnimations": {
+        "Name": "Fides and Fulgor animations",
+        "Hint": "Controls local visual effects for the universal mechanics.",
+        "Full": "Full",
+        "Reduced": "Reduced",
+        "Off": "Off"
       }
     }
   }

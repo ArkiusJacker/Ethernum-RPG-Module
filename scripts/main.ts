@@ -7,6 +7,10 @@ import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
 import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
+import { ensureManagedMacros as ensureManagedMacroDefinitions } from './core/ManagedMacroService.js';
+import { AutomationAuthority } from './core/AutomationAuthority.js';
+import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
+import { AnimationService } from './core/AnimationService.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
 const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.gyro.showTechniques();";
@@ -14,6 +18,32 @@ const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
 const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.bayle.showStatus();";
 const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
 const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
+const PIPPING_MANAGED_MACROS = [
+  {
+    name: PIPPING_STATUS_MACRO_NAME,
+    command: PIPPING_STATUS_MACRO_COMMAND,
+    flag: "pipping-status",
+    img: "icons/magic/unholy/orb-glowing-purple.webp",
+  },
+  {
+    name: "Ethernum - Pipping: Ativar Noite Viva",
+    command: "await game.ethernum.macros.ethernumCompany.pipping.activateLivingNight();",
+    flag: "pipping-living-night",
+    img: "icons/magic/unholy/barrier-shield-glowing-pink.webp",
+  },
+  {
+    name: "Ethernum - Pipping: Comungar com a Noite",
+    command: "await game.ethernum.macros.ethernumCompany.pipping.communeWithNight();",
+    flag: "pipping-commune-night",
+    img: "icons/magic/time/hourglass-brown-purple.webp",
+  },
+  {
+    name: "Ethernum - Pipping: Configurar Escuridão",
+    command: "await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();",
+    flag: "pipping-configure-darkness",
+    img: "icons/magic/unholy/silhouette-robe-evil-power.webp",
+  },
+];
 const YU_MACRO_ICON = "icons/svg/terror.svg";
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -162,13 +192,6 @@ const ATLAS_MANAGED_MACROS = [
   },
 ];
 
-type EthernumMacroDocument = {
-  name?: string;
-  command?: string;
-  img?: string;
-  update: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>;
-};
-
 declare global {
   interface Game {
     ethernum?: {
@@ -218,6 +241,18 @@ declare global {
           pipping: {
             showStatus: (actor?: Actor | null) => Promise<void>;
             adjustPulse: (amount?: number, actor?: Actor | null) => Promise<unknown>;
+            activateLivingNight: (actor?: Actor | null) => Promise<unknown>;
+            endLivingNight: (actor?: Actor | null) => Promise<unknown>;
+            useAction: (actionId: string, actor?: Actor | null) => Promise<void>;
+            useReaction: (actionId?: string, actor?: Actor | null) => Promise<void>;
+            useFinisher: (actionId?: string, actor?: Actor | null) => Promise<void>;
+            configureDarkness: (
+              mode?: "manual" | "random" | "scatter" | "area",
+              actor?: Actor | null,
+            ) => Promise<unknown>;
+            resolveDarkness: (actor?: Actor | null) => Promise<string | null>;
+            communeWithNight: (actor?: Actor | null) => Promise<unknown>;
+            dailyPreparations: (actor?: Actor | null) => Promise<unknown>;
           };
         };
         concordia: {
@@ -369,6 +404,26 @@ function buildMacroApi() {
       pipping: {
         showStatus: api.showPippingStatus,
         adjustPulse: api.adjustPippingPulse,
+        activateLivingNight: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.activatePippingLivingNight(resolveMacroActor(actor)),
+        endLivingNight: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.endPippingLivingNight(resolveMacroActor(actor)),
+        useAction: async (actionId: string, actor?: Actor | null) =>
+          UniqueMechanicsSystem.usePippingAction(resolveMacroActor(actor), actionId),
+        useReaction: async (actionId = "void-echoes", actor?: Actor | null) =>
+          UniqueMechanicsSystem.usePippingReaction(resolveMacroActor(actor), actionId),
+        useFinisher: async (actionId = "beyond-form", actor?: Actor | null) =>
+          UniqueMechanicsSystem.usePippingFinisher(resolveMacroActor(actor), actionId),
+        configureDarkness: async (
+          mode?: "manual" | "random" | "scatter" | "area",
+          actor?: Actor | null,
+        ) => UniqueMechanicsSystem.configurePippingDarkness(resolveMacroActor(actor), mode),
+        resolveDarkness: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.resolvePippingDarknessTarget(resolveMacroActor(actor)),
+        communeWithNight: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.communePippingWithNight(resolveMacroActor(actor)),
+        dailyPreparations: async (actor?: Actor | null) =>
+          UniqueMechanicsSystem.pippingDailyPreparations(resolveMacroActor(actor)),
       },
     },
     concordia: {
@@ -475,64 +530,57 @@ function buildMacroApi() {
 }
 
 async function ensureManagedMacros(): Promise<void> {
-  if (!game.user?.isGM) return;
-  const macros = game.macros as unknown as {
-    find?: (predicate: (macro: EthernumMacroDocument) => boolean) => EthernumMacroDocument | undefined;
-    getName?: (name: string) => EthernumMacroDocument | undefined;
-  };
-  const existing = macros.getName?.(GYRO_TECHNIQUES_MACRO_NAME)
-    ?? macros.find?.(macro => macro.name === GYRO_TECHNIQUES_MACRO_NAME);
-  const ownerPermission = (globalThis as {
-    CONST?: { DOCUMENT_OWNERSHIP_LEVELS?: { OWNER?: number } };
-  }).CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
-  const ensureOneMacro = async (name: string, command: string, managedMacro: string, img = GYRO_SPINBALL_ASSET) => {
-    const existingMacro = name === GYRO_TECHNIQUES_MACRO_NAME
-      ? existing
-      : macros.getName?.(name) ?? macros.find?.(macro => macro.name === name);
-    const data = {
-      name,
-      type: "script",
-      img,
-      command,
-      ownership: { default: ownerPermission },
-      flags: {
-        [ETHERNUM.MODULE_NAME]: {
-          managedMacro,
-        },
-      },
-    };
-
-    if (!existingMacro) {
-      const MacroClass = (globalThis as { Macro?: { create?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown> } }).Macro;
-      await MacroClass?.create?.(data, { render: false });
-      return;
-    }
-
-    const updates: Record<string, unknown> = {};
-    if (existingMacro.command !== command) updates.command = command;
-    if (existingMacro.img !== img) updates.img = img;
-    updates.ownership = { default: ownerPermission };
-    if (Object.keys(updates).length > 0) await existingMacro.update(updates, { render: false });
-  };
-
-  await ensureOneMacro(GYRO_TECHNIQUES_MACRO_NAME, GYRO_TECHNIQUES_MACRO_COMMAND, "gyro-techniques");
-  await ensureOneMacro(BAYLE_STATUS_MACRO_NAME, BAYLE_STATUS_MACRO_COMMAND, "bayle-status");
-  await ensureOneMacro(PIPPING_STATUS_MACRO_NAME, PIPPING_STATUS_MACRO_COMMAND, "pipping-status");
-  for (const macro of ARKIUS_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, ARKIUS_ICON_ASSET);
-  }
-  for (const macro of YU_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, YU_MACRO_ICON);
-  }
-  for (const macro of CHARLES_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, "icons/svg/hammer.svg");
-  }
-  for (const macro of ATLAS_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, "icons/svg/sword.svg");
-  }
-  for (const macro of COMBAT_MOMENTUM_MANAGED_MACROS) {
-    await ensureOneMacro(macro.name, macro.command, macro.flag, macro.img);
-  }
+  const definitions = [
+    {
+      id: "gyro-techniques",
+      name: GYRO_TECHNIQUES_MACRO_NAME,
+      command: GYRO_TECHNIQUES_MACRO_COMMAND,
+      img: GYRO_SPINBALL_ASSET,
+    },
+    {
+      id: "bayle-status",
+      name: BAYLE_STATUS_MACRO_NAME,
+      command: BAYLE_STATUS_MACRO_COMMAND,
+      img: GYRO_SPINBALL_ASSET,
+    },
+    ...PIPPING_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: macro.img,
+    })),
+    ...ARKIUS_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: ARKIUS_ICON_ASSET,
+    })),
+    ...YU_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: YU_MACRO_ICON,
+    })),
+    ...CHARLES_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: "icons/svg/hammer.svg",
+    })),
+    ...ATLAS_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: "icons/svg/sword.svg",
+    })),
+    ...COMBAT_MOMENTUM_MANAGED_MACROS.map(macro => ({
+      id: macro.flag,
+      name: macro.name,
+      command: macro.command,
+      img: macro.img,
+    })),
+  ];
+  await ensureManagedMacroDefinitions(definitions);
 }
 
 function registerHandlebarsHelpers(): void {
@@ -603,7 +651,12 @@ function renderEthernumTabs(app: Application & { actor?: Actor }, html: JQuery<H
 
 Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => renderEthernumTabs(app, html));
 Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: HTMLElement) => renderEthernumTabs(app, element));
-Hooks.on("createActor", (actor: Actor) => initializeActorFlags(actor));
+Hooks.on("createActor", (actor: Actor) => {
+  if (!AutomationAuthority.isPrimaryGM()) return;
+  void initializeActorFlags(actor).catch(error => {
+    console.error("Ethernum RPG Module | Actor initialization failed", actor.name, actor.id, error);
+  });
+});
 Hooks.on("createChatMessage", (message: ChatMessage) => {
   void UniqueMechanicsSystem.handlePF2EChatMessage(message).catch(error => {
     console.error("Ethernum RPG Module | PF2E chat automation failed", error);
@@ -617,11 +670,15 @@ Hooks.on("updateCombat", (combat: Combat) => {
   void CombatMomentumSystem.handleCombatUpdate(combat).catch(error => {
     console.error("Ethernum RPG Module | Combat tracker turn update failed", error);
   });
+  void CombatTurnTimer.handleCombatUpdate(combat).catch(error => {
+    console.error("Ethernum RPG Module | Combat turn timer update failed", error);
+  });
 });
 Hooks.on("deleteCombat", (combat: Combat) => {
   void CombatMomentumSystem.handleCombatDelete(combat).catch(error => {
     console.error("Ethernum RPG Module | Combat tracker cleanup failed", error);
   });
+  CombatTurnTimer.handleCombatDelete(combat);
 });
 Hooks.on("updateActor", (actor: Actor, changed: Record<string, unknown>) => {
   void UniqueMechanicsSystem.handleYuActorUpdate(actor, changed);
@@ -633,10 +690,15 @@ Hooks.on("updateToken", (tokenDocument: TokenDocument, changed: Record<string, u
   void UniqueMechanicsSystem.handleTokenUpdate(tokenDocument, changed);
 });
 Hooks.on("pf2e.restForTheNight", (actor: Actor) => {
-  if (game.user?.isGM || (actor as Actor & { isOwner?: boolean }).isOwner) {
+  if (AutomationAuthority.canMutate(actor, true)) {
     void CombatMomentumSystem.dailyReset(actor).catch(error => {
       console.error("Ethernum RPG Module | Combat tracker daily reset failed", error);
     });
+    if (UniqueMechanicsSystem.getState(actor).activeProfile === "pipping-night") {
+      void UniqueMechanicsSystem.pippingDailyPreparations(actor).catch(error => {
+        console.error("Ethernum RPG Module | Pipping daily preparations failed", error);
+      });
+    }
   }
 });
 
@@ -669,9 +731,23 @@ Hooks.once("ready", async () => {
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
   CombatMomentumTracker.initialize();
+  AnimationService.initialize();
+  if (game.combat) await CombatTurnTimer.handleCombatUpdate(game.combat);
 
-  if (game.user?.isGM) {
-    (game.actors ?? []).filter((a: Actor) => (a.type as string) === "character").forEach((a: Actor) => initializeActorFlags(a));
+  if (AutomationAuthority.isPrimaryGM()) {
+    const actors = (Array.from(game.actors ?? []) as Actor[])
+      .filter(actor => (actor.type as string) === "character");
+    const results = await Promise.allSettled(actors.map(actor => initializeActorFlags(actor)));
+    const failures = results.flatMap((result, index) => result.status === "rejected"
+      ? [{ actor: actors[index], reason: result.reason }]
+      : []);
+    if (failures.length > 0) {
+      console.error("Ethernum RPG Module | Actor initialization completed with failures", failures);
+      ui.notifications?.warn(game.i18n!.format("ETHERNUM.Initialization.Failed", {
+        failed: failures.length,
+        total: actors.length,
+      }));
+    }
   }
 
   if (game.system?.id !== "pf2e") {

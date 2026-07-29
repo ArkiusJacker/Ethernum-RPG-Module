@@ -4,8 +4,14 @@ import {
   normalizeCombatMomentumState,
   type CombatMomentumState,
 } from '../table/CombatMomentumSystem.js';
+import { DEFAULT_ARKIUS_STATE } from '../mechanics/arkius/profile.js';
+import { DEFAULT_YU_STATE } from '../mechanics/yu/profile.js';
+import { DEFAULT_CHARLES_STATE } from '../mechanics/charles/profile.js';
+import { DEFAULT_ATLAS_STATE } from '../mechanics/atlas/profile.js';
+import { normalizePippingState } from '../mechanics/pipping/profile.js';
+import { AutomationAuthority } from '../core/AutomationAuthority.js';
 
-const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 interface EtherSystem {
   etherMax: number;
@@ -32,84 +38,6 @@ interface UniqueMechanics {
   activeProfile: string;
   profiles: Record<string, unknown>;
 }
-
-const DEFAULT_ARKIUS_STATE = {
-  nucleoEmBrasas: {
-    active: false,
-    usesSpent: 0,
-    maxUses: 2,
-    remainingRounds: 0,
-    attunement: "none",
-    pendingFluxoReduction: false,
-    pendingBrasasDamage: false,
-    selectedSolarArea: "emanation",
-    firstFireMetalProcUsed: false,
-    endedPenaltyActive: false,
-    fireMetalImpulsesLocked: false,
-    exaurirUsed: false,
-  },
-  kineticAura: {
-    active: false,
-    radius: 10,
-  },
-  thermalNimbus: {
-    active: false,
-    fireAuraJunction: false,
-    appliedTurnKeys: {},
-  },
-  concordiaAspect: "chains",
-  bracoEvolutivo: {
-    chargesSpent: 0,
-    maxCharges: 2,
-    resistanceFormula: "2d6 + 5",
-    level13Unlocked: false,
-    level17Unlocked: false,
-  },
-};
-
-const DEFAULT_YU_STATE = {
-  active: false,
-  usesSpent: 0,
-  maxUses: 1,
-  remainingRounds: 0,
-  emergencyTriggered: false,
-  collapseDrainedActive: false,
-  collapseEnfeebledActive: false,
-};
-
-const DEFAULT_CHARLES_STATE = {
-  chargesSpent: 0,
-  maxCharges: 3,
-  deviceBroken: false,
-  acLeakStacks: 0,
-  net: {
-    active: false,
-    overloaded: false,
-    remainingRounds: 0,
-    radius: 10,
-    appliedTurnKeys: {},
-  },
-};
-
-const DEFAULT_ATLAS_STATE = {
-  usesSpent: 0,
-  exhaustedLocked: false,
-  fatigueStupefied: 0,
-  pending: {
-    active: false,
-    modifications: [],
-    spellRank: 1,
-    originalActions: 2,
-    baptismDamageType: "slashing",
-    overdrive: false,
-  },
-  slowPending: false,
-  slowActive: false,
-  stupefiedPending: false,
-  stupefiedActive: false,
-  overdriveFlatCheckArmed: false,
-  overdriveSpellRank: 1,
-};
 
 export interface ValidationResult {
   valid: boolean;
@@ -415,22 +343,69 @@ export async function migrateActor(actor: Actor): Promise<void> {
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v9`);
   }
 
+  if (schemaVersion < 10) {
+    const existingUnique = (updates[`flags.${m}.uniqueMechanics`] as UniqueMechanics | undefined)
+      ?? actor.getFlag(m, "uniqueMechanics") as UniqueMechanics | undefined
+      ?? { activeProfile: "", profiles: {} };
+    const existingProfiles = existingUnique.profiles ?? {};
+    const existingPipping = existingProfiles["pipping-night"];
+    updates[`flags.${m}.uniqueMechanics`] = {
+      ...existingUnique,
+      activeCore: existingUnique.activeCore === "concordia" ? "concordia" : "ethernum-company",
+      activeProfile: typeof existingUnique.activeProfile === "string" ? existingUnique.activeProfile : "",
+      profiles: {
+        ...existingProfiles,
+        ...(existingPipping === undefined
+          ? {}
+          : { "pipping-night": normalizePippingState(existingPipping) }),
+      },
+    };
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v10`);
+  }
+
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;
 
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
 
 export async function migrateWorld(): Promise<void> {
-  if (!game.user?.isGM) return;
+  if (!AutomationAuthority.isPrimaryGM()) return;
 
   const worldVersion = (game.settings!.get(ETHERNUM.MODULE_NAME, "schemaVersion") as number | undefined) ?? 0;
   if (worldVersion >= CURRENT_SCHEMA_VERSION) return;
 
   console.log(`Ethernum | Iniciando migração do mundo (v${worldVersion} → v${CURRENT_SCHEMA_VERSION})`);
-  for (const actor of (game.actors ?? []).filter((a: Actor) => (a.type as string) === "character")) {
+  const actors = (Array.from(game.actors ?? []) as Actor[])
+    .filter(actor => (actor.type as string) === "character");
+  const results = await Promise.allSettled(actors.map(async actor => {
     await migrateActor(actor);
+    const actorSchema = Number(actor.getFlag(ETHERNUM.MODULE_NAME, "schemaVersion") ?? 0);
+    const unique = actor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics");
+    const momentum = actor.getFlag(ETHERNUM.MODULE_NAME, "combatMomentum");
+    const issues: string[] = [];
+    if (actorSchema !== CURRENT_SCHEMA_VERSION) issues.push("schemaVersion");
+    if (!validateUniqueMechanics(unique)) issues.push("uniqueMechanics");
+    if (!validateCombatMomentum(momentum)) issues.push("combatMomentum");
+    if (issues.length > 0) throw new Error(`Falha de validação: ${issues.join(", ")}`);
+    return actor;
+  }));
+  const failures = results.flatMap((result, index) => result.status === "rejected"
+    ? [{
+      actor: actors[index],
+      reason: result.reason instanceof Error ? result.reason.message : String(result.reason),
+    }]
+    : []);
+
+  if (failures.length > 0) {
+    console.error("Ethernum | Migração concluída com falhas; schema global preservado.", failures);
+    ui.notifications?.error(game.i18n!.format("ETHERNUM.Migrations.Failed", {
+      failed: failures.length,
+      total: actors.length,
+    }));
+    return;
   }
 
   await game.settings!.set(ETHERNUM.MODULE_NAME, "schemaVersion", CURRENT_SCHEMA_VERSION);
+  ui.notifications?.info(game.i18n!.format("ETHERNUM.Migrations.Success", { total: actors.length }));
   console.log("Ethernum | Migração concluída");
 }

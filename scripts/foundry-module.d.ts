@@ -1,5 +1,6 @@
 import type { EtherAttribute, CampaignCoreId } from './config.js';
 import type { CombatMomentumState } from './table/CombatMomentumSystem.js';
+import type { CombatTurnTimerState } from './combat/CombatTurnTimer.js';
 
 /**
  * Augmenta as interfaces globais do foundry-vtt-types com as flags e settings
@@ -15,6 +16,11 @@ declare global {
     "ethernum-rpg-module.feCostsPerRank": Record<string, number>;
     "ethernum-rpg-module.defaultRuneCostPerClass": Record<number, number>;
     "ethernum-rpg-module.schemaVersion": number;
+    "ethernum-rpg-module.combatTrackerEnabled": boolean;
+    "ethernum-rpg-module.combatTrackerOnlyInCombat": boolean;
+    "ethernum-rpg-module.combatTrackerDetailedStats": boolean;
+    "ethernum-rpg-module.combatAnimations": "full" | "reduced" | "off";
+    "ethernum-rpg-module.combatTimerPreferredDuration": number;
   }
 
   // Registra as flags do módulo — necessário para actor.getFlag/setFlag
@@ -34,6 +40,12 @@ declare global {
         };
         combatMomentum?: CombatMomentumState;
         schemaVersion?: number;
+        [key: string]: unknown;
+      };
+    };
+    Combat: {
+      "ethernum-rpg-module": {
+        combatTurnTimer?: CombatTurnTimerState;
         [key: string]: unknown;
       };
     };

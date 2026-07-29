@@ -1,6 +1,11 @@
 import { ETHERNUM, type Rank, type RuneClassKey } from './config.js';
 
 type BooleanSettingKey = "longRestFullRestore" | "showEtherInChat" | "allowOverride";
+type ClientBooleanSettingKey =
+  | "combatTrackerEnabled"
+  | "combatTrackerOnlyInCombat"
+  | "combatTrackerDetailedStats";
+export type CombatAnimationMode = "full" | "reduced" | "off";
 
 function getBooleanSetting(key: BooleanSettingKey, fallback: boolean): boolean {
   try {
@@ -72,6 +77,55 @@ export function registerSettings(): void {
     default: 0
   });
 
+  const refreshClientUI = () => window.dispatchEvent(new CustomEvent("ethernum-client-settings-changed"));
+  game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerEnabled", {
+    name: "ETHERNUM.Settings.CombatTrackerEnabled.Name",
+    hint: "ETHERNUM.Settings.CombatTrackerEnabled.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerOnlyInCombat", {
+    name: "ETHERNUM.Settings.CombatTrackerOnlyInCombat.Name",
+    hint: "ETHERNUM.Settings.CombatTrackerOnlyInCombat.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerDetailedStats", {
+    name: "ETHERNUM.Settings.CombatTrackerDetailedStats.Name",
+    hint: "ETHERNUM.Settings.CombatTrackerDetailedStats.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "combatAnimations", {
+    name: "ETHERNUM.Settings.CombatAnimations.Name",
+    hint: "ETHERNUM.Settings.CombatAnimations.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      full: "ETHERNUM.Settings.CombatAnimations.Full",
+      reduced: "ETHERNUM.Settings.CombatAnimations.Reduced",
+      off: "ETHERNUM.Settings.CombatAnimations.Off",
+    },
+    default: "full",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "combatTimerPreferredDuration", {
+    scope: "client",
+    config: false,
+    type: Number,
+    default: 60,
+  });
+
   console.log("Ethernum RPG Module | Settings registradas");
 }
 
@@ -112,4 +166,35 @@ export function shouldShowEtherInChat(): boolean {
 
 export function isOverrideAllowed(): boolean {
   return getBooleanSetting("allowOverride", true);
+}
+
+function getClientBooleanSetting(key: ClientBooleanSettingKey, fallback: boolean): boolean {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, key);
+    return typeof value === "boolean" ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function isCombatTrackerEnabled(): boolean {
+  return getClientBooleanSetting("combatTrackerEnabled", true);
+}
+
+export function isCombatTrackerOnlyInCombat(): boolean {
+  return getClientBooleanSetting("combatTrackerOnlyInCombat", false);
+}
+
+export function shouldShowCombatTrackerStats(): boolean {
+  return getClientBooleanSetting("combatTrackerDetailedStats", true);
+}
+
+export function getCombatAnimationMode(): CombatAnimationMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "combatAnimations");
+    if (value === "reduced" || value === "off") return value;
+  } catch {
+    return "full";
+  }
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
 }

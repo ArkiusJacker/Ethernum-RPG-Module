@@ -38,8 +38,8 @@
     {{/if}}
     {{#if (ethernum-eq uniqueMechanics.activeProfile "pipping-night")}}
     <div class="ethernum-unique-resource-pill ethernum-pipping-resource-pill">
-      <span>{{uniqueMechanics.pipping.state.tier}}</span>
-      <strong>{{uniqueMechanics.pipping.state.pulse}}/6 PS</strong>
+      <span>{{uniqueMechanics.pipping.tier}}</span>
+      <strong>{{uniqueMechanics.pipping.state.pulse}}/{{uniqueMechanics.pipping.pulseMaximum}} PS</strong>
     </div>
     {{/if}}
     {{#if (ethernum-eq uniqueMechanics.activeProfile "arkius-jacker")}}
@@ -725,13 +725,37 @@
   <section class="ethernum-section ethernum-pipping-hero">
     <div>
       <span class="ethernum-pipping-kicker">Pipping Baldwin Black</span>
-      <h2>Expressão da Noite</h2>
-      <p>A sombra age como extensão da vontade, transformando escuridão, ecos e performance em economia de Pulso.</p>
+      <h2>{{localize "ETHERNUM.Unique.Pipping.Title"}}</h2>
+      <p>{{localize "ETHERNUM.Unique.Pipping.Subtitle"}}</p>
     </div>
     <div class="ethernum-pipping-pulse" style="--pulse-percent: {{uniqueMechanics.pipping.pulsePercent}}%">
-      <span>Pulso Sombrio</span>
-      <strong>{{uniqueMechanics.pipping.state.pulse}} / 6</strong>
+      <span>{{localize "ETHERNUM.Unique.Pipping.Pulse"}}</span>
+      <strong>{{uniqueMechanics.pipping.state.pulse}} / {{uniqueMechanics.pipping.pulseMaximum}}</strong>
       <i></i>
+    </div>
+    <div class="ethernum-pipping-night-dc">
+      <span>{{localize "ETHERNUM.Unique.Pipping.NightDC"}}</span>
+      <strong>{{uniqueMechanics.pipping.nightDC}}</strong>
+    </div>
+  </section>
+
+  <section class="ethernum-section ethernum-pipping-quick-actions">
+    <div class="ethernum-pipping-action-toolbar">
+      <button type="button" class="ethernum-icon-button ethernum-pipping-show-status" title="{{localize 'ETHERNUM.Unique.Pipping.ShowStatus'}}">
+        <i class="fas fa-eye"></i>
+      </button>
+      {{#if uniqueMechanics.pipping.state.livingNightActive}}
+      <button type="button" class="ethernum-pipping-end-night">
+        <i class="fas fa-moon"></i> {{localize "ETHERNUM.Unique.Pipping.EndLivingNight"}}
+      </button>
+      {{else}}
+      <button type="button" class="ethernum-pipping-activate-night" {{#unless uniqueMechanics.pipping.state.pulse}}disabled{{/unless}}>
+        <i class="fas fa-moon"></i> {{localize "ETHERNUM.Unique.Pipping.ActivateLivingNight"}}
+      </button>
+      {{/if}}
+      <button type="button" class="ethernum-pipping-commune" {{#unless uniqueMechanics.pipping.state.recovery.communeAvailable}}disabled{{/unless}}>
+        <i class="fas fa-hourglass-half"></i> {{localize "ETHERNUM.Unique.Pipping.Commune"}}
+      </button>
     </div>
   </section>
 
@@ -742,38 +766,83 @@
     </h2>
     <div class="ethernum-pipping-control-row">
       <label>
-        <span>Tier</span>
-        <input type="number" class="ethernum-pipping-config" data-field="tier" min="1" max="4" value="{{uniqueMechanics.pipping.state.tier}}" />
+        <span>{{localize "ETHERNUM.Unique.Pipping.Tier"}}</span>
+        <input type="number" class="ethernum-pipping-config" data-field="tier" min="1" max="5" value="{{uniqueMechanics.pipping.state.tier}}" />
       </label>
       <label>
-        <span>Pulso</span>
-        <input type="number" class="ethernum-pipping-config" data-field="pulse" min="0" max="6" value="{{uniqueMechanics.pipping.state.pulse}}" />
+        <span>{{localize "ETHERNUM.Unique.Pipping.Pulse"}}</span>
+        <input type="number" class="ethernum-pipping-config" data-field="pulse" min="0" max="{{uniqueMechanics.pipping.pulseMaximum}}" value="{{uniqueMechanics.pipping.state.pulse}}" />
       </label>
       <label>
-        <span>Sombras</span>
+        <span>{{localize "ETHERNUM.Unique.Pipping.MirroredShadows"}}</span>
         <input type="number" class="ethernum-pipping-config" data-field="mirroredShadows" min="0" max="8" value="{{uniqueMechanics.pipping.state.mirroredShadows}}" />
       </label>
-      <label class="ethernum-gyro-check">
-        <input type="checkbox" class="ethernum-pipping-config" data-field="livingNightActive" {{#if uniqueMechanics.pipping.state.livingNightActive}}checked{{/if}} />
-        <span>Canção ativa</span>
+      <label>
+        <span>{{localize "ETHERNUM.Unique.Pipping.DarknessMode"}}</span>
+        <select class="ethernum-pipping-darkness-mode">
+          <option value="manual" {{#if (ethernum-eq uniqueMechanics.pipping.state.darkness.mode "manual")}}selected{{/if}}>{{localize "ETHERNUM.Unique.Pipping.DarknessModes.manual"}}</option>
+          <option value="random" {{#if (ethernum-eq uniqueMechanics.pipping.state.darkness.mode "random")}}selected{{/if}}>{{localize "ETHERNUM.Unique.Pipping.DarknessModes.random"}}</option>
+          <option value="scatter" {{#if (ethernum-eq uniqueMechanics.pipping.state.darkness.mode "scatter")}}selected{{/if}}>{{localize "ETHERNUM.Unique.Pipping.DarknessModes.scatter"}}</option>
+          <option value="area" {{#if (ethernum-eq uniqueMechanics.pipping.state.darkness.mode "area")}}selected{{/if}}>{{localize "ETHERNUM.Unique.Pipping.DarknessModes.area"}}</option>
+        </select>
       </label>
+    </div>
+    <div class="ethernum-pipping-expression-grid">
+      {{#each uniqueMechanics.pipping.tiers}}
+      <label class="{{#unless this.unlocked}}locked{{/unless}}">
+        <span>{{this.name}} · {{localize "ETHERNUM.Unique.Pipping.Level"}} {{this.minLevel}}</span>
+        <select class="ethernum-pipping-expression" data-tier="{{this.tier}}">
+          <option value="">{{localize "ETHERNUM.Unique.Pipping.ExpressionUnselected"}}</option>
+          {{#each ../uniqueMechanics.pipping.expressions}}
+          <option value="{{this.id}}" {{#if (ethernum-eq ../selectedExpression this.id)}}selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+        {{#each this.passives}}<small>{{this}}</small>{{/each}}
+      </label>
+      {{/each}}
     </div>
   </section>
   {{/if}}
 
+  <section class="ethernum-section ethernum-pipping-darkness {{#if uniqueMechanics.pipping.state.darkness.active}}active{{/if}}">
+    <h2 class="ethernum-section-title">
+      <span><i class="fas fa-circle-half-stroke"></i> {{localize "ETHERNUM.Unique.Pipping.Darkness"}}</span>
+      <small>{{uniqueMechanics.pipping.state.darkness.radius}} ft · {{localize (ethernum-concat "ETHERNUM.Unique.Pipping.DarknessModes." uniqueMechanics.pipping.state.darkness.mode)}}</small>
+    </h2>
+    <p>{{localize "ETHERNUM.Unique.Pipping.DarknessHint"}}</p>
+    {{#if isGM}}
+    <div class="ethernum-pipping-darkness-targets">
+      <strong>{{localize "ETHERNUM.Unique.Pipping.AffectedTargets"}}: {{uniqueMechanics.pipping.darknessTargetCount}}</strong>
+      {{#each uniqueMechanics.pipping.darknessTargets}}
+      <span>{{this.name}}</span>
+      {{/each}}
+      <button type="button" class="ethernum-pipping-resolve-darkness">
+        <i class="fas fa-dice"></i> {{localize "ETHERNUM.Unique.Pipping.ResolveDarkness"}}
+      </button>
+    </div>
+    {{/if}}
+  </section>
+
   <section class="ethernum-section ethernum-pipping-abilities">
     <h2 class="ethernum-section-title">
-      <span><i class="fas fa-eye"></i> Habilidades da Noite</span>
+      <span><i class="fas fa-eye"></i> {{localize "ETHERNUM.Unique.Pipping.NightAbilities"}}</span>
     </h2>
     <div class="ethernum-pipping-ability-list">
       {{#each uniqueMechanics.pipping.abilities}}
-      <article class="ethernum-pipping-ability">
+      <article class="ethernum-pipping-ability {{#unless this.unlocked}}locked{{/unless}}">
         <header>
           <span>{{this.tag}}</span>
           <strong>{{this.name}}</strong>
-          <small>{{this.cost}} · {{this.aspect}}</small>
+          <small>{{this.cost}} · {{this.aspect}}{{#if this.formula}} · {{this.formula}}{{/if}}</small>
         </header>
         <p>{{this.text}}</p>
+        {{#if this.unlocked}}
+        <button type="button" class="ethernum-pipping-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
+          <i class="fas fa-play"></i> {{localize "ETHERNUM.Unique.Pipping.UseAction"}}
+        </button>
+        {{else}}
+        <div class="ethernum-pipping-lock-reason"><i class="fas fa-lock"></i> {{this.lockReason}}</div>
+        {{/if}}
         <details class="ethernum-animated-details ethernum-pipping-details">
           <summary><i class="fas fa-circle-info"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
           <div class="ethernum-pipping-details-body">
@@ -791,7 +860,7 @@
 
   <section class="ethernum-section ethernum-pipping-macros">
     <h2 class="ethernum-section-title">
-      <span><i class="fas fa-terminal"></i> {{localize "ETHERNUM.Unique.Bayle.MacroSpace"}}</span>
+      <span><i class="fas fa-terminal"></i> {{localize "ETHERNUM.Unique.Pipping.MacroSpace"}}</span>
     </h2>
     <div class="ethernum-pipping-macro-grid">
       {{#each uniqueMechanics.pipping.macroSlots}}
