@@ -6,6 +6,7 @@ type ClientBooleanSettingKey =
   | "combatTrackerOnlyInCombat"
   | "combatTrackerDetailedStats";
 export type CombatAnimationMode = "full" | "reduced" | "off";
+export type PippingAnimationSpeed = "fast" | "normal" | "cinematic";
 
 function getBooleanSetting(key: BooleanSettingKey, fallback: boolean): boolean {
   try {
@@ -119,6 +120,34 @@ export function registerSettings(): void {
     default: "full",
     onChange: refreshClientUI,
   });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "pippingAnimations", {
+    name: "ETHERNUM.Settings.PippingAnimations.Name",
+    hint: "ETHERNUM.Settings.PippingAnimations.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      full: "ETHERNUM.Settings.PippingAnimations.Full",
+      reduced: "ETHERNUM.Settings.PippingAnimations.Reduced",
+      off: "ETHERNUM.Settings.PippingAnimations.Off",
+    },
+    default: "full",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "pippingAnimationSpeed", {
+    name: "ETHERNUM.Settings.PippingAnimationSpeed.Name",
+    hint: "ETHERNUM.Settings.PippingAnimationSpeed.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      fast: "ETHERNUM.Settings.PippingAnimationSpeed.Fast",
+      normal: "ETHERNUM.Settings.PippingAnimationSpeed.Normal",
+      cinematic: "ETHERNUM.Settings.PippingAnimationSpeed.Cinematic",
+    },
+    default: "normal",
+    onChange: refreshClientUI,
+  });
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatTimerPreferredDuration", {
     scope: "client",
     config: false,
@@ -197,4 +226,24 @@ export function getCombatAnimationMode(): CombatAnimationMode {
     return "full";
   }
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+}
+
+export function getPippingAnimationMode(): CombatAnimationMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "pippingAnimations");
+    if (value === "reduced" || value === "off") return value;
+  } catch {
+    return "full";
+  }
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+}
+
+export function getPippingAnimationSpeed(): PippingAnimationSpeed {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "pippingAnimationSpeed");
+    if (value === "fast" || value === "cinematic") return value;
+  } catch {
+    return "normal";
+  }
+  return "normal";
 }

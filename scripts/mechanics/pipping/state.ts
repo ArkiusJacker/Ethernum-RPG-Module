@@ -1,6 +1,6 @@
 import { asRecord, asStringRecord, clampNumber, optionalString } from "../state.js";
 
-export const PIPPING_STATE_VERSION = 3;
+export const PIPPING_STATE_VERSION = 4;
 export type PippingExpression = "destruction" | "order" | "chaos";
 export type PippingDarknessMode = "manual" | "random" | "scatter" | "area";
 export type PippingTier = 1 | 2 | 3 | 4 | 5;
@@ -17,6 +17,25 @@ export interface PippingPendingAction {
   pulseCost: number;
   startedAt: number;
   userId?: string;
+}
+
+export interface PippingAnimatedShadowState {
+  tileId?: string;
+  sceneId?: string;
+  position?: {
+    x: number;
+    y: number;
+  };
+  usedOffGuardTurnKey?: string;
+  [key: string]: unknown;
+}
+
+export interface PippingPersistentArea {
+  id: string;
+  actionId: "shadow-king" | "dead-sun-epitaph";
+  sceneId: string;
+  documentUuid: string;
+  expiresAtRound?: number;
 }
 
 export interface PippingNightState {
@@ -38,6 +57,8 @@ export interface PippingNightState {
     [key: string]: unknown;
   };
   shadowManifestations: PippingShadowManifestation[];
+  animatedShadow: PippingAnimatedShadowState;
+  persistentAreas: PippingPersistentArea[];
   frequencies: Record<string, string>;
   pendingAction?: PippingPendingAction;
   recovery: {
@@ -68,6 +89,8 @@ export const DEFAULT_PIPPING_STATE: PippingNightState = {
     radius: 10,
   },
   shadowManifestations: [],
+  animatedShadow: {},
+  persistentAreas: [],
   frequencies: {},
   recovery: {
     communeAvailable: false,
@@ -116,6 +139,43 @@ function normalizePendingAction(value: unknown): PippingPendingAction | undefine
   };
 }
 
+function normalizeAnimatedShadow(value: unknown): PippingAnimatedShadowState {
+  const shadow = asRecord(value);
+  const position = asRecord(shadow.position);
+  const x = Number(position.x);
+  const y = Number(position.y);
+  return {
+    ...shadow,
+    tileId: optionalString(shadow.tileId),
+    sceneId: optionalString(shadow.sceneId),
+    position: Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined,
+    usedOffGuardTurnKey: optionalString(shadow.usedOffGuardTurnKey),
+  };
+}
+
+function normalizePersistentAreas(value: unknown): PippingPersistentArea[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(entry => {
+    const area = asRecord(entry);
+    const id = optionalString(area.id);
+    const sceneId = optionalString(area.sceneId);
+    const documentUuid = optionalString(area.documentUuid);
+    const actionId: PippingPersistentArea["actionId"] | null = area.actionId === "shadow-king" || area.actionId === "dead-sun-epitaph"
+      ? area.actionId
+      : null;
+    const expiresAtRound = Number(area.expiresAtRound);
+    return id && sceneId && documentUuid && actionId
+      ? [{
+        id,
+        sceneId,
+        documentUuid,
+        actionId,
+        ...(Number.isFinite(expiresAtRound) ? { expiresAtRound } : {}),
+      }]
+      : [];
+  }).slice(-8);
+}
+
 export function normalizePippingState(value: unknown): PippingNightState {
   const state = asRecord(value);
   const darkness = asRecord(state.darkness);
@@ -152,6 +212,8 @@ export function normalizePippingState(value: unknown): PippingNightState {
       sourceTokenUuid: optionalString(darkness.sourceTokenUuid),
     },
     shadowManifestations: normalizeShadowManifestations(state.shadowManifestations),
+    animatedShadow: normalizeAnimatedShadow(state.animatedShadow),
+    persistentAreas: normalizePersistentAreas(state.persistentAreas),
     frequencies: asStringRecord(state.frequencies),
     pendingAction: normalizePendingAction(state.pendingAction),
     recovery: {

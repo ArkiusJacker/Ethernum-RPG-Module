@@ -4,9 +4,16 @@ import {
   selectPippingShadowVariant,
   type PippingShadowVariant,
 } from "./assets.js";
+import {
+  pippingPlacementWithinRange,
+  pippingShadowRangeForTier,
+  type PippingShadowPlacement,
+} from "./placement.js";
+import { pippingTierForLevel } from "./progression.js";
 import { normalizePippingState } from "./state.js";
 import type {
   PippingNightState,
+  PippingPersistentArea,
   PippingShadowManifestation,
 } from "./state.js";
 
@@ -19,7 +26,9 @@ interface TokenLike {
 
 interface SceneLike {
   id?: string;
-  grid?: { size?: number };
+  width?: number;
+  height?: number;
+  grid?: { size?: number; distance?: number };
   templates?: {
     get?: (id: string) => TemplateDocumentLike | undefined;
     contents?: TemplateDocumentLike[];
@@ -51,12 +60,19 @@ export interface PippingDarknessTemplateReference {
   [key: string]: unknown;
 }
 
-interface PippingCanvasContext {
+export interface PippingPersistentAreaReference extends PippingPersistentArea {
+  center: PippingShadowPlacement;
+  radius: number;
+}
+
+export interface PippingCanvasAnchor {
   sceneId?: string;
   sourceTokenId?: string;
   sourceTokenUuid?: string;
   sourceCenter?: { x: number; y: number };
 }
+
+type PippingCanvasContext = PippingCanvasAnchor;
 
 type PippingCanvasOperation = PippingCanvasContext & (
   {
@@ -73,11 +89,24 @@ type PippingCanvasOperation = PippingCanvasContext & (
     state: PippingNightState;
     count: number;
     kind: PippingShadowManifestation["kind"];
+    placementCenter: PippingShadowPlacement;
   }
   | {
     type: "remove-shadows";
     state: PippingNightState;
     kind?: PippingShadowManifestation["kind"];
+  }
+  | {
+    type: "create-area";
+    state: PippingNightState;
+    actionId: PippingPersistentArea["actionId"];
+    placementCenter: PippingShadowPlacement;
+    radius: number;
+  }
+  | {
+    type: "remove-areas";
+    state: PippingNightState;
+    actionId?: PippingPersistentArea["actionId"];
   }
 );
 
@@ -227,7 +256,7 @@ async function removePippingLivingNightTemplateLocally(
 
 function shadowTileData(
   actor: Actor,
-  token: TokenLike,
+  center: PippingShadowPlacement,
   variant: PippingShadowVariant,
   kind: PippingShadowManifestation["kind"],
   index: number,
@@ -239,8 +268,7 @@ function shadowTileData(
   const width = Math.round(gridSize * (kind === "animated" ? 1.35 : 1.1));
   const height = Math.round(width * 1.5);
   const angle = ((Math.PI * 2) / Math.max(1, count)) * index + random() * 0.45;
-  const radius = gridSize * (kind === "animated" ? 1.2 : 0.82);
-  const center = token.center ?? { x: 0, y: 0 };
+  const radius = gridSize * (kind === "animated" ? 0 : 0.82);
   return {
     x: Math.round(center.x + Math.cos(angle) * radius - width / 2),
     y: Math.round(center.y + Math.sin(angle) * radius - height / 2),
@@ -292,11 +320,94 @@ async function removePippingShadowManifestationsLocally(
   );
 }
 
+function areaBelongsToActor(
+  template: TemplateDocumentLike,
+  actor: Actor,
+  actionId?: PippingPersistentArea["actionId"],
+): boolean {
+  const actorId = template.getFlag?.(ETHERNUM.MODULE_NAME, "pippingActorId");
+  const areaActionId = template.getFlag?.(ETHERNUM.MODULE_NAME, "pippingAreaActionId");
+  return actorId === actor.id && (!actionId || areaActionId === actionId);
+}
+
+async function removePippingPersistentAreasLocally(
+  actor: Actor,
+  state: PippingNightState,
+  actionId?: PippingPersistentArea["actionId"],
+  context: PippingCanvasContext = {},
+): Promise<PippingPersistentArea[]> {
+  const scene = getScene(context.sceneId);
+  if (!scene?.deleteEmbeddedDocuments) return state.persistentAreas;
+  const ids = new Set<string>();
+  for (const template of scene.templates?.contents ?? []) {
+    if (template.id && areaBelongsToActor(template, actor, actionId)) ids.add(template.id);
+  }
+  for (const area of state.persistentAreas) {
+    if (area.sceneId === scene.id && (!actionId || area.actionId === actionId)) ids.add(area.id);
+  }
+  if (ids.size > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", [...ids]);
+  return state.persistentAreas.filter(area =>
+    area.sceneId !== scene.id || (actionId ? area.actionId !== actionId : false)
+  );
+}
+
+async function createPippingPersistentAreaLocally(
+  actor: Actor,
+  state: PippingNightState,
+  actionId: PippingPersistentArea["actionId"],
+  placementCenter: PippingShadowPlacement,
+  radius: number,
+  context: PippingCanvasContext = {},
+): Promise<PippingPersistentAreaReference> {
+  const scene = getScene(context.sceneId);
+  if (!scene?.id || !scene.createEmbeddedDocuments) {
+    throw new Error("Pipping requires an active scene to create a persistent area.");
+  }
+  const retained = await removePippingPersistentAreasLocally(actor, state, actionId, context);
+  const isEpitaph = actionId === "dead-sun-epitaph";
+  const [created] = await scene.createEmbeddedDocuments("MeasuredTemplate", [{
+    t: "circle",
+    user: game.user?.id,
+    x: placementCenter.x,
+    y: placementCenter.y,
+    distance: radius,
+    direction: 0,
+    fillColor: isEpitaph ? "#09080d" : "#34104f",
+    borderColor: isEpitaph ? "#7f6d9f" : "#b36cff",
+    texture: null,
+    flags: {
+      [ETHERNUM.MODULE_NAME]: {
+        uniqueMechanics: true,
+        pippingPersistentArea: true,
+        pippingActorId: actor.id,
+        pippingAreaActionId: actionId,
+        pippingMagicalDarkness: isEpitaph,
+      },
+    },
+  }]);
+  const template = created as TemplateDocumentLike | undefined;
+  if (!template?.id) throw new Error("The Pipping persistent area was not created.");
+  const reference: PippingPersistentAreaReference = {
+    id: template.id,
+    sceneId: scene.id,
+    documentUuid: template.uuid ?? `Scene.${scene.id}.MeasuredTemplate.${template.id}`,
+    actionId,
+    center: placementCenter,
+    radius,
+    ...(isEpitaph
+      ? { expiresAtRound: Number(game.combat?.round ?? 0) + 10 }
+      : {}),
+  };
+  state.persistentAreas = [...retained, reference].slice(-8);
+  return reference;
+}
+
 async function spawnPippingShadowManifestationsLocally(
   actor: Actor,
   state: PippingNightState,
   count: number,
   kind: PippingShadowManifestation["kind"],
+  placementCenter: PippingShadowPlacement,
   random: () => number = Math.random,
   context: PippingCanvasContext = {},
 ): Promise<PippingShadowManifestation[]> {
@@ -313,7 +424,7 @@ async function spawnPippingShadowManifestationsLocally(
   const created = await scene.createEmbeddedDocuments(
     "Tile",
     variants.map((variant, index) =>
-      shadowTileData(actor, token, variant, kind, index, variants.length, random, scene)
+      shadowTileData(actor, placementCenter, variant, kind, index, variants.length, random, scene)
     ),
   ) as TileDocumentLike[];
 
@@ -355,6 +466,61 @@ function actorUsesPipping(actor: Actor): boolean {
   return unique?.activeProfile === "pipping-night";
 }
 
+function actorLevel(actor: Actor): number {
+  const system = actor.system as {
+    details?: {
+      level?: {
+        value?: number;
+      };
+    };
+  };
+  return Math.max(1, Number(system.details?.level?.value ?? 1));
+}
+
+function validateShadowPlacement(
+  actor: Actor,
+  operation: Extract<PippingCanvasOperation, { type: "spawn-shadows" }>,
+  scene: SceneLike | null,
+): void {
+  const source = operation.sourceCenter;
+  const placement = operation.placementCenter;
+  if (
+    !source
+    || !Number.isFinite(source.x)
+    || !Number.isFinite(source.y)
+    || !Number.isFinite(placement?.x)
+    || !Number.isFinite(placement?.y)
+  ) {
+    throw new Error("The Pipping shadow placement has invalid coordinates.");
+  }
+  const normalizedState = normalizePippingState(operation.state);
+  const effectiveTier = Math.max(
+    normalizedState.tier,
+    pippingTierForLevel(actorLevel(actor)),
+  ) as PippingNightState["tier"];
+  const gridSize = Math.max(1, Number(scene?.grid?.size ?? 100));
+  const gridDistance = Math.max(1, Number(scene?.grid?.distance ?? 5));
+  if (!pippingPlacementWithinRange(
+    source,
+    placement,
+    pippingShadowRangeForTier(effectiveTier),
+    gridSize,
+    gridDistance,
+  )) {
+    throw new Error("The Pipping shadow placement is outside the allowed range.");
+  }
+  const sceneWidth = Number(scene?.width);
+  const sceneHeight = Number(scene?.height);
+  if (
+    placement.x < 0
+    || placement.y < 0
+    || (Number.isFinite(sceneWidth) && placement.x > sceneWidth)
+    || (Number.isFinite(sceneHeight) && placement.y > sceneHeight)
+  ) {
+    throw new Error("The Pipping shadow placement is outside the scene.");
+  }
+}
+
 function validateCanvasOperation(actor: Actor, operation: PippingCanvasOperation): void {
   if (!actorUsesPipping(actor)) {
     throw new Error("The requested canvas operation does not belong to an active Pipping actor.");
@@ -368,6 +534,24 @@ function validateCanvasOperation(actor: Actor, operation: PippingCanvasOperation
     if (!Number.isInteger(operation.count) || operation.count < 1 || operation.count > 4) {
       throw new Error("The Pipping shadow count is outside the allowed range.");
     }
+    validateShadowPlacement(actor, operation, getScene(operation.sceneId));
+  }
+  if (operation.type === "create-area") {
+    if (
+      !["shadow-king", "dead-sun-epitaph"].includes(operation.actionId)
+      || !Number.isFinite(operation.radius)
+      || operation.radius < 5
+      || operation.radius > 30
+    ) {
+      throw new Error("The Pipping persistent area is outside the allowed rules.");
+    }
+    validateShadowPlacement(actor, {
+      ...operation,
+      type: "spawn-shadows",
+      count: 1,
+      kind: "animated",
+      placementCenter: operation.placementCenter,
+    }, getScene(operation.sceneId));
   }
 }
 
@@ -400,7 +584,7 @@ function validatedRemoteCanvasOperation(
   const y = Number(token.y ?? 0);
   const width = Math.max(1, Number(token.width ?? 1));
   const height = Math.max(1, Number(token.height ?? 1));
-  return {
+  const validated = {
     ...operation,
     state: normalizePippingState(operation.state),
     sourceTokenUuid: token.uuid,
@@ -408,7 +592,9 @@ function validatedRemoteCanvasOperation(
       x: x + (width * gridSize) / 2,
       y: y + (height * gridSize) / 2,
     },
-  };
+  } as PippingCanvasOperation;
+  validateCanvasOperation(actor, validated);
+  return validated;
 }
 
 async function executeCanvasOperationLocally(
@@ -432,6 +618,7 @@ async function executeCanvasOperationLocally(
         operation.state,
         operation.count,
         operation.kind,
+        operation.placementCenter,
         Math.random,
         operation,
       );
@@ -440,6 +627,22 @@ async function executeCanvasOperationLocally(
         actor,
         operation.state,
         operation.kind,
+        operation,
+      );
+    case "create-area":
+      return createPippingPersistentAreaLocally(
+        actor,
+        operation.state,
+        operation.actionId,
+        operation.placementCenter,
+        operation.radius,
+        operation,
+      );
+    case "remove-areas":
+      return removePippingPersistentAreasLocally(
+        actor,
+        operation.state,
+        operation.actionId,
         operation,
       );
   }
@@ -518,6 +721,7 @@ async function executeCanvasOperation(
     sourceTokenUuid: operation.sourceTokenUuid ?? sourceToken?.document?.uuid,
     sourceCenter: operation.sourceCenter ?? sourceToken?.center,
   };
+  validateCanvasOperation(actor, contextualOperation);
   if (AutomationAuthority.isPrimaryGM() || !AutomationAuthority.getPrimaryGM()) {
     return executeCanvasOperationLocally(actor, contextualOperation);
   }
@@ -549,11 +753,13 @@ export async function syncPippingLivingNightTemplate(
   actor: Actor,
   state: PippingNightState,
   radius = state.darkness.radius,
+  anchor: PippingCanvasAnchor = {},
 ): Promise<PippingDarknessTemplateReference | null> {
   return await executeCanvasOperation(actor, {
     type: "sync-template",
     state,
     radius,
+    ...anchor,
   }) as PippingDarknessTemplateReference | null;
 }
 
@@ -581,11 +787,41 @@ export async function spawnPippingShadowManifestations(
   state: PippingNightState,
   count: number,
   kind: PippingShadowManifestation["kind"],
+  placementCenter: PippingShadowPlacement,
 ): Promise<PippingShadowManifestation[]> {
   return await executeCanvasOperation(actor, {
     type: "spawn-shadows",
     state,
     count,
     kind,
+    placementCenter,
   }) as PippingShadowManifestation[];
+}
+
+export async function createPippingPersistentArea(
+  actor: Actor,
+  state: PippingNightState,
+  actionId: PippingPersistentArea["actionId"],
+  placementCenter: PippingShadowPlacement,
+  radius: number,
+): Promise<PippingPersistentAreaReference> {
+  return await executeCanvasOperation(actor, {
+    type: "create-area",
+    state,
+    actionId,
+    placementCenter,
+    radius,
+  }) as PippingPersistentAreaReference;
+}
+
+export async function removePippingPersistentAreas(
+  actor: Actor,
+  state: PippingNightState,
+  actionId?: PippingPersistentArea["actionId"],
+): Promise<PippingPersistentArea[]> {
+  return await executeCanvasOperation(actor, {
+    type: "remove-areas",
+    state,
+    actionId,
+  }) as PippingPersistentArea[];
 }

@@ -1,16 +1,25 @@
 import {
   applyPF2eMutations,
+  rollSave as rollPF2eSave,
   type PF2eActorMutation,
   type PF2eConditionMutation,
   type PF2eEffectMutation,
 } from "../../core/PF2eAdapter.js";
 import type { PippingActionDefinition } from "./progression.js";
 import {
+  createPippingPersistentArea,
+  removePippingPersistentAreas,
   spawnPippingShadowManifestations,
+  type PippingPersistentAreaReference,
 } from "./canvas.js";
+import { requestPippingShadowPlacement } from "./placement.js";
+import { PippingAnimationService } from "./animations.js";
+import {
+  getPippingAnimationMode,
+  getPippingAnimationSpeed,
+} from "../../settings.js";
 import {
   basicSaveDamage,
-  resolvePippingDegree,
   type PippingDegreeOfSuccess,
 } from "./rules.js";
 import type {
@@ -42,6 +51,7 @@ interface SaveResult {
   total: number;
   natural: number;
   degree: PippingDegreeOfSuccess;
+  fallback: boolean;
 }
 
 interface TargetOutcome {
@@ -50,6 +60,14 @@ interface TargetOutcome {
   hpDelta?: number;
   conditionLabels: string[];
   applied: boolean;
+}
+
+interface PippingMutationContext {
+  damageType: string;
+  darkWhisperBonus: number;
+  livingNightActive: boolean;
+  darknessRadius: number;
+  liturgyConditionByActor: Map<string, string>;
 }
 
 export interface PippingActionExecutionOptions {
@@ -64,6 +82,16 @@ export interface PippingActionExecutionOptions {
 export interface PippingActionExecutionResult {
   completed: boolean;
   manifestations?: PippingShadowManifestation[];
+  animatedShadow?: {
+    tileId?: string;
+    sceneId?: string;
+    position: {
+      x: number;
+      y: number;
+    };
+  };
+  persistentArea?: PippingPersistentAreaReference;
+  additionalPulseCost?: number;
   assisted?: boolean;
 }
 
@@ -285,47 +313,206 @@ async function confirmAssistedAction(action: PippingActionDefinition): Promise<b
   });
 }
 
-function actorSaveModifier(actor: Actor, save: "fortitude" | "reflex" | "will"): number {
-  const system = actor.system as unknown as Record<string, unknown>;
-  const saves = (system.saves ?? {}) as Record<string, unknown>;
-  const data = (saves[save] ?? {}) as Record<string, unknown>;
-  const check = (data.check ?? {}) as Record<string, unknown>;
-  for (const candidate of [
-    data.total,
-    data.totalModifier,
-    data.mod,
-    data.value,
-    check.total,
-    check.totalModifier,
-    check.mod,
-  ]) {
-    const value = Number(candidate);
-    if (Number.isFinite(value)) return value;
-  }
-  return 0;
+function actorConditionSlugs(actor: Actor): string[] {
+  return Array.from(actor.items ?? []).flatMap(item => {
+    const data = item as Item & { slug?: string };
+    const slug = data.slug ?? String((data.system as unknown as { slug?: string })?.slug ?? "");
+    return slug ? [slug] : [];
+  });
 }
 
-function naturalD20(roll: Roll): number {
-  const dice = (roll as Roll & {
-    dice?: Array<{ total?: number; results?: Array<{ result?: number }> }>;
-  }).dice ?? [];
-  const value = Number(dice[0]?.total ?? dice[0]?.results?.[0]?.result);
-  return Number.isFinite(value) ? value : 0;
+function actorHasDeathTrigger(actor: Actor): boolean {
+  const attributes = actor.system as unknown as {
+    attributes?: {
+      hp?: {
+        value?: number;
+      };
+    };
+  };
+  const hp = Number(attributes.attributes?.hp?.value);
+  const conditions = new Set(actorConditionSlugs(actor));
+  return hp <= 0 || conditions.has("dying") || conditions.has("dead");
+}
+
+async function chooseDarkWhisperUse(
+  state: PippingNightState,
+  actor: Actor,
+): Promise<{ bonus: number; totalCost: number } | null> {
+  const sceneDarkness = Number((canvas?.scene as unknown as { darkness?: number })?.darkness ?? 0);
+  const canIntensify = state.livingNightActive || sceneDarkness >= 0.25;
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (value: { bonus: number; totalCost: number } | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    new Dialog({
+      title: game.i18n!.localize("ETHERNUM.Unique.Pipping.DarkWhisperChoice.Title"),
+      content: `
+        <form class="ethernum-pipping-use-choice">
+          <label>
+            <input type="radio" name="pipping-dark-whisper" value="normal" checked />
+            <span><strong>${game.i18n!.localize("ETHERNUM.Unique.Pipping.DarkWhisperChoice.Normal")}</strong>
+            <small>${game.i18n!.localize("ETHERNUM.Unique.Pipping.DarkWhisperChoice.NormalHint")}</small></span>
+          </label>
+          <label class="${canIntensify ? "" : "disabled"}">
+            <input type="radio" name="pipping-dark-whisper" value="intensified" ${canIntensify ? "" : "disabled"} />
+            <span><strong>${game.i18n!.localize("ETHERNUM.Unique.Pipping.DarkWhisperChoice.Intensified")}</strong>
+            <small>${game.i18n!.localize(canIntensify
+              ? "ETHERNUM.Unique.Pipping.DarkWhisperChoice.IntensifiedHint"
+              : "ETHERNUM.Unique.Pipping.DarkWhisperChoice.RequiresDarkness")}</small></span>
+          </label>
+        </form>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-check"></i>',
+          label: game.i18n!.localize("ETHERNUM.Buttons.Activate"),
+          callback: (html: JQuery) => {
+            const choice = String(html.find('input[name="pipping-dark-whisper"]:checked').val() ?? "normal");
+            if (choice === "intensified") {
+              if (!canIntensify || state.pulse < 2) {
+                ui.notifications?.warn(game.i18n!.localize(
+                  state.pulse < 2
+                    ? "ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse"
+                    : "ETHERNUM.Unique.Pipping.DarkWhisperChoice.RequiresDarkness",
+                ));
+                finish(null);
+                return;
+              }
+              finish({ bonus: 2, totalCost: 2 });
+              return;
+            }
+            finish({ bonus: 1, totalCost: 1 });
+          },
+        },
+        cancel: {
+          icon: '<i class="fas fa-xmark"></i>',
+          label: game.i18n!.localize("ETHERNUM.Buttons.Cancel"),
+          callback: () => finish(null),
+        },
+      },
+      default: "confirm",
+      close: () => finish(null),
+    }).render(true);
+  });
+}
+
+async function chooseDamageType(action: PippingActionDefinition): Promise<string | null> {
+  const type = action.damage?.type;
+  if (type !== "void-or-cold") return type ?? "void";
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    new Dialog({
+      title: game.i18n!.localize("ETHERNUM.Unique.Pipping.DamageType.Title"),
+      content: `
+        <form class="ethernum-pipping-use-choice">
+          <label><input type="radio" name="pipping-damage-type" value="void" checked />
+            <span><strong>${game.i18n!.localize("ETHERNUM.Unique.Pipping.DamageType.Void")}</strong></span></label>
+          <label><input type="radio" name="pipping-damage-type" value="cold" />
+            <span><strong>${game.i18n!.localize("ETHERNUM.Unique.Pipping.DamageType.Cold")}</strong></span></label>
+        </form>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-check"></i>',
+          label: game.i18n!.localize("ETHERNUM.Buttons.Confirm"),
+          callback: (html: JQuery) => finish(String(
+            html.find('input[name="pipping-damage-type"]:checked').val() ?? "void",
+          )),
+        },
+        cancel: {
+          icon: '<i class="fas fa-xmark"></i>',
+          label: game.i18n!.localize("ETHERNUM.Buttons.Cancel"),
+          callback: () => finish(null),
+        },
+      },
+      default: "confirm",
+      close: () => finish(null),
+    }).render(true);
+  });
+}
+
+async function chooseLiturgyCondition(target: TokenTarget): Promise<string | null> {
+  const choices = actorConditionSlugs(target.actor)
+    .filter(slug => ["frightened", "sickened", "stupefied"].includes(slug));
+  if (choices.length === 0) return null;
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    new Dialog({
+      title: game.i18n!.format("ETHERNUM.Unique.Pipping.LiturgyChoice.Title", {
+        target: target.name,
+      }),
+      content: `<form class="ethernum-pipping-use-choice">${choices.map((slug, index) => `
+        <label><input type="radio" name="pipping-liturgy-condition" value="${escapeHtml(slug)}" ${index === 0 ? "checked" : ""} />
+          <span><strong>${escapeHtml(slug)}</strong></span></label>`).join("")}</form>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-check"></i>',
+          label: game.i18n!.localize("ETHERNUM.Buttons.Confirm"),
+          callback: (html: JQuery) => finish(String(
+            html.find('input[name="pipping-liturgy-condition"]:checked').val() ?? "",
+          ) || null),
+        },
+        skip: {
+          icon: '<i class="fas fa-forward"></i>',
+          label: game.i18n!.localize("ETHERNUM.Unique.Pipping.LiturgyChoice.Skip"),
+          callback: () => finish(null),
+        },
+      },
+      default: "confirm",
+      close: () => finish(null),
+    }).render(true);
+  });
 }
 
 async function rollSave(
+  source: Actor,
   target: Actor,
   action: PippingActionDefinition,
   dc: number,
   livingNightPenalty = false,
 ): Promise<SaveResult | undefined> {
   if (!action.defense) return undefined;
-  const modifier = actorSaveModifier(target, action.defense) - (livingNightPenalty ? 1 : 0);
-  const roll = new Roll(`1d20 + ${modifier}`);
-  await roll.evaluate();
-  const total = Number(roll.total ?? 0);
-  const natural = naturalD20(roll);
-  return { total, natural, degree: resolvePippingDegree(total, dc, natural) };
+  const result = await rollPF2eSave({
+    actor: target,
+    save: action.defense,
+    dc,
+    origin: source,
+    traits: action.traits.map(trait => trait.toLowerCase()),
+    options: {
+      rollOptions: [
+        `action:${action.id}`,
+        "origin:effect:ethernum-pipping",
+        ...(action.save?.incapacitation ? ["incapacitation"] : []),
+      ],
+      modifiers: livingNightPenalty
+        ? [{
+          slug: "ethernum-pipping-living-night",
+          label: game.i18n!.localize("ETHERNUM.Unique.Pipping.Actions.LivingNight.Name"),
+          modifier: -1,
+          type: "status",
+        }]
+        : [],
+    },
+  });
+  return result
+    ? {
+      total: result.total,
+      natural: result.natural,
+      degree: result.degree,
+      fallback: result.fallback,
+    }
+    : undefined;
 }
 
 function managedEffect(
@@ -347,6 +534,19 @@ function condition(
   return { slug, value, mode, turnStartsRemaining };
 }
 
+function persistentDamage(formula: string, damageType: string): PF2eConditionMutation {
+  return {
+    slug: "persistent-damage",
+    value: 1,
+    mode: "increase",
+    persistent: {
+      formula,
+      damageType,
+      dc: 15,
+    },
+  };
+}
+
 function actorHasCondition(actor: Actor, slugs: string[]): string | null {
   const wanted = new Set(slugs);
   for (const item of Array.from(actor.items ?? [])) {
@@ -363,6 +563,7 @@ function mutationsForTarget(
   save: SaveResult | undefined,
   rolledTotal: number,
   tier: PippingTier,
+  context: PippingMutationContext,
 ): { mutation: PF2eActorMutation; hpDelta: number; labels: string[] } {
   const labels: string[] = [];
   const conditions: PF2eConditionMutation[] = [];
@@ -378,16 +579,17 @@ function mutationsForTarget(
       effects.push(managedEffect(
         "Sussurro das Trevas",
         "ethernum-pipping-dark-whisper",
-        "Bônus circunstancial de +1 no próximo ataque ou salvamento antes do próximo turno de Pipping.",
+        `Bônus circunstancial de +${context.darkWhisperBonus} no próximo ataque ou salvamento antes do próximo turno de Pipping.`,
         [{
           key: "FlatModifier",
           selector: ["attack-roll", "saving-throw"],
           type: "circumstance",
-          value: 1,
+          value: context.darkWhisperBonus,
           label: "Sussurro das Trevas",
+          removeAfterRoll: true,
         }],
       ));
-      labels.push("+1 ataque/salvamento");
+      labels.push(`+${context.darkWhisperBonus} ataque/salvamento`);
       break;
     case "restoring-pulse":
     case "requiem-persist":
@@ -405,7 +607,7 @@ function mutationsForTarget(
         labels.push("+1 próximo salvamento");
       }
       if (action.id === "gentle-night-liturgy") {
-        const removable = actorHasCondition(target.actor, ["frightened", "sickened", "stupefied"]);
+        const removable = context.liturgyConditionByActor.get(target.actor.uuid) ?? null;
         if (removable) {
           conditions.push(condition(removable, 1, "decrease"));
           labels.push(`reduz ${removable}`);
@@ -429,7 +631,11 @@ function mutationsForTarget(
       }
       break;
     case "void-touch":
-      if (failed) labels.push("dano persistente: aplicação assistida");
+      if (failed) {
+        const persistentFormula = criticallyFailed ? "2d6" : "1d6";
+        conditions.push(persistentDamage(persistentFormula, context.damageType));
+        labels.push(`${persistentFormula} persistente ${context.damageType}`);
+      }
       if (criticallyFailed) {
         conditions.push(condition("enfeebled", 1));
         labels.push("Enfeebled 1");
@@ -440,9 +646,14 @@ function mutationsForTarget(
         "Manto da Ordem Negra",
         "ethernum-pipping-black-order-mantle",
         `Reduz o próximo dano em ${rolledTotal}; em escuridão, concede ${tier} PV temporários.`,
-        [{ key: "Resistance", type: "all-damage", value: rolledTotal }],
+        context.livingNightActive && target.distance <= context.darknessRadius
+          ? [{ key: "TempHP", value: tier }]
+          : [],
       ));
-      labels.push(`redução ${rolledTotal}`);
+      labels.push(`redução assistida ${rolledTotal}`);
+      if (context.livingNightActive && target.distance <= context.darknessRadius) {
+        labels.push(`${tier} PV temporários`);
+      }
       break;
     case "shadow-resonance":
       if (failed) {
@@ -501,7 +712,11 @@ function mutationsForTarget(
       labels.push("resistência 15; voo");
       break;
     case "dead-sun-epitaph":
-      if (failed) labels.push("dano persistente: aplicação assistida");
+      if (failed) {
+        const persistentFormula = criticallyFailed ? "4d6" : "2d6";
+        conditions.push(persistentDamage(persistentFormula, context.damageType));
+        labels.push(`${persistentFormula} persistente ${context.damageType}`);
+      }
       if (criticallyFailed) {
         conditions.push(condition("enfeebled", 2));
         labels.push("Enfeebled 2");
@@ -524,7 +739,12 @@ function mutationsForTarget(
   return {
     mutation: {
       actorUuid: target.actor.uuid,
-      hpDelta,
+      damage: hpDelta < 0 && action.damage
+        ? { total: Math.abs(hpDelta), type: context.damageType }
+        : undefined,
+      healing: hpDelta > 0 && action.healing
+        ? { total: hpDelta }
+        : undefined,
       conditions,
       effects,
     },
@@ -547,7 +767,7 @@ function buildOutcomeCard(
     ? `<ul>${outcomes.map(outcome => `
         <li>
           <strong>${escapeHtml(outcome.target.name)}</strong>
-          ${outcome.save ? `<span>${escapeHtml(degreeLabel(outcome.save.degree))} · ${outcome.save.total} (d20 ${outcome.save.natural})</span>` : ""}
+          ${outcome.save ? `<span>${escapeHtml(degreeLabel(outcome.save.degree))} · ${outcome.save.total} (d20 ${outcome.save.natural})${outcome.save.fallback ? ` · ${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.SaveFallback"))}` : ""}</span>` : ""}
           ${outcome.hpDelta ? `<em>${outcome.hpDelta > 0 ? "+" : ""}${outcome.hpDelta} PV</em>` : ""}
           ${outcome.conditionLabels.length > 0 ? `<small>${outcome.conditionLabels.map(escapeHtml).join(" · ")}</small>` : ""}
           ${outcome.applied ? "" : `<small>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.ManualAdjustment"))}</small>`}
@@ -596,14 +816,47 @@ export async function executePippingAction(
   if (action.id === "animated-shadow" || action.id === "mirrored-shadows") {
     try {
       const count = action.id === "animated-shadow" ? 1 : tier >= 5 ? 4 : tier >= 3 ? 3 : 2;
+      const kind = action.id === "animated-shadow" ? "animated" : "mirrored";
+      const placement = await requestPippingShadowPlacement(actor, kind, tier);
+      if (!placement) return { completed: false };
       const manifestations = await spawnPippingShadowManifestations(
         actor,
         state,
         count,
-        action.id === "animated-shadow" ? "animated" : "mirrored",
+        kind,
+        placement,
       );
+      const sourceToken = actorToken(actor);
+      await PippingAnimationService.playPersistent({
+        actionId: action.id,
+        expression: action.expression,
+        sourceActorUuid: actor.uuid,
+        sourceTokenUuid: sourceToken?.document.uuid,
+        targetActorUuids: [],
+        targetTokenUuids: [],
+        tier,
+        intensity: count,
+        mode: getPippingAnimationMode(),
+        speed: getPippingAnimationSpeed(),
+        persistentId: `${actor.uuid}:${action.id}`,
+      });
       await postOutcome(actor, action, [], false);
-      return { completed: true, manifestations };
+      const animatedManifestation = kind === "animated"
+        ? manifestations.find(entry => entry.kind === "animated")
+        : undefined;
+      return {
+        completed: true,
+        manifestations,
+        ...(kind === "animated"
+          ? {
+            animatedShadow: {
+              tileId: animatedManifestation?.id,
+              sceneId: animatedManifestation?.sceneId,
+              position: placement,
+            },
+          }
+          : {}),
+      };
     } catch (error) {
       console.warn("Ethernum | Pipping shadow manifestation failed", error);
       ui.notifications?.error(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.ShadowSpawnFailed"));
@@ -614,13 +867,96 @@ export async function executePippingAction(
   if (action.id === "shadow-form") {
     const confirmed = await confirmAssistedAction(action);
     if (!confirmed) return { completed: false };
+    const sourceToken = actorToken(actor);
+    await PippingAnimationService.playAction({
+      actionId: action.id,
+      sourceActorUuid: actor.uuid,
+      sourceTokenUuid: sourceToken?.document.uuid,
+      targetActorUuids: [],
+      targetTokenUuids: [],
+      tier,
+      intensity: 1,
+      mode: getPippingAnimationMode(),
+      speed: getPippingAnimationSpeed(),
+    });
     await postOutcome(actor, action, [], true);
     return { completed: true, assisted: true };
   }
 
+  const darkWhisperChoice = action.id === "dark-whisper"
+    ? await chooseDarkWhisperUse(state, actor)
+    : { bonus: 1, totalCost: action.pulseCost };
+  if (!darkWhisperChoice) return { completed: false };
+  const damageType = await chooseDamageType(action);
+  if (!damageType) return { completed: false };
   const spec = actionTargetSpec(action.id);
   const targets = await chooseTargets(actor, action, spec);
   if (targets === null) return { completed: false };
+  if (
+    action.id === "night-refuses-end"
+    && (targets.length !== 1 || !actorHasDeathTrigger(targets[0].actor))
+  ) {
+    ui.notifications?.warn(game.i18n!.localize(
+      "ETHERNUM.Unique.Pipping.Errors.InvalidNightRefusesEndTrigger",
+    ));
+    return { completed: false };
+  }
+  const liturgyConditionByActor = new Map<string, string>();
+  if (action.id === "gentle-night-liturgy") {
+    for (const target of targets) {
+      const chosen = await chooseLiturgyCondition(target);
+      if (chosen) liturgyConditionByActor.set(target.actor.uuid, chosen);
+    }
+  }
+  const sourceToken = actorToken(actor);
+  let persistentArea: PippingPersistentAreaReference | undefined;
+  if (action.id === "shadow-king" || action.id === "dead-sun-epitaph") {
+    const sourceCenter = sourceToken ? tokenCenter(sourceToken) : null;
+    const areaCenter = action.id === "shadow-king"
+      ? state.animatedShadow.position
+      : sourceCenter;
+    if (!areaCenter) {
+      ui.notifications?.warn(game.i18n!.localize(
+        action.id === "shadow-king"
+          ? "ETHERNUM.Unique.Pipping.Errors.RequiresAnimatedShadow"
+          : "ETHERNUM.Unique.Pipping.Errors.RequiresActiveToken",
+      ));
+      return { completed: false };
+    }
+    try {
+      persistentArea = await createPippingPersistentArea(
+        actor,
+        state,
+        action.id,
+        areaCenter,
+        20,
+      );
+    } catch (error) {
+      console.warn(`Ethernum | Pipping ${action.id} area creation failed`, error);
+      ui.notifications?.error(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.TemplateFailed"));
+      return { completed: false };
+    }
+  }
+  const animationContext = {
+    actionId: action.id,
+    expression: action.expression,
+    sourceActorUuid: actor.uuid,
+    sourceTokenUuid: sourceToken?.document.uuid,
+    targetActorUuids: targets.map(target => target.actor.uuid),
+    targetTokenUuids: targets.map(target => target.token.document.uuid),
+    tier,
+    intensity: Math.max(1, targets.length),
+    damageType,
+    templateUuid: persistentArea?.documentUuid,
+    mode: getPippingAnimationMode(),
+    speed: getPippingAnimationSpeed(),
+    persistentId: `${actor.uuid}:${action.id}`,
+  };
+  if (action.animation.persistent) {
+    await PippingAnimationService.playPersistent(animationContext);
+  } else {
+    await PippingAnimationService.playAction(animationContext);
+  }
   const roll = formula ? new Roll(formula) : null;
   if (roll) {
     await roll.evaluate();
@@ -639,10 +975,18 @@ export async function executePippingAction(
   const rolledTotal = Math.max(0, Math.floor(Number(roll?.total ?? 0)));
   const mutations: PF2eActorMutation[] = [];
   const pendingOutcomes: Array<Omit<TargetOutcome, "applied">> = [];
+  const mutationContext: PippingMutationContext = {
+    damageType,
+    darkWhisperBonus: darkWhisperChoice.bonus,
+    livingNightActive: state.livingNightActive,
+    darknessRadius: state.darkness.radius,
+    liturgyConditionByActor,
+  };
   for (const target of targets) {
     const save = target.allied && action.id === "forbidden-performance"
       ? undefined
       : await rollSave(
+        actor,
         target.actor,
         action,
         dc,
@@ -650,7 +994,14 @@ export async function executePippingAction(
           && !target.allied
           && target.distance <= state.darkness.radius,
       );
-    const result = mutationsForTarget(action, target, save, rolledTotal, tier);
+    const result = mutationsForTarget(
+      action,
+      target,
+      save,
+      rolledTotal,
+      tier,
+      mutationContext,
+    );
     mutations.push(result.mutation);
     pendingOutcomes.push({
       target,
@@ -664,6 +1015,9 @@ export async function executePippingAction(
   try {
     appliedResults = await applyPF2eMutations(actor, mutations, action.id);
   } catch (error) {
+    if (persistentArea) {
+      await removePippingPersistentAreas(actor, state, persistentArea.actionId).catch(() => {});
+    }
     console.warn("Ethernum | Pipping target mutations failed", error);
     ui.notifications?.error(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.AutomationFailed"));
     return { completed: false };
@@ -672,6 +1026,17 @@ export async function executePippingAction(
     ...outcome,
     applied: appliedResults[index]?.applied ?? mutations[index] === undefined,
   }));
-  await postOutcome(actor, action, outcomes, action.automationMode === "assisted" && targets.length === 0);
-  return { completed: true };
+  const usedSaveFallback = outcomes.some(outcome => outcome.save?.fallback);
+  await postOutcome(
+    actor,
+    action,
+    outcomes,
+    usedSaveFallback || (action.automationMode === "assisted" && targets.length === 0),
+  );
+  return {
+    completed: true,
+    assisted: usedSaveFallback,
+    additionalPulseCost: Math.max(0, darkWhisperChoice.totalCost - action.pulseCost),
+    persistentArea,
+  };
 }

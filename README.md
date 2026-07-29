@@ -185,7 +185,13 @@ await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();
 await game.ethernum.macros.ethernumCompany.pipping.resolveDarkness();
 ```
 
-Pipping possui cinco Tiers liberados pelos níveis 3, 5, 9, 13 e 17. Cada Tier permite escolher Destruição, Ordem ou Caos; habilidades de escolhas diferentes permanecem visíveis, mas bloqueadas. Os Tiers II-V usam os valores da revisão mecânica como regras assistidas e ainda exigem validação prática de balanceamento no PF2e.
+Pipping possui cinco Tiers liberados pelos níveis 3, 5, 9, 13 e 17. Cada Tier permite escolher Destruição, Ordem ou Caos; habilidades de escolhas diferentes permanecem visíveis, mas bloqueadas. A ficha mostra fórmula atual, próximo aumento, máximo e nível de automação usando os mesmos descritores da execução.
+
+Na v3.5.3, Sombra Animada e Sombras Espelhadas abrem uma prévia no canvas: mova o cursor para escolher o ponto, clique, confirme e a manifestação sorteada aparece na posição válida. O alcance cresce de 10 para 20 e 30 pés conforme o Tier. Sombra-Rei e Epitáfio do Sol Morto mantêm áreas próprias no canvas, separadas da Noite Viva.
+
+Salvamentos usam a API da ficha PF2e quando disponível. Dano tipado respeita IWR pela aplicação do PF2e; ambientes sem API pública compatível recebem um resultado assistido claramente identificado. Movimentação forçada, redução da instância de dano, comandos e passagens por obstáculos continuam exigindo confirmação do mestre.
+
+As animações de Pipping podem ser configuradas por cliente como completas, reduzidas ou desativadas, com velocidade rápida, normal ou cinemática. Sequencer e JB2A são opcionais; o módulo mantém fallbacks próprios em PIXI/DOM e respeita a preferência de movimento reduzido do sistema.
 
 #### Macros de Charles e Atlas Sidarta
 

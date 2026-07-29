@@ -5,6 +5,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.3] - 2026-07-29
+
+### Adicionado
+- Posicionamento interativo e confirmado para Sombra Animada e Sombras Espelhadas, com prévia no canvas, encaixe na grade, alcance por Tier e nova validação pelo mestre.
+- Fonte declarativa de fórmulas e scaling para as ações de Pipping, exibindo valor atual, próximo aumento, máximo e nível correspondente na ficha.
+- Áreas persistentes visíveis para Sombra-Rei e Epitáfio do Sol Morto, estado próprio da Sombra Animada e reconciliação segura dos documentos do canvas.
+- Serviço de animações próprio para todas as ações de Pipping, com modos completo, reduzido e desativado, velocidades configuráveis e fallbacks Sequencer, JB2A, PIXI e DOM.
+- Adaptador de salvamentos PF2e com fallback identificado, além de testes para scaling, animações, posicionamento, migração e âncoras de token.
+
+### Alterado
+- Descritores das habilidades de Pipping passam a concentrar alcance, área, alvos, salvamento, efeitos, fórmulas e nível de automação.
+- Dano tipado usa a aplicação do PF2e quando disponível e permanece assistido quando a API não for segura; cura respeita os PV máximos.
+- Sussurro das Trevas permite uso normal ou intensificado, Liturgia permite a escolha da condição reduzida e Manto da Ordem Negra deixa de conceder resistência genérica.
+- Schema de mundo avança para 12 e o estado interno de Pipping para a versão 4, preservando flags, escolhas, recursos, manifestações e campos desconhecidos.
+
+### Corrigido
+- As auras constantes de Pipping e Arkius Jacker passam a usar a posição autoritativa do documento de token durante `updateToken`, eliminando o atraso de uma movimentação.
+- Pulso Sombrio acima de um máximo recalculado não é reduzido silenciosamente durante atualizações comuns.
+- Epitáfio do Sol Morto e Toque do Vazio registram dano persistente compatível com as condições do PF2e.
+
 ## [3.5.2] - 2026-07-29
 
 ### Adicionado

@@ -4594,6 +4594,186 @@
   }
 }
 
+.ethernum-pipping-placement-preview {
+  position: fixed;
+  z-index: 120;
+  width: 92px;
+  height: 112px;
+  pointer-events: none;
+  transform: translate(-50%, -72%);
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.82));
+}
+
+.ethernum-pipping-placement-preview img {
+  width: 72px;
+  height: 92px;
+  object-fit: contain;
+  opacity: 0.82;
+}
+
+.ethernum-pipping-placement-preview span {
+  min-width: 92px;
+  padding: 3px 7px;
+  color: #fff;
+  border: 1px solid #9d6bd3;
+  border-radius: 4px;
+  background: rgba(19, 13, 27, 0.94);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ethernum-pipping-placement-preview.invalid img {
+  filter: grayscale(0.7) sepia(0.55) saturate(4) hue-rotate(320deg);
+  opacity: 0.58;
+}
+
+.ethernum-pipping-placement-preview.invalid span {
+  border-color: #e04a47;
+  background: rgba(55, 14, 18, 0.96);
+}
+
+.ethernum-pipping-placement-dialog {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.ethernum-pipping-placement-dialog img {
+  width: 56px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.ethernum-pipping-placement-dialog p {
+  margin: 5px 0 0;
+}
+
+.ethernum-pipping-use-choice {
+  display: grid;
+  gap: 6px;
+}
+
+.ethernum-pipping-use-choice label {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid rgba(157, 107, 211, 0.35);
+  border-radius: 5px;
+  background: rgba(21, 22, 34, 0.86);
+  color: #f7f4fb;
+}
+
+.ethernum-pipping-use-choice label.disabled {
+  opacity: 0.48;
+}
+
+.ethernum-pipping-use-choice span,
+.ethernum-pipping-use-choice strong,
+.ethernum-pipping-use-choice small {
+  display: block;
+  min-width: 0;
+}
+
+.ethernum-pipping-use-choice small {
+  margin-top: 2px;
+  color: #c5bdd3;
+}
+
+.ethernum-pipping-canvas-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ethernum-pipping-canvas-status span {
+  display: inline-flex;
+  min-width: 0;
+  gap: 5px;
+  align-items: center;
+  padding: 5px 7px;
+  color: #bcb3cd;
+  border-left: 2px solid #5d536d;
+  background: rgba(21, 22, 34, 0.72);
+  font-size: 11px;
+}
+
+.ethernum-pipping-canvas-status span.active {
+  color: #f7f4fb;
+  border-left-color: #a86ee2;
+}
+
+.ethernum-pipping-canvas-status strong {
+  color: #fff;
+}
+
+.ethernum-pipping-scaling {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 9px 0;
+  overflow: hidden;
+  border: 1px solid rgba(188, 165, 220, 0.2);
+  border-radius: 5px;
+  background: rgba(188, 165, 220, 0.12);
+}
+
+.ethernum-pipping-scaling > span {
+  min-width: 0;
+  padding: 7px 8px;
+  background: #151622;
+}
+
+.ethernum-pipping-scaling small,
+.ethernum-pipping-scaling strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ethernum-pipping-scaling small {
+  color: #bcb3cd;
+  font-size: 10px;
+}
+
+.ethernum-pipping-scaling strong {
+  margin-top: 2px;
+  color: #f7f4fb;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.ethernum-pipping-scaling .automation-automatic strong {
+  color: #7ed8b2;
+}
+
+.ethernum-pipping-scaling .automation-assisted strong {
+  color: #f1cb72;
+}
+
+.ethernum-pipping-scaling .automation-manual strong {
+  color: #ef8f8b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ethernum-pipping-placement-preview {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .ethernum-pipping-scaling {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* v3.5 Pipping progression */
 .ethernum-unique-pipping-theme {
   --pipping-surface: #11131c;

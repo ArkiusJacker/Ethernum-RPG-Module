@@ -14,6 +14,9 @@ describe("Pipping sheet layout", () => {
     expect(template).toContain('class="ethernum-pipping-tier"');
     expect(template).toContain("expression-{{this.visualExpression}}");
     expect(template).toContain('src="{{this.visualAsset}}"');
+    expect(template).toContain("this.scaling.next");
+    expect(template).toContain("this.automationLabel");
+    expect(template).toContain("state.animatedShadow.tileId");
   });
 
   it("ships every expression asset referenced by the module", () => {

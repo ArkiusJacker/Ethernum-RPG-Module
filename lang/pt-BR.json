@@ -58,6 +58,7 @@
       "Expand": "Expandir",
       "Close": "Fechar",
       "Save": "Salvar",
+      "Confirm": "Confirmar",
       "Cancel": "Cancelar"
     },
     "Attribute": {
@@ -374,6 +375,46 @@
         "AssistedResolved": "Uso confirmado. O posicionamento ou movimento permanece sob controle do jogador e do mestre.",
         "ManualAdjustment": "Uma parte do efeito requer ajuste manual.",
         "ActionCancelled": "A ação foi cancelada sem gastar Pulso Sombrio.",
+        "SaveFallback": "salvamento simplificado",
+        "Scaling": {
+          "Current": "Atual",
+          "Next": "Próximo aumento",
+          "Maximum": "Máximo",
+          "Fixed": "Valor fixo ou sem rolagem",
+          "NextValue": "{formula} no nível {level}",
+          "MaximumValue": "{formula} no nível {level}",
+          "NoFurtherIncrease": "Sem outro aumento",
+          "NotApplicable": "Não se aplica"
+        },
+        "Automation": {
+          "Label": "Automação",
+          "automatic": "Automática",
+          "assisted": "Assistida",
+          "manual": "Manual"
+        },
+        "DarkWhisperChoice": {
+          "Title": "Sussurro das Trevas",
+          "Normal": "Uso normal — 1 PS",
+          "NormalHint": "+1 circunstancial no próximo ataque ou salvamento.",
+          "Intensified": "Intensificar — 2 PS",
+          "IntensifiedHint": "+2 circunstancial no próximo ataque ou salvamento.",
+          "RequiresDarkness": "Exige luz fraca ou escuridão."
+        },
+        "DamageType": {
+          "Title": "Escolher tipo de dano",
+          "Void": "Vazio",
+          "Cold": "Frio"
+        },
+        "LiturgyChoice": {
+          "Title": "Liturgia — {target}",
+          "Skip": "Não reduzir condição"
+        },
+        "CanvasStatus": {
+          "AnimatedShadow": "Sombra Animada",
+          "PersistentAreas": "Áreas persistentes",
+          "Active": "Posicionada",
+          "NotPlaced": "Não posicionada"
+        },
         "Degrees": {
           "criticalFailure": "Falha crítica",
           "failure": "Falha",
@@ -458,8 +499,20 @@
           "ShadowSpawnFailed": "Não foi possível manifestar as sombras. Verifique se Pipping possui um token em uma cena ativa.",
           "TemplateFailed": "Não foi possível criar a área da Noite Viva. O Pulso não foi gasto.",
           "RequiresActiveToken": "Pipping precisa de um token em uma cena ativa para usar esta habilidade.",
+          "RequiresAnimatedShadow": "Sombra-Rei exige uma Sombra Animada já posicionada na cena.",
           "ActionInProgress": "Pipping já possui uma ação em resolução.",
-          "AutomationFailed": "A automação não pôde concluir as alterações. Nenhum Pulso foi gasto."
+          "AutomationFailed": "A automação não pôde concluir as alterações. Nenhum Pulso foi gasto.",
+          "InvalidNightRefusesEndTrigger": "A Noite Recusa o Fim exige um alvo a 0 PV, Morrendo ou sob um efeito de morte."
+        },
+        "Placement": {
+          "Instructions": "Mova o marcador pelo mapa, clique em uma posição válida e confirme. Esc ou clique direito cancela sem gastar Pulso.",
+          "Range": "Alcance: {range} pés",
+          "Distance": "{distance} / {range} pés",
+          "OutOfRange": "Fora do alcance: {distance} / {range} pés",
+          "ConfirmTitle": "Confirmar manifestação",
+          "ConfirmBody": "Manifestar a sombra a {distance} pés de Pipping? Alcance máximo: {maximum} pés.",
+          "Confirm": "Manifestar",
+          "Cancel": "Cancelar"
         },
         "Actions": {
           "AnimatedShadow": {
@@ -749,6 +802,20 @@
         "Full": "Completas",
         "Reduced": "Reduzidas",
         "Off": "Desativadas"
+      },
+      "PippingAnimations": {
+        "Name": "Animações de Pipping",
+        "Hint": "Controla os efeitos visuais das habilidades da Noite neste cliente.",
+        "Full": "Completas",
+        "Reduced": "Reduzidas",
+        "Off": "Desativadas"
+      },
+      "PippingAnimationSpeed": {
+        "Name": "Velocidade das animações de Pipping",
+        "Hint": "Ajusta a duração dos efeitos visuais sem alterar a resolução mecânica.",
+        "Fast": "Rápida",
+        "Normal": "Normal",
+        "Cinematic": "Cinemática"
       }
     }
   }

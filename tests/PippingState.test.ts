@@ -76,7 +76,7 @@ describe("normalizePippingState", () => {
       },
     });
 
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.darkness.templateId).toBe("template-1");
     expect(migrated.darkness.templateUuid).toContain("MeasuredTemplate");
     expect(migrated.shadowManifestations).toEqual([
@@ -84,6 +84,54 @@ describe("normalizePippingState", () => {
     ]);
     expect(migrated.frequencies).toEqual({ "void-echoes": "combat:4" });
     expect(migrated.pendingAction?.actionId).toBe("ruin-note");
+  });
+
+  it("migrates the animated shadow position without dropping custom fields", () => {
+    const migrated = normalizePippingState({
+      version: 3,
+      animatedShadow: {
+        tileId: "tile-shadow",
+        sceneId: "scene",
+        position: { x: 240, y: 360 },
+        usedOffGuardTurnKey: "combat:2:1",
+        customShadow: "kept",
+      },
+    });
+
+    expect(migrated.animatedShadow).toEqual({
+      tileId: "tile-shadow",
+      sceneId: "scene",
+      position: { x: 240, y: 360 },
+      usedOffGuardTurnKey: "combat:2:1",
+      customShadow: "kept",
+    });
+  });
+
+  it("preserves valid persistent areas and drops incomplete references", () => {
+    const migrated = normalizePippingState({
+      version: 3,
+      persistentAreas: [
+        {
+          id: "template-shadow-king",
+          actionId: "shadow-king",
+          sceneId: "scene",
+          documentUuid: "Scene.scene.MeasuredTemplate.template-shadow-king",
+        },
+        {
+          id: "template-invalid",
+          actionId: "another-action",
+          sceneId: "scene",
+          documentUuid: "Scene.scene.MeasuredTemplate.template-invalid",
+        },
+      ],
+    });
+
+    expect(migrated.persistentAreas).toEqual([{
+      id: "template-shadow-king",
+      actionId: "shadow-king",
+      sceneId: "scene",
+      documentUuid: "Scene.scene.MeasuredTemplate.template-shadow-king",
+    }]);
   });
 
   it("does not infer commune availability from a legacy pulse value", () => {

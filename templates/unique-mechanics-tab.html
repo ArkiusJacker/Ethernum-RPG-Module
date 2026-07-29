@@ -757,6 +757,23 @@
         <i class="fas fa-hourglass-half"></i> {{localize "ETHERNUM.Unique.Pipping.Commune"}}
       </button>
     </div>
+    <div class="ethernum-pipping-canvas-status">
+      <span class="{{#if uniqueMechanics.pipping.state.animatedShadow.tileId}}active{{/if}}">
+        <i class="fas fa-person-rays"></i>
+        {{localize "ETHERNUM.Unique.Pipping.CanvasStatus.AnimatedShadow"}}
+        <strong>{{#if uniqueMechanics.pipping.state.animatedShadow.tileId}}{{localize "ETHERNUM.Unique.Pipping.CanvasStatus.Active"}}{{else}}{{localize "ETHERNUM.Unique.Pipping.CanvasStatus.NotPlaced"}}{{/if}}</strong>
+      </span>
+      <span class="{{#if uniqueMechanics.pipping.state.persistentAreas.length}}active{{/if}}">
+        <i class="fas fa-draw-polygon"></i>
+        {{localize "ETHERNUM.Unique.Pipping.CanvasStatus.PersistentAreas"}}
+        <strong>{{uniqueMechanics.pipping.state.persistentAreas.length}}</strong>
+      </span>
+      <span class="{{#if uniqueMechanics.pipping.state.mirroredShadows}}active{{/if}}">
+        <i class="fas fa-clone"></i>
+        {{localize "ETHERNUM.Unique.Pipping.MirroredShadows"}}
+        <strong>{{uniqueMechanics.pipping.state.mirroredShadows}}</strong>
+      </span>
+    </div>
   </section>
 
   {{#if isGM}}
@@ -860,6 +877,24 @@
                 </span>
               </header>
               <p>{{this.text}}</p>
+              <div class="ethernum-pipping-scaling">
+                <span>
+                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Current"}}</small>
+                  <strong>{{this.scaling.current}}</strong>
+                </span>
+                <span>
+                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Next"}}</small>
+                  <strong>{{this.scaling.next}}</strong>
+                </span>
+                <span>
+                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Maximum"}}</small>
+                  <strong>{{this.scaling.maximum}}</strong>
+                </span>
+                <span class="automation-{{this.automationMode}}">
+                  <small>{{localize "ETHERNUM.Unique.Pipping.Automation.Label"}}</small>
+                  <strong>{{this.automationLabel}}</strong>
+                </span>
+              </div>
               {{#if this.unlocked}}
               <button type="button" class="ethernum-pipping-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
                 <i class="fas fa-play"></i> {{localize "ETHERNUM.Unique.Pipping.UseAction"}}

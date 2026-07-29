@@ -58,6 +58,7 @@
       "Expand": "Expand",
       "Close": "Close",
       "Save": "Save",
+      "Confirm": "Confirm",
       "Cancel": "Cancel"
     },
     "Attribute": {
@@ -374,6 +375,46 @@
         "AssistedResolved": "Use confirmed. Positioning or movement remains under player and GM control.",
         "ManualAdjustment": "Part of this effect requires a manual adjustment.",
         "ActionCancelled": "The action was cancelled without spending Shadow Pulse.",
+        "SaveFallback": "simplified save",
+        "Scaling": {
+          "Current": "Current",
+          "Next": "Next increase",
+          "Maximum": "Maximum",
+          "Fixed": "Fixed value or no roll",
+          "NextValue": "{formula} at level {level}",
+          "MaximumValue": "{formula} at level {level}",
+          "NoFurtherIncrease": "No further increase",
+          "NotApplicable": "Not applicable"
+        },
+        "Automation": {
+          "Label": "Automation",
+          "automatic": "Automatic",
+          "assisted": "Assisted",
+          "manual": "Manual"
+        },
+        "DarkWhisperChoice": {
+          "Title": "Dark Whisper",
+          "Normal": "Normal use — 1 SP",
+          "NormalHint": "+1 circumstance to the next attack or save.",
+          "Intensified": "Intensify — 2 SP",
+          "IntensifiedHint": "+2 circumstance to the next attack or save.",
+          "RequiresDarkness": "Requires dim light or darkness."
+        },
+        "DamageType": {
+          "Title": "Choose damage type",
+          "Void": "Void",
+          "Cold": "Cold"
+        },
+        "LiturgyChoice": {
+          "Title": "Liturgy — {target}",
+          "Skip": "Do not reduce a condition"
+        },
+        "CanvasStatus": {
+          "AnimatedShadow": "Animated Shadow",
+          "PersistentAreas": "Persistent areas",
+          "Active": "Placed",
+          "NotPlaced": "Not placed"
+        },
         "Degrees": {
           "criticalFailure": "Critical failure",
           "failure": "Failure",
@@ -458,8 +499,20 @@
           "ShadowSpawnFailed": "The shadows could not be manifested. Make sure Pipping has a token on an active scene.",
           "TemplateFailed": "The Living Night area could not be created. No Pulse was spent.",
           "RequiresActiveToken": "Pipping needs a token on an active scene to use this ability.",
+          "RequiresAnimatedShadow": "Shadow-King requires an Animated Shadow already placed in the scene.",
           "ActionInProgress": "Pipping already has an action being resolved.",
-          "AutomationFailed": "Automation could not complete the changes. No Pulse was spent."
+          "AutomationFailed": "Automation could not complete the changes. No Pulse was spent.",
+          "InvalidNightRefusesEndTrigger": "The Night Refuses the End requires a target at 0 HP, Dying, or under a death effect."
+        },
+        "Placement": {
+          "Instructions": "Move the marker across the map, click a valid position, and confirm. Escape or right-click cancels without spending Pulse.",
+          "Range": "Range: {range} feet",
+          "Distance": "{distance} / {range} feet",
+          "OutOfRange": "Out of range: {distance} / {range} feet",
+          "ConfirmTitle": "Confirm manifestation",
+          "ConfirmBody": "Manifest the shadow {distance} feet from Pipping? Maximum range: {maximum} feet.",
+          "Confirm": "Manifest",
+          "Cancel": "Cancel"
         },
         "Actions": {
           "AnimatedShadow": {
@@ -749,6 +802,20 @@
         "Full": "Full",
         "Reduced": "Reduced",
         "Off": "Off"
+      },
+      "PippingAnimations": {
+        "Name": "Pipping animations",
+        "Hint": "Controls visual effects for the Night abilities on this client.",
+        "Full": "Full",
+        "Reduced": "Reduced",
+        "Off": "Off"
+      },
+      "PippingAnimationSpeed": {
+        "Name": "Pipping animation speed",
+        "Hint": "Adjusts visual effect duration without changing mechanical resolution.",
+        "Fast": "Fast",
+        "Normal": "Normal",
+        "Cinematic": "Cinematic"
       }
     }
   }

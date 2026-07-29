@@ -22,6 +22,7 @@ import {
   getPippingAction,
   getPippingActionAvailability,
   getPippingActionFormula,
+  getPippingActionFormulaProgression,
   normalizePippingState as normalizePippingProfileState,
   PIPPING_ACTIONS,
   PIPPING_SHADOW_ASSETS,
@@ -38,10 +39,17 @@ import {
 } from '../mechanics/pipping/profile.js';
 import {
   removePippingLivingNightTemplate,
+  removePippingPersistentAreas,
   removePippingShadowManifestations,
   syncPippingLivingNightTemplate,
 } from '../mechanics/pipping/canvas.js';
 import { executePippingAction } from '../mechanics/pipping/runtime.js';
+import { PippingAnimationService } from '../mechanics/pipping/animations.js';
+import {
+  getPippingAnimationMode,
+  getPippingAnimationSpeed,
+} from '../settings.js';
+import { resolveTokenDocumentAnchor, type TokenAnchor } from '../core/TokenAnchor.js';
 import {
   ARKIUS_JACKER_PROFILE_ID,
   DEFAULT_ARKIUS_STATE,
@@ -2639,16 +2647,28 @@ function isAlliedTargetChoice(source: Actor, choice: EthernumTargetChoice): bool
   return sourceToken && targetToken ? tokensAreAllied(sourceToken, targetToken) : true;
 }
 
-function getSceneMeasuredTemplates(): Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }> {
-  const templates = (canvas?.scene as unknown as { templates?: Iterable<unknown> })?.templates;
+function getArkiusAuraScene(sceneId?: string): {
+  templates?: Iterable<unknown>;
+  createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]>;
+  deleteEmbeddedDocuments?: (embeddedName: string, ids: string[]) => Promise<unknown[]>;
+} | undefined {
+  if (sceneId) {
+    const requested = game.scenes?.get(sceneId);
+    if (requested) return requested as unknown as ReturnType<typeof getArkiusAuraScene>;
+  }
+  return canvas?.scene as unknown as ReturnType<typeof getArkiusAuraScene>;
+}
+
+function getSceneMeasuredTemplates(sceneId?: string): Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }> {
+  const templates = getArkiusAuraScene(sceneId)?.templates;
   return Array.from(templates ?? []) as Array<Record<string, unknown> & { id?: string; getFlag?: (scope: string, key: string) => unknown }>;
 }
 
-async function removeArkiusKineticAuraTemplate(actor: Actor, templateId?: string): Promise<void> {
-  const scene = canvas?.scene as unknown as { deleteEmbeddedDocuments?: (embeddedName: string, ids: string[]) => Promise<unknown[]> } | undefined;
+async function removeArkiusKineticAuraTemplate(actor: Actor, templateId?: string, sceneId?: string): Promise<void> {
+  const scene = getArkiusAuraScene(sceneId);
   if (!scene?.deleteEmbeddedDocuments) return;
   const actorKey = getActorKey(actor);
-  const ids = getSceneMeasuredTemplates()
+  const ids = getSceneMeasuredTemplates(sceneId)
     .filter(template => {
       const sameTemplate = templateId && template.id === templateId;
       const sameAura = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG;
@@ -2660,9 +2680,9 @@ async function removeArkiusKineticAuraTemplate(actor: Actor, templateId?: string
   if (ids.length > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
 }
 
-function findArkiusKineticAuraTemplate(actor: Actor, templateId?: string): (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null {
+function findArkiusKineticAuraTemplate(actor: Actor, templateId?: string, sceneId?: string): (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null {
   const actorKey = getActorKey(actor);
-  const template = getSceneMeasuredTemplates().find(template => {
+  const template = getSceneMeasuredTemplates(sceneId).find(template => {
     const sameTemplate = templateId && template.id === templateId;
     const sameAura = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG;
     const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
@@ -2671,16 +2691,21 @@ function findArkiusKineticAuraTemplate(actor: Actor, templateId?: string): (Reco
   return (template ?? null) as (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null;
 }
 
-async function createArkiusKineticAuraTemplate(actor: Actor, radius: number): Promise<string | undefined> {
+async function createArkiusKineticAuraTemplate(
+  actor: Actor,
+  radius: number,
+  anchor?: TokenAnchor | null,
+): Promise<string | undefined> {
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
-  const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]> } | undefined;
-  if (!token?.center || !scene?.createEmbeddedDocuments) return undefined;
-  await removeArkiusKineticAuraTemplate(actor);
+  const scene = getArkiusAuraScene(anchor?.sceneId);
+  const center = anchor?.center ?? token?.center;
+  if (!center || !scene?.createEmbeddedDocuments) return undefined;
+  await removeArkiusKineticAuraTemplate(actor, undefined, anchor?.sceneId);
   const created = await scene.createEmbeddedDocuments("MeasuredTemplate", [{
     t: "circle",
     user: game.user?.id,
-    x: token.center.x,
-    y: token.center.y,
+    x: center.x,
+    y: center.y,
     distance: radius,
     direction: 0,
     fillColor: "#ff6a1f",
@@ -2695,16 +2720,20 @@ async function createArkiusKineticAuraTemplate(actor: Actor, radius: number): Pr
   return typeof template.id === "string" ? template.id : undefined;
 }
 
-async function syncArkiusKineticAuraTemplate(actor: Actor): Promise<string | undefined> {
+async function syncArkiusKineticAuraTemplate(
+  actor: Actor,
+  anchor?: TokenAnchor | null,
+): Promise<string | undefined> {
   const state = normalizeArkiusState(asRecord(UniqueMechanicsSystem.getState(actor).profiles)[ARKIUS_JACKER_PROFILE_ID]);
   if (!state.kineticAura.active) return undefined;
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
-  if (!token?.center) return state.kineticAura.templateId;
-  const template = findArkiusKineticAuraTemplate(actor, state.kineticAura.templateId);
-  if (!template?.update) return createArkiusKineticAuraTemplate(actor, state.kineticAura.radius);
+  const center = anchor?.center ?? token?.center;
+  if (!center) return state.kineticAura.templateId;
+  const template = findArkiusKineticAuraTemplate(actor, state.kineticAura.templateId, anchor?.sceneId);
+  if (!template?.update) return createArkiusKineticAuraTemplate(actor, state.kineticAura.radius, anchor);
   await template.update({
-    x: token.center.x,
-    y: token.center.y,
+    x: center.x,
+    y: center.y,
     distance: state.kineticAura.radius,
   }, { render: false });
   return template.id ?? state.kineticAura.templateId;
@@ -2949,8 +2978,13 @@ function tokensAreAllied(sourceToken: unknown, targetToken: unknown): boolean {
   return sourceDisposition !== 0 && sourceDisposition === targetDisposition;
 }
 
-function tokenInArkiusKineticAura(sourceToken: unknown, targetToken: unknown, radius: number): boolean {
-  const sourceCenter = getTokenLikeCenter(sourceToken);
+function tokenInArkiusKineticAura(
+  sourceToken: unknown,
+  targetToken: unknown,
+  radius: number,
+  sourceAnchor?: TokenAnchor | null,
+): boolean {
+  const sourceCenter = sourceAnchor?.center ?? getTokenLikeCenter(sourceToken);
   const targetCenter = getTokenLikeCenter(targetToken);
   if (!sourceCenter || !targetCenter) return false;
   const distance = pixelsToSceneDistance(Math.hypot(targetCenter.x - sourceCenter.x, targetCenter.y - sourceCenter.y));
@@ -3941,7 +3975,14 @@ export class UniqueMechanicsSystem {
       },
     });
     const effectiveTier = Math.max(next.tier, pippingTierForLevel(getActorLevel(actor))) as PippingTier;
-    next.pulse = clamp(next.pulse, 0, calculatePippingPulseMaximum(getActorCharismaModifier(actor), effectiveTier));
+    const pulseMaximum = calculatePippingPulseMaximum(getActorCharismaModifier(actor), effectiveTier);
+    if (patch.pulse === undefined) {
+      next.pulse = current.pulse;
+    } else if (next.pulse > current.pulse) {
+      next.pulse = clamp(next.pulse, 0, Math.max(current.pulse, pulseMaximum));
+    } else {
+      next.pulse = Math.max(0, next.pulse);
+    }
     state.profiles[PIPPING_PROFILE_ID] = next;
     await this.setStateQuiet(actor, state);
     return next;
@@ -4040,6 +4081,19 @@ export class UniqueMechanicsSystem {
       },
       recovery: { communeAvailable: true },
     });
+    await PippingAnimationService.playPersistent({
+      actionId: "living-night-song",
+      sourceActorUuid: target.uuid,
+      sourceTokenUuid: templateReference.sourceTokenUuid,
+      targetActorUuids: [],
+      targetTokenUuids: [],
+      templateUuid: templateReference.templateUuid,
+      tier: effectiveTier,
+      intensity: radius,
+      mode: getPippingAnimationMode(),
+      speed: getPippingAnimationSpeed(),
+      persistentId: `${target.uuid}:living-night-song`,
+    });
     await this.showPippingStatus(target, game.i18n!.localize("ETHERNUM.Unique.Pipping.LivingNightActivated"));
     return next;
   }
@@ -4054,6 +4108,7 @@ export class UniqueMechanicsSystem {
     await removePippingLivingNightTemplate(target, state).catch(error => {
       console.warn("Ethernum | Pipping Living Night template could not be removed", error);
     });
+    await PippingAnimationService.stopPersistent(`${target.uuid}:living-night-song`);
     const next = await this.updatePippingState(target, {
       livingNightActive: false,
       livingNightTurnKey: undefined,
@@ -4169,6 +4224,10 @@ export class UniqueMechanicsSystem {
       console.warn("Ethernum | Pipping shadow cleanup failed", error);
       return state.shadowManifestations;
     });
+    const remainingAreas = await removePippingPersistentAreas(target, state).catch(error => {
+      console.warn("Ethernum | Pipping persistent area cleanup failed", error);
+      return state.persistentAreas;
+    });
     return this.updatePippingState(target, {
       pulse: this.getPippingPulseMaximum(target, state),
       livingNightActive: false,
@@ -4176,6 +4235,8 @@ export class UniqueMechanicsSystem {
       livingNightRounds: 0,
       mirroredShadows: 0,
       shadowManifestations: remainingManifestations,
+      animatedShadow: {},
+      persistentAreas: remainingAreas,
       frequencies: {},
       pendingAction: undefined,
       darkness: {
@@ -4269,7 +4330,7 @@ export class UniqueMechanicsSystem {
     }
 
     const nextPatch: PartialPippingNightState = {
-      pulse: state.pulse - action.pulseCost,
+      pulse: state.pulse - action.pulseCost - (execution.additionalPulseCost ?? 0),
       pendingAction: undefined,
       frequencies: {
         ...state.frequencies,
@@ -4287,6 +4348,15 @@ export class UniqueMechanicsSystem {
     }
     if (execution.manifestations) {
       nextPatch.shadowManifestations = execution.manifestations;
+    }
+    if (execution.animatedShadow) {
+      nextPatch.animatedShadow = execution.animatedShadow;
+    }
+    if (execution.persistentArea) {
+      nextPatch.persistentAreas = [
+        ...state.persistentAreas.filter(area => area.actionId !== execution.persistentArea?.actionId),
+        execution.persistentArea,
+      ].slice(-8);
     }
     await this.updatePippingState(target, nextPatch);
     refreshActorMechanicsViews(target);
@@ -5815,17 +5885,28 @@ export class UniqueMechanicsSystem {
     return next;
   }
 
-  static async applyThermalNimbusToTokensInAura(actor: Actor, trigger = "aura", turnKeyOverride?: string): Promise<void> {
+  static async applyThermalNimbusToTokensInAura(
+    actor: Actor,
+    trigger = "aura",
+    turnKeyOverride?: string,
+    sourceAnchor?: TokenAnchor | null,
+  ): Promise<void> {
     const sourceToken = getActorToken(actor);
     if (!sourceToken) return;
     const state = this.getArkiusState(actor);
     if (!state.thermalNimbus.active || !state.kineticAura.active) return;
     for (const token of getCanvasTokenPlaceables()) {
-      await this.applyThermalNimbusToToken(actor, token, trigger, turnKeyOverride);
+      await this.applyThermalNimbusToToken(actor, token, trigger, turnKeyOverride, sourceAnchor);
     }
   }
 
-  static async applyThermalNimbusToToken(actor: Actor, targetToken: unknown, trigger = "entrada na aura", turnKeyOverride?: string): Promise<boolean> {
+  static async applyThermalNimbusToToken(
+    actor: Actor,
+    targetToken: unknown,
+    trigger = "entrada na aura",
+    turnKeyOverride?: string,
+    sourceAnchor?: TokenAnchor | null,
+  ): Promise<boolean> {
     if (!AutomationAuthority.isPrimaryGM() || !game.combat) return false;
     const state = this.getArkiusState(actor);
     if (!state.thermalNimbus.active || !state.kineticAura.active) return false;
@@ -5833,7 +5914,7 @@ export class UniqueMechanicsSystem {
     const targetActor = getTokenLikeActor(targetToken);
     if (!sourceToken || !targetActor || targetActor.id === actor.id) return false;
     if (tokensAreAllied(sourceToken, targetToken)) return false;
-    if (!tokenInArkiusKineticAura(sourceToken, targetToken, state.kineticAura.radius)) return false;
+    if (!tokenInArkiusKineticAura(sourceToken, targetToken, state.kineticAura.radius, sourceAnchor)) return false;
 
     const turnKey = turnKeyOverride ?? getCombatTurnKey() ?? `${game.combat.id ?? "combat"}:${game.combat.round ?? 0}`;
     const targetKey = getActorKey(targetActor);
@@ -6370,10 +6451,27 @@ export class UniqueMechanicsSystem {
     const moved = "x" in changes || "y" in changes || "elevation" in changes;
     if (!moved) return;
     const movedActor = getTokenLikeActor(tokenDocument);
+    const anchor = resolveTokenDocumentAnchor(
+      tokenDocument,
+      changes,
+      Number(canvas?.scene?.grid?.size ?? 100),
+    );
     if (movedActor && this.getState(movedActor).activeProfile === PIPPING_PROFILE_ID) {
       const pippingState = this.getPippingState(movedActor);
       if (pippingState.livingNightActive) {
-        const templateReference = await syncPippingLivingNightTemplate(movedActor, pippingState).catch(error => {
+        const templateReference = await syncPippingLivingNightTemplate(
+          movedActor,
+          pippingState,
+          pippingState.darkness.radius,
+          anchor
+            ? {
+              sceneId: anchor.sceneId,
+              sourceTokenId: anchor.tokenId,
+              sourceTokenUuid: anchor.tokenUuid,
+              sourceCenter: anchor.center,
+            }
+            : undefined,
+        ).catch(error => {
           console.warn("Ethernum | Pipping Living Night template sync failed", error);
           return null;
         });
@@ -6386,8 +6484,8 @@ export class UniqueMechanicsSystem {
     }
     for (const actor of this.getActiveThermalNimbusActors()) {
       if (movedActor?.id === actor.id) {
-        await this.syncArkiusKineticAuraTemplate(actor);
-        await this.applyThermalNimbusToTokensInAura(actor, "aura movida");
+        await syncArkiusKineticAuraTemplate(actor, anchor);
+        await this.applyThermalNimbusToTokensInAura(actor, "aura movida", undefined, anchor);
       } else {
         await this.applyThermalNimbusToToken(actor, tokenDocument, "entrada na aura");
       }
@@ -7690,10 +7788,17 @@ export class UniqueMechanicsSystem {
     });
     const pippingAbilities = PIPPING_ACTIONS.map(action => {
       const availability = getPippingActionAvailability(action, pippingState, actorLevel, pippingTier);
+      const charismaModifier = getActorCharismaModifier(actor);
       const formula = getPippingActionFormula(
         action.formulaId,
         actorLevel,
-        getActorCharismaModifier(actor),
+        charismaModifier,
+        pippingTier,
+      );
+      const formulaProgression = getPippingActionFormulaProgression(
+        action.formulaId,
+        actorLevel,
+        charismaModifier,
         pippingTier,
       );
       const actionLabel = typeof action.actions === "number"
@@ -7724,6 +7829,25 @@ export class UniqueMechanicsSystem {
           .map(trait => game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`))
           .join(" / "),
         formula,
+        scaling: {
+          current: formulaProgression?.current
+            ?? game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.Fixed"),
+          next: formulaProgression?.nextIncrease
+            ? game.i18n!.format("ETHERNUM.Unique.Pipping.Scaling.NextValue", {
+              formula: formulaProgression.nextIncrease.formula,
+              level: formulaProgression.nextIncrease.level,
+            })
+            : game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.NoFurtherIncrease"),
+          maximum: formulaProgression?.maximum
+            ? game.i18n!.format("ETHERNUM.Unique.Pipping.Scaling.MaximumValue", {
+              formula: formulaProgression.maximum.formula,
+              level: formulaProgression.maximum.level ?? "—",
+            })
+            : game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.NotApplicable"),
+        },
+        automationLabel: game.i18n!.localize(
+          `ETHERNUM.Unique.Pipping.Automation.${action.automationMode}`,
+        ),
         icon,
         visualExpression,
         visualAsset: PIPPING_SHADOW_ASSETS[visualExpression],
