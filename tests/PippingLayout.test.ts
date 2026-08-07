@@ -14,8 +14,13 @@ describe("Pipping sheet layout", () => {
     expect(template).toContain('class="ethernum-pipping-tier"');
     expect(template).toContain("expression-{{this.visualExpression}}");
     expect(template).toContain('src="{{this.visualAsset}}"');
-    expect(template).toContain("this.scaling.next");
-    expect(template).toContain("this.automationLabel");
+    expect(template).toContain("this.summaryEntries");
+    expect(template).toContain("this.header.pulseCost");
+    expect(template).toContain("this.header.traits");
+    expect(template).toContain("this.details");
+    expect(template).toContain("this.entries");
+    expect(template).toContain('data-pipping-action="{{this.id}}"');
+    expect(template).toContain('tabindex="0"');
     expect(template).toContain("state.animatedShadow.tileId");
   });
 
@@ -32,7 +37,13 @@ describe("Pipping sheet layout", () => {
   it("keeps expression colors distinct in the sheet stylesheet", () => {
     const css = readFileSync(resolve(root, "styles/ethernum.css"), "utf8");
     expect(css).toContain(".ethernum-pipping-ability.expression-destruction");
+    expect(css).toContain(".ethernum-pipping-ability.expression-order");
     expect(css).toContain(".ethernum-pipping-ability.expression-chaos");
     expect(css).toContain(".ethernum-pipping-chat-card.expression-order");
+    expect(css).toContain("ethernum-pipping-hover-destruction");
+    expect(css).toContain("ethernum-pipping-hover-order");
+    expect(css).toContain("ethernum-pipping-hover-chaos");
+    expect(css).toContain(":focus-within");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });

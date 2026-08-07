@@ -514,7 +514,387 @@
           "Confirm": "Manifest",
           "Cancel": "Cancel"
         },
-        "Actions": {
+        "AreaPlacement": {
+          "Instructions": "Move the cursor, click to choose the area, and confirm. Escape or right-click cancels without spending Pulse.",
+          "ConePreview": "{area}-foot cone",
+          "BurstPreview": "{area}-foot burst · center {distance} feet away",
+          "OutOfRange": "Center out of range: {distance} / {range} feet",
+          "ConfirmTitle": "Confirm area",
+          "ConfirmBody": "Confirm a {area}-foot area {distance} feet from Pipping?",
+          "Confirm": "Confirm",
+          "Cancel": "Cancel"
+        },
+        "AnimationDiagnostics": {
+          "Title": "Pipping animation diagnostics",
+          "Available": "available",
+          "Unavailable": "unavailable",
+          "GMOnly": "Only the GM can open animation diagnostics.",
+          "Sequencer": "Sequencer",
+          "DatabaseViewer": "Database Viewer",
+          "JB2A": "JB2A",
+          "Fallback": "Fallback",
+          "Action": "Action",
+          "SelectedKey": "Selected key",
+          "Layer": "Layer"
+        },
+    "Chat": {
+      "Cost": "Total cost",
+      "Formula": "Formula",
+          "DC": "DC",
+          "Area": "Area",
+          "Range": "Range",
+          "Targets": "Targets",
+          "NoTargets": "No direct target",
+      "Duration": "Duration",
+      "Assisted": "Assisted parts"
+    },
+    "Presentation": {
+      "Units": {
+        "PulseCost": "{cost} SP",
+        "Feet": "{value} feet"
+      },
+      "Activation": {
+        "OneAction": "{count} action",
+        "MultipleActions": "{count} actions",
+        "OptionalTotalCost": "{label}: {cost} total"
+      },
+      "Frequency": {
+        "OncePerDay": "once per day",
+        "MultiplePerDay": "{uses} times per day",
+        "OncePerRound": "once per round",
+        "MultiplePerRound": "{uses} times per round"
+      },
+      "Targets": {
+        "Self": "Pipping",
+        "NoDirectTarget": "No direct target",
+        "OneWillingAlly": "1 willing ally",
+        "UpToWillingAllies": "up to {maximum} willing allies",
+        "UpToAllies": "up to {maximum} allies",
+        "AlliesInArea": "allies in the area",
+        "OneEnemy": "1 enemy",
+        "UpToEnemies": "up to {maximum} enemies",
+        "EnemiesInArea": "enemies in the area",
+        "OneCreature": "1 creature",
+        "UpToCreatures": "up to {maximum} creatures",
+        "CreaturesInArea": "Creatures in the area",
+        "CreaturesInAreaLower": "creatures in the area"
+      },
+      "Areas": {
+        "Required": {
+          "burst": "{size}-foot burst",
+          "cone": "{size}-foot cone",
+          "darkness": "{size}-foot darkness",
+          "emanation": "{size}-foot emanation"
+        },
+        "Display": {
+          "burst": "{size}-foot burst",
+          "cone": "{size}-foot cone",
+          "darkness": "{size}-foot darkness",
+          "emanation": "{size}-foot emanation"
+        }
+      },
+      "Origins": {
+        "self": "Pipping's token",
+        "shadow": "Animated Shadow",
+        "point": "chosen and confirmed point"
+      },
+      "Durations": {
+        "1-round": "1 round",
+        "1-minute": "1 minute",
+        "end-of-target-turn": "until the end of the target's turn",
+        "persistent": "persistent",
+        "sustained": "sustained",
+        "start-of-pipping-next-turn": "until the start of Pipping's next turn",
+        "Instant": "Instant."
+      },
+      "Labels": {
+        "Range": "Range",
+        "Area": "Area",
+        "Scaling": "Scaling",
+        "Effect": "Effect",
+        "Intensified": "Intensified",
+        "Target": "Target",
+        "Save": "Save",
+        "Frequency": "Frequency",
+        "Duration": "Duration"
+      },
+      "Effects": {
+        "ally-darkness-vision": "Allies' vision in darkness",
+        "ally-quickened-limited-actions": "Allies' limited Quickened",
+        "animated-shadow-placement": "Animated Shadow placement",
+        "basic-save-damage": "Basic save damage",
+        "commanded-actions-tracker": "Commanded actions tracking",
+        "doomed": "Doomed application",
+        "enemy-only-difficult-terrain": "Difficult terrain for enemies",
+        "enemy-save-penalty-against-pipping": "Enemy save penalty",
+        "fly-speed-equals-land-speed": "Fly Speed",
+        "healing": "Healing",
+        "independent-magical-darkness": "Persistent magical darkness",
+        "mirrored-shadow-images": "Shadow images",
+        "move-through-creature-spaces": "Movement through creature spaces",
+        "next-ally-strike-off-guard": "Off-Guard against the next ally Strike",
+        "next-attack-or-save": "Bonus to the next attack or save",
+        "next-save-bonus": "Bonus to the next save",
+        "object-passage": "Passage through objects",
+        "prevent-wounded-from-triggering-event": "Prevent Wounded increase",
+        "recover-pulse": "Recover Shadow Pulse",
+        "reduce-chosen-condition": "Reduce the chosen condition",
+        "reduce-frightened": "Reduce Frightened",
+        "reduce-triggering-damage-instance": "Reduce the triggering damage instance",
+        "resistance-all-except-force-spirit": "Resistance except force and spirit",
+        "retaliation-void-d6-per-tier": "Image retaliation",
+        "simple-check-dc-5": "DC 5 flat check",
+        "teleport": "Teleport selection and execution",
+        "temporary-hp-in-darkness": "Temporary HP in darkness"
+      },
+      "Conditions": {
+        "off-guard": "Off-Guard",
+        "no-reactions": "no reactions",
+        "frightened-1": "Frightened 1",
+        "frightened-2": "Frightened 2",
+        "stupefied-1": "Stupefied 1",
+        "slowed-1": "Slowed 1",
+        "slowed-2": "Slowed 2",
+        "enfeebled-1": "Enfeebled 1",
+        "enfeebled-2": "Enfeebled 2"
+      },
+      "Scaling": {
+        "OneImage": "{value} image",
+        "MultipleImages": "{value} images",
+        "TemporaryHP": "{value} temporary HP",
+        "MaximumTemporaryHP": "5 temporary HP at Tier V",
+        "Healing": "Healing",
+        "Reduction": "Reduction",
+        "Damage": "Damage",
+        "NormalBonus": "Normal bonus",
+        "PlusOneCircumstance": "+1 circumstance",
+        "IntensifiedBonus": "Intensified bonus",
+        "PlusTwoCircumstance": "+2 circumstance",
+        "Retaliation": "Retaliation",
+        "MaximumRetaliation": "5d6 at Tier V",
+        "PersistentDamage": "Persistent damage",
+        "PersistentDamageValues": "Failure {failure}; critical failure {criticalFailure}",
+        "FixedEffect": "Fixed effect"
+      },
+      "Outcomes": {
+        "ForcedMovement": "{distance} feet of forced movement",
+        "AppliesConditions": "applies {conditions}",
+        "CommandsOneAction": "commands {count} action",
+        "CommandsMultipleActions": "commands {count} actions",
+        "Duration": "duration: {duration}",
+        "PersistentDamage": "{formula} persistent damage.",
+        "NoEffect": "No effect."
+      },
+      "BasicSave": {
+        "criticalSuccess": "No damage.",
+        "success": "Half damage.",
+        "failure": "Full damage.",
+        "criticalFailure": "Double damage."
+      },
+      "OutcomeNotes": {
+        "persistent-void-1d6": "Applies 1d6 persistent void damage.",
+        "persistent-void-2d6": "Applies 2d6 persistent void damage.",
+        "persistent-same-type-2d6": "Applies 2d6 persistent damage of the same type.",
+        "persistent-same-type-4d6": "Applies 4d6 persistent damage of the same type."
+      },
+      "DurationEntries": {
+        "Area": "Area: {duration}.",
+        "Effect": "{effect}: {duration}.",
+        "ConsumedOn": "Consumed by the {trigger}.",
+        "Default": "Instant unless a specific effect states otherwise."
+      },
+      "Consumption": {
+        "commanded-action": "commanded action",
+        "first-attack-or-save": "first attack or save",
+        "first-save": "first save",
+        "next-ally-strike": "next ally Strike",
+        "triggering-damage": "damage that triggered the reaction"
+      },
+      "Requirements": {
+        "None": "No additional requirements.",
+        "WithGMConfirmation": "{requirement} GM confirmation required.",
+        "WithPlayerConfirmation": "{requirement} Player confirmation required.",
+        "Items": {
+          "ally-would-take-damage": "Trigger: Pipping or an ally would take damage.",
+          "attack-reaction": "The player must declare the reaction against an attack.",
+          "canvas-placement": "Choose and confirm a valid canvas position.",
+          "command-text": "The command must be valid and confirmed by the GM.",
+          "failed-occult-or-unique-save": "Trigger: a creature fails against an occult spell or unique ability.",
+          "frightened-reduction-requires-dim-light-or-darkness": "Reducing Frightened requires dim light or darkness.",
+          "forced-movement": "Forced movement must be confirmed before the token position changes.",
+          "intensify-dim-light-or-darkness": "Intensifying requires dim light or darkness.",
+          "object-passage-assisted": "Passing through objects requires GM confirmation.",
+          "persistent-area-template": "The Animated Shadow must be placed and the persistent area must be confirmed.",
+          "protected-ally-was-hit": "Trigger: the protected ally was hit.",
+          "sustain-each-round": "The composition must be Sustained each round.",
+          "target-chooses-condition-reduction": "Each target chooses which eligible condition to reduce.",
+          "target-would-reach-zero-hp-or-gain-death-effect": "Trigger: the target would reach 0 HP or receive a death effect.",
+          "trigger-message-id": "The reaction must be linked to the event that produced the trigger.",
+          "valid-reaction-trigger": "The GM confirms that the reaction trigger is valid.",
+          "valid-teleport-destination": "The destination must be within range and in dim light or darkness."
+        }
+      },
+      "Automation": {
+        "Components": {
+          "TargetSelection": "Target selection",
+          "AreaAndTargetSelection": "Area and target selection",
+          "NormalOrIntensifiedChoice": "Normal or intensified choice",
+          "EffectApplication": "Effect application",
+          "FirstCheckConsumption": "Consumption on the first check",
+          "Expiration": "Expiration",
+          "SaveRoll": "Saving throw",
+          "Damage": "Damage",
+          "Healing": "Healing",
+          "EffectResolution": "Effect resolution"
+        },
+        "Notes": {
+          "SelfTarget": "The target is Pipping.",
+          "ConfirmAreaGeometry": "The canvas position or geometry must be confirmed.",
+          "ConfirmValidTargets": "The player confirms valid targets.",
+          "ChooseValidAlly": "The player chooses a valid ally.",
+          "ResolvedByDialog": "Resolved through a dialog.",
+          "SaveAPI": "Uses the PF2e API; a simplified fallback is identified when necessary.",
+          "DamageAPI": "Automatic when the PF2e damage API is available.",
+          "AssistedEffect": "Requires a selection, decision, or confirmation during resolution.",
+          "ResolutionConfirmation": "Resolution requests confirmation."
+        },
+        "DetailWithNote": "{component}: {mode}. {note}",
+        "Detail": "{component}: {mode}"
+      },
+      "Summary": {
+        "TargetAtRange": "{target} within {range}",
+        "BasicSave": "DC {dc} basic {defense}",
+        "Save": "DC {dc} {defense}"
+      },
+      "Tooltips": {
+        "DarkWhisperIntensified": "Spends 1 additional SP in dim light or darkness.",
+        "DarkWhisperDuration": "The effect ends early when consumed by the first attack or save.",
+        "BasicSave": "Basic save: critical success takes no damage, success takes half, failure takes full, and critical failure takes double.",
+        "AutomationAutomatic": "The module resolves this component automatically.",
+        "AutomationAssisted": "The module requests a choice or confirmation during resolution.",
+        "AutomationManual": "The player or GM resolves this component manually."
+      },
+      "ScalingDetail": {
+        "Current": "{label}: current {current}.",
+        "CurrentNext": "{label}: current {current}; next increase at level {nextLevel}: {nextValue}.",
+        "CurrentMaximum": "{label}: current {current}; maximum: {maximumValue}.",
+        "CurrentMaximumAtLevel": "{label}: current {current}; maximum at level {maximumLevel}: {maximumValue}.",
+        "CurrentNextMaximum": "{label}: current {current}; next increase at level {nextLevel}: {nextValue}; maximum: {maximumValue}.",
+        "CurrentNextMaximumAtLevel": "{label}: current {current}; next increase at level {nextLevel}: {nextValue}; maximum at level {maximumLevel}: {maximumValue}."
+      },
+      "Details": {
+        "NormalCost": "Normal cost: {cost}",
+        "OptionalCost": "Optional cost: {cost}",
+        "Frequency": "Frequency: {frequency}",
+        "Target": "Target: {target}",
+        "Range": "Range: {range}",
+        "DarkWhisperSelfTarget": "Pipping can target himself when the rule permits it.",
+        "Area": "Area: {area}",
+        "Origin": "Origin: {origin}",
+        "DefenseAgainstDC": "Defense: {defense} against DC {dc}.",
+        "UndefinedDefense": "undefined",
+        "BasicSave": "Basic save.",
+        "IncapacitationTrait": "Has the Incapacitation trait.",
+        "Outcome": "{degree}: {result}"
+      },
+      "Sections": {
+        "Activation": "Activation",
+        "Targeting": "Target and range",
+        "Area": "Area",
+        "Resolution": "Save or check",
+        "MainEffect": "Main effect",
+        "Outcomes": "Degrees of success",
+        "Scaling": "Scaling",
+        "Duration": "Duration and expiration",
+        "Requirements": "Requirements and triggers",
+        "Automation": "Automation",
+        "Notes": "Special notes",
+        "GMDiagnostics": "GM diagnostics"
+      },
+      "Diagnostics": {
+        "Action": "Action: {action}",
+        "Effects": "Effects: {effects}",
+        "NoDeclarativeEffects": "no declarative effects",
+        "GeometricOrigin": "Geometric origin: {origin}",
+        "NotApplicable": "not applicable",
+        "AutomationFallback": "Automation fallback: {mode}"
+      },
+      "Header": {
+        "Tier": "Tier {tier}",
+        "MinimumLevel": "Level {level}"
+      },
+      "ActionDurations": {
+        "animated-shadow": {
+          "1": "Remains until repositioned or removed."
+        },
+        "mirrored-shadows": {
+          "1": "Remains until all images are destroyed or daily preparation is reset."
+        },
+        "dark-whisper": {
+          "1": "Consumed by the target's first attack or save.",
+          "2": "If not consumed, it ends at the start of Pipping's next turn."
+        },
+        "void-echoes": {
+          "1": "Instant."
+        },
+        "living-night-song": {
+          "1": "Sustained; ends when it is not Sustained."
+        },
+        "ruin-note": {
+          "1": "Damage is instant; Frightened follows the normal condition rules."
+        },
+        "restoring-pulse": {
+          "1": "Healing is instant; the condition reduction is immediate."
+        },
+        "broken-meter": {
+          "1": "Off-Guard and the reaction restriction end at the start of Pipping's next turn."
+        },
+        "shadow-form": {
+          "1": "Instant."
+        },
+        "void-touch": {
+          "1": "Initial damage is instant; persistent damage follows the normal condition rules.",
+          "2": "Enfeebled lasts 1 round."
+        },
+        "black-order-mantle": {
+          "1": "The reduction applies only to the triggering damage instance; temporary HP follows the normal rules."
+        },
+        "shadow-resonance": {
+          "1": "The reaction restriction ends at the start of Pipping's next turn."
+        },
+        "night-emanation": {
+          "1": "Damage is instant; Enfeebled lasts 1 round."
+        },
+        "requiem-persist": {
+          "1": "Healing is instant; the bonus expires at the start of Pipping's next turn."
+        },
+        "shadow-king": {
+          "1": "The area persists until removed; applied conditions last 1 round."
+        },
+        "ending-chorus": {
+          "1": "Damage is instant; Stupefied lasts 1 round."
+        },
+        "gentle-night-liturgy": {
+          "1": "Healing and condition reduction are instant."
+        },
+        "abyss-voice": {
+          "1": "The commanded actions are consumed by the end of the target's next turn."
+        },
+        "beyond-form": {
+          "1": "Ends at the start of Pipping's next turn."
+        },
+        "dead-sun-epitaph": {
+          "1": "Initial damage is instant; darkness lasts 1 minute; persistent damage follows the normal condition rules."
+        },
+        "night-refuses-end": {
+          "1": "Healing and prevention are immediate; Doomed follows the normal condition rules."
+        },
+        "forbidden-performance": {
+          "1": "Quickened, Slowed, and other effects last 1 round unless a degree of success says otherwise."
+        }
+      }
+    },
+    "Actions": {
           "AnimatedShadow": {
             "Name": "Animated Shadow",
             "Description": "Pipping positions his shadow as a tactical extension of his will.",
@@ -816,6 +1196,20 @@
         "Fast": "Fast",
         "Normal": "Normal",
         "Cinematic": "Cinematic"
+      },
+      "PippingAbilityHoverEffects": {
+        "Name": "Pipping ability hover effects",
+        "Hint": "Controls how cards react to mouse hover and keyboard focus.",
+        "Full": "Full",
+        "Reduced": "Reduced",
+        "Off": "Off"
+      },
+      "PippingHoverCanvasPreview": {
+        "Name": "Token animation preview on hover",
+        "Hint": "The preview is local, selects no targets, and changes no documents or resources.",
+        "Off": "Off",
+        "Card": "Card only",
+        "Token": "Card and token"
       }
     }
   }

@@ -5,6 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.4] - 2026-08-07
+
+### Adicionado
+- Grimório da Noite com cabeçalho, resumo mecânico dinâmico, detalhes estruturados, graus de sucesso, scaling completo, requisitos, duração e automação por componente para todas as habilidades de Pipping.
+- Geometria compartilhada para cones, emanações e explosões, incluindo tokens parcialmente dentro da área, cenas sem grade e origem na Sombra Animada ou em ponto escolhido.
+- Hover visual distinto para Destruição, Ordem, Caos e habilidades universais, com foco por teclado, movimento reduzido e prévia local opcional no token.
+- Diagnóstico de animações para mestres em `game.ethernum.macros.ethernumCompany.pipping.animationDiagnostics()`, com verificação em cache de Sequencer, JB2A e fallbacks.
+
+### Alterado
+- Ficha e runtime de Pipping passam a resolver alvos, alcance e área a partir dos mesmos descritores declarativos.
+- Cards de execução no chat exibem custo total, fórmula, CD, alcance ou área, alvos, duração e componentes assistidos.
+- Sussurro das Trevas documenta e automatiza uso normal ou intensificado, consumo no primeiro teste e expiração no próximo turno de Pipping.
+
+### Corrigido
+- Coro do Fim seleciona somente criaturas no cone confirmado de 30 pés.
+- Sombra-Rei usa a posição da Sombra Animada como centro da área.
+- Epitáfio do Sol Morto permite escolher o ponto da explosão e cria a escuridão persistente no mesmo local.
+
 ## [3.5.3] - 2026-07-29
 
 ### Adicionado

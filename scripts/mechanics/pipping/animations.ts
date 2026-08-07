@@ -84,6 +84,48 @@ export interface PippingAnimationDiagnostic {
   error?: unknown;
 }
 
+export interface PippingAnimationDatabaseCandidate {
+  key: string;
+  position: number;
+  available: boolean;
+}
+
+export interface PippingAnimationDatabaseActionDiagnostic {
+  actionId: PippingAnimationActionId;
+  ethernum: PippingAnimationDatabaseCandidate[];
+  jb2a: PippingAnimationDatabaseCandidate[];
+  selectedKey: string | null;
+  selectedSource: "ethernum" | "jb2a" | null;
+  expectedLayer: PippingAnimationLayer;
+  fallbackLayer: Extract<PippingAnimationLayer, "pixi" | "dom">;
+}
+
+export interface PippingAnimationDatabaseDiagnostic {
+  generatedAt: number;
+  cache: "session";
+  sequencerAvailable: boolean;
+  databaseAvailable: boolean;
+  databaseViewerAvailable: boolean;
+  jb2aAvailable: boolean;
+  pixiAvailable: boolean;
+  domAvailable: boolean;
+  fallbackLayer: Extract<PippingAnimationLayer, "pixi" | "dom">;
+  actions: PippingAnimationDatabaseActionDiagnostic[];
+}
+
+export interface PippingAnimationDatabaseEnvironment {
+  sequenceConstructor?: (new (...args: unknown[]) => Record<string, unknown>) | null;
+  database?: unknown;
+  databaseViewerAvailable?: boolean;
+  pixiAvailable?: boolean;
+  domAvailable?: boolean;
+}
+
+export interface PippingAnimationDatabaseValidationOptions {
+  forceRefresh?: boolean;
+  environment?: PippingAnimationDatabaseEnvironment;
+}
+
 export interface PippingAnimationContext {
   actionId: string;
   expression?: PippingExpression;
@@ -103,6 +145,32 @@ export interface PippingAnimationContext {
   environment?: Partial<PippingAnimationEnvironment>;
 }
 
+export interface PippingHoverAnimationContext {
+  actionId: string;
+  expression?: PippingExpression;
+  sourceActorUuid: string;
+  sourceTokenUuid?: string;
+  cardId: string;
+  cardElement?: HTMLElement | null;
+  userId?: string;
+  tier: number;
+  intensity: number;
+  mode?: PippingAnimationMode;
+  speed?: PippingAnimationSpeed;
+  prefersReducedMotion?: boolean;
+  canvasPreview?: boolean;
+  hoverDelayMs?: number;
+  cooldownMs?: number;
+  diagnostics?: (diagnostic: PippingAnimationDiagnostic) => void;
+  environment?: Partial<PippingAnimationEnvironment>;
+  databaseValidation?: PippingAnimationDatabaseValidationOptions;
+}
+
+export interface PippingHoverPreviewHandle {
+  id: string;
+  stop: () => Promise<void>;
+}
+
 export interface PippingAnimationDriverResult {
   played: boolean;
   cleanup?: () => void | Promise<void>;
@@ -115,6 +183,7 @@ export interface PippingAnimationRequest {
   speed: PippingAnimationSpeed;
   durationMs: number;
   persistentId?: string;
+  localOnly: boolean;
   source: unknown | null;
   targets: unknown[];
   template: unknown | null;
@@ -137,6 +206,17 @@ interface ActivePippingAnimation {
   id: string;
   references: Set<string>;
   cleanup: () => Promise<void>;
+}
+
+interface ActivePippingHoverPreview {
+  id: string;
+  cardKey: string;
+  canvasUserKey?: string;
+  context: PippingHoverAnimationContext;
+  references: Set<string>;
+  timer?: ReturnType<typeof globalThis.setTimeout>;
+  cancelled: boolean;
+  cleanups: Array<() => void | Promise<void>>;
 }
 
 const EXPRESSION_COLORS: Readonly<Record<PippingExpression | "neutral", readonly [
@@ -277,7 +357,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 function safeDiagnostic(
-  context: PippingAnimationContext,
+  context: Pick<PippingAnimationContext, "actionId" | "diagnostics">,
   diagnostic: Omit<PippingAnimationDiagnostic, "actionId">,
 ): void {
   const value = { actionId: context.actionId, ...diagnostic };
@@ -367,6 +447,143 @@ function sequenceEffectManager(): Record<string, unknown> | null {
   return asRecord(asRecord(root.Sequencer)?.EffectManager);
 }
 
+function databaseViewerIsAvailable(): boolean {
+  const root = globalThis as unknown as Record<string, unknown>;
+  const sequencer = asRecord(root.Sequencer);
+  if (
+    sequencer?.DatabaseViewer
+    || sequencer?.DatabaseViewerApp
+    || root.DatabaseViewer
+  ) {
+    return true;
+  }
+
+  const gameObject = asRecord(root.game);
+  const modules = asRecord(gameObject?.modules);
+  const get = callable(modules?.get);
+  if (!get) return false;
+  try {
+    const module = asRecord(
+      get.call(gameObject?.modules, "sequencer-database-viewer")
+      ?? get.call(gameObject?.modules, "sequencer"),
+    );
+    return Boolean(module?.active && module?.api && asRecord(module.api)?.DatabaseViewer);
+  } catch {
+    return false;
+  }
+}
+
+function pixiFallbackIsAvailable(): boolean {
+  const root = globalThis as unknown as Record<string, unknown>;
+  const pixi = asRecord(root.PIXI);
+  const canvasObject = asRecord(root.canvas);
+  const layer = asRecord(canvasObject?.interface ?? canvasObject?.effects);
+  return typeof pixi?.Graphics === "function" && Boolean(callable(layer?.addChild));
+}
+
+let animationDatabaseDiagnosticCache:
+  | Promise<PippingAnimationDatabaseDiagnostic>
+  | null = null;
+
+async function validateDatabaseCandidates(
+  database: unknown,
+  keys: readonly string[],
+): Promise<PippingAnimationDatabaseCandidate[]> {
+  return Promise.all(keys.slice(0, 2).map(async (key, index) => ({
+    key,
+    position: index + 1,
+    available: await databaseEntryExists(database, key),
+  })));
+}
+
+async function buildAnimationDatabaseDiagnostic(
+  environment: PippingAnimationDatabaseEnvironment,
+): Promise<PippingAnimationDatabaseDiagnostic> {
+  const Constructor = environment.sequenceConstructor !== undefined
+    ? environment.sequenceConstructor
+    : sequenceConstructor();
+  const database = environment.database !== undefined
+    ? environment.database
+    : sequencerDatabase();
+  const databaseAvailable = Boolean(database);
+  const sequencerAvailable = Boolean(Constructor && databaseAvailable);
+  const databaseViewerAvailable = environment.databaseViewerAvailable
+    ?? databaseViewerIsAvailable();
+  const pixiAvailable = environment.pixiAvailable ?? pixiFallbackIsAvailable();
+  const domAvailable = environment.domAvailable
+    ?? (typeof document !== "undefined" && Boolean(document.body));
+  const fallbackLayer: Extract<PippingAnimationLayer, "pixi" | "dom"> =
+    pixiAvailable ? "pixi" : "dom";
+
+  const actions = await Promise.all(PIPPING_ANIMATION_ACTION_IDS.map(async actionId => {
+    const definition = PIPPING_ANIMATION_DEFINITIONS[actionId];
+    const ethernum = databaseAvailable
+      ? await validateDatabaseCandidates(database, definition.sequencerDatabaseKeys)
+      : definition.sequencerDatabaseKeys.slice(0, 2).map((key, index) => ({
+        key,
+        position: index + 1,
+        available: false,
+      }));
+    const jb2a = databaseAvailable
+      ? await validateDatabaseCandidates(database, definition.jb2aDatabaseKeys)
+      : definition.jb2aDatabaseKeys.slice(0, 2).map((key, index) => ({
+        key,
+        position: index + 1,
+        available: false,
+      }));
+    const selectedEthernum = ethernum.find(candidate => candidate.available);
+    const selectedJb2a = jb2a.find(candidate => candidate.available);
+    const selectedSource = selectedEthernum
+      ? "ethernum" as const
+      : selectedJb2a
+        ? "jb2a" as const
+        : null;
+    const selectedKey = selectedEthernum?.key ?? selectedJb2a?.key ?? null;
+    const expectedLayer: PippingAnimationLayer = selectedSource === "ethernum"
+      ? "sequencer"
+      : selectedSource === "jb2a"
+        ? "jb2a"
+        : fallbackLayer;
+
+    return {
+      actionId,
+      ethernum,
+      jb2a,
+      selectedKey,
+      selectedSource,
+      expectedLayer,
+      fallbackLayer,
+    };
+  }));
+
+  return {
+    generatedAt: Date.now(),
+    cache: "session",
+    sequencerAvailable,
+    databaseAvailable,
+    databaseViewerAvailable,
+    jb2aAvailable: actions.some(action => action.jb2a.some(candidate => candidate.available)),
+    pixiAvailable,
+    domAvailable,
+    fallbackLayer,
+    actions,
+  };
+}
+
+export async function validatePippingAnimationDatabase(
+  options: PippingAnimationDatabaseValidationOptions = {},
+): Promise<PippingAnimationDatabaseDiagnostic> {
+  if (options.forceRefresh) animationDatabaseDiagnosticCache = null;
+  animationDatabaseDiagnosticCache ??= buildAnimationDatabaseDiagnostic(
+    options.environment ?? {},
+  );
+  return animationDatabaseDiagnosticCache;
+}
+
+export function clearPippingAnimationDatabaseValidationCache(): void {
+  animationDatabaseDiagnosticCache = null;
+}
+
 function callChain(
   receiver: Record<string, unknown>,
   method: string,
@@ -394,16 +611,19 @@ function hasTravel(definition: PippingAnimationDefinition): boolean {
 async function playSequencerKeys(
   request: PippingAnimationRequest,
   keys: readonly string[],
+  keysAlreadyValidated = false,
 ): Promise<PippingAnimationDriverResult> {
   const Constructor = sequenceConstructor();
   const database = sequencerDatabase();
   if (!Constructor || !database) return { played: false };
 
-  let selectedKey: string | null = null;
-  for (const key of keys) {
-    if (await databaseEntryExists(database, key)) {
-      selectedKey = key;
-      break;
+  let selectedKey: string | null = keysAlreadyValidated ? keys[0] ?? null : null;
+  if (!keysAlreadyValidated) {
+    for (const key of keys) {
+      if (await databaseEntryExists(database, key)) {
+        selectedKey = key;
+        break;
+      }
     }
   }
   if (!selectedKey) return { played: false };
@@ -416,10 +636,16 @@ async function playSequencerKeys(
   const play = callable(sequence.play);
   if (!createEffect || !play) return { played: false };
 
+  let effectCount = 0;
   for (const destination of destinations) {
     const created = asRecord(createEffect.call(sequence));
     if (!created) continue;
     let effect = callChain(created, "file", selectedKey);
+    if (request.localOnly) {
+      const locally = callable(effect.locally);
+      if (!locally) continue;
+      effect = asRecord(locally.call(effect)) ?? effect;
+    }
     effect = callChain(effect, "atLocation", origin);
     if (destination !== origin && hasTravel(request.definition)) {
       effect = callChain(effect, "stretchTo", destination);
@@ -435,8 +661,10 @@ async function playSequencerKeys(
       effect = callChain(effect, "name", request.persistentId);
       callChain(effect, "persist", true);
     }
+    effectCount += 1;
   }
 
+  if (effectCount === 0) return { played: false };
   await play.call(sequence);
   const cleanup = request.persistentId
     ? async (): Promise<void> => {
@@ -451,13 +679,23 @@ async function playSequencerKeys(
 async function defaultSequencerDriver(
   request: PippingAnimationRequest,
 ): Promise<PippingAnimationDriverResult> {
-  return playSequencerKeys(request, request.definition.sequencerDatabaseKeys);
+  const diagnostic = await validatePippingAnimationDatabase();
+  const action = diagnostic.actions.find(candidate => candidate.actionId === request.definition.id);
+  if (action?.selectedSource !== "ethernum" || !action.selectedKey) {
+    return { played: false };
+  }
+  return playSequencerKeys(request, [action.selectedKey], true);
 }
 
 async function defaultJb2aDriver(
   request: PippingAnimationRequest,
 ): Promise<PippingAnimationDriverResult> {
-  return playSequencerKeys(request, request.definition.jb2aDatabaseKeys);
+  const diagnostic = await validatePippingAnimationDatabase();
+  const action = diagnostic.actions.find(candidate => candidate.actionId === request.definition.id);
+  if (action?.selectedSource !== "jb2a" || !action.selectedKey) {
+    return { played: false };
+  }
+  return playSequencerKeys(request, [action.selectedKey], true);
 }
 
 interface Point {
@@ -552,7 +790,7 @@ async function defaultPixiDriver(
   const root = globalThis as unknown as Record<string, unknown>;
   const pixi = asRecord(root.PIXI);
   const canvasObject = asRecord(root.canvas);
-  const layer = asRecord(canvasObject?.interface) ?? asRecord(canvasObject?.effects);
+  const layer = asRecord(canvasObject?.interface ?? canvasObject?.effects);
   const Graphics = pixi?.Graphics;
   if (typeof Graphics !== "function" || !layer || !callable(layer.addChild)) {
     return { played: false };
@@ -755,9 +993,88 @@ function animationReferences(context: PippingAnimationContext): Set<string> {
   ].filter((value): value is string => Boolean(value)));
 }
 
+function hoverReferences(context: PippingHoverAnimationContext): Set<string> {
+  return new Set([
+    context.sourceActorUuid,
+    context.sourceTokenUuid,
+  ].filter((value): value is string => Boolean(value)));
+}
+
+function currentUserId(): string {
+  const root = globalThis as unknown as Record<string, unknown>;
+  const gameObject = asRecord(root.game);
+  const id = asRecord(gameObject?.user)?.id;
+  return typeof id === "string" && id.length > 0 ? id : "local-user";
+}
+
+function hoverCardKey(context: PippingHoverAnimationContext): string {
+  return `${context.userId ?? currentUserId()}:${context.cardId}`;
+}
+
+function createHoverCardCleanup(
+  context: PippingHoverAnimationContext,
+  definition: PippingAnimationDefinition,
+  mode: Exclude<PippingAnimationMode, "off">,
+): () => void {
+  const element = context.cardElement ?? domActionAnchor(context.actionId);
+  if (!element) return () => undefined;
+
+  const previous = {
+    outline: element.style.outline,
+    boxShadow: element.style.boxShadow,
+    filter: element.style.filter,
+    transition: element.style.transition,
+    previewId: element.getAttribute("data-pipping-hover-preview"),
+  };
+  element.setAttribute("data-pipping-hover-preview", context.cardId);
+  element.style.outline = `2px solid ${definition.colors[2]}`;
+  element.style.boxShadow = mode === "reduced"
+    ? `0 0 10px ${definition.colors[1]}`
+    : `0 0 22px ${definition.colors[1]}, inset 0 0 12px ${definition.colors[0]}`;
+  element.style.filter = mode === "reduced" ? "brightness(1.03)" : "brightness(1.08)";
+  element.style.transition = "outline-color 120ms ease, box-shadow 120ms ease, filter 120ms ease";
+
+  return () => {
+    restoreStyle(element, "outline", previous.outline);
+    restoreStyle(element, "boxShadow", previous.boxShadow);
+    restoreStyle(element, "filter", previous.filter);
+    restoreStyle(element, "transition", previous.transition);
+    if (previous.previewId === null) {
+      element.removeAttribute("data-pipping-hover-preview");
+    } else {
+      element.setAttribute("data-pipping-hover-preview", previous.previewId);
+    }
+  };
+}
+
+function hoverAnimationContext(
+  context: PippingHoverAnimationContext,
+): PippingAnimationContext {
+  return {
+    actionId: context.actionId,
+    expression: context.expression,
+    sourceActorUuid: context.sourceActorUuid,
+    sourceTokenUuid: context.sourceTokenUuid,
+    targetActorUuids: [],
+    targetTokenUuids: [],
+    tier: context.tier,
+    intensity: context.intensity,
+    mode: context.mode,
+    speed: context.speed,
+    prefersReducedMotion: context.prefersReducedMotion,
+    diagnostics: context.diagnostics,
+    environment: context.environment,
+  };
+}
+
 export class PippingAnimationService {
   static readonly #active = new Map<string, ActivePippingAnimation>();
+  static readonly #hoverActive = new Map<string, ActivePippingHoverPreview>();
+  static readonly #hoverByCard = new Map<string, string>();
+  static readonly #hoverCanvasByUser = new Map<string, string>();
+  static readonly #hoverCooldownUntil = new Map<string, number>();
   static readonly #hookIds = new Map<string, number>();
+  static #hoverSequence = 0;
 
   static async playAction(context: PippingAnimationContext): Promise<void> {
     try {
@@ -775,6 +1092,112 @@ export class PippingAnimationService {
     }
   }
 
+  static async startHoverPreview(
+    context: PippingHoverAnimationContext,
+  ): Promise<PippingHoverPreviewHandle> {
+    const id = [
+      "pipping-hover",
+      context.userId ?? currentUserId(),
+      context.cardId,
+      ++this.#hoverSequence,
+    ].join(":");
+    const handle: PippingHoverPreviewHandle = {
+      id,
+      stop: async (): Promise<void> => this.stopHoverPreview(id),
+    };
+    const definition = getPippingAnimationDefinition(context.actionId);
+    if (!definition) {
+      safeDiagnostic(context, { status: "skipped" });
+      return handle;
+    }
+
+    const environment = environmentFor(hoverAnimationContext(context));
+    const mode = effectiveMode(hoverAnimationContext(context), environment);
+    if (mode === "off") {
+      safeDiagnostic(context, { status: "skipped" });
+      return handle;
+    }
+    this.#ensureCleanupHooks();
+
+    const cardKey = hoverCardKey(context);
+    const existingCardPreview = this.#hoverByCard.get(cardKey);
+    if (existingCardPreview) await this.stopHoverPreview(existingCardPreview);
+
+    const canvasUserKey = context.canvasPreview
+      ? context.userId ?? currentUserId()
+      : undefined;
+    const existingCanvasPreview = canvasUserKey
+      ? this.#hoverCanvasByUser.get(canvasUserKey)
+      : undefined;
+    if (existingCanvasPreview && existingCanvasPreview !== existingCardPreview) {
+      await this.stopHoverPreview(existingCanvasPreview);
+    }
+
+    const resolvedDefinition = context.expression && context.expression !== definition.expression
+      ? {
+        ...definition,
+        expression: context.expression,
+        colors: EXPRESSION_COLORS[context.expression],
+        asset: animationAsset(definition.id, context.expression, definition.fallbackClass),
+      }
+      : definition;
+    const active: ActivePippingHoverPreview = {
+      id,
+      cardKey,
+      canvasUserKey,
+      context,
+      references: hoverReferences(context),
+      cancelled: false,
+      cleanups: [createHoverCardCleanup(context, resolvedDefinition, mode)],
+    };
+    this.#hoverActive.set(id, active);
+    this.#hoverByCard.set(cardKey, id);
+    if (canvasUserKey) this.#hoverCanvasByUser.set(canvasUserKey, id);
+
+    if (canvasUserKey) {
+      const configuredDelay = clamp(context.hoverDelayMs ?? 450, 400, 500);
+      const cooldownRemaining = Math.max(
+        0,
+        (this.#hoverCooldownUntil.get(cardKey) ?? 0) - Date.now(),
+      );
+      active.timer = globalThis.setTimeout(() => {
+        active.timer = undefined;
+        void this.#startHoverCanvas(id);
+      }, Math.max(configuredDelay, cooldownRemaining));
+    }
+
+    return handle;
+  }
+
+  static async stopHoverPreview(previewId: string): Promise<void> {
+    const active = this.#hoverActive.get(previewId);
+    if (!active) return;
+    active.cancelled = true;
+    this.#hoverActive.delete(previewId);
+    if (active.timer !== undefined) globalThis.clearTimeout(active.timer);
+    if (this.#hoverByCard.get(active.cardKey) === previewId) {
+      this.#hoverByCard.delete(active.cardKey);
+    }
+    if (
+      active.canvasUserKey
+      && this.#hoverCanvasByUser.get(active.canvasUserKey) === previewId
+    ) {
+      this.#hoverCanvasByUser.delete(active.canvasUserKey);
+    }
+    const cooldownMs = clamp(active.context.cooldownMs ?? 800, 250, 5_000);
+    this.#hoverCooldownUntil.set(active.cardKey, Date.now() + cooldownMs);
+
+    for (const cleanup of [...active.cleanups].reverse()) {
+      try {
+        await cleanup();
+      } catch {
+        // Hover previews are local visuals and cleanup is always best-effort.
+      }
+    }
+    active.cleanups.length = 0;
+    safeDiagnostic(active.context, { status: "cleaned" });
+  }
+
   static async stopPersistent(id: string): Promise<void> {
     const active = this.#active.get(id);
     if (!active) return;
@@ -790,15 +1213,34 @@ export class PippingAnimationService {
     const matches = [...this.#active.values()]
       .filter(active => active.references.has(uuid))
       .map(active => active.id);
-    await Promise.all(matches.map(id => this.stopPersistent(id)));
+    const hoverMatches = [...this.#hoverActive.values()]
+      .filter(active => active.references.has(uuid))
+      .map(active => active.id);
+    await Promise.all([
+      ...matches.map(id => this.stopPersistent(id)),
+      ...hoverMatches.map(id => this.stopHoverPreview(id)),
+    ]);
   }
 
   static async cleanupAll(): Promise<void> {
-    await Promise.all([...this.#active.keys()].map(id => this.stopPersistent(id)));
+    await Promise.all([
+      ...[...this.#active.keys()].map(id => this.stopPersistent(id)),
+      ...[...this.#hoverActive.keys()].map(id => this.stopHoverPreview(id)),
+    ]);
+  }
+
+  static async stopAllHoverPreviews(): Promise<void> {
+    await Promise.all(
+      [...this.#hoverActive.keys()].map(id => this.stopHoverPreview(id)),
+    );
   }
 
   static activePersistentIds(): string[] {
     return [...this.#active.keys()];
+  }
+
+  static activeHoverPreviewIds(): string[] {
+    return [...this.#hoverActive.keys()];
   }
 
   static async shutdown(): Promise<void> {
@@ -815,6 +1257,79 @@ export class PippingAnimationService {
       }
     }
     this.#hookIds.clear();
+    this.#hoverByCard.clear();
+    this.#hoverCanvasByUser.clear();
+    this.#hoverCooldownUntil.clear();
+  }
+
+  static async #startHoverCanvas(previewId: string): Promise<void> {
+    const active = this.#hoverActive.get(previewId);
+    if (!active || active.cancelled || !active.canvasUserKey) return;
+    const context = active.context;
+    const definition = getPippingAnimationDefinition(context.actionId);
+    if (!definition) return;
+
+    const animationContext = hoverAnimationContext(context);
+    const environment = environmentFor(animationContext);
+    const mode = effectiveMode(animationContext, environment);
+    if (mode === "off") return;
+    const source = await resolveAnimationObject(context.sourceTokenUuid, environment.resolveUuid);
+    if (!source || active.cancelled || this.#hoverActive.get(previewId) !== active) return;
+
+    const database = await validatePippingAnimationDatabase(context.databaseValidation);
+    if (active.cancelled || this.#hoverActive.get(previewId) !== active) return;
+    const databaseAction = database.actions.find(candidate => candidate.actionId === definition.id);
+    const resolvedDefinition = context.expression && context.expression !== definition.expression
+      ? {
+        ...definition,
+        expression: context.expression,
+        colors: EXPRESSION_COLORS[context.expression],
+        asset: animationAsset(definition.id, context.expression, definition.fallbackClass),
+      }
+      : definition;
+    const speed = context.speed ?? "normal";
+    const request: PippingAnimationRequest = {
+      context: animationContext,
+      definition: resolvedDefinition,
+      mode,
+      speed,
+      durationMs: animationDuration(mode, speed, context.intensity),
+      persistentId: previewId,
+      localOnly: true,
+      source,
+      targets: [],
+      template: null,
+    };
+
+    const externalLayers: Array<[PippingAnimationLayer, PippingAnimationDriver]> =
+      databaseAction?.selectedSource === "ethernum"
+        ? [["sequencer", environment.sequencer]]
+        : databaseAction?.selectedSource === "jb2a"
+          ? [["jb2a", environment.jb2a]]
+          : [];
+    const layers: Array<[PippingAnimationLayer, PippingAnimationDriver]> = [
+      ...externalLayers,
+      ["pixi", environment.pixi],
+      ["dom", environment.dom],
+    ];
+
+    for (const [layer, driver] of layers) {
+      try {
+        const result = await normalizeDriverResult(await driver(request));
+        if (!result.played || !result.cleanup) continue;
+        const current = this.#hoverActive.get(previewId);
+        if (!current || current.cancelled) {
+          await result.cleanup();
+          return;
+        }
+        current.cleanups.push(result.cleanup);
+        safeDiagnostic(context, { layer, status: "played" });
+        return;
+      } catch (error) {
+        safeDiagnostic(context, { layer, status: "failed", error });
+      }
+    }
+    safeDiagnostic(context, { status: "skipped" });
   }
 
   static async #play(context: PippingAnimationContext, persistent: boolean): Promise<void> {
@@ -848,6 +1363,7 @@ export class PippingAnimationService {
       speed,
       durationMs: animationDuration(mode, speed, context.intensity),
       persistentId,
+      localOnly: false,
       source: await resolveAnimationObject(context.sourceTokenUuid, environment.resolveUuid),
       targets: (await Promise.all(
         context.targetTokenUuids.map(uuid => resolveAnimationObject(uuid, environment.resolveUuid)),
@@ -903,6 +1419,12 @@ export class PippingAnimationService {
     };
     register("canvasTearDown", () => {
       void this.cleanupAll();
+    });
+    register("closeActorSheet", (application: unknown) => {
+      const record = asRecord(application);
+      const document = asRecord(record?.document ?? record?.actor);
+      const uuid = document?.uuid;
+      if (typeof uuid === "string") void this.cleanupForDocument(uuid);
     });
     for (const event of ["deleteActor", "deleteToken", "deleteTile", "deleteMeasuredTemplate"]) {
       register(event, (document: unknown) => {

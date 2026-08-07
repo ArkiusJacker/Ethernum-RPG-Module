@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PIPPING_STATE_VERSION,
   normalizePippingState,
+  resolvePippingAnimatedShadowPosition,
 } from "../scripts/mechanics/pipping/state.js";
 
 describe("normalizePippingState", () => {
@@ -140,5 +141,25 @@ describe("normalizePippingState", () => {
       pulse: 0,
       recovery: { communeAvailable: true },
     }).recovery.communeAvailable).toBe(true);
+  });
+});
+
+describe("resolvePippingAnimatedShadowPosition", () => {
+  const shadow = {
+    tileId: "shadow-tile",
+    sceneId: "scene-a",
+    position: { x: 450, y: 275 },
+  };
+
+  it("returns the stored center only while its tile exists in the active scene", () => {
+    expect(resolvePippingAnimatedShadowPosition(shadow, "scene-a", id => id === "shadow-tile"))
+      .toEqual({ x: 450, y: 275 });
+  });
+
+  it("rejects stale scenes, deleted tiles, and incomplete legacy references", () => {
+    expect(resolvePippingAnimatedShadowPosition(shadow, "scene-b", () => true)).toBeNull();
+    expect(resolvePippingAnimatedShadowPosition(shadow, "scene-a", () => false)).toBeNull();
+    expect(resolvePippingAnimatedShadowPosition({ position: shadow.position }, "scene-a", () => true))
+      .toBeNull();
   });
 });

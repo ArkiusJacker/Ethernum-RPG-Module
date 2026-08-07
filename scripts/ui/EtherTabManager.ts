@@ -1,5 +1,9 @@
 import { ETHERNUM, type Rank, type RuneClassKey, type EtherAttribute, type CampaignCoreId } from '../config.js';
-import { isLongRestFullRestoreEnabled } from '../settings.js';
+import {
+  getPippingAbilityHoverMode,
+  getPippingHoverCanvasPreviewMode,
+  isLongRestFullRestoreEnabled,
+} from '../settings.js';
 import { EtherSystem, FESystem, EthernumDiceCalculator, type RuneData } from '../systems.js';
 import {
   UniqueMechanicsSystem,
@@ -9,6 +13,10 @@ import {
   type UniqueMechanicProfileId,
   normalizeCampaignCore,
 } from '../unique/UniqueMechanics.js';
+import {
+  PippingAnimationService,
+  type PippingHoverPreviewHandle,
+} from '../mechanics/pipping/animations.js';
 
 // Persiste qual aba Ethernum estava ativa por ator entre re-renders.
 // actor.setFlag() no PF2E v8 (ApplicationV2) dispara re-render automático;
@@ -21,6 +29,13 @@ const _minimizedRunes   = new Map<string, Set<string>>();
 const _scrollPositions  = new Map<string, Record<string, number>>();
 const _gmDrawerOpen     = new Map<string, boolean>();
 const _sectionCollapsed = new Map<string, Set<string>>();
+const _pippingHoverHandles = new Map<string, Map<HTMLElement, PippingHoverPreviewHandle>>();
+
+if (typeof window !== "undefined") {
+  window.addEventListener("ethernum-client-settings-changed", () => {
+    void PippingAnimationService.stopAllHoverPreviews();
+  });
+}
 
 interface EtherSystemState {
   etherMax: number;
@@ -683,6 +698,7 @@ export class EtherTabManager {
     const refreshUnique = () => this._refreshUniqueTab(app, html, actor, isGM);
     this._activateCampaignCoreListeners(app, html, actor);
     this._activateDetailsAnimations(html);
+    this._activatePippingHoverPreviews(html, actor);
 
     html.find('.ethernum-unique-profile').on('change', async (ev) => {
       if (!isGM) return;
@@ -1148,6 +1164,70 @@ export class EtherTabManager {
       rememberScroll();
       await UniqueMechanicsSystem.yuLongRestReset(actor);
       await refreshUnique();
+    });
+  }
+
+  static _activatePippingHoverPreviews(html: JQuery, actor: Actor): void {
+    const actorId = actor.id ?? actor.uuid;
+    const existing = _pippingHoverHandles.get(actorId);
+    if (existing) {
+      for (const handle of existing.values()) void handle.stop();
+    }
+    _pippingHoverHandles.delete(actorId);
+    const cards = html.find<HTMLElement>('.ethernum-pipping-ability[data-pipping-action]');
+    if (cards.length === 0) return;
+    const hoverMode = getPippingAbilityHoverMode();
+    const canvasPreview = getPippingHoverCanvasPreviewMode() === "token";
+    if (hoverMode === "off" || !canvasPreview) return;
+
+    const handles = new Map<HTMLElement, PippingHoverPreviewHandle>();
+    _pippingHoverHandles.set(actorId, handles);
+    const sourceToken = actor.getActiveTokens?.()[0];
+    const sourceTokenUuid = sourceToken?.document?.uuid;
+    const stop = (card: HTMLElement): void => {
+      const handle = handles.get(card);
+      if (!handle) return;
+      handles.delete(card);
+      void handle.stop();
+    };
+    const start = (card: HTMLElement): void => {
+      stop(card);
+      const actionId = card.dataset.pippingAction;
+      if (!actionId) return;
+      const expression = card.dataset.pippingExpression;
+      void PippingAnimationService.startHoverPreview({
+        actionId,
+        expression: expression === "destruction" || expression === "order" || expression === "chaos"
+          ? expression
+          : undefined,
+        sourceActorUuid: actor.uuid,
+        sourceTokenUuid,
+        cardId: `${actor.uuid}:${actionId}`,
+        cardElement: card,
+        tier: Math.max(1, Number(card.dataset.pippingTier ?? 1)),
+        intensity: Math.max(1, Number(card.dataset.pippingTier ?? 1)),
+        mode: hoverMode,
+        canvasPreview: true,
+        hoverDelayMs: 450,
+        cooldownMs: 800,
+      }).then(handle => {
+        if (card.matches(":hover") || card.contains(document.activeElement)) {
+          handles.set(card, handle);
+        } else {
+          void handle.stop();
+        }
+      });
+    };
+
+    cards.on("mouseenter.ethernum-pipping-hover focusin.ethernum-pipping-hover", ev => {
+      start(ev.currentTarget);
+    });
+    cards.on("mouseleave.ethernum-pipping-hover", ev => stop(ev.currentTarget));
+    cards.on("focusout.ethernum-pipping-hover", ev => {
+      const card = ev.currentTarget;
+      const next = ev.relatedTarget;
+      if (next instanceof Node && card.contains(next)) return;
+      stop(card);
     });
   }
 

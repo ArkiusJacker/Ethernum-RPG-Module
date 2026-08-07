@@ -30,6 +30,20 @@ export interface PippingAnimatedShadowState {
   [key: string]: unknown;
 }
 
+export function resolvePippingAnimatedShadowPosition(
+  shadow: Readonly<PippingAnimatedShadowState>,
+  activeSceneId: string | undefined,
+  tileExists: (tileId: string) => boolean,
+): { x: number; y: number } | null {
+  const { position, sceneId, tileId } = shadow;
+  if (!position || !activeSceneId || sceneId !== activeSceneId || !tileId || !tileExists(tileId)) {
+    return null;
+  }
+  const x = Number(position.x);
+  const y = Number(position.y);
+  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+
 export interface PippingPersistentArea {
   id: string;
   actionId: "shadow-king" | "dead-sun-epitaph";

@@ -183,15 +183,16 @@ await game.ethernum.macros.ethernumCompany.pipping.useReaction("void-echoes");
 await game.ethernum.macros.ethernumCompany.pipping.useFinisher("dead-sun-epitaph");
 await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();
 await game.ethernum.macros.ethernumCompany.pipping.resolveDarkness();
+await game.ethernum.macros.ethernumCompany.pipping.animationDiagnostics();
 ```
 
-Pipping possui cinco Tiers liberados pelos níveis 3, 5, 9, 13 e 17. Cada Tier permite escolher Destruição, Ordem ou Caos; habilidades de escolhas diferentes permanecem visíveis, mas bloqueadas. A ficha mostra fórmula atual, próximo aumento, máximo e nível de automação usando os mesmos descritores da execução.
+Pipping possui cinco Tiers liberados pelos níveis 3, 5, 9, 13 e 17. Cada Tier permite escolher Destruição, Ordem ou Caos; habilidades de escolhas diferentes permanecem visíveis, mas bloqueadas. Na v3.5.4, cada carta funciona como uma referência mecânica completa, com ativação, custo, alvos, alcance, área, salvamento, graus de sucesso, duração, requisitos, scaling e automação por componente usando os mesmos descritores da execução.
 
-Na v3.5.3, Sombra Animada e Sombras Espelhadas abrem uma prévia no canvas: mova o cursor para escolher o ponto, clique, confirme e a manifestação sorteada aparece na posição válida. O alcance cresce de 10 para 20 e 30 pés conforme o Tier. Sombra-Rei e Epitáfio do Sol Morto mantêm áreas próprias no canvas, separadas da Noite Viva.
+Sombra Animada e Sombras Espelhadas abrem uma prévia no canvas: mova o cursor para escolher o ponto, clique, confirme e a manifestação sorteada aparece na posição válida. O alcance cresce de 10 para 20 e 30 pés conforme o Tier. Coro do Fim usa um cone confirmado, Sombra-Rei parte da posição da sombra e Epitáfio do Sol Morto permite escolher o centro da explosão e da escuridão persistente.
 
 Salvamentos usam a API da ficha PF2e quando disponível. Dano tipado respeita IWR pela aplicação do PF2e; ambientes sem API pública compatível recebem um resultado assistido claramente identificado. Movimentação forçada, redução da instância de dano, comandos e passagens por obstáculos continuam exigindo confirmação do mestre.
 
-As animações de Pipping podem ser configuradas por cliente como completas, reduzidas ou desativadas, com velocidade rápida, normal ou cinemática. Sequencer e JB2A são opcionais; o módulo mantém fallbacks próprios em PIXI/DOM e respeita a preferência de movimento reduzido do sistema.
+As animações de Pipping podem ser configuradas por cliente como completas, reduzidas ou desativadas, com velocidade rápida, normal ou cinemática. O hover das cartas também possui modo completo, reduzido ou desativado e uma opção separada de prévia local no token. Sequencer e JB2A são opcionais; o módulo valida as chaves uma vez por sessão, oferece diagnóstico ao mestre, mantém fallbacks próprios em PIXI/DOM e respeita a preferência de movimento reduzido do sistema.
 
 #### Macros de Charles e Atlas Sidarta
 

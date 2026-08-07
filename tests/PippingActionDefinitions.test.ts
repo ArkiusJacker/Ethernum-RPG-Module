@@ -13,7 +13,9 @@ import {
   calculatePippingPulseMaximum,
   getPippingAction,
   pippingTierForLevel,
+  resolvePippingTargetSpec,
   resolvePippingPulseMaximum,
+  validatePippingActionDefinitions,
 } from "../scripts/mechanics/pipping/progression.js";
 
 const expectedDice = {
@@ -78,6 +80,54 @@ describe("Pipping action definitions", () => {
     expect(getPippingAction("black-order-mantle")?.effects.map(item => item.id))
       .toContain("reduce-triggering-damage-instance");
   });
+
+  it("validates the shipped action catalogue", () => {
+    expect(validatePippingActionDefinitions()).toEqual([]);
+  });
+
+  it("derives targeting and geometry from the action descriptors", () => {
+    expect(resolvePippingTargetSpec(getPippingAction("dark-whisper")!, 3, 1)).toEqual({
+      attitude: "ally",
+      range: 30,
+      maximum: 1,
+      includeSelf: true,
+      allByDefault: false,
+    });
+    expect(resolvePippingTargetSpec(getPippingAction("ending-chorus")!, 13, 4)).toEqual(
+      expect.objectContaining({
+        attitude: "enemy",
+        range: 30,
+        maximum: 99,
+        area: expect.objectContaining({ type: "cone", size: 30, origin: "self" }),
+      }),
+    );
+    expect(resolvePippingTargetSpec(getPippingAction("shadow-king")!, 9, 3)).toEqual(
+      expect.objectContaining({
+        attitude: "mixed",
+        range: 0,
+        area: expect.objectContaining({ type: "emanation", size: 20, origin: "shadow" }),
+      }),
+    );
+    expect(resolvePippingTargetSpec(getPippingAction("dead-sun-epitaph")!, 17, 5)).toEqual(
+      expect.objectContaining({
+        attitude: "enemy",
+        range: 30,
+        area: expect.objectContaining({ type: "burst", size: 20, origin: "point" }),
+      }),
+    );
+  });
+
+  it("rejects a descriptor that loses a required target range", () => {
+    const action = getPippingAction("dark-whisper")!;
+    const invalid = {
+      ...action,
+      targets: { ...action.targets!, range: undefined },
+      range: undefined,
+    };
+    expect(validatePippingActionDefinitions([invalid])).toContain(
+      "dark-whisper: ranged target action has no range",
+    );
+  });
 });
 
 describe("Pipping declarative scaling", () => {
@@ -119,6 +169,15 @@ describe("Pipping declarative scaling", () => {
     const scheduled = PIPPING_ACTION_FORMULAS["gentle-night-liturgy"].scaling;
     expect(resolveScaling(scheduled, 16)).toBe(6);
     expect(getNextScalingIncrease(scheduled, 16)).toEqual({ level: 17, value: 7 });
+
+    const shadowFormRange = getPippingAction("shadow-form")!.range!;
+    expect([5, 9, 17].map(level => resolveScaling(shadowFormRange, level))).toEqual([30, 60, 120]);
+    expect(resolveScalingProgression(shadowFormRange, 9)).toEqual({
+      current: 60,
+      nextIncrease: { level: 17, value: 120 },
+      maximum: 120,
+      maximumLevel: 17,
+    });
 
     const fixed = PIPPING_ACTION_FORMULAS["night-refuses-end"].scaling;
     expect(resolveScaling(fixed, 20)).toBe(8);

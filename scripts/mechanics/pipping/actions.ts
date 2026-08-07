@@ -5,6 +5,10 @@ export interface PippingScalingValue {
   everyLevels: number;
   maximum?: number;
   increaseLevels?: readonly number[];
+  valuesByLevel?: readonly {
+    level: number;
+    value: number;
+  }[];
 }
 
 export interface PippingScalingIncrease {
@@ -141,6 +145,15 @@ function scalingIncreaseCount(scaling: PippingScalingValue, actorLevel: number):
 }
 
 export function resolveScaling(scaling: PippingScalingValue, actorLevel: number): number {
+  if (scaling.valuesByLevel?.length) {
+    const level = normalizedLevel(actorLevel);
+    return [...scaling.valuesByLevel]
+      .sort((left, right) => left.level - right.level)
+      .reduce(
+        (value, entry) => entry.level <= level ? entry.value : value,
+        scaling.base,
+      );
+  }
   return cappedScalingValue(scaling, scalingIncreaseCount(scaling, actorLevel));
 }
 
@@ -148,10 +161,18 @@ export function getNextScalingIncrease(
   scaling: PippingScalingValue,
   actorLevel: number,
 ): PippingScalingIncrease | null {
-  if (scaling.increase <= 0) return null;
   const level = normalizedLevel(actorLevel);
   const current = resolveScaling(scaling, level);
   if (scaling.maximum !== undefined && current >= scaling.maximum) return null;
+
+  if (scaling.valuesByLevel?.length) {
+    const next = [...scaling.valuesByLevel]
+      .sort((left, right) => left.level - right.level)
+      .find(entry => entry.level > level && entry.value > current);
+    return next ? { level: next.level, value: next.value } : null;
+  }
+
+  if (scaling.increase <= 0) return null;
 
   if (scaling.increaseLevels) {
     for (const increaseLevel of scaling.increaseLevels) {
@@ -173,11 +194,17 @@ export function getNextScalingIncrease(
 }
 
 function getScalingMaximumLevel(scaling: PippingScalingValue): number | undefined {
-  if (scaling.maximum === undefined) return undefined;
-  if (scaling.maximum <= scaling.base) return scaling.baseLevel;
+  const maximum = scaling.maximum;
+  if (maximum === undefined) return undefined;
+  if (maximum <= scaling.base) return scaling.baseLevel;
+  if (scaling.valuesByLevel?.length) {
+    return [...scaling.valuesByLevel]
+      .sort((left, right) => left.level - right.level)
+      .find(entry => entry.value >= maximum)?.level;
+  }
   if (scaling.increase <= 0) return undefined;
 
-  const increasesRequired = Math.ceil((scaling.maximum - scaling.base) / scaling.increase);
+  const increasesRequired = Math.ceil((maximum - scaling.base) / scaling.increase);
   if (scaling.increaseLevels) {
     return scaling.increaseLevels[increasesRequired - 1];
   }

@@ -22,9 +22,7 @@ import {
   getPippingAction,
   getPippingActionAvailability,
   getPippingActionFormula,
-  getPippingActionFormulaProgression,
   normalizePippingState as normalizePippingProfileState,
-  PIPPING_ACTIONS,
   PIPPING_SHADOW_ASSETS,
   PIPPING_TIERS,
   pippingTierForLevel,
@@ -37,6 +35,7 @@ import {
   type PippingNightState,
   type PippingTier,
 } from '../mechanics/pipping/profile.js';
+import { buildPippingSheetData } from '../mechanics/pipping/sheet-data.js';
 import {
   removePippingLivingNightTemplate,
   removePippingPersistentAreas,
@@ -7786,85 +7785,46 @@ export class UniqueMechanicsSystem {
         executionModes: modes,
       };
     });
-    const pippingAbilities = PIPPING_ACTIONS.map(action => {
-      const availability = getPippingActionAvailability(action, pippingState, actorLevel, pippingTier);
-      const charismaModifier = getActorCharismaModifier(actor);
-      const formula = getPippingActionFormula(
-        action.formulaId,
-        actorLevel,
-        charismaModifier,
-        pippingTier,
-      );
-      const formulaProgression = getPippingActionFormulaProgression(
-        action.formulaId,
-        actorLevel,
-        charismaModifier,
-        pippingTier,
-      );
-      const actionLabel = typeof action.actions === "number"
-        ? game.i18n!.format("ETHERNUM.Unique.Pipping.ActionCount", { count: action.actions })
-        : game.i18n!.localize(`ETHERNUM.Unique.Pipping.ActionTypes.${action.actions}`);
-      const visualExpression = action.expression ?? "order";
-      const icon = action.category === "shadow"
+    const pippingSheet = buildPippingSheetData({
+      actor,
+      state: pippingState,
+      level: actorLevel,
+      tier: pippingTier,
+      dc: getActorOccultSpellDC(actor),
+      isGM,
+      localize: (key, replacements = {}) => Object.keys(replacements).length > 0
+        ? game.i18n!.format(key, replacements)
+        : game.i18n!.localize(key),
+    });
+    const pippingAbilities = pippingSheet.actions.map(action => {
+      const definition = getPippingAction(action.id);
+      if (!definition) throw new Error(`Missing Pipping definition for ${action.id}.`);
+      const visualExpression = definition.expression ?? "neutral";
+      const icon = definition.category === "shadow"
         ? "fa-user-secret"
-        : action.category === "voice"
+        : definition.category === "voice"
           ? "fa-music"
-          : action.category === "vampiric"
+          : definition.category === "vampiric"
             ? "fa-heart-pulse"
-            : action.category === "field"
+            : definition.category === "field"
               ? "fa-circle-nodes"
-              : action.category === "reaction"
+              : definition.category === "reaction"
                 ? "fa-bolt"
                 : "fa-star";
       return {
         ...action,
-        name: game.i18n!.localize(action.nameKey),
-        text: game.i18n!.localize(action.descriptionKey),
-        details: action.detailKeys.map(key => game.i18n!.localize(key)),
-        tag: actionLabel,
-        cost: action.pulseCost > 0
-          ? game.i18n!.format("ETHERNUM.Unique.Pipping.PulseCost", { cost: action.pulseCost })
-          : game.i18n!.localize("ETHERNUM.Unique.Pipping.NoCost"),
-        aspect: action.traits
-          .map(trait => game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`))
-          .join(" / "),
-        formula,
-        scaling: {
-          current: formulaProgression?.current
-            ?? game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.Fixed"),
-          next: formulaProgression?.nextIncrease
-            ? game.i18n!.format("ETHERNUM.Unique.Pipping.Scaling.NextValue", {
-              formula: formulaProgression.nextIncrease.formula,
-              level: formulaProgression.nextIncrease.level,
-            })
-            : game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.NoFurtherIncrease"),
-          maximum: formulaProgression?.maximum
-            ? game.i18n!.format("ETHERNUM.Unique.Pipping.Scaling.MaximumValue", {
-              formula: formulaProgression.maximum.formula,
-              level: formulaProgression.maximum.level ?? "—",
-            })
-            : game.i18n!.localize("ETHERNUM.Unique.Pipping.Scaling.NotApplicable"),
+        header: {
+          ...action.header,
+          traits: definition.traits.map(trait =>
+            game.i18n!.localize(`ETHERNUM.Unique.Pipping.Traits.${trait}`)
+          ),
         },
-        automationLabel: game.i18n!.localize(
-          `ETHERNUM.Unique.Pipping.Automation.${action.automationMode}`,
-        ),
+        requiredTier: definition.requiredTier,
+        requiredLevel: definition.requiredLevel,
+        expression: definition.expression,
         icon,
         visualExpression,
-        visualAsset: PIPPING_SHADOW_ASSETS[visualExpression],
-        unlocked: availability.tierUnlocked && availability.selected,
-        ...availability,
-        lockReason: availability.reason === "tier"
-          ? game.i18n!.format("ETHERNUM.Unique.Pipping.RequiresTierLevel", {
-            tier: action.requiredTier,
-            level: action.requiredLevel,
-          })
-          : availability.reason === "expression"
-            ? game.i18n!.localize("ETHERNUM.Unique.Pipping.RequiresExpression")
-            : availability.reason === "pulse"
-              ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse")
-              : availability.reason === "daily"
-                ? game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.DailyUsed")
-                : "",
+        visualAsset: PIPPING_SHADOW_ASSETS[definition.expression ?? "order"],
       };
     });
     const pippingTierGroups = PIPPING_TIERS.map(tier => {
@@ -8080,6 +8040,7 @@ export class UniqueMechanicsSystem {
         },
       },
       pipping: {
+        sheet: pippingSheet,
         state: pippingState,
         tier: pippingTier,
         pulseMaximum: pippingPulseMaximum,
@@ -8108,6 +8069,7 @@ export class UniqueMechanicsSystem {
           "await game.ethernum.macros.ethernumCompany.pipping.resolveDarkness();",
           "await game.ethernum.macros.ethernumCompany.pipping.communeWithNight();",
           "await game.ethernum.macros.ethernumCompany.pipping.dailyPreparations();",
+          "await game.ethernum.macros.ethernumCompany.pipping.animationDiagnostics();",
         ],
       },
       bayle: {

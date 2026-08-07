@@ -22,6 +22,8 @@ declare global {
     "ethernum-rpg-module.combatAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimationSpeed": "fast" | "normal" | "cinematic";
+    "ethernum-rpg-module.pippingAbilityHoverEffects": "full" | "reduced" | "off";
+    "ethernum-rpg-module.pippingHoverCanvasPreview": "off" | "card" | "token";
     "ethernum-rpg-module.combatTimerPreferredDuration": number;
   }
 

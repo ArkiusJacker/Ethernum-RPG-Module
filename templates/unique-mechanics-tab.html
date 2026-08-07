@@ -867,33 +867,39 @@
           {{#each this.passives}}<p class="ethernum-pipping-tier-passive"><i class="fas fa-moon"></i> {{this}}</p>{{/each}}
           <div class="ethernum-pipping-ability-list">
             {{#each this.abilities}}
-            <article class="ethernum-pipping-ability expression-{{this.visualExpression}} {{#unless this.unlocked}}locked{{/unless}}">
+            <article
+              class="ethernum-pipping-ability expression-{{this.visualExpression}} {{#unless this.unlocked}}locked{{/unless}}"
+              data-pipping-action="{{this.id}}"
+              data-pipping-expression="{{this.visualExpression}}"
+              data-pipping-tier="{{this.requiredTier}}"
+              tabindex="0"
+            >
               <header>
                 <img src="{{this.visualAsset}}" alt="" />
-                <span>
-                  <small>{{this.tag}}</small>
+                <div class="ethernum-pipping-ability-heading">
+                  <small class="ethernum-pipping-activation-line">
+                    <b>{{this.header.symbol}}</b>
+                    {{this.header.actionLabel}} · {{this.header.pulseCost}}
+                    {{#if this.header.frequency}} · {{this.header.frequency}}{{/if}}
+                  </small>
                   <strong><i class="fas {{this.icon}}"></i> {{this.name}}</strong>
-                  <em>{{this.cost}} · {{this.aspect}}{{#if this.formula}} · {{this.formula}}{{/if}}</em>
-                </span>
+                  <div class="ethernum-pipping-traits">
+                    {{#each this.header.traits}}<span>{{this}}</span>{{/each}}
+                  </div>
+                  <em>
+                    {{this.header.tier}} · {{this.header.minimumLevel}}
+                    {{#if this.header.expression}} · {{this.header.expression}}{{/if}}
+                  </em>
+                </div>
               </header>
-              <p>{{this.text}}</p>
-              <div class="ethernum-pipping-scaling">
-                <span>
-                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Current"}}</small>
-                  <strong>{{this.scaling.current}}</strong>
+              <p class="ethernum-pipping-flavor">{{this.flavor}}</p>
+              <div class="ethernum-pipping-summary">
+                {{#each this.summaryEntries}}
+                <span class="tone-{{this.tone}}" {{#if this.tooltip}}title="{{this.tooltip}}"{{/if}}>
+                  <small>{{this.label}}</small>
+                  <strong>{{this.value}}</strong>
                 </span>
-                <span>
-                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Next"}}</small>
-                  <strong>{{this.scaling.next}}</strong>
-                </span>
-                <span>
-                  <small>{{localize "ETHERNUM.Unique.Pipping.Scaling.Maximum"}}</small>
-                  <strong>{{this.scaling.maximum}}</strong>
-                </span>
-                <span class="automation-{{this.automationMode}}">
-                  <small>{{localize "ETHERNUM.Unique.Pipping.Automation.Label"}}</small>
-                  <strong>{{this.automationLabel}}</strong>
-                </span>
+                {{/each}}
               </div>
               {{#if this.unlocked}}
               <button type="button" class="ethernum-pipping-use-action" data-action-id="{{this.id}}" {{#unless this.usable}}disabled{{/unless}}>
@@ -905,11 +911,16 @@
               <details class="ethernum-animated-details ethernum-pipping-details">
                 <summary><i class="fas fa-circle-info"></i> {{localize "ETHERNUM.Unique.Gyro.Details"}}</summary>
                 <div class="ethernum-pipping-details-body">
-                  <ul>
-                    {{#each this.details}}
-                    <li>{{this}}</li>
+                  {{#each this.details}}
+                  <section class="ethernum-pipping-detail-section detail-{{this.id}}">
+                    <h4>{{this.label}}</h4>
+                    <ul>
+                    {{#each this.entries}}
+                      <li class="tone-{{this.tone}}">{{this.value}}</li>
                     {{/each}}
-                  </ul>
+                    </ul>
+                  </section>
+                  {{/each}}
                 </div>
               </details>
             </article>

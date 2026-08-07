@@ -514,7 +514,387 @@
           "Confirm": "Manifestar",
           "Cancel": "Cancelar"
         },
-        "Actions": {
+        "AreaPlacement": {
+          "Instructions": "Mova o cursor, clique para escolher a área e confirme. Esc ou clique direito cancela sem gastar Pulso.",
+          "ConePreview": "Cone de {area} pés",
+          "BurstPreview": "Explosão de {area} pés · centro a {distance} pés",
+          "OutOfRange": "Centro fora do alcance: {distance} / {range} pés",
+          "ConfirmTitle": "Confirmar área",
+          "ConfirmBody": "Confirmar área de {area} pés a {distance} pés de Pipping?",
+          "Confirm": "Confirmar",
+          "Cancel": "Cancelar"
+        },
+        "AnimationDiagnostics": {
+          "Title": "Diagnóstico de animações de Pipping",
+          "Available": "disponível",
+          "Unavailable": "indisponível",
+          "GMOnly": "Somente o mestre pode abrir o diagnóstico de animações.",
+          "Sequencer": "Sequencer",
+          "DatabaseViewer": "Visualizador do banco",
+          "JB2A": "JB2A",
+          "Fallback": "Fallback",
+          "Action": "Ação",
+          "SelectedKey": "Chave escolhida",
+          "Layer": "Camada"
+        },
+    "Chat": {
+      "Cost": "Custo total",
+      "Formula": "Fórmula",
+          "DC": "CD",
+          "Area": "Área",
+          "Range": "Alcance",
+          "Targets": "Alvos",
+          "NoTargets": "Sem alvo direto",
+      "Duration": "Duração",
+      "Assisted": "Partes assistidas"
+    },
+    "Presentation": {
+      "Units": {
+        "PulseCost": "{cost} PS",
+        "Feet": "{value} pés"
+      },
+      "Activation": {
+        "OneAction": "{count} ação",
+        "MultipleActions": "{count} ações",
+        "OptionalTotalCost": "{label}: {cost} no total"
+      },
+      "Frequency": {
+        "OncePerDay": "1 vez por dia",
+        "MultiplePerDay": "{uses} vezes por dia",
+        "OncePerRound": "1 vez por rodada",
+        "MultiplePerRound": "{uses} vezes por rodada"
+      },
+      "Targets": {
+        "Self": "Pipping",
+        "NoDirectTarget": "Sem alvo direto",
+        "OneWillingAlly": "1 aliado voluntário",
+        "UpToWillingAllies": "até {maximum} aliados voluntários",
+        "UpToAllies": "até {maximum} aliados",
+        "AlliesInArea": "aliados na área",
+        "OneEnemy": "1 inimigo",
+        "UpToEnemies": "até {maximum} inimigos",
+        "EnemiesInArea": "inimigos na área",
+        "OneCreature": "1 criatura",
+        "UpToCreatures": "até {maximum} criaturas",
+        "CreaturesInArea": "Criaturas na área",
+        "CreaturesInAreaLower": "criaturas na área"
+      },
+      "Areas": {
+        "Required": {
+          "burst": "explosão de {size} pés",
+          "cone": "cone de {size} pés",
+          "darkness": "escuridão de {size} pés",
+          "emanation": "emanação de {size} pés"
+        },
+        "Display": {
+          "burst": "Explosão de {size} pés",
+          "cone": "Cone de {size} pés",
+          "darkness": "Escuridão de {size} pés",
+          "emanation": "Emanação de {size} pés"
+        }
+      },
+      "Origins": {
+        "self": "token de Pipping",
+        "shadow": "Sombra Animada",
+        "point": "ponto escolhido e confirmado"
+      },
+      "Durations": {
+        "1-round": "1 rodada",
+        "1-minute": "1 minuto",
+        "end-of-target-turn": "até o fim do turno do alvo",
+        "persistent": "persistente",
+        "sustained": "sustentada",
+        "start-of-pipping-next-turn": "até o início do próximo turno de Pipping",
+        "Instant": "Instantâneo."
+      },
+      "Labels": {
+        "Range": "Alcance",
+        "Area": "Área",
+        "Scaling": "Scaling",
+        "Effect": "Efeito",
+        "Intensified": "Intensificado",
+        "Target": "Alvo",
+        "Save": "Salvamento",
+        "Frequency": "Frequência",
+        "Duration": "Duração"
+      },
+      "Effects": {
+        "ally-darkness-vision": "Visão dos aliados na escuridão",
+        "ally-quickened-limited-actions": "Quickened limitado dos aliados",
+        "animated-shadow-placement": "Posicionamento da Sombra Animada",
+        "basic-save-damage": "Dano do salvamento básico",
+        "commanded-actions-tracker": "Controle das ações comandadas",
+        "doomed": "Aplicação de Doomed",
+        "enemy-only-difficult-terrain": "Terreno difícil para inimigos",
+        "enemy-save-penalty-against-pipping": "Penalidade nos salvamentos inimigos",
+        "fly-speed-equals-land-speed": "Deslocamento de voo",
+        "healing": "Cura",
+        "independent-magical-darkness": "Escuridão mágica persistente",
+        "mirrored-shadow-images": "Imagens sombrias",
+        "move-through-creature-spaces": "Movimento por espaços de criaturas",
+        "next-ally-strike-off-guard": "Off-Guard no próximo Strike aliado",
+        "next-attack-or-save": "Bônus no próximo ataque ou salvamento",
+        "next-save-bonus": "Bônus no próximo salvamento",
+        "object-passage": "Passagem por objetos",
+        "prevent-wounded-from-triggering-event": "Prevenção do aumento de Wounded",
+        "recover-pulse": "Recuperação de Pulso Sombrio",
+        "reduce-chosen-condition": "Redução da condição escolhida",
+        "reduce-frightened": "Redução de Frightened",
+        "reduce-triggering-damage-instance": "Redução da instância de dano",
+        "resistance-all-except-force-spirit": "Resistência, exceto força e espírito",
+        "retaliation-void-d6-per-tier": "Retaliação das imagens",
+        "simple-check-dc-5": "Teste simples CD 5",
+        "teleport": "Seleção e execução do teleporte",
+        "temporary-hp-in-darkness": "PV temporários na escuridão"
+      },
+      "Conditions": {
+        "off-guard": "Off-Guard",
+        "no-reactions": "sem reações",
+        "frightened-1": "Frightened 1",
+        "frightened-2": "Frightened 2",
+        "stupefied-1": "Stupefied 1",
+        "slowed-1": "Slowed 1",
+        "slowed-2": "Slowed 2",
+        "enfeebled-1": "Enfeebled 1",
+        "enfeebled-2": "Enfeebled 2"
+      },
+      "Scaling": {
+        "OneImage": "{value} imagem",
+        "MultipleImages": "{value} imagens",
+        "TemporaryHP": "{value} PV temporários",
+        "MaximumTemporaryHP": "5 PV temporários no Tier V",
+        "Healing": "Cura",
+        "Reduction": "Redução",
+        "Damage": "Dano",
+        "NormalBonus": "Bônus normal",
+        "PlusOneCircumstance": "+1 circunstancial",
+        "IntensifiedBonus": "Bônus intensificado",
+        "PlusTwoCircumstance": "+2 circunstancial",
+        "Retaliation": "Retaliação",
+        "MaximumRetaliation": "5d6 no Tier V",
+        "PersistentDamage": "Dano persistente",
+        "PersistentDamageValues": "Falha {failure}; falha crítica {criticalFailure}",
+        "FixedEffect": "Efeito fixo"
+      },
+      "Outcomes": {
+        "ForcedMovement": "movimento forçado de {distance} pés",
+        "AppliesConditions": "aplica {conditions}",
+        "CommandsOneAction": "comanda {count} ação",
+        "CommandsMultipleActions": "comanda {count} ações",
+        "Duration": "duração: {duration}",
+        "PersistentDamage": "Dano persistente {formula}.",
+        "NoEffect": "Nenhum efeito."
+      },
+      "BasicSave": {
+        "criticalSuccess": "Nenhum dano.",
+        "success": "Metade do dano.",
+        "failure": "Dano completo.",
+        "criticalFailure": "Dano dobrado."
+      },
+      "OutcomeNotes": {
+        "persistent-void-1d6": "Aplica 1d6 de dano persistente de vazio.",
+        "persistent-void-2d6": "Aplica 2d6 de dano persistente de vazio.",
+        "persistent-same-type-2d6": "Aplica 2d6 de dano persistente do mesmo tipo.",
+        "persistent-same-type-4d6": "Aplica 4d6 de dano persistente do mesmo tipo."
+      },
+      "DurationEntries": {
+        "Area": "Área: {duration}.",
+        "Effect": "{effect}: {duration}.",
+        "ConsumedOn": "Consumido no {trigger}.",
+        "Default": "Instantâneo, salvo indicação específica do efeito."
+      },
+      "Consumption": {
+        "commanded-action": "ação comandada",
+        "first-attack-or-save": "primeiro ataque ou salvamento",
+        "first-save": "primeiro salvamento",
+        "next-ally-strike": "próximo Strike aliado",
+        "triggering-damage": "dano que acionou a reação"
+      },
+      "Requirements": {
+        "None": "Nenhum requisito adicional.",
+        "WithGMConfirmation": "{requirement} Confirmação do mestre.",
+        "WithPlayerConfirmation": "{requirement} Confirmação do jogador.",
+        "Items": {
+          "ally-would-take-damage": "Gatilho: Pipping ou um aliado seria atingido por dano.",
+          "attack-reaction": "A reação contra um ataque precisa ser declarada pelo jogador.",
+          "canvas-placement": "Escolha e confirme uma posição válida no canvas.",
+          "command-text": "O comando precisa ser válido e confirmado pelo mestre.",
+          "failed-occult-or-unique-save": "Gatilho: uma criatura falha contra magia ocultista ou habilidade única.",
+          "frightened-reduction-requires-dim-light-or-darkness": "A redução de Frightened exige luz fraca ou escuridão.",
+          "forced-movement": "O movimento forçado precisa ser confirmado antes de alterar a posição do token.",
+          "intensify-dim-light-or-darkness": "Intensificar exige luz fraca ou escuridão.",
+          "object-passage-assisted": "Atravessar objetos exige confirmação do mestre.",
+          "persistent-area-template": "A Sombra Animada deve estar posicionada e a área persistente deve ser confirmada.",
+          "protected-ally-was-hit": "Gatilho: o aliado protegido foi atingido.",
+          "sustain-each-round": "A composição precisa ser sustentada a cada rodada.",
+          "target-chooses-condition-reduction": "Cada alvo escolhe qual condição elegível será reduzida.",
+          "target-would-reach-zero-hp-or-gain-death-effect": "Gatilho: o alvo chegaria a 0 PV ou receberia um efeito de morte.",
+          "trigger-message-id": "A reação precisa estar associada ao evento que produziu o gatilho.",
+          "valid-reaction-trigger": "O mestre confirma que o gatilho da reação é válido.",
+          "valid-teleport-destination": "O destino deve estar no alcance e em luz fraca ou escuridão."
+        }
+      },
+      "Automation": {
+        "Components": {
+          "TargetSelection": "Seleção do alvo",
+          "AreaAndTargetSelection": "Seleção da área e dos alvos",
+          "NormalOrIntensifiedChoice": "Escolha normal ou intensificada",
+          "EffectApplication": "Aplicação do efeito",
+          "FirstCheckConsumption": "Consumo no primeiro teste",
+          "Expiration": "Expiração",
+          "SaveRoll": "Rolagem de salvamento",
+          "Damage": "Dano",
+          "Healing": "Cura",
+          "EffectResolution": "Resolução do efeito"
+        },
+        "Notes": {
+          "SelfTarget": "O alvo é o próprio Pipping.",
+          "ConfirmAreaGeometry": "A posição ou geometria precisa ser confirmada no canvas.",
+          "ConfirmValidTargets": "O jogador confirma os alvos válidos.",
+          "ChooseValidAlly": "O jogador escolhe um aliado válido.",
+          "ResolvedByDialog": "Resolvida por diálogo.",
+          "SaveAPI": "Usa a API PF2e; fallback simplificado é identificado quando necessário.",
+          "DamageAPI": "Automático quando a API PF2e de dano estiver disponível.",
+          "AssistedEffect": "Requer seleção, decisão ou confirmação durante a resolução.",
+          "ResolutionConfirmation": "A resolução solicita confirmação."
+        },
+        "DetailWithNote": "{component}: {mode}. {note}",
+        "Detail": "{component}: {mode}"
+      },
+      "Summary": {
+        "TargetAtRange": "{target} a {range}",
+        "BasicSave": "{defense} CD {dc} básico",
+        "Save": "{defense} CD {dc}"
+      },
+      "Tooltips": {
+        "DarkWhisperIntensified": "Gasta 1 PS adicional em luz fraca ou escuridão.",
+        "DarkWhisperDuration": "O efeito termina antes se for consumido pelo primeiro ataque ou salvamento.",
+        "BasicSave": "Salvamento básico: sucesso crítico sem dano, sucesso metade, falha dano completo e falha crítica dano dobrado.",
+        "AutomationAutomatic": "O módulo resolve este componente automaticamente.",
+        "AutomationAssisted": "O módulo solicita uma escolha ou confirmação durante a resolução.",
+        "AutomationManual": "O jogador ou mestre resolve este componente manualmente."
+      },
+      "ScalingDetail": {
+        "Current": "{label}: atual {current}.",
+        "CurrentNext": "{label}: atual {current}; próximo aumento no nível {nextLevel}: {nextValue}.",
+        "CurrentMaximum": "{label}: atual {current}; máximo: {maximumValue}.",
+        "CurrentMaximumAtLevel": "{label}: atual {current}; máximo no nível {maximumLevel}: {maximumValue}.",
+        "CurrentNextMaximum": "{label}: atual {current}; próximo aumento no nível {nextLevel}: {nextValue}; máximo: {maximumValue}.",
+        "CurrentNextMaximumAtLevel": "{label}: atual {current}; próximo aumento no nível {nextLevel}: {nextValue}; máximo no nível {maximumLevel}: {maximumValue}."
+      },
+      "Details": {
+        "NormalCost": "Custo normal: {cost}",
+        "OptionalCost": "Custo opcional: {cost}",
+        "Frequency": "Frequência: {frequency}",
+        "Target": "Alvo: {target}",
+        "Range": "Alcance: {range}",
+        "DarkWhisperSelfTarget": "Pode selecionar o próprio Pipping quando permitido pela regra.",
+        "Area": "Área: {area}",
+        "Origin": "Origem: {origin}",
+        "DefenseAgainstDC": "Defesa: {defense} contra CD {dc}.",
+        "UndefinedDefense": "não definida",
+        "BasicSave": "Salvamento básico.",
+        "IncapacitationTrait": "Possui o trait Incapacitação.",
+        "Outcome": "{degree}: {result}"
+      },
+      "Sections": {
+        "Activation": "Ativação",
+        "Targeting": "Alvo e alcance",
+        "Area": "Área",
+        "Resolution": "Salvamento ou teste",
+        "MainEffect": "Efeito principal",
+        "Outcomes": "Graus de sucesso",
+        "Scaling": "Scaling",
+        "Duration": "Duração e expiração",
+        "Requirements": "Requisitos e gatilhos",
+        "Automation": "Automação",
+        "Notes": "Observações especiais",
+        "GMDiagnostics": "Diagnóstico do mestre"
+      },
+      "Diagnostics": {
+        "Action": "Ação: {action}",
+        "Effects": "Efeitos: {effects}",
+        "NoDeclarativeEffects": "nenhum efeito declarativo",
+        "GeometricOrigin": "Origem geométrica: {origin}",
+        "NotApplicable": "não aplicável",
+        "AutomationFallback": "Fallback de automação: {mode}"
+      },
+      "Header": {
+        "Tier": "Tier {tier}",
+        "MinimumLevel": "Nível {level}"
+      },
+      "ActionDurations": {
+        "animated-shadow": {
+          "1": "Permanece até ser reposicionada ou removida."
+        },
+        "mirrored-shadows": {
+          "1": "Permanece até todas as imagens serem destruídas ou a preparação diária ser reiniciada."
+        },
+        "dark-whisper": {
+          "1": "Consumido no primeiro ataque ou salvamento realizado pelo alvo.",
+          "2": "Se não for consumido, termina no início do próximo turno de Pipping."
+        },
+        "void-echoes": {
+          "1": "Instantâneo."
+        },
+        "living-night-song": {
+          "1": "Sustentada; termina quando não for sustentada."
+        },
+        "ruin-note": {
+          "1": "Dano instantâneo; Frightened segue as regras normais da condição."
+        },
+        "restoring-pulse": {
+          "1": "Cura instantânea; a redução de condição é imediata."
+        },
+        "broken-meter": {
+          "1": "Off-Guard e o bloqueio de reações terminam no início do próximo turno de Pipping."
+        },
+        "shadow-form": {
+          "1": "Instantâneo."
+        },
+        "void-touch": {
+          "1": "Dano inicial instantâneo; dano persistente segue as regras da condição.",
+          "2": "Enfeebled dura 1 rodada."
+        },
+        "black-order-mantle": {
+          "1": "A redução vale apenas para a instância que acionou a reação; PV temporários seguem as regras normais."
+        },
+        "shadow-resonance": {
+          "1": "O bloqueio de reações termina no início do próximo turno de Pipping."
+        },
+        "night-emanation": {
+          "1": "Dano instantâneo; Enfeebled dura 1 rodada."
+        },
+        "requiem-persist": {
+          "1": "Cura instantânea; o bônus expira no início do próximo turno de Pipping."
+        },
+        "shadow-king": {
+          "1": "A área persiste até ser removida; condições aplicadas duram 1 rodada."
+        },
+        "ending-chorus": {
+          "1": "Dano instantâneo; Stupefied dura 1 rodada."
+        },
+        "gentle-night-liturgy": {
+          "1": "Cura e redução de condição são instantâneas."
+        },
+        "abyss-voice": {
+          "1": "As ações comandadas são consumidas até o fim do próximo turno do alvo."
+        },
+        "beyond-form": {
+          "1": "Termina no início do próximo turno de Pipping."
+        },
+        "dead-sun-epitaph": {
+          "1": "Dano inicial instantâneo; escuridão por 1 minuto; dano persistente segue as regras da condição."
+        },
+        "night-refuses-end": {
+          "1": "A cura e a prevenção são imediatas; Doomed segue as regras normais da condição."
+        },
+        "forbidden-performance": {
+          "1": "Quickened, Slowed e demais efeitos duram 1 rodada, salvo indicação do grau de sucesso."
+        }
+      }
+    },
+    "Actions": {
           "AnimatedShadow": {
             "Name": "Sombra Animada",
             "Description": "Pipping posiciona sua sombra como extensão tática da própria vontade.",
@@ -816,6 +1196,20 @@
         "Fast": "Rápida",
         "Normal": "Normal",
         "Cinematic": "Cinemática"
+      },
+      "PippingAbilityHoverEffects": {
+        "Name": "Efeitos de hover das habilidades de Pipping",
+        "Hint": "Controla a reação visual das cartas ao passar o mouse ou navegar por teclado.",
+        "Full": "Completos",
+        "Reduced": "Reduzidos",
+        "Off": "Desativados"
+      },
+      "PippingHoverCanvasPreview": {
+        "Name": "Prévia de animação no token durante hover",
+        "Hint": "A prévia é local, não seleciona alvos e não altera documentos ou recursos.",
+        "Off": "Desativada",
+        "Card": "Somente carta",
+        "Token": "Carta e token"
       }
     }
   }

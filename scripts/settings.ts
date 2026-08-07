@@ -7,6 +7,8 @@ type ClientBooleanSettingKey =
   | "combatTrackerDetailedStats";
 export type CombatAnimationMode = "full" | "reduced" | "off";
 export type PippingAnimationSpeed = "fast" | "normal" | "cinematic";
+export type PippingAbilityHoverMode = "full" | "reduced" | "off";
+export type PippingHoverCanvasPreviewMode = "off" | "card" | "token";
 
 function getBooleanSetting(key: BooleanSettingKey, fallback: boolean): boolean {
   try {
@@ -79,6 +81,10 @@ export function registerSettings(): void {
   });
 
   const refreshClientUI = () => window.dispatchEvent(new CustomEvent("ethernum-client-settings-changed"));
+  const applyPippingHoverMode = (value: unknown) => {
+    const mode = value === "reduced" || value === "off" ? value : "full";
+    document.documentElement.dataset.ethernumPippingHover = mode;
+  };
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerEnabled", {
     name: "ETHERNUM.Settings.CombatTrackerEnabled.Name",
     hint: "ETHERNUM.Settings.CombatTrackerEnabled.Hint",
@@ -148,12 +154,44 @@ export function registerSettings(): void {
     default: "normal",
     onChange: refreshClientUI,
   });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "pippingAbilityHoverEffects", {
+    name: "ETHERNUM.Settings.PippingAbilityHoverEffects.Name",
+    hint: "ETHERNUM.Settings.PippingAbilityHoverEffects.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      full: "ETHERNUM.Settings.PippingAbilityHoverEffects.Full",
+      reduced: "ETHERNUM.Settings.PippingAbilityHoverEffects.Reduced",
+      off: "ETHERNUM.Settings.PippingAbilityHoverEffects.Off",
+    },
+    default: "full",
+    onChange: value => {
+      applyPippingHoverMode(value);
+      refreshClientUI();
+    },
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "pippingHoverCanvasPreview", {
+    name: "ETHERNUM.Settings.PippingHoverCanvasPreview.Name",
+    hint: "ETHERNUM.Settings.PippingHoverCanvasPreview.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      off: "ETHERNUM.Settings.PippingHoverCanvasPreview.Off",
+      card: "ETHERNUM.Settings.PippingHoverCanvasPreview.Card",
+      token: "ETHERNUM.Settings.PippingHoverCanvasPreview.Token",
+    },
+    default: "card",
+    onChange: refreshClientUI,
+  });
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatTimerPreferredDuration", {
     scope: "client",
     config: false,
     type: Number,
     default: 60,
   });
+  applyPippingHoverMode(getPippingAbilityHoverMode());
 
   console.log("Ethernum RPG Module | Settings registradas");
 }
@@ -246,4 +284,24 @@ export function getPippingAnimationSpeed(): PippingAnimationSpeed {
     return "normal";
   }
   return "normal";
+}
+
+export function getPippingAbilityHoverMode(): PippingAbilityHoverMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "pippingAbilityHoverEffects");
+    if (value === "reduced" || value === "off") return value;
+  } catch {
+    return "full";
+  }
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+}
+
+export function getPippingHoverCanvasPreviewMode(): PippingHoverCanvasPreviewMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "pippingHoverCanvasPreview");
+    if (value === "off" || value === "token") return value;
+  } catch {
+    return "card";
+  }
+  return "card";
 }

@@ -2,6 +2,7 @@ import type { PippingExpression, PippingNightState, PippingTier } from "./state.
 import type { PippingDegreeOfSuccess } from "./rules.js";
 import {
   PIPPING_ACTION_FORMULAS,
+  resolveScaling,
   type PippingFormulaDamageType,
   type PippingFormulaDefinition,
   type PippingFormulaId,
@@ -78,11 +79,16 @@ export interface PippingOutcomeDefinition {
 
 export interface PippingMechanicalEffect {
   id: string;
+  descriptionKey: string;
   automation: PippingAutomationMode;
   value?: number | string | PippingScalingValue;
   duration?: string;
   consumesOn?: string;
 }
+
+type PippingMechanicalEffectInput =
+  Omit<PippingMechanicalEffect, "descriptionKey">
+  & { descriptionKey?: string };
 
 export interface PippingAnimationDefinition {
   id: string;
@@ -126,6 +132,22 @@ export interface PippingActionDefinition {
   animation: PippingAnimationDefinition;
 }
 
+export type PippingTargetAttitude = "none" | "self" | "ally" | "enemy" | "mixed";
+
+export interface PippingResolvedTargetSpec {
+  attitude: PippingTargetAttitude;
+  range: number;
+  maximum: number;
+  includeSelf: boolean;
+  allByDefault: boolean;
+  area?: {
+    type: PippingAreaDefinition["type"];
+    size: number;
+    origin: PippingAreaDefinition["origin"];
+    duration?: string;
+  };
+}
+
 type PippingActionDefinitionInput = Omit<
   PippingActionDefinition,
   | "summaryKey"
@@ -148,14 +170,15 @@ type PippingActionDefinitionInput = Omit<
     | "flavorKey"
     | "optionalPulseCosts"
     | "requirements"
-    | "effects"
     | "animation"
     | "save"
     | "damage"
     | "healing"
     | "frequencyDefinition"
   >
->;
+> & {
+  effects?: PippingMechanicalEffectInput[];
+};
 
 function definePippingAction(input: PippingActionDefinitionInput): PippingActionDefinition {
   const formula = input.formulaId
@@ -203,7 +226,11 @@ function definePippingAction(input: PippingActionDefinitionInput): PippingAction
       : undefined),
     damage,
     healing,
-    effects: input.effects ?? [],
+    effects: (input.effects ?? []).map(effect => ({
+      ...effect,
+      descriptionKey: effect.descriptionKey
+        ?? `ETHERNUM.Unique.Pipping.Mechanics.Effects.${effect.id}`,
+    })),
     animation: input.animation ?? {
       id: input.id,
       fallbackClass: `ethernum-pipping-${input.id}`,
@@ -230,7 +257,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     category: "shadow", actions: "passive", requiredTier: 1, requiredLevel: 3, pulseCost: 0,
     traits: ["Veil", "Shadow"], automationMode: "assisted",
     range: { base: 10, baseLevel: 3, increase: 10, everyLevels: 1, maximum: 30, increaseLevels: [9, 17] },
-    targets: { type: "self" },
+    targets: { type: "self", maximum: 1 },
     requirements: [{ id: "canvas-placement", confirmation: "player" }],
     effects: [
       { id: "animated-shadow-placement", automation: "assisted" },
@@ -245,7 +272,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.MirroredShadows.Detail1", "ETHERNUM.Unique.Pipping.Actions.MirroredShadows.Detail2"],
     category: "shadow", actions: 2, requiredTier: 1, requiredLevel: 3, pulseCost: 1,
     traits: ["Veil", "Void", "Illusion", "Occult"], automationMode: "automatic",
-    targets: { type: "self" },
+    targets: { type: "self", maximum: 1 },
     requirements: [{ id: "attack-reaction", confirmation: "player" }],
     effects: [
       {
@@ -270,7 +297,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
       pulseCost: 1,
       labelKey: "ETHERNUM.Unique.Pipping.Actions.DarkWhisper.Intensify",
     }],
-    targets: { type: "ally", maximum: 1 },
+    targets: {
+      type: "ally",
+      maximum: 1,
+      range: { base: 30, baseLevel: 3, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "intensify-dim-light-or-darkness" }],
     effects: [{
       id: "next-attack-or-save",
@@ -301,7 +332,14 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.LivingNight.Detail1", "ETHERNUM.Unique.Pipping.Actions.LivingNight.Detail2"],
     category: "field", actions: 2, requiredTier: 1, requiredLevel: 3, pulseCost: 1,
     traits: ["Composition", "Veil", "Void", "Voice", "Auditory"], automationMode: "automatic",
-    targets: { type: "self" },
+    targets: { type: "self", maximum: 1 },
+    range: {
+      base: 30,
+      baseLevel: 3,
+      increase: 0,
+      everyLevels: 1,
+      maximum: 30,
+    },
     area: {
       type: "darkness",
       size: { base: 10, baseLevel: 3, increase: 5, everyLevels: 1, maximum: 15, increaseLevels: [9] },
@@ -322,7 +360,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.RuinNote.Detail1"],
     category: "voice", actions: 2, requiredTier: 1, requiredLevel: 3, pulseCost: 1, expression: "destruction",
     traits: ["Void", "Voice", "Occult", "Mental"], automationMode: "assisted", defense: "will", basicSave: true, formulaId: "ruin-note",
-    targets: { type: "enemy", maximum: 1 },
+    targets: {
+      type: "enemy",
+      maximum: 1,
+      range: { base: 30, baseLevel: 3, increase: 0, everyLevels: 1 },
+    },
     outcomes: {
       criticalFailure: { conditions: ["frightened-1"] },
     },
@@ -335,7 +377,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.RestoringPulse.Detail1"],
     category: "vampiric", actions: 2, requiredTier: 1, requiredLevel: 3, pulseCost: 1, expression: "order",
     traits: ["Veil", "Healing", "Occult"], automationMode: "assisted", formulaId: "restoring-pulse",
-    targets: { type: "ally", maximum: 1 },
+    targets: {
+      type: "ally",
+      maximum: 1,
+      range: { base: 30, baseLevel: 3, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "frightened-reduction-requires-dim-light-or-darkness" }],
     effects: [
       { id: "healing", automation: "automatic" },
@@ -349,7 +395,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.BrokenMeter.Detail1"],
     category: "field", actions: 1, requiredTier: 1, requiredLevel: 3, pulseCost: 1, expression: "chaos",
     traits: ["Voice", "Mental", "Occult"], automationMode: "assisted", defense: "will",
-    targets: { type: "enemy", maximum: 1 },
+    targets: {
+      type: "enemy",
+      maximum: 1,
+      range: { base: 30, baseLevel: 3, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "forced-movement", confirmation: "gm" }],
     outcomes: {
       failure: {
@@ -371,7 +421,18 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.ShadowForm.Detail1"],
     category: "shadow", actions: 2, requiredTier: 2, requiredLevel: 5, pulseCost: 1,
     traits: ["Veil", "Teleportation", "Occult"], automationMode: "assisted",
-    targets: { type: "self" },
+    targets: { type: "self", maximum: 1 },
+    range: {
+      base: 30,
+      baseLevel: 5,
+      increase: 0,
+      everyLevels: 1,
+      maximum: 120,
+      valuesByLevel: [
+        { level: 9, value: 60 },
+        { level: 17, value: 120 },
+      ],
+    },
     requirements: [{ id: "valid-teleport-destination", confirmation: "player" }],
     effects: [{ id: "teleport", automation: "assisted" }],
   },
@@ -382,7 +443,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.VoidTouch.Detail1"],
     category: "vampiric", actions: 2, requiredTier: 2, requiredLevel: 5, pulseCost: 2, expression: "destruction",
     traits: ["Void", "Shadow", "Occult"], automationMode: "assisted", defense: "fortitude", basicSave: true, formulaId: "void-touch",
-    targets: { type: "enemy", maximum: 1 },
+    targets: {
+      type: "enemy",
+      maximum: 1,
+      range: { base: 30, baseLevel: 5, increase: 0, everyLevels: 1 },
+    },
     damage: {
       formulaId: "void-touch",
       type: "void",
@@ -408,7 +473,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.BlackOrderMantle.Detail1"],
     category: "reaction", actions: "reaction", requiredTier: 2, requiredLevel: 5, pulseCost: 1, expression: "order",
     traits: ["Veil", "Shadow"], automationMode: "assisted", formulaId: "black-order-mantle",
-    targets: { type: "ally", maximum: 1 },
+    targets: {
+      type: "ally",
+      maximum: 1,
+      range: { base: 30, baseLevel: 5, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "ally-would-take-damage" }],
     effects: [
       { id: "reduce-triggering-damage-instance", automation: "assisted", consumesOn: "triggering-damage" },
@@ -422,7 +491,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.ShadowResonance.Detail1"],
     category: "reaction", actions: "reaction", requiredTier: 2, requiredLevel: 5, pulseCost: 1, expression: "chaos",
     traits: ["Voice", "Mental", "Fear"], automationMode: "assisted", defense: "will",
-    targets: { type: "enemy", maximum: 1 },
+    targets: {
+      type: "enemy",
+      maximum: 1,
+      range: { base: 30, baseLevel: 5, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "protected-ally-was-hit" }],
     outcomes: {
       failure: {
@@ -442,7 +515,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.NightEmanation.Detail1"],
     category: "field", actions: 2, requiredTier: 3, requiredLevel: 9, pulseCost: 3, expression: "destruction",
     traits: ["Void", "Cold", "Occult"], automationMode: "assisted", defense: "fortitude", basicSave: true, formulaId: "night-emanation",
-    targets: { type: "enemies" },
+    targets: { type: "enemies", maximum: 99 },
     area: {
       type: "emanation",
       size: { base: 15, baseLevel: 9, increase: 0, everyLevels: 1 },
@@ -460,7 +533,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.RequiemPersist.Detail1"],
     category: "voice", actions: 2, requiredTier: 3, requiredLevel: 9, pulseCost: 2, expression: "order",
     traits: ["Voice", "Healing", "Composition"], automationMode: "assisted", formulaId: "requiem-persist",
-    targets: { type: "ally", maximum: 3 },
+      targets: {
+        type: "allies",
+        maximum: 3,
+        range: { base: 30, baseLevel: 9, increase: 0, everyLevels: 1 },
+      },
     effects: [
       { id: "healing", automation: "automatic" },
       {
@@ -479,7 +556,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.ShadowKing.Detail1"],
     category: "field", actions: 2, requiredTier: 3, requiredLevel: 9, pulseCost: 2, expression: "chaos",
     traits: ["Veil", "Shadow", "Occult"], automationMode: "assisted", defense: "will",
-    targets: { type: "creatures" },
+    targets: { type: "creatures", maximum: 99 },
     area: {
       type: "emanation",
       size: { base: 20, baseLevel: 9, increase: 0, everyLevels: 1 },
@@ -501,7 +578,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.EndingChorus.Detail1"],
     category: "voice", actions: 3, requiredTier: 4, requiredLevel: 13, pulseCost: 4, expression: "destruction",
     traits: ["Void", "Voice", "Mental", "Fear"], automationMode: "assisted", defense: "will", basicSave: true, formulaId: "ending-chorus",
-    targets: { type: "enemies" },
+    targets: { type: "enemies", maximum: 99 },
     area: {
       type: "cone",
       size: { base: 30, baseLevel: 13, increase: 0, everyLevels: 1 },
@@ -519,7 +596,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.GentleNightLiturgy.Detail1"],
     category: "voice", actions: 3, requiredTier: 4, requiredLevel: 13, pulseCost: 3, expression: "order",
     traits: ["Healing", "Voice", "Composition"], automationMode: "assisted", formulaId: "gentle-night-liturgy",
-    targets: { type: "ally" },
+    targets: { type: "allies", maximum: 99 },
     area: {
       type: "emanation",
       size: { base: 30, baseLevel: 13, increase: 0, everyLevels: 1 },
@@ -538,7 +615,11 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.AbyssVoice.Detail1"],
     category: "voice", actions: 2, requiredTier: 4, requiredLevel: 13, pulseCost: 3, expression: "chaos",
     traits: ["Voice", "Mental", "Linguistic", "Incapacitation"], automationMode: "assisted", defense: "will",
-    targets: { type: "enemy", maximum: 1 },
+    targets: {
+      type: "enemy",
+      maximum: 1,
+      range: { base: 30, baseLevel: 13, increase: 0, everyLevels: 1 },
+    },
     requirements: [{ id: "command-text", confirmation: "gm" }],
     outcomes: {
       failure: { commandedActions: 1 },
@@ -558,7 +639,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.BeyondForm.Detail1"],
     category: "finisher", actions: 3, requiredTier: 5, requiredLevel: 17, pulseCost: 5,
     traits: ["Void", "Shadow", "Polymorph"], automationMode: "assisted", frequency: "daily",
-    targets: { type: "self" },
+    targets: { type: "self", maximum: 1 },
     requirements: [{ id: "object-passage-assisted", confirmation: "gm" }],
     effects: [
       { id: "fly-speed-equals-land-speed", automation: "automatic", duration: "start-of-pipping-next-turn" },
@@ -574,7 +655,8 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.DeadSunEpitaph.Detail1"],
     category: "finisher", actions: 3, requiredTier: 5, requiredLevel: 17, pulseCost: 5, expression: "destruction",
     traits: ["Void", "Cold", "Darkness"], automationMode: "assisted", defense: "fortitude", basicSave: true, frequency: "daily", formulaId: "dead-sun-epitaph",
-    targets: { type: "enemies" },
+    targets: { type: "enemies", maximum: 99 },
+    range: { base: 30, baseLevel: 17, increase: 0, everyLevels: 1 },
     area: {
       type: "burst",
       size: { base: 20, baseLevel: 17, increase: 0, everyLevels: 1 },
@@ -630,7 +712,7 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
     detailKeys: ["ETHERNUM.Unique.Pipping.Actions.ForbiddenPerformance.Detail1"],
     category: "finisher", actions: 3, requiredTier: 5, requiredLevel: 17, pulseCost: 5, expression: "chaos",
     traits: ["Composition", "Voice", "Mental", "Incapacitation"], automationMode: "assisted", defense: "will", frequency: "daily",
-    targets: { type: "creatures" },
+    targets: { type: "creatures", maximum: 99 },
     area: {
       type: "emanation",
       size: { base: 60, baseLevel: 17, increase: 0, everyLevels: 1 },
@@ -654,6 +736,143 @@ const PIPPING_ACTION_DEFINITIONS: PippingActionDefinitionInput[] = [
 
 export const PIPPING_ACTIONS: PippingActionDefinition[] =
   PIPPING_ACTION_DEFINITIONS.map(definePippingAction);
+
+const AUTOMATIC_ACTION_EXECUTORS = new Set([
+  "living-night-song",
+  "mirrored-shadows",
+  "void-echoes",
+]);
+
+function targetAttitude(type: PippingTargetDefinition["type"]): PippingTargetAttitude {
+  if (type === "self") return "self";
+  if (type === "ally" || type === "allies") return "ally";
+  if (type === "enemy" || type === "enemies") return "enemy";
+  return "mixed";
+}
+
+export function resolvePippingTargetSpec(
+  action: PippingActionDefinition,
+  actorLevel: number,
+  _tier: PippingTier,
+): PippingResolvedTargetSpec {
+  const targets = action.targets;
+  if (!targets) {
+    return {
+      attitude: "none",
+      range: 0,
+      maximum: 0,
+      includeSelf: false,
+      allByDefault: false,
+    };
+  }
+  const attitude = targetAttitude(targets.type);
+  const area = action.area
+    ? {
+      type: action.area.type,
+      size: resolveScaling(action.area.size, actorLevel),
+      origin: action.area.origin,
+      ...(action.area.duration ? { duration: action.area.duration } : {}),
+    }
+    : undefined;
+  const explicitRange = targets.range ?? action.range;
+  const range = explicitRange
+    ? resolveScaling(explicitRange, actorLevel)
+    : area?.origin === "self"
+      ? area.size
+      : 0;
+  const plural = ["allies", "enemies", "creatures"].includes(targets.type);
+  return {
+    attitude,
+    range,
+    maximum: Math.max(0, Math.floor(targets.maximum ?? (plural ? 99 : 1))),
+    includeSelf: attitude === "self"
+      || targets.type === "ally"
+      || targets.type === "allies"
+      || targets.type === "creatures",
+    allByDefault: plural || Boolean(area),
+    ...(area ? { area } : {}),
+  };
+}
+
+function scalingDefinitionErrors(
+  actionId: string,
+  field: string,
+  scaling: PippingScalingValue | undefined,
+): string[] {
+  if (!scaling) return [];
+  const values = [scaling.base, scaling.baseLevel, scaling.increase, scaling.everyLevels];
+  if (values.some(value => !Number.isFinite(value))) {
+    return [`${actionId}: ${field} has a non-finite scaling value`];
+  }
+  if (scaling.baseLevel < 1 || scaling.everyLevels < 1) {
+    return [`${actionId}: ${field} has an invalid scaling interval`];
+  }
+  if (scaling.maximum !== undefined && scaling.maximum < scaling.base) {
+    return [`${actionId}: ${field} maximum is below its base value`];
+  }
+  if (scaling.valuesByLevel?.some(entry =>
+    !Number.isFinite(entry.level)
+    || !Number.isFinite(entry.value)
+    || entry.level < scaling.baseLevel
+  )) {
+    return [`${actionId}: ${field} has an invalid scheduled value`];
+  }
+  return [];
+}
+
+export function validatePippingActionDefinitions(
+  actions: readonly PippingActionDefinition[] = PIPPING_ACTIONS,
+): string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  const singularTargets = new Set(["ally", "enemy", "creature"]);
+  for (const action of actions) {
+    if (ids.has(action.id)) errors.push(`${action.id}: duplicate action id`);
+    ids.add(action.id);
+    if (action.targets && singularTargets.has(action.targets.type) && action.targets.maximum !== 1) {
+      errors.push(`${action.id}: single-target action must declare maximum 1`);
+    }
+    if (
+      action.targets
+      && action.targets.type !== "self"
+      && !action.area
+      && !action.targets.range
+      && !action.range
+    ) {
+      errors.push(`${action.id}: ranged target action has no range`);
+    }
+    if (action.area && !Number.isFinite(resolveScaling(action.area.size, action.requiredLevel))) {
+      errors.push(`${action.id}: area has no valid size`);
+    }
+    if (action.damage && !action.damage.type) {
+      errors.push(`${action.id}: damage has no type`);
+    }
+    if ((action.save || action.basicSave) && !action.defense) {
+      errors.push(`${action.id}: save has no defense`);
+    }
+    if (action.frequency && (!action.frequencyDefinition || action.frequencyDefinition.uses < 1)) {
+      errors.push(`${action.id}: frequency has no use count`);
+    }
+    if (action.effects.some(effect => !effect.descriptionKey)) {
+      errors.push(`${action.id}: effect has no localizable description`);
+    }
+    if (!action.animation?.id || !action.animation.fallbackClass) {
+      errors.push(`${action.id}: animation is missing`);
+    }
+    if (action.automationMode === "automatic" && !AUTOMATIC_ACTION_EXECUTORS.has(action.id)) {
+      errors.push(`${action.id}: automatic action has no registered executor`);
+    }
+    errors.push(...scalingDefinitionErrors(action.id, "range", action.range));
+    errors.push(...scalingDefinitionErrors(action.id, "target range", action.targets?.range));
+    errors.push(...scalingDefinitionErrors(action.id, "area", action.area?.size));
+    for (const effect of action.effects) {
+      if (effect.value && typeof effect.value === "object") {
+        errors.push(...scalingDefinitionErrors(action.id, `effect ${effect.id}`, effect.value));
+      }
+    }
+  }
+  return errors;
+}
 
 export const PIPPING_TIERS: PippingProgressionTier[] = [
   { id: "1", tier: 1, minLevel: 3, nameKey: "ETHERNUM.Unique.Pipping.Tiers.1", passiveKeys: ["ETHERNUM.Unique.Pipping.TierPassives.1"], universalActionIds: ["animated-shadow", "mirrored-shadows", "dark-whisper", "void-echoes", "living-night-song"], expressionActionIds: { destruction: "ruin-note", order: "restoring-pulse", chaos: "broken-meter" } },

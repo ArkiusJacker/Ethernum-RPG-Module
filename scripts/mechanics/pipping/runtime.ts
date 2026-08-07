@@ -5,15 +5,29 @@ import {
   type PF2eConditionMutation,
   type PF2eEffectMutation,
 } from "../../core/PF2eAdapter.js";
-import type { PippingActionDefinition } from "./progression.js";
+import {
+  resolvePippingTargetSpec,
+  type PippingActionDefinition,
+  type PippingResolvedTargetSpec,
+} from "./progression.js";
 import {
   createPippingPersistentArea,
   removePippingPersistentAreas,
   spawnPippingShadowManifestations,
   type PippingPersistentAreaReference,
 } from "./canvas.js";
-import { requestPippingShadowPlacement } from "./placement.js";
+import {
+  requestPippingAreaPlacement,
+  requestPippingShadowPlacement,
+  type PippingAreaPlacement,
+} from "./placement.js";
 import { PippingAnimationService } from "./animations.js";
+import {
+  resolvePippingAreaCandidates,
+  type PippingAreaGeometry,
+  type PippingGeometryToken,
+  type PippingSceneGeometry,
+} from "./geometry.js";
 import {
   getPippingAnimationMode,
   getPippingAnimationSpeed,
@@ -22,21 +36,12 @@ import {
   basicSaveDamage,
   type PippingDegreeOfSuccess,
 } from "./rules.js";
-import type {
-  PippingNightState,
-  PippingShadowManifestation,
-  PippingTier,
+import {
+  resolvePippingAnimatedShadowPosition,
+  type PippingNightState,
+  type PippingShadowManifestation,
+  type PippingTier,
 } from "./state.js";
-
-type TargetAttitude = "ally" | "enemy" | "mixed" | "self" | "none";
-
-interface PippingTargetSpec {
-  attitude: TargetAttitude;
-  range: number;
-  maximum: number;
-  includeSelf?: boolean;
-  allByDefault?: boolean;
-}
 
 interface TokenTarget {
   id: string;
@@ -68,6 +73,21 @@ interface PippingMutationContext {
   livingNightActive: boolean;
   darknessRadius: number;
   liturgyConditionByActor: Map<string, string>;
+}
+
+interface PippingOutcomeMetadata {
+  totalPulseCost: number;
+  formula: string | null;
+  dc: number;
+  targetSpec: PippingResolvedTargetSpec;
+}
+
+function localizePippingPresentation(
+  path: string,
+  replacements?: Record<string, string | number>,
+): string {
+  const key = `ETHERNUM.Unique.Pipping.Presentation.${path}`;
+  return replacements ? game.i18n!.format(key, replacements) : game.i18n!.localize(key);
 }
 
 export interface PippingActionExecutionOptions {
@@ -137,41 +157,76 @@ function actorToken(actor: Actor): Token | null {
   return active[0] ?? null;
 }
 
-function actionTargetSpec(actionId: string): PippingTargetSpec {
-  switch (actionId) {
-    case "dark-whisper":
-    case "restoring-pulse":
-    case "black-order-mantle":
-    case "night-refuses-end":
-      return { attitude: "ally", range: 30, maximum: 1, includeSelf: true };
-    case "ruin-note":
-    case "broken-meter":
-    case "void-touch":
-    case "shadow-resonance":
-    case "abyss-voice":
-      return { attitude: "enemy", range: 30, maximum: 1 };
-    case "night-emanation":
-      return { attitude: "enemy", range: 15, maximum: 99, allByDefault: true };
-    case "requiem-persist":
-      return { attitude: "ally", range: 30, maximum: 3, includeSelf: true };
-    case "shadow-king":
-      return { attitude: "enemy", range: 30, maximum: 99, allByDefault: true };
-    case "ending-chorus":
-      return { attitude: "enemy", range: 30, maximum: 99, allByDefault: true };
-    case "gentle-night-liturgy":
-      return { attitude: "ally", range: 30, maximum: 99, includeSelf: true, allByDefault: true };
-    case "dead-sun-epitaph":
-      return { attitude: "enemy", range: 20, maximum: 99, allByDefault: true };
-    case "forbidden-performance":
-      return { attitude: "mixed", range: 60, maximum: 99, includeSelf: true, allByDefault: true };
-    case "beyond-form":
-      return { attitude: "self", range: 0, maximum: 1, includeSelf: true };
-    default:
-      return { attitude: "none", range: 0, maximum: 0 };
-  }
+function sceneGeometry(): PippingSceneGeometry {
+  const grid = canvas?.scene?.grid as unknown as {
+    type?: number;
+    size?: number;
+    distance?: number;
+  } | undefined;
+  const size = Math.max(1, Number(grid?.size ?? 100));
+  const distance = Math.max(1, Number(grid?.distance ?? 5));
+  return grid?.type === 0
+    ? { type: "gridless", pixelsPerDistance: size / distance }
+    : { type: "square", gridSize: size, gridDistance: distance };
 }
 
-function collectTargets(actor: Actor, spec: PippingTargetSpec): TokenTarget[] {
+function tokenDimensions(token: Token): {
+  width: number;
+  height: number;
+  elevation?: number;
+  dimensionUnit: "pixels";
+} {
+  const document = token.document as TokenDocument & {
+    width?: number;
+    height?: number;
+    elevation?: number;
+  };
+  const rendered = token as Token & { w?: number; h?: number };
+  const gridSize = Math.max(1, Number(canvas?.scene?.grid?.size ?? 100));
+  const elevation = Number(document.elevation);
+  return {
+    width: Math.max(0, Number(rendered.w ?? Number(document.width ?? 1) * gridSize)),
+    height: Math.max(0, Number(rendered.h ?? Number(document.height ?? 1) * gridSize)),
+    dimensionUnit: "pixels",
+    ...(Number.isFinite(elevation) ? { elevation } : {}),
+  };
+}
+
+function areaGeometry(
+  source: Token,
+  spec: PippingResolvedTargetSpec,
+  placement: PippingAreaPlacement,
+): PippingAreaGeometry | null {
+  if (!spec.area) return null;
+  const dimensions = spec.area.origin === "self"
+    ? tokenDimensions(source)
+    : { width: 0, height: 0 };
+  const origin = {
+    kind: spec.area.origin,
+    point: placement.center,
+    ...dimensions,
+  };
+  if (spec.area.type === "cone") {
+    return {
+      type: "cone",
+      origin,
+      distance: spec.area.size,
+      direction: placement.direction,
+      angle: 90,
+    };
+  }
+  return {
+    type: spec.area.type === "emanation" ? "emanation" : "burst",
+    origin,
+    radius: spec.area.size,
+  };
+}
+
+function collectTargets(
+  actor: Actor,
+  spec: PippingResolvedTargetSpec,
+  placement?: PippingAreaPlacement,
+): TokenTarget[] {
   const source = actorToken(actor);
   if (!source) return [];
   const userTargets = new Set(
@@ -179,7 +234,7 @@ function collectTargets(actor: Actor, spec: PippingTargetSpec): TokenTarget[] {
       .map(token => token.id),
   );
   const placeables = Array.from(canvas?.tokens?.placeables ?? []);
-  return placeables.flatMap(token => {
+  const candidates = placeables.flatMap(token => {
     const targetActor = token.actor;
     if (!targetActor) return [];
     const allied = tokensAllied(source, token);
@@ -190,7 +245,10 @@ function collectTargets(actor: Actor, spec: PippingTargetSpec): TokenTarget[] {
       || (spec.attitude === "self" && isSelf);
     if (!attitudeAllowed || (!spec.includeSelf && isSelf)) return [];
     const distance = sceneDistance(source, token);
-    if (distance > spec.range && !isSelf) return [];
+    if (!spec.area && distance > spec.range && !isSelf) return [];
+    const center = tokenCenter(token);
+    if (!center) return [];
+    const dimensions = tokenDimensions(token);
     return [{
       id: token.id,
       name: String(token.name ?? targetActor.name ?? "Alvo"),
@@ -199,8 +257,20 @@ function collectTargets(actor: Actor, spec: PippingTargetSpec): TokenTarget[] {
       allied,
       distance,
       selected: userTargets.has(token.id),
+      center,
+      disposition: tokenDisposition(token),
+      ...dimensions,
     }];
-  }).sort((left, right) => {
+  });
+  const geometry = placement ? areaGeometry(source, spec, placement) : null;
+  const valid = geometry
+    ? resolvePippingAreaCandidates({
+      area: geometry,
+      scene: sceneGeometry(),
+      candidates: candidates as Array<TokenTarget & PippingGeometryToken>,
+    })
+    : candidates;
+  return valid.sort((left, right) => {
     const leftSelected = userTargets.has(left.id) ? 0 : 1;
     const rightSelected = userTargets.has(right.id) ? 0 : 1;
     return leftSelected - rightSelected || left.distance - right.distance || left.name.localeCompare(right.name);
@@ -210,10 +280,11 @@ function collectTargets(actor: Actor, spec: PippingTargetSpec): TokenTarget[] {
 async function chooseTargets(
   actor: Actor,
   action: PippingActionDefinition,
-  spec: PippingTargetSpec,
+  spec: PippingResolvedTargetSpec,
+  placement?: PippingAreaPlacement,
 ): Promise<TokenTarget[] | null> {
   if (spec.attitude === "none") return [];
-  const targets = collectTargets(actor, spec);
+  const targets = collectTargets(actor, spec, placement);
   if (spec.attitude === "self") return targets.slice(0, 1);
   if (targets.length === 0) {
     ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NoValidTargets"));
@@ -762,6 +833,7 @@ function buildOutcomeCard(
   action: PippingActionDefinition,
   outcomes: TargetOutcome[],
   assisted: boolean,
+  metadata?: PippingOutcomeMetadata,
 ): string {
   const rows = outcomes.length > 0
     ? `<ul>${outcomes.map(outcome => `
@@ -776,6 +848,47 @@ function buildOutcomeCard(
       ? game.i18n!.localize("ETHERNUM.Unique.Pipping.AssistedResolved")
       : game.i18n!.localize(action.descriptionKey))}</p>`;
   const expression = action.expression ?? "order";
+  const durations = [...new Set([
+    action.area?.duration,
+    ...action.effects.map(effect => effect.duration),
+    ...Object.values(action.outcomes ?? {}).map(outcome => outcome?.duration),
+  ].filter((value): value is string => Boolean(value)))]
+    .map(duration => localizePippingPresentation(`Durations.${duration}`));
+  const assistedComponents = action.effects
+    .filter(effect => effect.automation !== "automatic")
+    .map(effect => localizePippingPresentation(`Effects.${effect.id}`));
+  if (metadata?.targetSpec.area) {
+    assistedComponents.unshift(localizePippingPresentation("Automation.Components.AreaAndTargetSelection"));
+  } else if (metadata && !["none", "self"].includes(metadata.targetSpec.attitude)) {
+    assistedComponents.unshift(localizePippingPresentation("Automation.Components.TargetSelection"));
+  }
+  if (action.automationMode !== "automatic") {
+    assistedComponents.push(localizePippingPresentation("Automation.Components.EffectResolution"));
+  }
+  const targetNames = outcomes.map(outcome => outcome.target.name);
+  const area = metadata?.targetSpec.area;
+  const areaLabel = area
+    ? localizePippingPresentation(`Areas.Display.${area.type}`, { size: area.size })
+    : null;
+  const areaOrigin = area
+    ? localizePippingPresentation(`Origins.${area.origin}`)
+    : null;
+  const metadataRows = metadata
+    ? `
+      <dl class="ethernum-pipping-chat-metadata">
+        <div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Cost"))}</dt><dd>${escapeHtml(localizePippingPresentation("Units.PulseCost", { cost: metadata.totalPulseCost }))}</dd></div>
+        ${metadata.formula ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Formula"))}</dt><dd>${escapeHtml(metadata.formula)}</dd></div>` : ""}
+        ${action.defense ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.DC"))}</dt><dd>${metadata.dc}</dd></div>` : ""}
+        ${area
+          ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Area"))}</dt><dd>${escapeHtml(`${areaLabel} · ${areaOrigin}`)}</dd></div>`
+          : metadata.targetSpec.range > 0
+            ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Range"))}</dt><dd>${escapeHtml(localizePippingPresentation("Units.Feet", { value: metadata.targetSpec.range }))}</dd></div>`
+            : ""}
+        <div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Targets"))}</dt><dd>${escapeHtml(targetNames.join(", ") || game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.NoTargets"))}</dd></div>
+        ${durations.length > 0 ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Duration"))}</dt><dd>${escapeHtml(durations.join(", "))}</dd></div>` : ""}
+        ${assistedComponents.length > 0 ? `<div><dt>${escapeHtml(game.i18n!.localize("ETHERNUM.Unique.Pipping.Chat.Assisted"))}</dt><dd>${escapeHtml([...new Set(assistedComponents)].join(", "))}</dd></div>` : ""}
+      </dl>`
+    : "";
   return `
     <div class="ethernum-unique-chat-card ethernum-pipping-chat-card expression-${expression}">
       <header>
@@ -785,6 +898,7 @@ function buildOutcomeCard(
           <h3>${escapeHtml(game.i18n!.localize(action.nameKey))}</h3>
         </div>
       </header>
+      ${metadataRows}
       ${rows}
     </div>`;
 }
@@ -794,10 +908,11 @@ async function postOutcome(
   action: PippingActionDefinition,
   outcomes: TargetOutcome[],
   assisted = false,
+  metadata?: PippingOutcomeMetadata,
 ): Promise<void> {
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
-    content: buildOutcomeCard(action, outcomes, assisted),
+    content: buildOutcomeCard(action, outcomes, assisted, metadata),
     flags: {
       "ethernum-rpg-module": {
         generated: true,
@@ -807,6 +922,61 @@ async function postOutcome(
       },
     } as never,
   });
+}
+
+async function resolveAreaPlacement(
+  actor: Actor,
+  action: PippingActionDefinition,
+  state: PippingNightState,
+  spec: PippingResolvedTargetSpec,
+): Promise<PippingAreaPlacement | null | undefined> {
+  const area = spec.area;
+  if (!area) return undefined;
+  const source = actorToken(actor);
+  const sourceCenter = source ? tokenCenter(source) : null;
+  if (area.type === "cone") {
+    return requestPippingAreaPlacement(actor, {
+      actionId: action.id,
+      nameKey: action.nameKey,
+      areaType: "cone",
+      areaSize: area.size,
+      maximumRange: area.size,
+    });
+  }
+  if (area.origin === "point") {
+    return requestPippingAreaPlacement(actor, {
+      actionId: action.id,
+      nameKey: action.nameKey,
+      areaType: "burst",
+      areaSize: area.size,
+      maximumRange: spec.range,
+    });
+  }
+  if (area.origin === "shadow") {
+    const currentScene = canvas?.scene as unknown as {
+      id?: string;
+      tiles?: { get?: (id: string) => unknown };
+    } | undefined;
+    const center = resolvePippingAnimatedShadowPosition(
+      state.animatedShadow,
+      currentScene?.id,
+      tileId => Boolean(currentScene?.tiles?.get?.(tileId)),
+    );
+    if (!center) {
+      ui.notifications?.warn(game.i18n!.localize(
+        "ETHERNUM.Unique.Pipping.Errors.RequiresAnimatedShadow",
+      ));
+      return null;
+    }
+    return { center, direction: 0 };
+  }
+  if (!sourceCenter) {
+    ui.notifications?.warn(game.i18n!.localize(
+      "ETHERNUM.Unique.Pipping.Errors.RequiresActiveToken",
+    ));
+    return null;
+  }
+  return { center: sourceCenter, direction: 0 };
 }
 
 export async function executePippingAction(
@@ -889,8 +1059,13 @@ export async function executePippingAction(
   if (!darkWhisperChoice) return { completed: false };
   const damageType = await chooseDamageType(action);
   if (!damageType) return { completed: false };
-  const spec = actionTargetSpec(action.id);
-  const targets = await chooseTargets(actor, action, spec);
+  const spec = resolvePippingTargetSpec(action, Number(
+    (actor.system as unknown as { details?: { level?: { value?: number } } })
+      .details?.level?.value ?? action.requiredLevel,
+  ), tier);
+  const areaPlacement = await resolveAreaPlacement(actor, action, state, spec);
+  if (areaPlacement === null) return { completed: false };
+  const targets = await chooseTargets(actor, action, spec, areaPlacement);
   if (targets === null) return { completed: false };
   if (
     action.id === "night-refuses-end"
@@ -911,10 +1086,7 @@ export async function executePippingAction(
   const sourceToken = actorToken(actor);
   let persistentArea: PippingPersistentAreaReference | undefined;
   if (action.id === "shadow-king" || action.id === "dead-sun-epitaph") {
-    const sourceCenter = sourceToken ? tokenCenter(sourceToken) : null;
-    const areaCenter = action.id === "shadow-king"
-      ? state.animatedShadow.position
-      : sourceCenter;
+    const areaCenter = areaPlacement?.center;
     if (!areaCenter) {
       ui.notifications?.warn(game.i18n!.localize(
         action.id === "shadow-king"
@@ -929,7 +1101,7 @@ export async function executePippingAction(
         state,
         action.id,
         areaCenter,
-        20,
+        spec.area?.size ?? 20,
       );
     } catch (error) {
       console.warn(`Ethernum | Pipping ${action.id} area creation failed`, error);
@@ -1032,6 +1204,12 @@ export async function executePippingAction(
     action,
     outcomes,
     usedSaveFallback || (action.automationMode === "assisted" && targets.length === 0),
+    {
+      totalPulseCost: darkWhisperChoice.totalCost,
+      formula,
+      dc,
+      targetSpec: spec,
+    },
   );
   return {
     completed: true,

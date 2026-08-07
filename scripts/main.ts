@@ -10,6 +10,14 @@ import { migrateWorld } from './utils/DataMigration.js';
 import { ensureManagedMacros as ensureManagedMacroDefinitions } from './core/ManagedMacroService.js';
 import { initializePF2eAdapterSocket } from './core/PF2eAdapter.js';
 import { initializePippingCanvasSocket } from './mechanics/pipping/canvas.js';
+import {
+  getPippingAction,
+  validatePippingActionDefinitions,
+} from './mechanics/pipping/progression.js';
+import {
+  validatePippingAnimationDatabase,
+  type PippingAnimationDatabaseDiagnostic,
+} from './mechanics/pipping/animations.js';
 import { AutomationAuthority } from './core/AutomationAuthority.js';
 import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
 import { AnimationService } from './core/AnimationService.js';
@@ -255,6 +263,7 @@ declare global {
             resolveDarkness: (actor?: Actor | null) => Promise<string | null>;
             communeWithNight: (actor?: Actor | null) => Promise<unknown>;
             dailyPreparations: (actor?: Actor | null) => Promise<unknown>;
+            animationDiagnostics: () => Promise<PippingAnimationDatabaseDiagnostic | null>;
           };
         };
         concordia: {
@@ -426,6 +435,7 @@ function buildMacroApi() {
           UniqueMechanicsSystem.communePippingWithNight(resolveMacroActor(actor)),
         dailyPreparations: async (actor?: Actor | null) =>
           UniqueMechanicsSystem.pippingDailyPreparations(resolveMacroActor(actor)),
+        animationDiagnostics: async () => showPippingAnimationDiagnostics(),
       },
     },
     concordia: {
@@ -529,6 +539,56 @@ function buildMacroApi() {
       },
     },
   };
+}
+
+async function showPippingAnimationDiagnostics(): Promise<PippingAnimationDatabaseDiagnostic | null> {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn(game.i18n!.localize(
+      "ETHERNUM.Unique.Pipping.AnimationDiagnostics.GMOnly",
+    ));
+    return null;
+  }
+  const diagnostic = await validatePippingAnimationDatabase({ forceRefresh: true });
+  const status = (value: boolean) => game.i18n!.localize(
+    `ETHERNUM.Unique.Pipping.AnimationDiagnostics.${value ? "Available" : "Unavailable"}`,
+  );
+  const label = (key: string) => game.i18n!.localize(
+    `ETHERNUM.Unique.Pipping.AnimationDiagnostics.${key}`,
+  );
+  const rows = diagnostic.actions.map(action => {
+    const definition = getPippingAction(action.actionId);
+    const actionName = definition
+      ? game.i18n!.localize(definition.nameKey)
+      : action.actionId;
+    return `
+      <tr>
+        <td>${actionName}</td>
+        <td><code>${action.selectedKey ?? "-"}</code></td>
+        <td>${action.expectedLayer.toUpperCase()}</td>
+      </tr>`;
+  }).join("");
+  new Dialog({
+    title: game.i18n!.localize("ETHERNUM.Unique.Pipping.AnimationDiagnostics.Title"),
+    content: `
+      <div class="ethernum-pipping-animation-diagnostics">
+        <p><strong>${label("Sequencer")}:</strong> ${status(diagnostic.sequencerAvailable)}</p>
+        <p><strong>${label("DatabaseViewer")}:</strong> ${status(diagnostic.databaseViewerAvailable)}</p>
+        <p><strong>${label("JB2A")}:</strong> ${status(diagnostic.jb2aAvailable)}</p>
+        <p><strong>${label("Fallback")}:</strong> ${diagnostic.fallbackLayer.toUpperCase()}</p>
+        <table>
+          <thead><tr><th>${label("Action")}</th><th>${label("SelectedKey")}</th><th>${label("Layer")}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`,
+    buttons: {
+      close: {
+        icon: '<i class="fas fa-check"></i>',
+        label: game.i18n!.localize("ETHERNUM.Buttons.Close"),
+      },
+    },
+  }).render(true);
+  console.info("Ethernum | Pipping animation diagnostics", diagnostic);
+  return diagnostic;
 }
 
 async function ensureManagedMacros(): Promise<void> {
@@ -722,6 +782,13 @@ Hooks.once("init", () => {
 
   registerHandlebarsHelpers();
   registerSettings();
+  const pippingDefinitionErrors = validatePippingActionDefinitions();
+  if (pippingDefinitionErrors.length > 0) {
+    console.error(
+      "Ethernum RPG Module | Invalid Pipping action definitions",
+      pippingDefinitionErrors,
+    );
+  }
 
   const loadTpls = (foundry.applications as Record<string, unknown> & { handlebars?: { loadTemplates?: typeof loadTemplates } })
     ?.handlebars?.loadTemplates ?? loadTemplates;
