@@ -17,7 +17,6 @@ import {
   PippingAnimationService,
   type PippingHoverPreviewHandle,
 } from '../mechanics/pipping/animations.js';
-import { mountAuthorityControlCenter } from './GMControlCenterBridge.js';
 
 // Persiste qual aba Ethernum estava ativa por ator entre re-renders.
 // actor.setFlag() no PF2E v8 (ApplicationV2) dispara re-render automático;
@@ -78,9 +77,6 @@ export class EtherTabManager {
         <a class="item" data-tab="ethernum-runes" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.RuneSystem")}">
           <i class="fas fa-gem"></i>
         </a>
-        <a class="item" data-tab="ethernum-gm-control" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.GMControl")}">
-          <i class="fas fa-shield-halved"></i>
-        </a>
       ` : ""}
       <a class="item" data-tab="ethernum-unique" data-tooltip="${game.i18n!.localize("ETHERNUM.Tabs.UniqueMechanics")}">
         <i class="fas fa-fingerprint"></i>
@@ -101,14 +97,8 @@ export class EtherTabManager {
     $html.find('.sheet-body').append(`
       ${isGM ? `<div class="ethernum-content" data-ethernum-tab="ethernum-attributes">${attributesTemplate}</div>` : ""}
       ${isGM ? `<div class="ethernum-content" data-ethernum-tab="ethernum-runes">${runesTemplate}</div>` : ""}
-      ${isGM ? `<div class="ethernum-content" data-ethernum-tab="ethernum-gm-control"><div class="ethernum-gm-control-host"></div></div>` : ""}
       <div class="ethernum-content" data-ethernum-tab="ethernum-unique">${uniqueTemplate}</div>
     `);
-
-    if (isGM) {
-      const gmHost = $html.find('.ethernum-gm-control-host').get(0);
-      if (gmHost) await mountAuthorityControlCenter(gmHost);
-    }
 
     this._restoreScrollPositions($html, actor.id!);
 

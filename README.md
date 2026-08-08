@@ -6,13 +6,13 @@
 
 Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## Versão 3.6.0
+## Versão 3.6.1
 
-- Mechanics Core 2.0 com dispatcher para Gyro, Bayle, Pipping, Arkius, Yu, Charles e Atlas, preservando macros e aliases antigos.
-- Pipping usa execuções independentes, permitindo outra habilidade enquanto uma ação aguarda aprovação, alvo, posicionamento ou diálogo.
-- Controle do Mestre com fila de autorizações, políticas, Audit Log, diagnóstico, exportação e ações administrativas.
-- Authority Bridge 2.0 com revalidação pelo GM, timeout configurável, idempotência e proteção contra replay.
-- A fumaça persistente de Pipping acompanha o token e permanece abaixo da miniatura.
+- Controle do Mestre independente das fichas, disponível como painel global exclusivo do GM.
+- Launcher minimizado com badge de solicitações, drag, resize e posição e tamanho persistidos por mundo e usuário.
+- Audit Log paginado em grupos de 50 registros, com filtros e busca aplicados ao histórico completo.
+- Acesso pelo modo GM do Combat Momentum Tracker e pela API `game.ethernum.ui`.
+- Mechanics Core 2.0, Authority Bridge, políticas, aprovações, Pipping e macros antigas permanecem compatíveis.
 
 ## 🌟 Características Principais
 
@@ -84,11 +84,12 @@ Personagens podem tentar usar uma Classe de Runa superior em momento de desesper
 ## 🎮 Como Usar
 
 ### 1. Abas do Sistema
-Após ativar o módulo, abra a ficha de um personagem. O GM verá quatro novas abas; jogadores verão apenas Mecânicas Únicas:
+Após ativar o módulo, abra a ficha de um personagem. O GM verá três novas abas; jogadores verão apenas Mecânicas Únicas:
 - **Atributos de Éter** (ícone de escudo): Gerencia atributos, talentos e éter
 - **Sistema de Runas** (ícone de gema): Gerencia runas e classes de runa
 - **Mecânicas Únicas** (ícone de impressão digital): Gerencia mecânicas especiais por personagem
-- **Controle do Mestre** (ícone de escudo): Gerencia autorizações, políticas, auditoria, diagnóstico e Fulgor Negro
+
+O **Controle do Mestre** é um painel global separado das fichas. Ele pode ser aberto pelo launcher flutuante, pelo modo GM do Combat Momentum Tracker ou por `game.ethernum.ui.openGMControlCenter()`.
 
 ### 2. Configurando Atributos de Éter
 1. Acesse a aba "Atributos de Éter"

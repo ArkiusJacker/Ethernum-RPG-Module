@@ -1150,6 +1150,9 @@
       "Actions": { "Refresh": "Refresh" },
       "Sections": { "summary": "Summary", "queue": "Approvals", "audit": "Audit Log", "policies": "Policies", "diagnostics": "Diagnostics", "admin": "Administration" },
       "Themes": { "Label": "Theme", "ethernum": "Ethernum", "concordia": "Concordia" },
+      "Overlay": { "Title": "ETHERNUM CONTROL CENTER", "Open": "Open GM Control Center", "Minimize": "Minimize", "RestorePosition": "Restore position", "RestoreSize": "Restore size", "Resize": "Resize panel", "PrimaryGM": "Primary GM", "Pending": "Pending", "NewRequest": "New approval request: {actor} — {action}", "States": { "normal": "No alerts", "pending": "Pending approvals", "warning": "Authority unavailable", "error": "Recent authority failure" } },
+      "Pagination": { "Label": "Audit Log pagination", "Previous": "Previous", "Next": "Next" },
+      "Common": { "NotAvailable": "Unavailable" },
       "Statuses": { "queued": "Pending", "approved": "Approved", "rejected": "Rejected", "executed": "Executed", "failed": "Failed", "cancelled": "Cancelled", "expired": "Expired", "duplicate": "Duplicate" },
       "Summary": { "Title": "Operational summary", "Description": "Current state of module authority and requests.", "pending": "Pending", "approved": "Approved", "rejected": "Rejected", "failures": "Failures", "onlineGMs": "Online GMs", "averageLatencyMs": "Average latency" },
       "Queue": {

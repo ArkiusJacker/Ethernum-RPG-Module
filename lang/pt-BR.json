@@ -1150,6 +1150,9 @@
       "Actions": { "Refresh": "Atualizar" },
       "Sections": { "summary": "Resumo", "queue": "Autorizações", "audit": "Audit Log", "policies": "Políticas", "diagnostics": "Diagnóstico", "admin": "Administração" },
       "Themes": { "Label": "Tema", "ethernum": "Ethernum", "concordia": "Concórdia" },
+      "Overlay": { "Title": "ETHERNUM CONTROL CENTER", "Open": "Abrir Controle do Mestre", "Minimize": "Minimizar", "RestorePosition": "Restaurar posição", "RestoreSize": "Restaurar tamanho", "Resize": "Redimensionar painel", "PrimaryGM": "Mestre primário", "Pending": "Pendentes", "NewRequest": "Nova solicitação de autorização: {actor} — {action}", "States": { "normal": "Sem alertas", "pending": "Autorizações pendentes", "warning": "Autoridade indisponível", "error": "Falha recente de autoridade" } },
+      "Pagination": { "Label": "Paginação do Audit Log", "Previous": "Anterior", "Next": "Próximo" },
+      "Common": { "NotAvailable": "Indisponível" },
       "Statuses": { "queued": "Pendente", "approved": "Aprovado", "rejected": "Rejeitado", "executed": "Executado", "failed": "Falhou", "cancelled": "Cancelado", "expired": "Expirado", "duplicate": "Duplicado" },
       "Summary": {
         "Title": "Resumo operacional", "Description": "Estado atual da autoridade e das solicitações do módulo.",

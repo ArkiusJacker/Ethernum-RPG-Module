@@ -186,8 +186,51 @@ export interface GMControlCenterBuildOptions {
   theme?: GMControlTheme;
   activeSection?: GMControlSection;
   filters?: Partial<GMControlAuditFilters>;
+  auditPage?: number;
+  auditPageSize?: number;
   now?: number;
   locale?: string;
+}
+
+export interface GMControlAuditPagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  total: number;
+  from: number;
+  to: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  previousPage: number;
+  nextPage: number;
+}
+
+export function paginateGMControlAuditEntries<T>(
+  entries: readonly T[],
+  requestedPage = 1,
+  requestedPageSize = 50,
+): { rows: T[]; pagination: GMControlAuditPagination } {
+  const pageSize = Math.max(1, Math.min(100, Math.floor(requestedPageSize) || 50));
+  const total = entries.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.max(1, Math.min(totalPages, Math.floor(requestedPage) || 1));
+  const start = (page - 1) * pageSize;
+  const rows = entries.slice(start, start + pageSize);
+  return {
+    rows,
+    pagination: {
+      page,
+      pageSize,
+      totalPages,
+      total,
+      from: total === 0 ? 0 : start + 1,
+      to: Math.min(start + pageSize, total),
+      hasPrevious: page > 1,
+      hasNext: page < totalPages,
+      previousPage: Math.max(1, page - 1),
+      nextPage: Math.min(totalPages, page + 1),
+    },
+  };
 }
 
 export const DEFAULT_GM_CONTROL_FILTERS: GMControlAuditFilters = Object.freeze({
@@ -362,6 +405,11 @@ export function buildGMControlCenterData(
   const queue = [...(snapshot.queue ?? [])].sort((left, right) => left.createdAt - right.createdAt);
   const filteredAudit = filterGMControlAuditEntries(snapshot.audit ?? [], filters, now)
     .sort((left, right) => right.timestamp - left.timestamp);
+  const paginatedAudit = paginateGMControlAuditEntries(
+    filteredAudit,
+    options.auditPage,
+    options.auditPageSize,
+  );
 
   const sections = GM_CONTROL_SECTIONS.map(id => ({
     id,
@@ -401,7 +449,7 @@ export function buildGMControlCenterData(
       }).map(action => ({ ...action, labelKey: i18nKey(`Queue.Actions.${action.id}`) })),
     })),
     queueEmpty: queue.length === 0,
-    auditRows: filteredAudit.map(entry => ({
+    auditRows: paginatedAudit.rows.map(entry => ({
       ...entry,
       timestampLabel: timestamp(entry.timestamp, locale),
       statusLabelKey: i18nKey(`Statuses.${entry.status}`),
@@ -409,6 +457,7 @@ export function buildGMControlCenterData(
     })),
     auditEmpty: filteredAudit.length === 0,
     auditCount: filteredAudit.length,
+    auditPagination: paginatedAudit.pagination,
     filters,
     statusOptions: [
       { value: "all", labelKey: i18nKey("Filters.AllStatuses"), selected: filters.status === "all" },

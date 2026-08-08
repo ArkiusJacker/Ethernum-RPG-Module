@@ -23,6 +23,7 @@ import { AutomationAuthority } from './core/AutomationAuthority.js';
 import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
 import { AnimationService } from './core/AnimationService.js';
 import { initializeEthernumAuthorityBridge } from './core/EthernumAuthority.js';
+import { GMControlCenterOverlay } from './ui/GMControlCenterOverlay.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
 const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.gyro.showTechniques();";
@@ -209,6 +210,15 @@ declare global {
     ethernum?: {
       ETHERNUM: typeof ETHERNUM;
       unique: typeof UniqueMechanicsSystem;
+      ui: {
+        openGMControlCenter: () => Promise<boolean>;
+        closeGMControlCenter: () => boolean;
+        toggleGMControlCenter: () => Promise<boolean>;
+        minimizeGMControlCenter: () => boolean;
+        restoreGMControlCenterPosition: () => boolean;
+        restoreGMControlCenterSize: () => boolean;
+        refreshGMControlCenter: () => Promise<boolean>;
+      };
       macros: {
         getActor: () => Actor | null;
         setActiveCore: (coreId: CampaignCoreId, actor?: Actor | null) => Promise<void>;
@@ -805,6 +815,15 @@ Hooks.once("init", () => {
   game.ethernum = {
     ETHERNUM,
     unique: UniqueMechanicsSystem,
+    ui: {
+      openGMControlCenter: () => GMControlCenterOverlay.open(),
+      closeGMControlCenter: () => GMControlCenterOverlay.close(),
+      toggleGMControlCenter: () => GMControlCenterOverlay.toggle(),
+      minimizeGMControlCenter: () => GMControlCenterOverlay.minimize(),
+      restoreGMControlCenterPosition: () => GMControlCenterOverlay.restorePosition(),
+      restoreGMControlCenterSize: () => GMControlCenterOverlay.restoreSize(),
+      refreshGMControlCenter: () => GMControlCenterOverlay.refresh(),
+    },
     macros: buildMacroApi(),
   };
 });
@@ -820,6 +839,7 @@ Hooks.once("ready", async () => {
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
   CombatMomentumTracker.initialize();
+  GMControlCenterOverlay.initialize();
   AnimationService.initialize();
   if (game.combat) await CombatTurnTimer.handleCombatUpdate(game.combat);
 

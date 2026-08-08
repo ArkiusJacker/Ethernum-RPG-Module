@@ -920,3 +920,283 @@
     animation: none !important;
   }
 }
+
+.ethernum-gm-control__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--gm-text-muted);
+  font-size: 11px;
+}
+
+.ethernum-gm-control__pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ethernum-gm-control__pagination strong {
+  min-width: 48px;
+  color: var(--gm-text);
+  text-align: center;
+}
+
+.ethernum-gm-control-overlay {
+  --overlay-bg: #090a0c;
+  --overlay-surface: #15171c;
+  --overlay-border: #8b7440;
+  --overlay-text: #f1ede2;
+  --overlay-muted: #a7acb5;
+  --overlay-accent: #d2b35f;
+  position: fixed;
+  z-index: 10002;
+  display: flex;
+  flex-direction: column;
+  min-width: 460px;
+  min-height: 380px;
+  color: var(--overlay-text);
+  background: var(--overlay-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 6px;
+  box-shadow: 0 16px 42px #000c, inset 0 1px #ffffff0a;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ethernum-gm-control-overlay.theme-concordia {
+  --overlay-bg: #0a0d16;
+  --overlay-surface: #17141d;
+  --overlay-border: #94694f;
+  --overlay-text: #f1e5dc;
+  --overlay-muted: #b5a9b4;
+  --overlay-accent: #c8875e;
+  box-shadow: 0 16px 42px #000d, inset 0 1px #5d78a02e, 0 0 18px #582f4930;
+}
+
+.ethernum-gm-control-overlay.is-minimized {
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.ethernum-gm-control-launcher {
+  position: relative;
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  color: var(--overlay-accent);
+  background: var(--overlay-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px #000a;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.ethernum-gm-control-launcher:hover,
+.ethernum-gm-control-launcher:focus-visible {
+  color: #fff4c3;
+  border-color: var(--overlay-accent);
+  outline: 2px solid var(--overlay-accent);
+  outline-offset: 2px;
+}
+
+.ethernum-gm-control-launcher__badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 5px;
+  color: #151109;
+  background: var(--overlay-accent);
+  border: 2px solid var(--overlay-bg);
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ethernum-gm-control-launcher__status {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 8px;
+  height: 8px;
+  background: #6e7685;
+  border: 1px solid #0b0c0f;
+  border-radius: 50%;
+}
+
+.ethernum-gm-control-overlay.state-pending .ethernum-gm-control-launcher__status {
+  background: #d2b35f;
+}
+
+.ethernum-gm-control-overlay.state-warning .ethernum-gm-control-launcher__status {
+  background: #e1aa45;
+}
+
+.ethernum-gm-control-overlay.state-error .ethernum-gm-control-launcher__status {
+  background: #d85f5f;
+}
+
+.ethernum-gm-control-overlay.has-new-request .ethernum-gm-control-launcher {
+  animation: ethernum-gm-control-pulse 700ms ease-out 1;
+}
+
+@keyframes ethernum-gm-control-pulse {
+  0% { box-shadow: 0 8px 24px #000a, 0 0 0 0 #d2b35f8c; }
+  100% { box-shadow: 0 8px 24px #000a, 0 0 0 14px #d2b35f00; }
+}
+
+.ethernum-gm-control-overlay__header {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 8px 10px 8px 14px;
+  background: var(--overlay-surface);
+  border-bottom: 1px solid var(--overlay-border);
+  cursor: move;
+  user-select: none;
+}
+
+.theme-concordia .ethernum-gm-control-overlay__header {
+  background: linear-gradient(90deg, #111827, #24131d 70%, #17141d);
+  box-shadow: inset 0 -1px #c8875e24;
+}
+
+.ethernum-gm-control-overlay__identity,
+.ethernum-gm-control-overlay__meta,
+.ethernum-gm-control-overlay__commands {
+  display: flex;
+  align-items: center;
+}
+
+.ethernum-gm-control-overlay__identity {
+  min-width: 0;
+  gap: 10px;
+}
+
+.ethernum-gm-control-overlay__identity > i {
+  color: var(--overlay-accent);
+  font-size: 20px;
+}
+
+.ethernum-gm-control-overlay__identity strong,
+.ethernum-gm-control-overlay__identity span {
+  display: block;
+  letter-spacing: 0;
+}
+
+.ethernum-gm-control-overlay__identity strong {
+  color: var(--overlay-accent);
+  font-size: 13px;
+}
+
+.ethernum-gm-control-overlay__identity span,
+.ethernum-gm-control-overlay__meta {
+  color: var(--overlay-muted);
+  font-size: 10px;
+}
+
+.ethernum-gm-control-overlay__meta {
+  gap: 10px;
+}
+
+.ethernum-gm-control-overlay__meta span {
+  white-space: nowrap;
+}
+
+.ethernum-gm-control-overlay__meta i {
+  margin-right: 4px;
+  color: var(--overlay-accent);
+}
+
+.ethernum-gm-control-overlay__commands {
+  gap: 4px;
+}
+
+.ethernum-gm-control-overlay__commands button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  color: var(--overlay-muted);
+  background: #08090c99;
+  border: 1px solid #ffffff18;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ethernum-gm-control-overlay__commands button:hover,
+.ethernum-gm-control-overlay__commands button:focus-visible {
+  color: var(--overlay-accent);
+  border-color: var(--overlay-border);
+  outline: 2px solid var(--overlay-accent);
+  outline-offset: 1px;
+}
+
+.ethernum-gm-control-overlay__content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ethernum-gm-control-overlay__content > .ethernum-gm-control {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.ethernum-gm-control-overlay__content .ethernum-gm-control__body {
+  overflow: auto;
+}
+
+.ethernum-gm-control-overlay__resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, transparent 48%, var(--overlay-border) 50% 58%, transparent 60% 68%, var(--overlay-accent) 70% 78%, transparent 80%);
+  border: 0;
+  cursor: nwse-resize;
+}
+
+@media (max-width: 720px), (max-height: 520px) {
+  .ethernum-gm-control-overlay:not(.is-minimized) {
+    min-width: min(460px, calc(100vw - 16px));
+    min-height: min(380px, calc(100vh - 16px));
+  }
+
+  .ethernum-gm-control-overlay__header {
+    grid-template-columns: minmax(160px, 1fr) auto;
+  }
+
+  .ethernum-gm-control-overlay__meta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ethernum-gm-control-overlay.has-new-request .ethernum-gm-control-launcher {
+    animation: none;
+  }
+}

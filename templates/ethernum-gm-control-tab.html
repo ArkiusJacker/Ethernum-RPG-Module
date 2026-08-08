@@ -218,6 +218,18 @@
           </tbody>
         </table>
       </div>
+      <nav class="ethernum-gm-control__pagination" aria-label="{{localize 'ETHERNUM.GMControl.Pagination.Label'}}">
+        <span>{{auditPagination.from}}-{{auditPagination.to}} / {{auditPagination.total}}</span>
+        <div>
+          <button type="button" class="ethernum-gm-control__command" data-gm-audit-page="{{auditPagination.previousPage}}" {{#unless auditPagination.hasPrevious}}disabled{{/unless}}>
+            <i class="fas fa-chevron-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.GMControl.Pagination.Previous"}}</span>
+          </button>
+          <strong>{{auditPagination.page}} / {{auditPagination.totalPages}}</strong>
+          <button type="button" class="ethernum-gm-control__command" data-gm-audit-page="{{auditPagination.nextPage}}" {{#unless auditPagination.hasNext}}disabled{{/unless}}>
+            <span>{{localize "ETHERNUM.GMControl.Pagination.Next"}}</span><i class="fas fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </nav>
       {{/if}}
     </section>
 

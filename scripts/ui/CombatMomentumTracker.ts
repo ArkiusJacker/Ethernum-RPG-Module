@@ -611,6 +611,9 @@ export class CombatMomentumTracker {
         <section class="ethernum-combat-gm">
           <div class="ethernum-combat-gm-toolbar">
             <span>${tf("CharacterCount", { count: trackedActors.length })}</span>
+            <button type="button" data-global-action="gm-control" title="${game.i18n!.localize("ETHERNUM.GMControl.Overlay.Open")}">
+              <i class="fas fa-shield-halved"></i><span>${game.i18n!.localize("ETHERNUM.Tabs.GMControl")}</span>
+            </button>
             <button type="button" data-global-action="reset-combat" title="${t("Actions.ResetCombat")}">
               <i class="fas fa-rotate-left"></i><span>${t("Actions.Combat")}</span>
             </button>
@@ -645,6 +648,9 @@ export class CombatMomentumTracker {
       });
       root.querySelector('[data-global-action="reset-combat"]')?.addEventListener("click", () => {
         void CombatMomentumSystem.resetAllCombat().then(() => this.queueRender());
+      });
+      root.querySelector('[data-global-action="gm-control"]')?.addEventListener("click", () => {
+        void game.ethernum?.ui.openGMControlCenter();
       });
       root.querySelector('[data-global-action="reset-daily"]')?.addEventListener("click", () => {
         void CombatMomentumSystem.resetAllDaily().then(() => this.queueRender());

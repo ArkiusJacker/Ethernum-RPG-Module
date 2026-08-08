@@ -5,6 +5,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.6.1] - 2026-08-08
+
+### Adicionado
+- Controle do Mestre global e independente, montado uma única vez no cliente do GM com launcher, badge de autorizações e estados normal, pendente, aviso e erro.
+- Drag e resize por Pointer Events, limites responsivos, restauração de posição e tamanho e persistência por mundo e usuário.
+- API pública em `game.ethernum.ui` para abrir, fechar, alternar, minimizar, restaurar e atualizar o painel.
+- Botão para abrir o Controle do Mestre diretamente pelo modo GM do Combat Momentum Tracker.
+- Paginação do Audit Log em grupos de 50 registros, mantendo busca e filtros sobre todo o histórico.
+
+### Alterado
+- O Controle do Mestre deixa de ser uma aba da ficha PF2e e passa a existir como overlay exclusivo do GM no `document.body`.
+- Atualizações do Authority Bridge passam a atualizar seletivamente o painel; quando minimizado, somente badge e estado compacto são recalculados.
+- Temas Ethernum e Concórdia passam a incluir moldura, cabeçalho e launcher próprios do overlay.
+
+### Corrigido
+- Renderizações repetidas de fichas não criam mais instâncias adicionais do Control Center.
+- Listas grandes de auditoria deixam de reconstruir centenas de linhas a cada atualização.
+- Cleanup remove listeners, timers, subscriptions e o overlay ao encerrar o cliente.
+
 ## [3.6.0] - 2026-08-08
 
 ### Adicionado

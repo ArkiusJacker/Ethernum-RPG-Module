@@ -166,7 +166,7 @@ export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSn
   };
 }
 
-function callbacks(): GMControlCenterCallbacks {
+export function createAuthorityControlCallbacks(): GMControlCenterCallbacks {
   const bridge = getEthernumAuthorityBridge();
   return {
     onQueueAction: async (action, item) => {
@@ -219,20 +219,32 @@ function callbacks(): GMControlCenterCallbacks {
   };
 }
 
-export async function mountAuthorityControlCenter(host: HTMLElement): Promise<GMControlCenterMountResult> {
+export async function mountAuthorityControlCenter(
+  host: HTMLElement,
+  options: { reactive?: boolean; callbacks?: Partial<GMControlCenterCallbacks> } = {},
+): Promise<GMControlCenterMountResult> {
   const previous = mountedControllers.get(host);
   previous?.unsubscribe();
   previous?.controller.destroy();
   const result = await GMControlCenter.mount(host, {
     dataSource: buildAuthorityControlSnapshot,
-    callbacks: callbacks(),
+    callbacks: { ...createAuthorityControlCallbacks(), ...options.callbacks },
     isGM: () => Boolean(game.user?.isGM),
   });
   if (result.controller) {
-    const unsubscribe = getEthernumAuthorityBridge().subscribe(() => {
-      void result.controller?.refresh();
-    });
+    const unsubscribe = options.reactive === false
+      ? () => undefined
+      : getEthernumAuthorityBridge().subscribe(() => {
+          void result.controller?.refresh();
+        });
     mountedControllers.set(host, { controller: result.controller, unsubscribe });
   }
   return result;
+}
+
+export function unmountAuthorityControlCenter(host: HTMLElement): void {
+  const mounted = mountedControllers.get(host);
+  mounted?.unsubscribe();
+  mounted?.controller.destroy();
+  mountedControllers.delete(host);
 }

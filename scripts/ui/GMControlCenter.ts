@@ -114,6 +114,8 @@ export class GMControlCenter {
   private activeSection: GMControlSection;
   private theme: GMControlTheme;
   private filters: GMControlAuditFilters;
+  private auditPage = 1;
+  private readonly auditPageSize = 50;
   private snapshot: GMControlCenterSnapshot = {};
   private listeners: AbortController | null = null;
   private searchTimer: number | null = null;
@@ -171,6 +173,8 @@ export class GMControlCenter {
       theme: this.theme,
       activeSection: this.activeSection,
       filters: this.filters,
+      auditPage: this.auditPage,
+      auditPageSize: this.auditPageSize,
       locale: this.options.locale?.() ?? game.i18n?.lang ?? "pt-BR",
     });
     const renderer = this.options.renderTemplate ?? resolveRenderTemplate();
@@ -270,6 +274,15 @@ export class GMControlCenter {
       control.addEventListener(eventName, () => this.handleFilterChange(root, control), { signal });
     });
 
+    root.querySelectorAll<HTMLButtonElement>("[data-gm-audit-page]").forEach(button => {
+      button.addEventListener("click", () => {
+        const page = Number(button.dataset.gmAuditPage);
+        if (!Number.isFinite(page) || page < 1) return;
+        this.auditPage = Math.floor(page);
+        void this.render({ reload: false });
+      }, { signal });
+    });
+
     root.querySelectorAll<HTMLButtonElement>("[data-gm-audit-action]").forEach(button => {
       button.addEventListener("click", () => {
         const action = button.dataset.gmAuditAction as GMControlAuditAction | undefined;
@@ -326,6 +339,7 @@ export class GMControlCenter {
   }
 
   private handleFilterChange(root: HTMLElement, control: HTMLInputElement | HTMLSelectElement): void {
+    this.auditPage = 1;
     this.filters = {
       status: queryValue(root, '[data-gm-audit-filter="status"]') as GMControlAuditFilters["status"],
       userId: queryValue(root, '[data-gm-audit-filter="userId"]'),

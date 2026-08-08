@@ -7,6 +7,7 @@ import {
   GM_CONTROL_SECTIONS,
   buildGMControlCenterData,
   filterGMControlAuditEntries,
+  paginateGMControlAuditEntries,
   type GMControlAuditEntry,
 } from "../scripts/ui/GMControlCenterData.js";
 
@@ -70,6 +71,23 @@ describe("GM Control Center data", () => {
     expect(filterGMControlAuditEntries(audit, { search: "TIMEOUT" }, now)[0]?.id).toBe("audit-2");
   });
 
+  it("paginates the filtered audit dataset in bounded groups of 50", () => {
+    const entries = Array.from({ length: 121 }, (_, index) => ({ id: `audit-${index}` }));
+    const second = paginateGMControlAuditEntries(entries, 2, 50);
+    expect(second.rows).toHaveLength(50);
+    expect(second.rows[0]?.id).toBe("audit-50");
+    expect(second.pagination).toMatchObject({
+      page: 2,
+      totalPages: 3,
+      total: 121,
+      from: 51,
+      to: 100,
+      hasPrevious: true,
+      hasNext: true,
+    });
+    expect(paginateGMControlAuditEntries(entries, 99, 50).pagination.page).toBe(3);
+  });
+
   it("prepares themes, GM visibility, queue actions and localized labels", () => {
     const view = buildGMControlCenterData({
       queue: [{
@@ -126,6 +144,7 @@ describe("GM Control Center visual layer", () => {
   it("uses translation keys for controls and exposes every required action group", () => {
     expect(template).toContain("data-gm-queue-action");
     expect(template).toContain("data-gm-audit-action");
+    expect(template).toContain("data-gm-audit-page");
     expect(template).toContain("data-gm-policy");
     expect(template).toContain("data-gm-diagnostics-action");
     expect(template).toContain("data-gm-admin-action");
