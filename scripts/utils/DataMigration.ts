@@ -11,7 +11,7 @@ import { DEFAULT_ATLAS_STATE } from '../mechanics/atlas/profile.js';
 import { normalizePippingState } from '../mechanics/pipping/profile.js';
 import { AutomationAuthority } from '../core/AutomationAuthority.js';
 
-export const CURRENT_SCHEMA_VERSION = 13;
+export const CURRENT_SCHEMA_VERSION = 14;
 
 interface EtherSystem {
   etherMax: number;
@@ -426,6 +426,13 @@ export async function migrateActor(actor: Actor): Promise<void> {
       };
     }
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v13`);
+  }
+
+  if (schemaVersion < 14) {
+    if (actor.getFlag(m, "characterSheetMode") === undefined) {
+      updates[`flags.${m}.characterSheetMode`] = "auto";
+    }
+    console.log(`Ethernum | Migrado ator "${actor.name}" para schema v14`);
   }
 
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;

@@ -1,0 +1,69 @@
+<section id="ecs-panel-effects"
+         class="ecs-tab-panel"
+         data-tab="effects"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-effects"
+         {{#unless (ethernum-eq ui.activeTab "effects")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading">
+    <div><span class="ecs-eyebrow">Estado atual</span><h2>Efeitos e condições</h2></div>
+    {{#if permissions.canCreateItems}}
+    <button type="button" data-action="browse-effects"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar</span></button>
+    {{/if}}
+  </div>
+
+  <div class="ecs-effects-layout">
+    <section class="ecs-section" aria-labelledby="ecs-conditions-list-title">
+      <header class="ecs-section__header"><h3 id="ecs-conditions-list-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>Condições</h3></header>
+      <div class="ecs-effect-list">
+        {{#each effects.conditions}}
+        <article class="ecs-effect-row {{#if this.locked}}is-locked{{/if}}" data-item-id="{{this.id}}">
+          <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+          <div class="ecs-effect-row__body"><h3>{{this.name}}{{#if this.value}} <span>{{this.value}}</span>{{/if}}</h3>{{#if this.summary}}<p>{{this.summary}}</p>{{/if}}</div>
+          {{#if ../permissions.gm}}
+          {{#if this.hasValue}}
+          <div class="ecs-stepper" role="group" aria-label="Valor de {{this.name}}">
+            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-delta="-1" aria-label="Diminuir"><i class="fas fa-minus" aria-hidden="true"></i></button>
+            <strong>{{this.value}}</strong>
+            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-delta="1" aria-label="Aumentar"><i class="fas fa-plus" aria-hidden="true"></i></button>
+          </div>
+          {{/if}}
+          <button type="button" class="ecs-icon-control ecs-danger-action" data-action="delete-item" data-item-id="{{this.id}}" aria-label="Remover {{this.name}}" title="Remover"><i class="fas fa-trash" aria-hidden="true"></i></button>
+          {{/if}}
+        </article>
+        {{else}}
+        <p class="ecs-empty">Nenhuma condição ativa.</p>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="ecs-section" aria-labelledby="ecs-effects-list-title">
+      <header class="ecs-section__header"><h3 id="ecs-effects-list-title"><i class="fas fa-sparkles" aria-hidden="true"></i>Efeitos</h3></header>
+      <div class="ecs-effect-list">
+        {{#each effects.temporary}}
+        <article class="ecs-effect-row {{#unless this.enabled}}is-disabled{{/unless}}" data-item-id="{{this.id}}">
+          <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+          <div class="ecs-effect-row__body">
+            <h3>{{this.name}}</h3>
+            {{#if this.durationLabel}}<p><i class="fas fa-clock" aria-hidden="true"></i>{{this.durationLabel}}</p>{{/if}}
+          </div>
+          {{#if ../permissions.gm}}
+          <button type="button" class="ecs-icon-control {{#if this.enabled}}is-active{{/if}}" data-action="toggle-effect" data-item-id="{{this.id}}" aria-pressed="{{this.enabled}}" aria-label="Alternar {{this.name}}" title="Ativar ou desativar"><i class="fas fa-power-off" aria-hidden="true"></i></button>
+          <button type="button" class="ecs-icon-control ecs-danger-action" data-action="delete-item" data-item-id="{{this.id}}" aria-label="Remover {{this.name}}" title="Remover"><i class="fas fa-trash" aria-hidden="true"></i></button>
+          {{/if}}
+        </article>
+        {{else}}
+        <p class="ecs-empty">Nenhum efeito temporário.</p>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="ecs-section ecs-section--wide" aria-labelledby="ecs-immunities-title">
+      <header class="ecs-section__header"><h3 id="ecs-immunities-title"><i class="fas fa-shield" aria-hidden="true"></i>Imunidades, resistências e fraquezas</h3></header>
+      <div class="ecs-defense-traits">
+        <div><span>Imunidades</span><div class="ecs-tags">{{#each defenses.immunities}}<span class="ecs-tag">{{this.label}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
+        <div><span>Resistências</span><div class="ecs-tags">{{#each defenses.resistances}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
+        <div><span>Fraquezas</span><div class="ecs-tags">{{#each defenses.weaknesses}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
+      </div>
+    </section>
+  </div>
+</section>

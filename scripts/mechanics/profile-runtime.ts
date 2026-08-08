@@ -65,10 +65,7 @@ export function legacyProfileAdapter(
         : [context.actor, ...explicitArgs];
       return invoke(context.runtime, methodName, args);
     },
-    getManagedMacros: () => actions(options).map(action => ({
-      ...action,
-      macroName: action.macroName ?? action.label ?? action.id,
-    })),
+    getManagedMacros: () => [],
     onCombatUpdate: async ({ combat, runtime }: UniqueCombatHookContext) => {
       await invoke(runtime, options.combatHook, [combat]);
     },

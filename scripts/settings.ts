@@ -1,6 +1,6 @@
 import { ETHERNUM, type Rank, type RuneClassKey } from './config.js';
 
-type BooleanSettingKey = "longRestFullRestore" | "showEtherInChat" | "allowOverride";
+type BooleanSettingKey = "longRestFullRestore" | "showEtherInChat" | "allowOverride" | "playersCanChooseCharacterSheet";
 type ClientBooleanSettingKey =
   | "combatTrackerEnabled"
   | "combatTrackerOnlyInCombat"
@@ -78,6 +78,15 @@ export function registerSettings(): void {
     config: false,
     type: Number,
     default: 0
+  });
+
+  game.settings!.register(ETHERNUM.MODULE_NAME, "playersCanChooseCharacterSheet", {
+    name: "ETHERNUM.Settings.PlayersCanChooseCharacterSheet.Name",
+    hint: "ETHERNUM.Settings.PlayersCanChooseCharacterSheet.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
   });
   game.settings!.register(ETHERNUM.MODULE_NAME, "authorityBridgeQueue", {
     scope: "world",
@@ -286,6 +295,10 @@ export function shouldShowEtherInChat(): boolean {
 
 export function isOverrideAllowed(): boolean {
   return getBooleanSetting("allowOverride", true);
+}
+
+export function canPlayersChooseCharacterSheet(): boolean {
+  return getBooleanSetting("playersCanChooseCharacterSheet", true);
 }
 
 function getClientBooleanSetting(key: ClientBooleanSettingKey, fallback: boolean): boolean {

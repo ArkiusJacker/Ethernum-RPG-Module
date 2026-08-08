@@ -1,0 +1,68 @@
+<section id="ecs-panel-spellcasting"
+         class="ecs-tab-panel"
+         data-tab="spellcasting"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-spellcasting"
+         {{#unless (ethernum-eq ui.activeTab "spellcasting")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading">
+    <div><span class="ecs-eyebrow">Conjuração</span><h2>Magias</h2></div>
+    {{#if permissions.canCreateItems}}
+    <button type="button" data-action="create-spellcasting-entry"><i class="fas fa-plus" aria-hidden="true"></i><span>Nova tradição</span></button>
+    {{/if}}
+  </div>
+
+  <div class="ecs-spellcasting-list">
+    {{#each spellcasting.entries}}
+    <section class="ecs-spell-entry" data-entry-id="{{this.id}}" aria-labelledby="ecs-spell-entry-{{this.id}}">
+      <header class="ecs-spell-entry__header">
+        <button type="button" class="ecs-spell-entry__toggle" data-action="toggle-spell-entry" data-entry-id="{{this.id}}" aria-expanded="{{#if this.collapsed}}false{{else}}true{{/if}}" aria-controls="ecs-spell-entry-body-{{this.id}}">
+          <i class="fas fa-chevron-down" aria-hidden="true"></i>
+          <span>
+            <strong id="ecs-spell-entry-{{this.id}}">{{this.name}}</strong>
+            <small>{{this.tradition}} · {{this.category}}</small>
+          </span>
+        </button>
+        <div class="ecs-spell-entry__stats">
+          {{#if this.attack}}<span><small>Ataque</small><strong>{{this.attack}}</strong></span>{{/if}}
+          {{#if this.dc}}<span><small>CD</small><strong>{{this.dc}}</strong></span>{{/if}}
+        </div>
+        <button type="button" class="ecs-icon-control" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}" title="Editar tradição"><i class="fas fa-pen" aria-hidden="true"></i></button>
+      </header>
+
+      <div id="ecs-spell-entry-body-{{this.id}}" class="ecs-spell-entry__body" {{#if this.collapsed}}hidden{{/if}}>
+        {{#each this.groups}}
+        <section class="ecs-spell-rank" aria-labelledby="ecs-spell-rank-{{../id}}-{{this.rank}}">
+          <header class="ecs-spell-rank__header">
+            <h3 id="ecs-spell-rank-{{../id}}-{{this.rank}}">{{this.label}}</h3>
+            {{#if this.slots}}<span>{{this.slots.value}} / {{this.slots.max}}</span>{{/if}}
+          </header>
+          <div class="ecs-spell-list">
+            {{#each this.spells}}
+            <article class="ecs-spell-row" data-item-id="{{this.id}}">
+              <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+              <div class="ecs-spell-row__name">
+                <h4>{{this.name}}</h4>
+                <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
+              </div>
+              <span class="ecs-action-glyph" aria-label="{{this.actionLabel}}">{{this.actionGlyph}}</span>
+              {{#if this.uses}}<span class="ecs-spell-uses">{{this.uses.value}}/{{this.uses.max}}</span>{{/if}}
+              <button type="button" class="ecs-primary-action" data-action="cast-spell" data-entry-id="{{../../id}}" data-item-id="{{this.id}}" data-rank="{{this.rank}}" aria-label="Conjurar {{this.name}}"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Conjurar</span></button>
+            </article>
+            {{else}}
+            <p class="ecs-empty">Nenhuma magia preparada neste círculo.</p>
+            {{/each}}
+          </div>
+        </section>
+        {{else}}
+        <p class="ecs-empty">Nenhuma magia nesta tradição.</p>
+        {{/each}}
+      </div>
+    </section>
+    {{else}}
+    <section class="ecs-empty-state">
+      <i class="fas fa-book-open" aria-hidden="true"></i>
+      <h3>Nenhuma fonte de magia</h3>
+    </section>
+    {{/each}}
+  </div>
+</section>

@@ -1,0 +1,18 @@
+<div class="ecs-shell">
+  {{> "modules/ethernum-rpg-module/templates/sheets/base/header.html"}}
+  {{> "modules/ethernum-rpg-module/templates/sheets/base/navigation.html"}}
+
+  <main class="ecs-workspace" aria-label="{{shell.title}}">
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/overview.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/combat.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/inventory.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/spellcasting.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/feats.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/effects.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/ether.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/runes.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/unique.html"}}
+  </main>
+
+  <div class="ecs-announcer" role="status" aria-live="polite" aria-atomic="true">{{ui.statusMessage}}</div>
+</div>

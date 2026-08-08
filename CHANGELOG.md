@@ -5,6 +5,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.0] - 2026-08-08
+
+### Adicionado
+- Character Sheet Framework com um único controller, registry, estado local, event bus, cache curto, módulos isolados, diagnóstico GM e lifecycle compartilhado.
+- Fichas próprias com shells Ethernum Company e Concórdia, seleção automática por `activeCore`, override por ator e retorno transitório à ficha PF2e original.
+- `PF2eCharacterAdapter` 2.0 para identidade, vitais, atributos, perícias, defesas, movimento, Strikes, ações, inventário, talentos, magia, efeitos e recursos.
+- Ações seguras que delegam rolagens, Strikes, dano e ações preparadas às APIs do PF2e.
+- Templates e estilos responsivos próprios, incluindo Éter, FE, Runas, Mecânica Única, Momentum Fides e Fulgor Negro.
+- Serviços públicos de estado, ação, descanso e apresentação de Mecânicas Únicas, sem imports do Kernel ou da facade Legacy no framework de fichas.
+
+### Alterado
+- Os sete perfis atuais passam a ser a fonte das 30 macros gerenciadas de personagem; `main.ts` mantém somente as duas macros universais de Fides e Fulgor.
+- Schema avança para 14 e adiciona `characterSheetMode = auto` somente quando a flag está ausente.
+- A política de mundo permite ao mestre decidir se owners podem escolher o shell personalizado.
+
+### Compatibilidade
+- Nomes, comandos, IDs, imagens, flags e aliases históricos das macros permanecem preservados.
+- Grimório, hover, animações e listeners completos de Pipping são reutilizados dentro da ficha personalizada.
+- A ficha PF2e original continua registrada como fallback e pode ser aberta sem alterar a configuração permanente do ator.
+
+### Testes
+- Cobertura de resolução de shell, estado local, event bus, isolamento de módulos, permissões, ações PF2e, arquitetura sem Kernel/Legacy, Adapter 2.0, migração e macros.
+
 ## [3.6.2] - 2026-08-08
 
 ### Adicionado

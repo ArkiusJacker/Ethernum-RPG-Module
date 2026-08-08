@@ -9,6 +9,45 @@
       "UniqueMechanics": "Mecânicas Únicas",
       "GMControl": "Controle do Mestre"
     },
+    "CharacterSheet": {
+      "Label": "Ficha de Personagem Ethernum",
+      "Ethernum": { "Title": "Dossiê Operacional Ethernum Company" },
+      "Concordia": { "Title": "Registro Arcano de Concórdia" },
+      "Tabs": {
+        "Overview": "Visão Geral",
+        "Character": "Personagem",
+        "Combat": "Combate",
+        "Equipment": "Equipamento",
+        "Arsenal": "Arsenal",
+        "Magic": "Magia",
+        "Ether": "Éter",
+        "Runes": "Runas",
+        "Unique": "Mecânica Única",
+        "Effects": "Efeitos",
+        "Feats": "Talentos"
+      },
+      "Modes": {
+        "auto": "Automático",
+        "ethernum": "Ethernum Company",
+        "concordia": "Concórdia",
+        "pf2e": "PF2e Original"
+      },
+      "Configure": {
+        "Title": "Configurar ficha",
+        "Mode": "Modo da ficha",
+        "Save": "Salvar",
+        "ResetLayout": "Resetar layout local"
+      },
+      "Ether": { "ChooseAttribute": "Escolha o Atributo de Éter" },
+      "Errors": {
+        "Permission": "Você não possui permissão para realizar esta ação.",
+        "RollUnavailable": "A rolagem preparada do PF2e não está disponível.",
+        "StrikeUnavailable": "O Strike preparado do PF2e não está disponível.",
+        "ActionUnavailable": "A ação preparada do PF2e não está disponível.",
+        "PF2eUnavailable": "A ficha original do PF2e não pôde ser localizada.",
+        "Render": "A ficha Ethernum encontrou um erro. Use a ficha PF2e original para acessar o personagem."
+      }
+    },
     "EtherCurrent": "Éter Atual",
     "EtherMax": "Éter Máximo",
     "EtherRegen": "Regeneração de Éter",
@@ -1188,6 +1227,10 @@
       "Errors": { "ActionFailed": "Não foi possível concluir a ação do Controle do Mestre.", "PayloadSerialization": "Não foi possível serializar o payload." }
     },
     "Settings": {
+      "PlayersCanChooseCharacterSheet": {
+        "Name": "Jogadores podem escolher a ficha personalizada",
+        "Hint": "Permite que owners alternem entre Automático, Ethernum Company, Concórdia e a ficha PF2e original."
+      },
       "LongRestFullRestore": {
         "Name": "Restauração Total no Descanso Longo",
         "Hint": "Se ativado, o Éter será totalmente restaurado no descanso longo. Se desativado, o descanso não altera o Éter automaticamente."

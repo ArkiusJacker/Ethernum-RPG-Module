@@ -1,0 +1,138 @@
+/* Concordia shell: war-cleric crimson, tempered steel, brass and celestial blue. */
+.ethernum-character-sheet.concordia-sheet,
+.ethernum-character-sheet[data-shell-id="concordia"] {
+  --ecs-bg: #141416;
+  --ecs-surface: #211b1c;
+  --ecs-surface-raised: #30272a;
+  --ecs-surface-soft: #282124;
+  --ecs-text: #f5eee5;
+  --ecs-text-muted: #c3b7b2;
+  --ecs-border: #594a4d;
+  --ecs-border-strong: #89706c;
+  --ecs-accent: #d4a64f;
+  --ecs-accent-strong: #f3d586;
+  --ecs-accent-contrast: #1a1207;
+  --ecs-secondary: #70bed1;
+  --ecs-danger: #ed665c;
+  --ecs-warning: #e3a640;
+  --ecs-success: #67bd83;
+  --ecs-focus: #87d8ea;
+  --ecs-hp: #c9454b;
+  color-scheme: dark;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-header,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-header {
+  border-bottom: 2px solid #9a703a;
+  background-color: #211b1c;
+  background-image:
+    linear-gradient(135deg, transparent 0 47%, rgba(212, 166, 79, 0.045) 47% 48%, transparent 48%),
+    linear-gradient(45deg, transparent 0 47%, rgba(112, 190, 209, 0.035) 47% 48%, transparent 48%);
+  background-size: 44px 44px;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-header::before,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-header::before {
+  width: 5px;
+  background: #b8363b;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-header::after,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-header::after {
+  position: absolute;
+  right: 68px;
+  bottom: 9px;
+  width: 88px;
+  height: 2px;
+  background: #70bed1;
+  content: "";
+  opacity: 0.5;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-identity__name,
+.ethernum-character-sheet.concordia-sheet .ecs-panel-heading h2,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-identity__name,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-panel-heading h2 {
+  font-family: "Signika", "Palatino Linotype", serif;
+  font-weight: 750;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-level,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-level {
+  border-color: #d5a64c;
+  border-radius: 3px 3px 50% 50%;
+  background: #2d2021;
+  box-shadow: inset 0 0 0 2px #7f3032;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-navigation__tab.is-active::after,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-navigation__tab.is-active::after {
+  background: #c44843;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-navigation__tab[data-tab="combat"] i,
+.ethernum-character-sheet.concordia-sheet .ecs-navigation__tab[data-tab="unique"] i,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-navigation__tab[data-tab="combat"] i,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-navigation__tab[data-tab="unique"] i {
+  color: #e26961;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-strike,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-strike {
+  border-left-color: #c44843;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-strike:nth-child(even),
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-strike:nth-child(even) {
+  border-left-color: #70bed1;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-defense--ac,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-defense--ac {
+  border-color: #d4a64f;
+  box-shadow: inset 0 -3px 0 #8c3034;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-primary-action,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-primary-action {
+  border-color: #c44843;
+  color: #fff4ec;
+  background: #a93438;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-primary-action:hover:not(:disabled),
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-primary-action:hover:not(:disabled) {
+  border-color: #ed786e;
+  color: #ffffff;
+  background: #c44843;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-action-glyph,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-action-glyph {
+  color: #70bed1;
+}
+
+.ethernum-character-sheet.concordia-sheet .ecs-legacy-unique-host,
+.ethernum-character-sheet[data-shell-id="concordia"] .ecs-legacy-unique-host {
+  --concordia-brass: #d49b45;
+  --concordia-fire: #d94122;
+  --concordia-iron: #7d8b92;
+  --concordia-aether: #60d7c8;
+  --concordia-ink: #120d0a;
+  --concordia-bone: #f1ddbc;
+}
+
+@media (max-width: 1000px) {
+  .ethernum-character-sheet.concordia-sheet .ecs-header::after,
+  .ethernum-character-sheet[data-shell-id="concordia"] .ecs-header::after {
+    right: 54px;
+    width: 58px;
+  }
+}
+
+@media (max-width: 650px) {
+  .ethernum-character-sheet.concordia-sheet .ecs-header::after,
+  .ethernum-character-sheet[data-shell-id="concordia"] .ecs-header::after {
+    display: none;
+  }
+}

@@ -137,7 +137,8 @@ describe("DataMigration", () => {
     const unique = flags.uniqueMechanics as {
       profiles: Record<string, Record<string, unknown>>;
     };
-    expect(flags.schemaVersion).toBe(13);
+    expect(flags.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(flags.characterSheetMode).toBe("auto");
     expect(unique.profiles["pipping-night"]).toMatchObject({
       version: 5,
       pulse: 6,
@@ -146,5 +147,19 @@ describe("DataMigration", () => {
       recovery: { communeAvailable: true },
       customState: "kept",
     });
+  });
+
+  it("adds automatic sheet mode only when the flag is absent", async () => {
+    const absent = new FakeActor("absent", { schemaVersion: 13 }) as unknown as Actor;
+    const existing = new FakeActor("existing", {
+      schemaVersion: 13,
+      characterSheetMode: "pf2e",
+    }) as unknown as Actor;
+
+    await migrateActor(absent);
+    await migrateActor(existing);
+
+    expect((absent as unknown as FakeActor).flags.characterSheetMode).toBe("auto");
+    expect((existing as unknown as FakeActor).flags.characterSheetMode).toBe("pf2e");
   });
 });

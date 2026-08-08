@@ -26,6 +26,22 @@ export interface UniqueMechanicAction {
   macroName?: string;
 }
 
+export interface ManagedMacroDefinition {
+  id: string;
+  name: string;
+  command: string;
+  img: string;
+  legacyNames?: string[];
+  legacyCommands?: string[];
+}
+
+export interface UniqueMechanicVisualMetadata {
+  accentColor?: string;
+  status?: string;
+  icon?: string;
+  sheetClass?: string;
+}
+
 export interface UniqueMechanicsRuntime {
   [key: string]: unknown;
   buildSheetData: (actor: Actor, isGM: boolean) => Record<string, unknown>;
@@ -55,6 +71,7 @@ export interface UniqueMechanicProfile<TState extends object = Record<string, un
   id: Exclude<UniqueMechanicProfileId, "">;
   core: CampaignCoreId;
   label: string;
+  visual?: UniqueMechanicVisualMetadata;
   defaultState: TState;
   normalizeState: (value: unknown) => TState;
   buildSheetData: (context: UniqueProfileContext) => Record<string, unknown>;
@@ -64,7 +81,7 @@ export interface UniqueMechanicProfile<TState extends object = Record<string, un
     actionId: string,
     payload?: Record<string, unknown>,
   ) => Promise<unknown>;
-  getManagedMacros: (context: UniqueProfileContext) => UniqueMechanicAction[];
+  getManagedMacros: (context?: UniqueProfileContext) => ManagedMacroDefinition[];
   onCombatUpdate: (context: UniqueCombatHookContext) => Promise<void>;
   onActorUpdate: (context: UniqueActorHookContext) => Promise<void>;
   onRest: (context: UniqueRestContext) => Promise<void>;

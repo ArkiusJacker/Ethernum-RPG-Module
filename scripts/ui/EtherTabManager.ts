@@ -58,6 +58,15 @@ interface RuneGroupData {
 }
 
 export class EtherTabManager {
+  /** Reuses the mature profile UI while custom sheets migrate to profile-native components. */
+  static activateEmbeddedUniqueMechanic(
+    app: Application & { render(): void },
+    html: JQuery,
+    actor: Actor,
+  ): void {
+    this._activateUniqueListeners(app, html, actor, Boolean(game.user?.isGM));
+  }
+
   static async render(app: Application & { actor?: Actor }, html: JQuery<HTMLElement>): Promise<void> {
     if (!app.actor || (app.actor.type as string) !== "character") return;
 

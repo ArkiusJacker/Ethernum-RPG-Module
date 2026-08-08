@@ -1,0 +1,100 @@
+<section id="ecs-panel-overview"
+         class="ecs-tab-panel"
+         data-tab="overview"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-overview"
+         {{#unless (ethernum-eq ui.activeTab "overview")}}hidden{{/unless}}>
+  <div class="ecs-overview-grid">
+    <section class="ecs-section ecs-section--abilities" aria-labelledby="ecs-abilities-title">
+      <header class="ecs-section__header">
+        <h2 id="ecs-abilities-title"><i class="fas fa-dumbbell" aria-hidden="true"></i>Atributos</h2>
+      </header>
+      <div class="ecs-ability-grid">
+        {{#each abilities}}
+        <div class="ecs-ability" aria-label="{{this.label}} com modificador {{this.modifier}}">
+          <span>{{this.label}}</span>
+          <strong>{{this.modifier}}</strong>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="ecs-section ecs-section--defenses" aria-labelledby="ecs-defenses-title">
+      <header class="ecs-section__header">
+        <h2 id="ecs-defenses-title"><i class="fas fa-shield-halved" aria-hidden="true"></i>Defesas</h2>
+      </header>
+      <div class="ecs-defense-grid">
+        <div class="ecs-defense ecs-defense--ac">
+          <span>CA</span>
+          <strong>{{defenses.ac.value}}</strong>
+        </div>
+        <button type="button" class="ecs-defense" data-action="roll-perception" aria-label="Rolar Percepção com modificador {{defenses.perception.modifier}}">
+          <span>Percepção</span>
+          <strong>{{defenses.perception.modifier}}</strong>
+        </button>
+        {{#each defenses.saves}}
+        <button type="button" class="ecs-defense" data-action="roll-save" data-save="{{this.slug}}" aria-label="Rolar {{this.label}} com modificador {{this.modifier}}">
+          <span>{{this.label}}</span>
+          <strong>{{this.modifier}}</strong>
+          {{#if this.rankLabel}}<small>{{this.rankLabel}}</small>{{/if}}
+        </button>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="ecs-section ecs-section--skills" aria-labelledby="ecs-skills-title">
+      <header class="ecs-section__header">
+        <h2 id="ecs-skills-title"><i class="fas fa-list-check" aria-hidden="true"></i>Perícias</h2>
+        <button type="button" class="ecs-icon-control" data-action="toggle-skill-details" aria-label="Alternar detalhes das perícias" title="Detalhes"><i class="fas fa-sliders" aria-hidden="true"></i></button>
+      </header>
+      <div class="ecs-skill-list">
+        {{#each skills}}
+        <button type="button"
+                class="ecs-skill-row"
+                data-action="roll-skill"
+                data-skill="{{this.slug}}"
+                aria-label="Rolar {{this.label}} com modificador {{this.modifier}}">
+          <span class="ecs-rank-mark ecs-rank-mark--{{this.rank}}" title="{{this.rankLabel}}" aria-label="{{this.rankLabel}}"></span>
+          <span class="ecs-skill-row__name">{{this.label}}</span>
+          {{#if this.armorPenalty}}<i class="fas fa-shield" aria-label="Penalidade de armadura"></i>{{/if}}
+          <strong>{{this.modifier}}</strong>
+        </button>
+        {{/each}}
+      </div>
+    </section>
+
+    <div class="ecs-overview-side">
+      <section class="ecs-section" aria-labelledby="ecs-movement-title">
+        <header class="ecs-section__header"><h2 id="ecs-movement-title"><i class="fas fa-person-running" aria-hidden="true"></i>Deslocamento</h2></header>
+        <div class="ecs-movement-list">
+          {{#each movement}}
+          <div class="ecs-movement-row"><span>{{this.label}}</span><strong>{{this.value}} {{this.unit}}</strong></div>
+          {{else}}<p class="ecs-empty">Nenhum deslocamento preparado.</p>{{/each}}
+        </div>
+      </section>
+
+      <section class="ecs-section" aria-labelledby="ecs-resources-title">
+        <header class="ecs-section__header"><h2 id="ecs-resources-title"><i class="fas fa-gauge-high" aria-hidden="true"></i>Recursos</h2></header>
+        <div class="ecs-resource-list">
+          {{#each resources}}
+          <div class="ecs-resource-row">
+            <div><span>{{this.label}}</span>{{#if this.detail}}<small>{{this.detail}}</small>{{/if}}</div>
+            <strong>{{this.value}}{{#if this.max}}/{{this.max}}{{/if}}</strong>
+          </div>
+          {{else}}
+          <p class="ecs-empty">Nenhum recurso adicional.</p>
+          {{/each}}
+        </div>
+      </section>
+
+      <section class="ecs-section" aria-labelledby="ecs-condition-title">
+        <header class="ecs-section__header"><h2 id="ecs-condition-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>Estado</h2></header>
+        <div class="ecs-condition-strip">
+          <span>Ferido <strong>{{vitals.wounded}}</strong></span>
+          <span>Morrendo <strong>{{vitals.dying}}</strong></span>
+          <span>Condenado <strong>{{vitals.doomed}}</strong></span>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

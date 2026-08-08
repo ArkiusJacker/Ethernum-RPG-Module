@@ -1,4 +1,5 @@
 import type {
+  ManagedMacroDefinition,
   UniqueMechanicProfile,
   UniqueMechanicProfileId,
   UniqueMechanicProfileOption,
@@ -64,6 +65,15 @@ export function createDefaultProfileStates(): Record<string, unknown> {
 export function getDefaultProfileState(profileId: string): unknown {
   const profile = getUniqueMechanicProfile(profileId);
   return profile ? structuredClone(profile.defaultState) : undefined;
+}
+
+export function collectManagedMacroDefinitions(): ManagedMacroDefinition[] {
+  return profiles.flatMap(profile => profile.getManagedMacros().map(definition => {
+    const collected = { ...definition };
+    if (definition.legacyNames) collected.legacyNames = [...definition.legacyNames];
+    if (definition.legacyCommands) collected.legacyCommands = [...definition.legacyCommands];
+    return collected;
+  }));
 }
 
 export {

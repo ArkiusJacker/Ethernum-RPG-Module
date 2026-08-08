@@ -1,0 +1,110 @@
+/* Ethernum Company shell: black iron, parchment gold and controlled ether light. */
+.ethernum-character-sheet.ethernum-company-sheet,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] {
+  --ecs-bg: #0e1010;
+  --ecs-surface: #181a19;
+  --ecs-surface-raised: #262824;
+  --ecs-surface-soft: #20221f;
+  --ecs-text: #f4eedf;
+  --ecs-text-muted: #bab7ad;
+  --ecs-border: #4b4b43;
+  --ecs-border-strong: #787264;
+  --ecs-accent: #c8a451;
+  --ecs-accent-strong: #f1d783;
+  --ecs-accent-contrast: #171207;
+  --ecs-secondary: #58c4b2;
+  --ecs-danger: #dd6259;
+  --ecs-warning: #dea747;
+  --ecs-success: #66bf7f;
+  --ecs-focus: #7edbd0;
+  --ecs-hp: #bd4249;
+  color-scheme: dark;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-header,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-header {
+  border-bottom-color: #8a784f;
+  background-color: #181a19;
+  background-image:
+    linear-gradient(90deg, transparent 0 74%, rgba(200, 164, 81, 0.06) 74% 75%, transparent 75%),
+    linear-gradient(0deg, transparent 0 70%, rgba(88, 196, 178, 0.04) 70% 71%, transparent 71%);
+  background-size: 62px 62px;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-header::after,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-header::after {
+  position: absolute;
+  right: 64px;
+  bottom: 10px;
+  width: 76px;
+  height: 1px;
+  background: var(--ecs-secondary);
+  content: "";
+  opacity: 0.55;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-identity__name,
+.ethernum-character-sheet.ethernum-company-sheet .ecs-panel-heading h2,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-identity__name,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-panel-heading h2 {
+  font-family: "Modesto Condensed", "Palatino Linotype", serif;
+  font-weight: 700;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-level,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-level {
+  border-width: 2px;
+  box-shadow: inset 0 0 0 3px #181a19, inset 0 0 0 4px #76643c;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab.is-active,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab.is-active {
+  color: #f7df91;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-tab="ether"] i,
+.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-tab="runes"] i,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-tab="ether"] i,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-tab="runes"] i {
+  color: var(--ecs-secondary);
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-ether-core,
+.ethernum-character-sheet.ethernum-company-sheet .ecs-rune-formula,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-ether-core,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-rune-formula {
+  background-color: #171c1a;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-ether-reserve .ecs-meter > span,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-ether-reserve .ecs-meter > span {
+  background: #58c4b2;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-strike,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-strike {
+  border-left-color: #d1ad57;
+}
+
+.ethernum-character-sheet.ethernum-company-sheet .ecs-legacy-unique-host,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-legacy-unique-host {
+  --company-gold: #d8bd78;
+  --company-gold-soft: #f2e6c8;
+  --company-ink: #030303;
+  --company-smoke: #11100c;
+}
+
+@media (max-width: 1000px) {
+  .ethernum-character-sheet.ethernum-company-sheet .ecs-header::after,
+  .ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-header::after {
+    right: 54px;
+    width: 52px;
+  }
+}
+
+@media (max-width: 650px) {
+  .ethernum-character-sheet.ethernum-company-sheet .ecs-header::after,
+  .ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-header::after {
+    display: none;
+  }
+}

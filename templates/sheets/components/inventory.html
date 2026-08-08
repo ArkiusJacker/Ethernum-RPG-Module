@@ -1,0 +1,67 @@
+<section id="ecs-panel-inventory"
+         class="ecs-tab-panel"
+         data-tab="inventory"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-inventory"
+         {{#unless (ethernum-eq ui.activeTab "inventory")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading">
+    <div><span class="ecs-eyebrow">Equipamento</span><h2>Inventário</h2></div>
+    <div class="ecs-inventory-summary" aria-label="Resumo de carga">
+      <span>Carga</span>
+      <strong>{{inventory.bulk.value}} / {{inventory.bulk.max}}</strong>
+      <div class="ecs-meter" role="meter" aria-valuemin="0" aria-valuemax="{{inventory.bulk.max}}" aria-valuenow="{{inventory.bulk.value}}"><span style="--ecs-meter-value: {{inventory.bulk.percentage}}%;"></span></div>
+    </div>
+  </div>
+
+  <div class="ecs-toolbar" role="search">
+    <label class="ecs-search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <span class="sr-only">Buscar no inventário</span>
+      <input type="search" value="{{ui.inventorySearch}}" data-action="filter-inventory" placeholder="Buscar equipamento" />
+    </label>
+    <button type="button" data-action="toggle-stowed-items" aria-pressed="{{ui.showStowed}}"><i class="fas fa-box" aria-hidden="true"></i><span>Guardados</span></button>
+    {{#if permissions.canCreateItems}}
+    <button type="button" data-action="create-item" data-item-type="equipment"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar</span></button>
+    {{/if}}
+  </div>
+
+  <div class="ecs-inventory-groups">
+    {{#each inventory.categories}}
+    <section class="ecs-inventory-group" data-category="{{this.id}}" aria-labelledby="ecs-inventory-{{this.id}}">
+      <header class="ecs-group-heading">
+        <button type="button" data-action="toggle-inventory-category" data-category="{{this.id}}" aria-expanded="{{#if this.collapsed}}false{{else}}true{{/if}}" aria-controls="ecs-inventory-items-{{this.id}}">
+          <i class="fas fa-chevron-down" aria-hidden="true"></i>
+          <span id="ecs-inventory-{{this.id}}">{{this.label}}</span>
+          <small>{{this.items.length}}</small>
+        </button>
+      </header>
+      <div id="ecs-inventory-items-{{this.id}}" class="ecs-item-list" {{#if this.collapsed}}hidden{{/if}}>
+        {{#each this.items}}
+        <article class="ecs-inventory-item" data-item-id="{{this.id}}">
+          <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+          <div class="ecs-inventory-item__name">
+            <h3>{{this.name}}</h3>
+            <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
+          </div>
+          <span class="ecs-item-stat" title="Carga">{{this.bulk}}</span>
+          <div class="ecs-quantity" role="group" aria-label="Quantidade de {{this.name}}">
+            {{#if ../../permissions.canUpdateItems}}<button type="button" data-action="adjust-item-quantity" data-item-id="{{this.id}}" data-delta="-1" aria-label="Diminuir quantidade"><i class="fas fa-minus" aria-hidden="true"></i></button>{{/if}}
+            <span>{{this.quantity}}</span>
+            {{#if ../../permissions.canUpdateItems}}<button type="button" data-action="adjust-item-quantity" data-item-id="{{this.id}}" data-delta="1" aria-label="Aumentar quantidade"><i class="fas fa-plus" aria-hidden="true"></i></button>{{/if}}
+          </div>
+          <div class="ecs-item-controls" role="group" aria-label="Estado de {{this.name}}">
+            {{#if this.canEquip}}<button type="button" class="{{#if this.equipped}}is-active{{/if}}" data-action="toggle-item-equipped" data-item-id="{{this.id}}" data-equipped="{{this.equipped}}" aria-pressed="{{this.equipped}}" aria-label="Alternar equipado" title="Equipado"><i class="fas fa-hand" aria-hidden="true"></i></button>{{/if}}
+            {{#if this.canInvest}}<button type="button" class="{{#if this.invested}}is-active{{/if}}" data-action="toggle-item-invested" data-item-id="{{this.id}}" data-invested="{{this.invested}}" aria-pressed="{{this.invested}}" aria-label="Alternar investido" title="Investido"><i class="fas fa-gem" aria-hidden="true"></i></button>{{/if}}
+            {{#if this.canUse}}<button type="button" data-action="use-item" data-item-id="{{this.id}}" aria-label="Usar {{this.name}}" title="Usar"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
+          </div>
+        </article>
+        {{else}}
+        <p class="ecs-empty">Nenhum item nesta categoria.</p>
+        {{/each}}
+      </div>
+    </section>
+    {{else}}
+    <p class="ecs-empty">Inventário vazio.</p>
+    {{/each}}
+  </div>
+</section>

@@ -1,13 +1,7 @@
 import { ETHERNUM } from "../config.js";
+import type { ManagedMacroDefinition } from "../mechanics/types.js";
 
-export interface ManagedMacroDefinition {
-  id: string;
-  name: string;
-  command: string;
-  img: string;
-  legacyNames?: string[];
-  legacyCommands?: string[];
-}
+export type { ManagedMacroDefinition } from "../mechanics/types.js";
 
 interface MacroDocumentLike {
   id?: string;

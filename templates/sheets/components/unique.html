@@ -1,0 +1,32 @@
+<section id="ecs-panel-unique"
+         class="ecs-tab-panel ecs-tab-panel--unique ethernum-content"
+         data-tab="unique"
+         data-ethernum-tab="ethernum-unique"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-unique"
+         {{#unless (ethernum-eq ui.activeTab "unique")}}hidden{{/unless}}>
+  {{#if uniqueMechanic.hasProfile}}
+    {{#if uniqueMechanic.actions.length}}
+    <nav class="ecs-unique-quick-actions" aria-label="Ações rápidas da Mecânica Única">
+      {{#each uniqueMechanic.actions}}
+      <button type="button" data-action="unique-action" data-unique-action="{{this.id}}">
+        <i class="fas fa-play" aria-hidden="true"></i>
+        <span>{{#if this.label}}{{this.label}}{{else}}{{this.id}}{{/if}}</span>
+      </button>
+      {{/each}}
+    </nav>
+    {{/if}}
+    <div class="ecs-legacy-unique-host" data-unique-profile="{{uniqueMechanic.activeProfile}}">
+      {{> "modules/ethernum-rpg-module/templates/unique-mechanics-tab.html" uniqueMechanics=uniqueMechanic isGM=permissions.isGM}}
+    </div>
+  {{else}}
+    <section class="ecs-empty-state ecs-empty-state--unique">
+      <i class="fas fa-fingerprint" aria-hidden="true"></i>
+      <h2>Mecânica única</h2>
+      <p>Este personagem ainda não possui uma mecânica única ativa.</p>
+      {{#if permissions.canConfigureUniqueMechanic}}
+      <button type="button" data-action="configure-unique-mechanic"><i class="fas fa-gear" aria-hidden="true"></i><span>Configurar</span></button>
+      {{/if}}
+    </section>
+  {{/if}}
+</section>

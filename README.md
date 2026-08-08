@@ -6,13 +6,14 @@
 
 Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## Versão 3.6.2
+## Versão 3.7.0
 
-- Mechanics Core 2.1 com runtimes próprios para Arkius, Charles, Atlas, Yu, Bayle e Gyro.
-- Estados, ações gerenciadas, hooks e dados de ficha separados por perfil, sem `legacyProfileAdapter` nesses seis personagens.
-- Fachada pública antiga preservada para `game.ethernum`, macros e aliases existentes.
-- Adapter estável dos dados essenciais de personagens PF2e, preparando as futuras fichas sem substituir a ficha atual.
-- Controle do Mestre independente, Authority Bridge, aprovações, Audit Log, Pipping e Combat Momentum Tracker permanecem compatíveis.
+- Character Sheet Framework com shells próprios Ethernum Company e Concórdia sobre dados e rolagens preparados do PF2e.
+- Seleção automática pelo core da campanha, override por ator e botão para abrir a ficha PF2e original sem alterar a escolha permanente.
+- Abas funcionais de personagem, combate, inventário, talentos, magia, efeitos, Éter, FE, Runas e Mecânica Única.
+- Momentum Fides e Fulgor Negro integrados como resumos acionáveis, mantendo o rastreador global independente.
+- Adapter PF2e 2.0, cache curto, módulos com falha isolada, diagnóstico GM e UI local por mundo/usuário/ator.
+- Macros gerenciadas passam a vir dos perfis, preservando nomes, IDs, comandos, imagens, flags e aliases históricos.
 
 ## 🌟 Características Principais
 
@@ -83,11 +84,13 @@ Personagens podem tentar usar uma Classe de Runa superior em momento de desesper
 
 ## 🎮 Como Usar
 
-### 1. Abas do Sistema
-Após ativar o módulo, abra a ficha de um personagem. O GM verá três novas abas; jogadores verão apenas Mecânicas Únicas:
-- **Atributos de Éter** (ícone de escudo): Gerencia atributos, talentos e éter
-- **Sistema de Runas** (ícone de gema): Gerencia runas e classes de runa
-- **Mecânicas Únicas** (ícone de impressão digital): Gerencia mecânicas especiais por personagem
+### 1. Fichas de Personagem
+Após ativar o módulo, personagens usam automaticamente o shell correspondente ao core ativo:
+- **Ethernum Company**: dossiê operacional com Éter, FE, Runas e Mecânica Única.
+- **Concórdia**: registro arcano-industrial com Personagem, Combate, Arsenal, Magia e Mecânica Única.
+- **PF2e Original**: permanece disponível no cabeçalho e no menu da ficha como fallback transitório ou override permanente.
+
+O mestre sempre pode escolher o modo da ficha. Owners também podem escolher quando a política de mundo estiver habilitada.
 
 O **Controle do Mestre** é um painel global separado das fichas. Ele pode ser aberto pelo launcher flutuante, pelo modo GM do Combat Momentum Tracker ou por `game.ethernum.ui.openGMControlCenter()`.
 

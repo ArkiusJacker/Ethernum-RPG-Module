@@ -5,9 +5,10 @@ import { CombatMomentumSystem, createDefaultCombatMomentumState } from './table/
 import { CombatMomentumTracker } from './ui/CombatMomentumTracker.js';
 import { EtherTabManager } from './ui/EtherTabManager.js';
 import { UniqueMechanicsHud } from './ui/UniqueMechanicsHud.js';
-import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
+import { UniqueMechanicsSystem, type GyroExecutionMode, type UniqueMechanicProfileId } from './unique/UniqueMechanics.js';
 import { migrateWorld } from './utils/DataMigration.js';
 import { ensureManagedMacros as ensureManagedMacroDefinitions } from './core/ManagedMacroService.js';
+import { collectManagedMacroDefinitions } from './mechanics/registry.js';
 import { initializePF2eAdapterSocket } from './core/PF2eAdapter.js';
 import { initializeUniqueCanvasSocket } from './core/UniqueCanvasAdapter.js';
 import { initializePippingCanvasSocket } from './mechanics/pipping/canvas.js';
@@ -24,40 +25,13 @@ import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
 import { AnimationService } from './core/AnimationService.js';
 import { initializeEthernumAuthorityBridge } from './core/EthernumAuthority.js';
 import { GMControlCenterOverlay } from './ui/GMControlCenterOverlay.js';
+import { BaseEthernumCharacterSheet } from './sheets/BaseEthernumCharacterSheet.js';
+import {
+  initializeCharacterSheetLifecycle,
+  registerEthernumCharacterSheet,
+} from './sheets/core/CharacterSheetLifecycle.js';
+import { CharacterSheetController } from './sheets/core/CharacterSheetController.js';
 
-const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
-const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.gyro.showTechniques();";
-const BAYLE_STATUS_MACRO_NAME = "Ethernum - Bayle: Painel";
-const BAYLE_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.bayle.showStatus();";
-const PIPPING_STATUS_MACRO_NAME = "Ethernum - Pipping: Painel";
-const PIPPING_STATUS_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.pipping.showStatus();";
-const PIPPING_MANAGED_MACROS = [
-  {
-    name: PIPPING_STATUS_MACRO_NAME,
-    command: PIPPING_STATUS_MACRO_COMMAND,
-    flag: "pipping-status",
-    img: "icons/magic/unholy/orb-glowing-purple.webp",
-  },
-  {
-    name: "Ethernum - Pipping: Ativar Noite Viva",
-    command: "await game.ethernum.macros.ethernumCompany.pipping.activateLivingNight();",
-    flag: "pipping-living-night",
-    img: "icons/magic/unholy/barrier-shield-glowing-pink.webp",
-  },
-  {
-    name: "Ethernum - Pipping: Comungar com a Noite",
-    command: "await game.ethernum.macros.ethernumCompany.pipping.communeWithNight();",
-    flag: "pipping-commune-night",
-    img: "icons/magic/time/hourglass-brown-purple.webp",
-  },
-  {
-    name: "Ethernum - Pipping: Configurar Escuridão",
-    command: "await game.ethernum.macros.ethernumCompany.pipping.configureDarkness();",
-    flag: "pipping-configure-darkness",
-    img: "icons/magic/unholy/silhouette-robe-evil-power.webp",
-  },
-];
-const YU_MACRO_ICON = "icons/svg/terror.svg";
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
     name: "Ethernum - Momentum Fides",
@@ -70,138 +44,6 @@ const COMBAT_MOMENTUM_MANAGED_MACROS = [
     command: "await game.ethernum.macros.combat.fulgorNegro();",
     flag: "combat-fulgor-negro",
     img: "icons/svg/lightning.svg",
-  },
-];
-
-const ARKIUS_MANAGED_MACROS = [
-  {
-    name: "Ethernum - Concórdia: Arkius Painel",
-    command: "await game.ethernum.macros.concordia.arkius.showStatus();",
-    flag: "concordia-arkius-status",
-  },
-  {
-    name: "Ethernum - Arkius: Núcleo em Brasas",
-    command: "await game.ethernum.macros.concordia.arkius.toggleNucleoEmBrasas();",
-    flag: "arkius-nucleo-em-brasas",
-  },
-  {
-    name: "Ethernum - Arkius: Fluxo",
-    command: "await game.ethernum.macros.concordia.arkius.setSintoniaFluxo();",
-    flag: "arkius-sintonia-fluxo",
-  },
-  {
-    name: "Ethernum - Arkius: Brasas",
-    command: "await game.ethernum.macros.concordia.arkius.setSintoniaBrasas();",
-    flag: "arkius-sintonia-brasas",
-  },
-  {
-    name: "Ethernum - Arkius: Exaurir o Sol",
-    command: "await game.ethernum.macros.concordia.arkius.exaurirOSol();",
-    flag: "arkius-exaurir-o-sol",
-  },
-  {
-    name: "Ethernum - Arkius: Aura Cinética",
-    command: "await game.ethernum.macros.concordia.arkius.toggleKineticAura();",
-    flag: "arkius-kinetic-aura",
-  },
-  {
-    name: "Ethernum - Arkius: Thermal Nimbus",
-    command: "await game.ethernum.macros.concordia.arkius.toggleThermalNimbus();",
-    flag: "arkius-thermal-nimbus",
-  },
-  {
-    name: "Ethernum - Arkius: Resiliência Reativa",
-    command: "await game.ethernum.macros.concordia.arkius.resilienciaReativa();",
-    flag: "arkius-resiliencia-reativa",
-  },
-  {
-    name: "Ethernum - Arkius: Descanso Curto",
-    command: "await game.ethernum.macros.concordia.arkius.shortRestReset();",
-    flag: "arkius-short-rest",
-  },
-  {
-    name: "Ethernum - Arkius: Descanso Longo",
-    command: "await game.ethernum.macros.concordia.arkius.longRestReset();",
-    flag: "arkius-long-rest",
-  },
-];
-
-const YU_MANAGED_MACROS = [
-  {
-    name: "Ethernum - Yu: Painel",
-    command: "await game.ethernum.macros.concordia.yu.showStatus();",
-    flag: "concordia-yu-status",
-  },
-  {
-    name: "Ethernum - Yu: Rage in the Flesh",
-    command: "await game.ethernum.macros.concordia.yu.toggleRage();",
-    flag: "yu-rage-in-the-flesh",
-  },
-  {
-    name: "Ethernum - Yu: Flurry of Blows",
-    command: "await game.ethernum.macros.concordia.yu.flurryOfBlows();",
-    flag: "yu-flurry-of-blows",
-  },
-  {
-    name: "Ethernum - Yu: Sobrecarga de Medo",
-    command: "await game.ethernum.macros.concordia.yu.flurryFear();",
-    flag: "yu-flurry-fear",
-  },
-  {
-    name: "Ethernum - Yu: Stunning Fist +2d10",
-    command: "await game.ethernum.macros.concordia.yu.stunningFistDamage();",
-    flag: "yu-stunning-fist-damage",
-  },
-];
-
-const CHARLES_MANAGED_MACROS = [
-  {
-    name: "Ethernum - Charles: Painel",
-    command: "await game.ethernum.macros.concordia.charles.showStatus();",
-    flag: "concordia-charles-status",
-  },
-  {
-    name: "Ethernum - Charles: Escalada de Impulso",
-    command: "await game.ethernum.macros.concordia.charles.impulseClimb();",
-    flag: "charles-impulse-climb",
-  },
-  {
-    name: "Ethernum - Charles: Disparo de Contenção",
-    command: "await game.ethernum.macros.concordia.charles.containmentShot();",
-    flag: "charles-containment-shot",
-  },
-  {
-    name: "Ethernum - Charles: Puxão Vetorial",
-    command: "await game.ethernum.macros.concordia.charles.vectorPull();",
-    flag: "charles-vector-pull",
-  },
-  {
-    name: "Ethernum - Charles: Rede de Amortecimento",
-    command: "await game.ethernum.macros.concordia.charles.cushioningNet();",
-    flag: "charles-cushioning-net",
-  },
-  {
-    name: "Ethernum - Charles: Craft da Imaginação",
-    command: "await game.ethernum.macros.concordia.charles.craftImagination();",
-    flag: "charles-craft-imagination",
-  },
-];
-
-const ATLAS_MANAGED_MACROS = [
-  {
-    name: "Ethernum - Atlas: Painel",
-    command: "await game.ethernum.macros.concordia.atlas.showStatus();",
-    flag: "concordia-atlas-status",
-  },
-  {
-    name: "Ethernum - Atlas: Olhar do Divino",
-    command: "await game.ethernum.macros.concordia.atlas.olharDoDivino();",
-    flag: "atlas-olhar-do-divino",
-  },
-  {
-    name: "Ethernum - Atlas: Concluir Olhar",
-    command: "await game.ethernum.macros.concordia.atlas.completeDivineGaze();",
-    flag: "atlas-complete-divine-gaze",
   },
 ];
 
@@ -218,6 +60,7 @@ declare global {
         restoreGMControlCenterPosition: () => boolean;
         restoreGMControlCenterSize: () => boolean;
         refreshGMControlCenter: () => Promise<boolean>;
+        characterSheetDiagnostics: (actor: Actor) => ReturnType<typeof CharacterSheetController.diagnostics>;
       };
       macros: {
         getActor: () => Actor | null;
@@ -605,48 +448,7 @@ async function showPippingAnimationDiagnostics(): Promise<PippingAnimationDataba
 
 async function ensureManagedMacros(): Promise<void> {
   const definitions = [
-    {
-      id: "gyro-techniques",
-      name: GYRO_TECHNIQUES_MACRO_NAME,
-      command: GYRO_TECHNIQUES_MACRO_COMMAND,
-      img: GYRO_SPINBALL_ASSET,
-    },
-    {
-      id: "bayle-status",
-      name: BAYLE_STATUS_MACRO_NAME,
-      command: BAYLE_STATUS_MACRO_COMMAND,
-      img: GYRO_SPINBALL_ASSET,
-    },
-    ...PIPPING_MANAGED_MACROS.map(macro => ({
-      id: macro.flag,
-      name: macro.name,
-      command: macro.command,
-      img: macro.img,
-    })),
-    ...ARKIUS_MANAGED_MACROS.map(macro => ({
-      id: macro.flag,
-      name: macro.name,
-      command: macro.command,
-      img: ARKIUS_ICON_ASSET,
-    })),
-    ...YU_MANAGED_MACROS.map(macro => ({
-      id: macro.flag,
-      name: macro.name,
-      command: macro.command,
-      img: YU_MACRO_ICON,
-    })),
-    ...CHARLES_MANAGED_MACROS.map(macro => ({
-      id: macro.flag,
-      name: macro.name,
-      command: macro.command,
-      img: "icons/svg/hammer.svg",
-    })),
-    ...ATLAS_MANAGED_MACROS.map(macro => ({
-      id: macro.flag,
-      name: macro.name,
-      command: macro.command,
-      img: "icons/svg/sword.svg",
-    })),
+    ...collectManagedMacroDefinitions(),
     ...COMBAT_MOMENTUM_MANAGED_MACROS.map(macro => ({
       id: macro.flag,
       name: macro.name,
@@ -714,6 +516,9 @@ async function initializeActorFlags(actor: Actor): Promise<void> {
 
   if (!actor.getFlag(m, "combatMomentum"))
     updates[`flags.${m}.combatMomentum`] = createDefaultCombatMomentumState();
+
+  if (actor.getFlag(m, "characterSheetMode") === undefined)
+    updates[`flags.${m}.characterSheetMode`] = "auto";
 
   if (Object.keys(updates).length > 0) await actor.update(updates);
 }
@@ -794,6 +599,8 @@ Hooks.once("init", () => {
 
   registerHandlebarsHelpers();
   registerSettings();
+  registerEthernumCharacterSheet(BaseEthernumCharacterSheet);
+  initializeCharacterSheetLifecycle();
   const pippingDefinitionErrors = validatePippingActionDefinitions();
   if (pippingDefinitionErrors.length > 0) {
     console.error(
@@ -810,6 +617,18 @@ Hooks.once("init", () => {
     `${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}ethernum-gm-control-tab.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/base/sheet-base.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/base/header.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/base/navigation.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/overview.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/combat.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/inventory.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/spellcasting.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/feats.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/effects.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/ether.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/runes.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/components/unique.html`,
   ]);
 
   game.ethernum = {
@@ -823,6 +642,7 @@ Hooks.once("init", () => {
       restoreGMControlCenterPosition: () => GMControlCenterOverlay.restorePosition(),
       restoreGMControlCenterSize: () => GMControlCenterOverlay.restoreSize(),
       refreshGMControlCenter: () => GMControlCenterOverlay.refresh(),
+      characterSheetDiagnostics: (actor: Actor) => CharacterSheetController.diagnostics(actor),
     },
     macros: buildMacroApi(),
   };

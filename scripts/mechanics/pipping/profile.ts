@@ -6,6 +6,7 @@ import {
   type PippingNightState,
 } from "./state.js";
 import { PIPPING_ACTIONS } from "./progression.js";
+import { getPippingManagedMacros } from "./macros.js";
 
 export const PIPPING_PROFILE_ID = "pipping-night" as const;
 
@@ -23,6 +24,7 @@ export const pippingProfile: UniqueMechanicProfile<PippingNightState> = {
   defaultState: DEFAULT_PIPPING_STATE,
   normalizeState: normalizePippingState,
   migrateState: normalizePippingState,
+  getManagedMacros: getPippingManagedMacros,
 };
 
 export * from "./state.js";

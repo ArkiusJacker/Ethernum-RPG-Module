@@ -1,0 +1,105 @@
+<section id="ecs-panel-combat"
+         class="ecs-tab-panel"
+         data-tab="combat"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-combat"
+         {{#unless (ethernum-eq ui.activeTab "combat")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading">
+    <div>
+      <span class="ecs-eyebrow">Encontro</span>
+      <h2>Combate</h2>
+    </div>
+    <div class="ecs-panel-heading__actions">
+      <button type="button" data-action="roll-initiative" aria-label="Rolar iniciativa"><i class="fas fa-bolt" aria-hidden="true"></i><span>Iniciativa</span></button>
+      {{#if permissions.canUpdateActor}}
+      <button type="button" data-action="manage-actions" aria-label="Gerenciar ações"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Gerenciar</span></button>
+      {{/if}}
+    </div>
+  </div>
+
+  {{#if combatMomentum.enabled}}
+  <section class="ecs-combat-momentum" aria-label="Momentum Fides e Fulgor Negro">
+    <div class="ecs-combat-momentum__heading">
+      <i class="fas fa-bolt-lightning" aria-hidden="true"></i>
+      <div><span>Ritmo de combate</span><strong>{{combatMomentum.statusLabel}}</strong></div>
+    </div>
+    <div class="ecs-combat-momentum__resource">
+      <span>Momentum Fides</span>
+      <strong>{{combatMomentum.fides.charges}} / {{combatMomentum.fides.max}}</strong>
+      <div class="ecs-meter" role="meter" aria-label="Cargas de Momentum Fides" aria-valuemin="0" aria-valuemax="{{combatMomentum.fides.max}}" aria-valuenow="{{combatMomentum.fides.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fides.percentage}}%;"></span></div>
+      <button type="button" data-action="use-momentum-fides" {{#unless combatMomentum.fides.canUse}}disabled{{/unless}}><i class="fas fa-gem" aria-hidden="true"></i><span>Momentum</span></button>
+    </div>
+    <div class="ecs-combat-momentum__resource ecs-combat-momentum__resource--fulgor">
+      <span>Fulgor Negro</span>
+      <strong>{{combatMomentum.fulgor.charges}}</strong>
+      <div class="ecs-meter" role="meter" aria-label="Progresso de Fulgor Negro" aria-valuemin="0" aria-valuemax="{{combatMomentum.fulgor.max}}" aria-valuenow="{{combatMomentum.fulgor.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fulgor.percentage}}%;"></span></div>
+      <button type="button" data-action="use-fulgor-negro" {{#unless combatMomentum.fulgor.canUse}}disabled{{/unless}}><i class="fas fa-bolt" aria-hidden="true"></i><span>Fulgor</span></button>
+    </div>
+    {{#if permissions.canManageCombatMomentum}}
+    <button type="button" class="ecs-icon-control" data-action="manage-combat-momentum" aria-label="Gerenciar ritmo de combate" title="Gerenciar"><i class="fas fa-sliders" aria-hidden="true"></i></button>
+    {{/if}}
+  </section>
+  {{/if}}
+
+  <section class="ecs-section" aria-labelledby="ecs-strikes-title">
+    <header class="ecs-section__header">
+      <h3 id="ecs-strikes-title"><i class="fas fa-swords" aria-hidden="true"></i>Strikes</h3>
+      <span class="ecs-section__count">{{strikes.length}}</span>
+    </header>
+    <div class="ecs-strike-list">
+      {{#each strikes}}
+      <article class="ecs-strike" data-strike-id="{{this.id}}">
+        {{#if this.itemId}}<button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}" title="Abrir item">
+          <img src="{{this.img}}" alt="" />
+        </button>{{else}}<img class="ecs-item-image" src="{{this.img}}" alt="" />{{/if}}
+        <div class="ecs-strike__identity">
+          <h4>{{this.name}}</h4>
+          <div class="ecs-tags">
+            {{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}
+          </div>
+        </div>
+        <div class="ecs-strike__attacks" role="group" aria-label="Ataques com {{this.name}}">
+          {{#each this.attackVariants}}
+          <button type="button" data-action="roll-strike" data-strike-id="{{../id}}" data-variant-index="{{this.index}}" aria-label="Ataque {{this.label}} com {{../name}}">{{this.label}}</button>
+          {{else}}
+          <button type="button" data-action="roll-strike" data-strike-id="{{this.id}}" data-variant-index="0" aria-label="Atacar com {{this.name}}">{{this.modifier}}</button>
+          {{/each}}
+        </div>
+        <div class="ecs-strike__damage" role="group" aria-label="Dano de {{this.name}}">
+          <button type="button" data-action="roll-strike-damage" data-strike-id="{{this.id}}" aria-label="Rolar dano de {{this.name}}"><i class="fas fa-burst" aria-hidden="true"></i><span>Dano</span></button>
+          <button type="button" data-action="roll-strike-critical" data-strike-id="{{this.id}}" aria-label="Rolar dano crítico de {{this.name}}"><i class="fas fa-skull" aria-hidden="true"></i><span>Crítico</span></button>
+        </div>
+      </article>
+      {{else}}
+      <p class="ecs-empty">Nenhum Strike preparado.</p>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="ecs-section" aria-labelledby="ecs-actions-title">
+    <header class="ecs-section__header">
+      <h3 id="ecs-actions-title"><i class="fas fa-circle-play" aria-hidden="true"></i>Ações</h3>
+      <div class="ecs-filter-group" role="group" aria-label="Filtrar ações">
+        <button type="button" class="is-active" data-action="filter-actions" data-filter="all" aria-pressed="true">Todas</button>
+        <button type="button" data-action="filter-actions" data-filter="action" aria-pressed="false"><i class="fas fa-diamond" aria-hidden="true"></i><span class="sr-only">Ações</span></button>
+        <button type="button" data-action="filter-actions" data-filter="reaction" aria-pressed="false"><i class="fas fa-reply" aria-hidden="true"></i><span class="sr-only">Reações</span></button>
+        <button type="button" data-action="filter-actions" data-filter="free" aria-pressed="false"><i class="far fa-circle" aria-hidden="true"></i><span class="sr-only">Ações livres</span></button>
+      </div>
+    </header>
+    <div class="ecs-action-list">
+      {{#each actions}}
+      <article class="ecs-action-row" data-action-type="{{this.actionType}}">
+        {{#if this.itemId}}<button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>{{else}}<img class="ecs-item-image" src="{{this.img}}" alt="" />{{/if}}
+        <div class="ecs-action-row__body">
+          <h4>{{this.name}}</h4>
+          {{#if this.summary}}<p>{{this.summary}}</p>{{/if}}
+        </div>
+        <span class="ecs-action-glyph" aria-label="{{this.actionLabel}}">{{this.actionGlyph}}</span>
+        <button type="button" class="ecs-primary-action" data-action="use-action" data-prepared-action-id="{{this.id}}" data-item-id="{{this.itemId}}"><i class="fas fa-play" aria-hidden="true"></i><span>Usar</span></button>
+      </article>
+      {{else}}
+      <p class="ecs-empty">Nenhuma ação preparada.</p>
+      {{/each}}
+    </div>
+  </section>
+</section>

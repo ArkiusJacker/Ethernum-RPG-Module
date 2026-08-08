@@ -1,0 +1,49 @@
+<section id="ecs-panel-feats"
+         class="ecs-tab-panel"
+         data-tab="feats"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-feats"
+         {{#unless (ethernum-eq ui.activeTab "feats")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading">
+    <div><span class="ecs-eyebrow">Progressão</span><h2>Talentos e características</h2></div>
+    {{#if permissions.canCreateItems}}
+    <button type="button" data-action="create-item" data-item-type="feat"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar</span></button>
+    {{/if}}
+  </div>
+
+  <div class="ecs-toolbar" role="search">
+    <label class="ecs-search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <span class="sr-only">Buscar talento</span>
+      <input type="search" value="{{ui.featSearch}}" data-action="filter-feats" placeholder="Buscar talento" />
+    </label>
+    <div class="ecs-filter-group" role="group" aria-label="Filtrar talentos por categoria">
+      {{#each ui.featFilters}}
+      <button type="button" class="{{#if this.active}}is-active{{/if}}" data-action="filter-feats" data-filter="{{this.id}}" aria-pressed="{{this.active}}">{{this.label}}</button>
+      {{/each}}
+    </div>
+  </div>
+
+  <div class="ecs-feat-list">
+    {{#each feats}}
+    <article class="ecs-feat-row" data-item-id="{{this.id}}" data-category="{{this.category}}">
+      <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+      <div class="ecs-feat-row__body">
+        <div class="ecs-feat-row__title">
+          <h3>{{this.name}}</h3>
+          {{#if this.level}}<span>Nível {{this.level}}</span>{{/if}}
+        </div>
+        <div class="ecs-tags">
+          {{#if this.categoryLabel}}<span class="ecs-tag ecs-tag--accent">{{this.categoryLabel}}</span>{{/if}}
+          {{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}
+        </div>
+        {{#if this.summary}}<p>{{this.summary}}</p>{{/if}}
+      </div>
+      {{#if this.actionGlyph}}<span class="ecs-action-glyph" aria-label="{{this.actionLabel}}">{{this.actionGlyph}}</span>{{/if}}
+      {{#if this.canUse}}<button type="button" class="ecs-primary-action" data-action="use-item" data-item-id="{{this.id}}"><i class="fas fa-play" aria-hidden="true"></i><span>Usar</span></button>{{/if}}
+    </article>
+    {{else}}
+    <p class="ecs-empty">Nenhum talento encontrado.</p>
+    {{/each}}
+  </div>
+</section>

@@ -1,0 +1,19 @@
+<nav class="ecs-navigation" role="tablist" aria-label="Seções da ficha">
+  {{#each ui.tabs}}
+    {{#unless this.hidden}}
+    <button type="button"
+            id="ecs-tab-{{this.id}}"
+            class="ecs-navigation__tab {{#if this.active}}is-active{{/if}}"
+            data-action="change-tab"
+            data-tab="{{this.id}}"
+            role="tab"
+            aria-controls="ecs-panel-{{this.id}}"
+            aria-selected="{{#if this.active}}true{{else}}false{{/if}}"
+            {{#if this.disabled}}disabled aria-disabled="true"{{/if}}>
+      {{#if this.icon}}<i class="{{this.icon}}" aria-hidden="true"></i>{{/if}}
+      <span>{{this.label}}</span>
+      {{#if this.badge}}<span class="ecs-navigation__badge" aria-label="{{this.badgeLabel}}">{{this.badge}}</span>{{/if}}
+    </button>
+    {{/unless}}
+  {{/each}}
+</nav>

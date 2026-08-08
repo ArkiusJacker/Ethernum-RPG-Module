@@ -1,0 +1,79 @@
+<section id="ecs-panel-ether"
+         class="ecs-tab-panel"
+         data-tab="ether"
+         role="tabpanel"
+         aria-labelledby="ecs-tab-ether"
+         {{#unless (ethernum-eq ui.activeTab "ether")}}hidden{{/unless}}>
+  <div class="ecs-panel-heading ecs-panel-heading--system">
+    <div><span class="ecs-eyebrow">Sistema Ethernum</span><h2>Éter</h2></div>
+    <div class="ecs-system-resource" aria-label="Fichas de Éter">
+      <i class="fas fa-coins" aria-hidden="true"></i>
+      <span>FE</span>
+      <strong>{{ethernumSystems.fe.value}}</strong>
+      {{#if permissions.canUpdateEthernum}}
+      <button type="button" data-action="manage-fe" aria-label="Gerenciar Fichas de Éter" title="Gerenciar FE"><i class="fas fa-pen" aria-hidden="true"></i></button>
+      {{/if}}
+    </div>
+  </div>
+
+  <section class="ecs-ether-core" aria-labelledby="ecs-ether-reserve-title">
+    <div class="ecs-ether-reserve">
+      <div class="ecs-ether-reserve__heading">
+        <span id="ecs-ether-reserve-title">Reserva de Éter</span>
+        <strong>{{ethernumSystems.ether.value}} / {{ethernumSystems.ether.max}}</strong>
+      </div>
+      <div class="ecs-meter ecs-meter--large" role="meter" aria-label="Reserva de Éter" aria-valuemin="0" aria-valuemax="{{ethernumSystems.ether.max}}" aria-valuenow="{{ethernumSystems.ether.value}}">
+        <span style="--ecs-meter-value: {{ethernumSystems.ether.percentage}}%;"></span>
+      </div>
+      {{#if permissions.canUpdateEthernum}}
+      <div class="ecs-ether-controls" role="group" aria-label="Alterar reserva de Éter">
+        <button type="button" data-action="adjust-ether" data-delta="-1"><i class="fas fa-minus" aria-hidden="true"></i><span>Gastar</span></button>
+        <button type="button" data-action="adjust-ether" data-delta="1"><i class="fas fa-plus" aria-hidden="true"></i><span>Recuperar</span></button>
+      </div>
+      {{/if}}
+    </div>
+    <div class="ecs-ether-stats">
+      {{#each ethernumSystems.ether.stats}}
+      <div class="ecs-key-stat"><span>{{this.label}}</span><strong>{{this.value}}</strong>{{#if this.detail}}<small>{{this.detail}}</small>{{/if}}</div>
+      {{/each}}
+    </div>
+  </section>
+
+  <div class="ecs-system-grid">
+    <section class="ecs-section" aria-labelledby="ecs-ether-attributes-title">
+      <header class="ecs-section__header">
+        <h3 id="ecs-ether-attributes-title"><i class="fas fa-atom" aria-hidden="true"></i>Atributos de Éter</h3>
+        {{#if permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="manage-ether-attributes" aria-label="Gerenciar atributos de Éter" title="Gerenciar"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
+      </header>
+      <div class="ecs-ether-attribute-list">
+        {{#each ethernumSystems.attributes}}
+        <div class="ecs-ether-attribute">
+          <div><span>{{this.label}}</span>{{#if this.description}}<small>{{this.description}}</small>{{/if}}</div>
+          <span class="ecs-rank-label">{{this.rankLabel}}</span>
+          <strong>{{this.value}}</strong>
+        </div>
+        {{else}}
+        <p class="ecs-empty">Nenhum atributo de Éter configurado.</p>
+        {{/each}}
+      </div>
+    </section>
+
+    <section class="ecs-section" aria-labelledby="ecs-ether-talents-title">
+      <header class="ecs-section__header">
+        <h3 id="ecs-ether-talents-title"><i class="fas fa-diagram-project" aria-hidden="true"></i>Talentos de Éter</h3>
+        {{#if permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="manage-ether-talents" aria-label="Gerenciar talentos de Éter" title="Gerenciar"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
+      </header>
+      <div class="ecs-ether-talent-list">
+        {{#each ethernumSystems.talents}}
+        <article class="ecs-ether-talent">
+          <div><h3>{{this.name}}</h3>{{#if this.summary}}<p>{{this.summary}}</p>{{/if}}</div>
+          {{#if this.cost}}<span class="ecs-cost">{{this.cost}} Éter</span>{{/if}}
+          {{#if this.canUse}}<button type="button" data-action="use-ether-talent" data-talent-id="{{this.id}}" aria-label="Usar {{this.name}}"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
+        </article>
+        {{else}}
+        <p class="ecs-empty">Nenhum talento de Éter adquirido.</p>
+        {{/each}}
+      </div>
+    </section>
+  </div>
+</section>

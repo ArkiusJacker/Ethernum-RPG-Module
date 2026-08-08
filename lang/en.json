@@ -9,6 +9,45 @@
       "UniqueMechanics": "Unique Mechanics",
       "GMControl": "GM Control"
     },
+    "CharacterSheet": {
+      "Label": "Ethernum Character Sheet",
+      "Ethernum": { "Title": "Ethernum Company Operational Dossier" },
+      "Concordia": { "Title": "Concordia Arcane Record" },
+      "Tabs": {
+        "Overview": "Overview",
+        "Character": "Character",
+        "Combat": "Combat",
+        "Equipment": "Equipment",
+        "Arsenal": "Arsenal",
+        "Magic": "Magic",
+        "Ether": "Ether",
+        "Runes": "Runes",
+        "Unique": "Unique Mechanic",
+        "Effects": "Effects",
+        "Feats": "Feats"
+      },
+      "Modes": {
+        "auto": "Automatic",
+        "ethernum": "Ethernum Company",
+        "concordia": "Concordia",
+        "pf2e": "PF2e Original"
+      },
+      "Configure": {
+        "Title": "Configure sheet",
+        "Mode": "Sheet mode",
+        "Save": "Save",
+        "ResetLayout": "Reset local layout"
+      },
+      "Ether": { "ChooseAttribute": "Choose the Ether Attribute" },
+      "Errors": {
+        "Permission": "You do not have permission to perform this action.",
+        "RollUnavailable": "The PF2e prepared roll is unavailable.",
+        "StrikeUnavailable": "The PF2e prepared Strike is unavailable.",
+        "ActionUnavailable": "The PF2e prepared action is unavailable.",
+        "PF2eUnavailable": "The original PF2e sheet could not be found.",
+        "Render": "The Ethernum sheet encountered an error. Use the original PF2e sheet to access this character."
+      }
+    },
     "EtherCurrent": "Current Ether",
     "EtherMax": "Maximum Ether",
     "EtherRegen": "Ether Regeneration",
@@ -1185,6 +1224,10 @@
       "Errors": { "ActionFailed": "The GM Control action could not be completed.", "PayloadSerialization": "The payload could not be serialized." }
     },
     "Settings": {
+      "PlayersCanChooseCharacterSheet": {
+        "Name": "Players can choose the custom character sheet",
+        "Hint": "Allows owners to switch between Automatic, Ethernum Company, Concordia, and the original PF2e sheet."
+      },
       "LongRestFullRestore": {
         "Name": "Full Restoration on Long Rest",
         "Hint": "If enabled, Ether is fully restored on a long rest. If disabled, resting does not change Ether automatically."

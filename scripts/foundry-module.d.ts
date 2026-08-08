@@ -12,6 +12,7 @@ declare global {
     "ethernum-rpg-module.longRestFullRestore": boolean;
     "ethernum-rpg-module.showEtherInChat": boolean;
     "ethernum-rpg-module.allowOverride": boolean;
+    "ethernum-rpg-module.playersCanChooseCharacterSheet": boolean;
     "ethernum-rpg-module.runeClassDCs": Record<number, number>;
     "ethernum-rpg-module.feCostsPerRank": Record<string, number>;
     "ethernum-rpg-module.defaultRuneCostPerClass": Record<number, number>;
@@ -49,6 +50,7 @@ declare global {
           profiles: Record<string, unknown>;
         };
         combatMomentum?: CombatMomentumState;
+        characterSheetMode?: "auto" | "ethernum" | "concordia" | "pf2e";
         schemaVersion?: number;
         [key: string]: unknown;
       };

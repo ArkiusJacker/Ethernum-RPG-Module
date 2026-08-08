@@ -1,0 +1,90 @@
+<header class="ecs-header">
+  <button type="button"
+          class="ecs-portrait"
+          data-action="open-actor-image"
+          aria-label="Abrir retrato de {{identity.name}}"
+          title="Abrir retrato">
+    <img src="{{identity.img}}" alt="Retrato de {{identity.name}}" />
+  </button>
+
+  <div class="ecs-identity">
+    <span class="ecs-shell-title">{{shell.title}}</span>
+    <div class="ecs-identity__title-row">
+      {{#if permissions.canUpdateActor}}
+      <input class="ecs-identity__name"
+             type="text"
+             name="name"
+             value="{{identity.name}}"
+             aria-label="Nome do personagem" />
+      {{else}}
+      <h1 class="ecs-identity__name">{{identity.name}}</h1>
+      {{/if}}
+      <span class="ecs-level" aria-label="Nível {{identity.level}}">{{identity.level}}</span>
+    </div>
+
+    <p class="ecs-identity__line">
+      {{#if identity.ancestry}}<span>{{identity.ancestry}}</span>{{/if}}
+      {{#if identity.heritage}}<span>{{identity.heritage}}</span>{{/if}}
+      {{#if identity.className}}<span>{{identity.className}}</span>{{/if}}
+      {{#if identity.background}}<span>{{identity.background}}</span>{{/if}}
+      {{#if identity.size}}<span>{{identity.size}}</span>{{/if}}
+    </p>
+
+    <div class="ecs-identity__traits" aria-label="Traços do personagem">
+      {{#each identity.traits}}
+      <span class="ecs-tag">{{this}}</span>
+      {{/each}}
+      {{#if identity.playerName}}<span class="ecs-player"><i class="fas fa-user" aria-hidden="true"></i>{{identity.playerName}}</span>{{/if}}
+    </div>
+  </div>
+
+  <section class="ecs-vitals" aria-label="Pontos de vida e recursos principais">
+    <div class="ecs-vital ecs-vital--hp">
+      <span class="ecs-vital__label">PV</span>
+      <div class="ecs-vital__values">
+        {{#if permissions.canUpdateActor}}
+        <input type="number"
+               name="system.attributes.hp.value"
+               value="{{vitals.hp.value}}"
+               min="0"
+               max="{{vitals.hp.max}}"
+               data-action="update-hp"
+               aria-label="Pontos de vida atuais" />
+        {{else}}
+        <strong>{{vitals.hp.value}}</strong>
+        {{/if}}
+        <span aria-hidden="true">/</span>
+        <span>{{vitals.hp.max}}</span>
+      </div>
+      <div class="ecs-meter" role="meter" aria-label="Pontos de vida" aria-valuemin="0" aria-valuemax="{{vitals.hp.max}}" aria-valuenow="{{vitals.hp.value}}">
+        <span style="--ecs-meter-value: {{vitals.hp.percentage}}%;"></span>
+      </div>
+      {{#if vitals.hp.temp}}<small>+{{vitals.hp.temp}} temporários</small>{{/if}}
+    </div>
+
+    <div class="ecs-vital ecs-vital--hero">
+      <span class="ecs-vital__label">Herói</span>
+      <div class="ecs-stepper">
+        {{#if permissions.canUpdateActor}}
+        <button type="button" data-action="adjust-hero-points" data-delta="-1" aria-label="Remover ponto heroico" title="Remover ponto heroico"><i class="fas fa-minus" aria-hidden="true"></i></button>
+        {{/if}}
+        <strong>{{vitals.heroPoints.value}}</strong>
+        <span>/{{vitals.heroPoints.max}}</span>
+        {{#if permissions.canUpdateActor}}
+        <button type="button" data-action="adjust-hero-points" data-delta="1" aria-label="Adicionar ponto heroico" title="Adicionar ponto heroico"><i class="fas fa-plus" aria-hidden="true"></i></button>
+        {{/if}}
+      </div>
+    </div>
+  </section>
+
+  <div class="ecs-header-actions" role="toolbar" aria-label="Ações da ficha">
+    <button type="button" data-action="open-pf2e-sheet" aria-label="Abrir ficha original do PF2e" title="Ficha original do PF2e"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
+    <button type="button" data-action="toggle-compact" aria-label="Alternar modo compacto" title="Modo compacto"><i class="fas fa-compress" aria-hidden="true"></i></button>
+    {{#if permissions.canConfigureSheet}}
+    <button type="button" data-action="configure-sheet" aria-label="Configurar ficha" title="Configurar ficha"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
+    {{/if}}
+    {{#if permissions.gm}}
+    <button type="button" data-action="open-gm-control" aria-label="Central do Mestre" title="Central do Mestre"><i class="fas fa-user-gear" aria-hidden="true"></i></button>
+    {{/if}}
+  </div>
+</header>

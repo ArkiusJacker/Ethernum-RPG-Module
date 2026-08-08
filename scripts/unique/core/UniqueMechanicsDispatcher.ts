@@ -1,6 +1,7 @@
 import { getUniqueMechanicProfile } from "../../mechanics/registry.js";
 import { ETHERNUM } from "../../config.js";
 import type {
+  ManagedMacroDefinition,
   UniqueMechanicAction,
   UniqueMechanicProfile,
   UniqueMechanicsRuntime,
@@ -46,8 +47,8 @@ export class UniqueMechanicsDispatcher {
     return this.resolve(actor)?.getActions({ actor, runtime }) ?? [];
   }
 
-  static getManagedMacros(actor: Actor, runtime: UniqueMechanicsRuntime): UniqueMechanicAction[] {
-    return this.resolve(actor)?.getManagedMacros({ actor, runtime }) ?? [];
+  static getManagedMacros(actor: Actor, _runtime: UniqueMechanicsRuntime): ManagedMacroDefinition[] {
+    return this.resolve(actor)?.getManagedMacros() ?? [];
   }
 
   static async executeAction(
