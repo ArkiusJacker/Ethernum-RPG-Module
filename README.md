@@ -6,13 +6,13 @@
 
 Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## Versão 3.6.1
+## Versão 3.6.2
 
-- Controle do Mestre independente das fichas, disponível como painel global exclusivo do GM.
-- Launcher minimizado com badge de solicitações, drag, resize e posição e tamanho persistidos por mundo e usuário.
-- Audit Log paginado em grupos de 50 registros, com filtros e busca aplicados ao histórico completo.
-- Acesso pelo modo GM do Combat Momentum Tracker e pela API `game.ethernum.ui`.
-- Mechanics Core 2.0, Authority Bridge, políticas, aprovações, Pipping e macros antigas permanecem compatíveis.
+- Mechanics Core 2.1 com runtimes próprios para Arkius, Charles, Atlas, Yu, Bayle e Gyro.
+- Estados, ações gerenciadas, hooks e dados de ficha separados por perfil, sem `legacyProfileAdapter` nesses seis personagens.
+- Fachada pública antiga preservada para `game.ethernum`, macros e aliases existentes.
+- Adapter estável dos dados essenciais de personagens PF2e, preparando as futuras fichas sem substituir a ficha atual.
+- Controle do Mestre independente, Authority Bridge, aprovações, Audit Log, Pipping e Combat Momentum Tracker permanecem compatíveis.
 
 ## 🌟 Características Principais
 

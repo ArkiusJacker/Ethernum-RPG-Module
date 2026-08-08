@@ -5,6 +5,27 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.6.2] - 2026-08-08
+
+### Adicionado
+- Runtimes modulares para Arkius, Charles, Atlas, Yu, Bayle e Gyro, com arquivos próprios de estado, ações gerenciadas, dados de ficha e hooks conforme a necessidade de cada perfil.
+- `PF2eCharacterAdapter` com snapshot estável para nível, classe, ancestralidade, herança, PV, CA, percepção, deslocamento, salvamentos, Pontos Heroicos e condições.
+- Testes de arquitetura para impedir o retorno de `legacyProfileAdapter` aos seis perfis migrados e testes de equivalência entre dispatcher e wrappers públicos antigos.
+
+### Alterado
+- Arkius, Charles, Atlas, Yu, Bayle e Gyro passam diretamente de `UniqueMechanicProfile` para seus runtimes; Pipping mantém sua arquitetura modular existente.
+- Dados de ficha dos perfis migrados expõem somente o ramo do personagem ativo, preservando o contrato atual dos templates.
+- Estados e normalizadores dos seis personagens foram separados dos perfis para evitar dependências circulares e preparar as futuras fichas Ethernum e Concórdia.
+- `UniqueMechanicsLegacy.ts` foi reduzido de 7.902 para 67 linhas e agora contém somente a fachada de compatibilidade; a implementação compartilhada restante foi isolada no núcleo interno.
+
+### Corrigido
+- Aliases históricos das ações de Bayle agora são convertidos para os identificadores canônicos antes da execução.
+- A ação de Rede Sobrecarregada de Charles encaminha explicitamente o modo sobrecarregado pelo dispatcher.
+- O núcleo de mecânicas não depende mais do registro externo de perfis, eliminando inicialização circular em diferentes ordens de carregamento.
+
+### Compatibilidade
+- APIs em `game.ethernum`, macros existentes, Authority Bridge, Approval Queue, Audit Log e políticas restritivas permanecem preservados.
+
 ## [3.6.1] - 2026-08-08
 
 ### Adicionado

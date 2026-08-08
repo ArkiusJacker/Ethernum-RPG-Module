@@ -1,62 +1,29 @@
 import type { UniqueMechanicProfile } from "../types.js";
-import { asRecord, clampNumber } from "../state.js";
-import { legacyProfileAdapter } from "../profile-runtime.js";
-
-export const BAYLE_PROFILE_ID = "bayle-dragon" as const;
-
-export interface BayleDragonState {
-  stage: number;
-  ardor: number;
-  rageActive: boolean;
-  awakeningActive: boolean;
-  lightningChargesUsed: number;
-  breathUsed: boolean;
-  roarUsed: boolean;
-  lancesUsed: boolean;
-  closureUsed: boolean;
-  [key: string]: unknown;
-}
-
-export const DEFAULT_BAYLE_STATE: BayleDragonState = {
-  stage: 1,
-  ardor: 0,
-  rageActive: false,
-  awakeningActive: false,
-  lightningChargesUsed: 0,
-  breathUsed: false,
-  roarUsed: false,
-  lancesUsed: false,
-  closureUsed: false,
-};
-
-export function normalizeBayleState(value: unknown): BayleDragonState {
-  const state = asRecord(value);
-  return {
-    ...DEFAULT_BAYLE_STATE,
-    ...state,
-    stage: clampNumber(state.stage, 1, 1, 4),
-    ardor: clampNumber(state.ardor, 0, 0, 3),
-    rageActive: Boolean(state.rageActive),
-    awakeningActive: Boolean(state.awakeningActive),
-    lightningChargesUsed: clampNumber(state.lightningChargesUsed, 0, 0, 2),
-    breathUsed: Boolean(state.breathUsed),
-    roarUsed: Boolean(state.roarUsed),
-    lancesUsed: Boolean(state.lancesUsed),
-    closureUsed: Boolean(state.closureUsed),
-  };
-}
+import { onBayleCombatUpdate } from "./hooks.js";
+import { getBayleActions, getBayleManagedMacros } from "./macros.js";
+import { executeBayleAction } from "./runtime.js";
+import { buildBayleSheetData } from "./sheet-data.js";
+import {
+  BAYLE_PROFILE_ID,
+  DEFAULT_BAYLE_STATE,
+  normalizeBayleState,
+  type BayleDragonState,
+} from "./state.js";
 
 export const bayleProfile: UniqueMechanicProfile<BayleDragonState> = {
-  ...legacyProfileAdapter({
-    actions: ["placidusax-lightning", "dragon-breath", "dragon-roar", "lightning-lances", "bayle-closure"],
-    wildcardHandler: "useBayleAction",
-    passActionId: true,
-    combatHook: "handleCombatTurnAdvance",
-  }),
   id: BAYLE_PROFILE_ID,
   core: "ethernum-company",
   label: "Bayle, o Horror - Corpo Draconico",
   defaultState: DEFAULT_BAYLE_STATE,
   normalizeState: normalizeBayleState,
   migrateState: normalizeBayleState,
+  buildSheetData: ({ actor, isGM }) => buildBayleSheetData(actor, Boolean(isGM)),
+  getActions: getBayleActions,
+  executeAction: ({ actor }, actionId) => executeBayleAction(actor, actionId),
+  getManagedMacros: getBayleManagedMacros,
+  onCombatUpdate: ({ combat }) => onBayleCombatUpdate(combat),
+  onActorUpdate: async () => {},
+  onRest: async () => {},
 };
+
+export * from "./state.js";

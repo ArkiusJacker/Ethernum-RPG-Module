@@ -3,6 +3,7 @@ import type {
   UniqueMechanicProfileId,
   UniqueMechanicProfileOption,
 } from "./types.js";
+import { UNIQUE_MECHANIC_PROFILE_CATALOG } from "./profile-catalog.js";
 import { gyroProfile } from "./gyro/profile.js";
 import { bayleProfile } from "./bayle/profile.js";
 import { pippingProfile } from "./pipping/profile.js";
@@ -25,13 +26,10 @@ export const UNIQUE_MECHANIC_PROFILES = new Map<string, UniqueMechanicProfile>(
   profiles.map(profile => [profile.id, profile] as const),
 );
 
-export const PLACEHOLDER_PROFILE_OPTIONS: UniqueMechanicProfileOption[] = [
-  { id: "kaitake", label: "Kaitake", core: "ethernum-company", placeholder: true },
-  { id: "cinerio", label: "Cinerio", core: "ethernum-company", placeholder: true },
-  { id: "ailan", label: "Ailan", core: "ethernum-company", placeholder: true },
-  { id: "morgana", label: "Morgana", core: "concordia", placeholder: true },
-  { id: "unluck", label: "Unluck", core: "concordia", placeholder: true },
-];
+export const PLACEHOLDER_PROFILE_OPTIONS: UniqueMechanicProfileOption[] =
+  UNIQUE_MECHANIC_PROFILE_CATALOG
+    .filter(profile => profile.placeholder)
+    .map(profile => ({ ...profile, placeholder: true }));
 
 export function getUniqueMechanicProfile(profileId: unknown): UniqueMechanicProfile | null {
   if (typeof profileId !== "string") return null;
