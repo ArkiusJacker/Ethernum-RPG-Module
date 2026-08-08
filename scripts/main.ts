@@ -22,6 +22,7 @@ import {
 import { AutomationAuthority } from './core/AutomationAuthority.js';
 import { CombatTurnTimer } from './combat/CombatTurnTimer.js';
 import { AnimationService } from './core/AnimationService.js';
+import { initializeEthernumAuthorityBridge } from './core/EthernumAuthority.js';
 
 const GYRO_TECHNIQUES_MACRO_NAME = "Ethernum - Gyro: Técnicas";
 const GYRO_TECHNIQUES_MACRO_COMMAND = "await game.ethernum.macros.ethernumCompany.gyro.showTechniques();";
@@ -798,6 +799,7 @@ Hooks.once("init", () => {
     `${ETHERNUM.TEMPLATE_PATH}ether-attributes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`,
+    `${ETHERNUM.TEMPLATE_PATH}ethernum-gm-control-tab.html`,
   ]);
 
   game.ethernum = {
@@ -810,6 +812,7 @@ Hooks.once("init", () => {
 Hooks.once("ready", async () => {
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
+  initializeEthernumAuthorityBridge();
   await migrateWorld();
   initializePF2eAdapterSocket();
   initializeUniqueCanvasSocket();

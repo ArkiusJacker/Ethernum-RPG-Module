@@ -79,6 +79,59 @@ export function registerSettings(): void {
     type: Number,
     default: 0
   });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "authorityBridgeQueue", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "authorityBridgeAudit", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "authorityBridgePolicies", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { default: "auto", categories: {}, profiles: {}, handlers: {} },
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "authorityApprovalTimeoutMinutes", {
+    name: "ETHERNUM.Settings.AuthorityApprovalTimeout.Name",
+    hint: "ETHERNUM.Settings.AuthorityApprovalTimeout.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "2": "ETHERNUM.Settings.AuthorityApprovalTimeout.Two",
+      "5": "ETHERNUM.Settings.AuthorityApprovalTimeout.Five",
+      "10": "ETHERNUM.Settings.AuthorityApprovalTimeout.Ten",
+    },
+    default: "2",
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "authorityAuditRetention", {
+    name: "ETHERNUM.Settings.AuthorityAuditRetention.Name",
+    hint: "ETHERNUM.Settings.AuthorityAuditRetention.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "100": "100",
+      "250": "250",
+      "500": "500",
+      "1000": "1000",
+      "2000": "2000",
+    },
+    default: "500",
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "gmControlTheme", {
+    scope: "client",
+    config: false,
+    type: String,
+    choices: { ethernum: "Ethernum", concordia: "Concórdia" },
+    default: "ethernum",
+  });
 
   const refreshClientUI = () => window.dispatchEvent(new CustomEvent("ethernum-client-settings-changed"));
   const applyPippingHoverMode = (value: unknown) => {

@@ -25,6 +25,12 @@ declare global {
     "ethernum-rpg-module.pippingAbilityHoverEffects": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingHoverCanvasPreview": "off" | "card" | "token";
     "ethernum-rpg-module.combatTimerPreferredDuration": number;
+    "ethernum-rpg-module.authorityBridgeQueue": unknown[];
+    "ethernum-rpg-module.authorityBridgeAudit": unknown[];
+    "ethernum-rpg-module.authorityBridgePolicies": Record<string, unknown>;
+    "ethernum-rpg-module.authorityApprovalTimeoutMinutes": "2" | "5" | "10";
+    "ethernum-rpg-module.authorityAuditRetention": "100" | "250" | "500" | "1000" | "2000";
+    "ethernum-rpg-module.gmControlTheme": "ethernum" | "concordia";
   }
 
   // Registra as flags do módulo — necessário para actor.getFlag/setFlag

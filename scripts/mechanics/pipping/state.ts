@@ -1,6 +1,11 @@
 import { asRecord, asStringRecord, clampNumber, optionalString } from "../state.js";
+import {
+  normalizeUniqueExecutions,
+  reconcileUniqueExecutions,
+  type UniqueExecutionTransaction,
+} from "../../unique/core/UniqueExecutionManager.js";
 
-export const PIPPING_STATE_VERSION = 4;
+export const PIPPING_STATE_VERSION = 5;
 export type PippingExpression = "destruction" | "order" | "chaos";
 export type PippingDarknessMode = "manual" | "random" | "scatter" | "area";
 export type PippingTier = 1 | 2 | 3 | 4 | 5;
@@ -74,6 +79,8 @@ export interface PippingNightState {
   animatedShadow: PippingAnimatedShadowState;
   persistentAreas: PippingPersistentArea[];
   frequencies: Record<string, string>;
+  executions: UniqueExecutionTransaction[];
+  /** @deprecated Compatibility snapshot only. It is never used as an action mutex. */
   pendingAction?: PippingPendingAction;
   recovery: {
     communeAvailable: boolean;
@@ -106,6 +113,7 @@ export const DEFAULT_PIPPING_STATE: PippingNightState = {
   animatedShadow: {},
   persistentAreas: [],
   frequencies: {},
+  executions: [],
   recovery: {
     communeAvailable: false,
     recoveredByEchoTurnKeys: {},
@@ -229,6 +237,10 @@ export function normalizePippingState(value: unknown): PippingNightState {
     animatedShadow: normalizeAnimatedShadow(state.animatedShadow),
     persistentAreas: normalizePersistentAreas(state.persistentAreas),
     frequencies: asStringRecord(state.frequencies),
+    executions: reconcileUniqueExecutions(
+      normalizeUniqueExecutions(state.executions),
+      10 * 60_000,
+    ),
     pendingAction: normalizePendingAction(state.pendingAction),
     recovery: {
       ...DEFAULT_PIPPING_STATE.recovery,

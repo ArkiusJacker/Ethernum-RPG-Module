@@ -77,7 +77,7 @@ describe("normalizePippingState", () => {
       },
     });
 
-    expect(migrated.version).toBe(4);
+    expect(migrated.version).toBe(5);
     expect(migrated.darkness.templateId).toBe("template-1");
     expect(migrated.darkness.templateUuid).toContain("MeasuredTemplate");
     expect(migrated.shadowManifestations).toEqual([

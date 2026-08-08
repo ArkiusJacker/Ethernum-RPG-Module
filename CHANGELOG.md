@@ -5,6 +5,31 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.6.0] - 2026-08-08
+
+### Adicionado
+- Mechanics Core 2.0 com dispatcher central, contratos expandidos por perfil e facade de compatibilidade para todas as APIs e macros existentes.
+- Execuções independentes por `executionId` para Pipping, com reserva de recursos, estágios, resultado, cancelamento, falha e reconciliação de timeout.
+- Authority Bridge 2.0 unificando mutações PF2e e operações de canvas com GM primário, revalidação, políticas, idempotência e proteção contra replay.
+- Controle do Mestre exclusivo para GM com Resumo, Autorizações, Audit Log, Políticas, Diagnóstico e Administração nos temas Ethernum e Concórdia.
+- Audit Log persistente e limitado, filtros estruturados, exportação JSON, fila com expiração e comandos de aprovação, rejeição e confiança por perfil.
+- Testes de replay, aprovação, rejeição, expiração, dispatcher dos sete perfis, execuções simultâneas e animações persistentes.
+
+### Alterado
+- Gyro, Bayle, Pipping, Arkius, Yu, Charles e Atlas passam pelo dispatcher sem remover wrappers ou aliases antigos.
+- Schema de mundo avança para 13 e o estado de Pipping para a versão 5, preservando flags desconhecidas e cancelando reservas antigas órfãs.
+- `UniqueMechanics.ts` passa a ser uma facade curta; o motor anterior permanece isolado como camada de compatibilidade.
+
+### Corrigido
+- Pipping pode iniciar uma segunda ação enquanto outra aguarda alvo, diálogo, posicionamento ou aprovação do mestre.
+- Cancelamentos, recusas, falhas e timeouts de Pipping liberam apenas a reserva da execução correspondente e não travam a ficha.
+- A fumaça persistente de Pipping acompanha o token e é renderizada abaixo dele em Sequencer, PIXI e fallback DOM.
+- Ações protegidas executadas por jogadores usam o mesmo canal de autoridade para efeitos, condições, dano, cura e canvas.
+
+### Segurança
+- Pedidos remotos validam novamente usuário, ownership, ator, perfil, ação, payload, alvos, cena, token e limites imediatamente antes da execução.
+- Requests repetidos retornam o resultado já processado ou são registrados como duplicados sem executar a operação novamente.
+
 ## [3.5.5] - 2026-08-08
 
 ### Adicionado

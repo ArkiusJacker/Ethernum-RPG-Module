@@ -79,7 +79,7 @@ describe("DataMigration", () => {
       customRoot: "preserve-me",
     });
     expect(unique.profiles["pipping-night"]).toMatchObject({
-      version: 4,
+      version: 5,
       pulse: 4,
       tier: 2,
       livingNightActive: true,
@@ -112,7 +112,7 @@ describe("DataMigration", () => {
     expect(settingsSet).not.toHaveBeenCalled();
   });
 
-  it("upgrades a schema 10 Pipping state to v4 without resetting resources", async () => {
+  it("upgrades a schema 10 Pipping state to v5 without resetting resources", async () => {
     const actor = new FakeActor("schema-10", {
       schemaVersion: 10,
       uniqueMechanics: {
@@ -137,9 +137,9 @@ describe("DataMigration", () => {
     const unique = flags.uniqueMechanics as {
       profiles: Record<string, Record<string, unknown>>;
     };
-    expect(flags.schemaVersion).toBe(12);
+    expect(flags.schemaVersion).toBe(13);
     expect(unique.profiles["pipping-night"]).toMatchObject({
-      version: 4,
+      version: 5,
       pulse: 6,
       tier: 4,
       expressionChoices: { "4": "order" },

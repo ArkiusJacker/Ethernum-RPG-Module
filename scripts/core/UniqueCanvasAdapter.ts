@@ -1,5 +1,10 @@
 import { ETHERNUM } from "../config.js";
 import { AutomationAuthority } from "./AutomationAuthority.js";
+import {
+  getAuthorityApprovalTimeoutMs,
+  getEthernumAuthorityBridge,
+  initializeEthernumAuthorityBridge,
+} from "./EthernumAuthority.js";
 
 export type UniqueCanvasOperation =
   | {
@@ -65,6 +70,11 @@ interface UniqueCanvasResponse {
 }
 
 type UniqueCanvasSocketMessage = UniqueCanvasRequest | UniqueCanvasResponse;
+
+interface UniqueCanvasAuthorityPayload {
+  sourceActorUuid: string;
+  operation: UniqueCanvasOperation;
+}
 
 interface TokenDocumentLike {
   id?: string;
@@ -390,15 +400,35 @@ function handleResponse(response: UniqueCanvasResponse): void {
 
 export function initializeUniqueCanvasSocket(): void {
   if (socketInitialized) return;
-  const socket = game.socket as unknown as {
-    on?: (channel: string, callback: (message: UniqueCanvasSocketMessage) => void) => void;
-  } | undefined;
-  if (!socket?.on) return;
   socketInitialized = true;
-  socket.on(SOCKET_CHANNEL, message => {
-    if (message?.type === "unique-canvas-request") void handleRequest(message);
-    else if (message?.type === "unique-canvas-response") handleResponse(message);
-  });
+  const bridge = initializeEthernumAuthorityBridge();
+  bridge.registerHandler<UniqueCanvasAuthorityPayload, UniqueCanvasResult | null>(
+    "unique-canvas",
+    {
+      validate: async ({ request }) => {
+        const payload = request.payload;
+        const adapterRequest: UniqueCanvasRequest = {
+          type: "unique-canvas-request",
+          requestId: request.requestId,
+          requesterId: request.requesterId,
+          sourceActorUuid: payload.sourceActorUuid,
+          operation: payload.operation,
+        };
+        if (!await requesterOwnsActor(adapterRequest)) {
+          throw new Error("O jogador não controla o personagem solicitante.");
+        }
+        const actor = await resolveActor(payload.sourceActorUuid);
+        if (!actor) throw new Error("O personagem solicitante não foi encontrado.");
+        validateUniqueCanvasOperation(getActiveProfile(actor), payload.operation);
+        return { payload };
+      },
+      execute: async ({ request }) => {
+        const actor = await resolveActor(request.payload.sourceActorUuid);
+        if (!actor) throw new Error("O personagem solicitante não foi encontrado.");
+        return executeLocally(actor, request.payload.operation, request.requesterId);
+      },
+    },
+  );
 }
 
 export async function executeUniqueCanvasOperation(
@@ -408,29 +438,25 @@ export async function executeUniqueCanvasOperation(
   validateUniqueCanvasOperation(getActiveProfile(actor), operation);
   const requesterId = game.user?.id;
   if (!requesterId) throw new Error("Não há um usuário ativo para executar a operação de canvas.");
-  if (AutomationAuthority.isPrimaryGM() || !AutomationAuthority.getPrimaryGM()) {
+  initializeUniqueCanvasSocket();
+  const bridge = getEthernumAuthorityBridge();
+  if (!bridge.getPrimaryGM()) {
     return executeLocally(actor, operation, requesterId);
   }
 
-  initializeUniqueCanvasSocket();
-  const socket = game.socket as unknown as {
-    emit?: (channel: string, message: UniqueCanvasSocketMessage) => void;
-  } | undefined;
-  if (!socket?.emit) throw new Error("Não há um canal de autoridade ativo para a operação de canvas.");
-  const requestId = foundry.utils.randomID();
-  const response = new Promise<UniqueCanvasResult | null>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error("O mestre principal não respondeu à operação de canvas."));
-    }, REQUEST_TIMEOUT_MS);
-    pendingRequests.set(requestId, { resolve, reject, timeout });
-  });
-  socket.emit(SOCKET_CHANNEL, {
-    type: "unique-canvas-request",
-    requestId,
-    requesterId,
+  const payload: UniqueCanvasAuthorityPayload = {
     sourceActorUuid: actor.uuid,
     operation,
+  };
+  return bridge.request<UniqueCanvasAuthorityPayload, UniqueCanvasResult | null>({
+    handlerId: "unique-canvas",
+    category: "canvas",
+    profileId: getActiveProfile(actor),
+    actionId: operation.type,
+    sourceActorUuid: actor.uuid,
+    summary: operation.type,
+    details: operation.sceneId,
+    payload,
+    approvalTtlMs: getAuthorityApprovalTimeoutMs(),
   });
-  return response;
 }

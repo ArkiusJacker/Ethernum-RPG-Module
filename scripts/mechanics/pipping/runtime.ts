@@ -97,6 +97,8 @@ export interface PippingActionExecutionOptions {
   tier: PippingTier;
   formula: string | null;
   dc: number;
+  executionId?: string;
+  reserveAdditionalPulse?: (amount: number) => Promise<boolean>;
 }
 
 export interface PippingActionExecutionResult {
@@ -982,7 +984,7 @@ async function resolveAreaPlacement(
 export async function executePippingAction(
   options: PippingActionExecutionOptions,
 ): Promise<PippingActionExecutionResult> {
-  const { actor, action, state, tier, formula, dc } = options;
+  const { actor, action, state, tier, formula, dc, executionId } = options;
   if (action.id === "animated-shadow" || action.id === "mirrored-shadows") {
     try {
       const count = action.id === "animated-shadow" ? 1 : tier >= 5 ? 4 : tier >= 3 ? 3 : 2;
@@ -1057,6 +1059,14 @@ export async function executePippingAction(
     ? await chooseDarkWhisperUse(state, actor)
     : { bonus: 1, totalCost: action.pulseCost };
   if (!darkWhisperChoice) return { completed: false };
+  const additionalPulse = Math.max(0, darkWhisperChoice.totalCost - action.pulseCost);
+  if (additionalPulse > 0 && options.reserveAdditionalPulse) {
+    const reserved = await options.reserveAdditionalPulse(additionalPulse);
+    if (!reserved) {
+      ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Unique.Pipping.Errors.NotEnoughPulse"));
+      return { completed: false };
+    }
+  }
   const damageType = await chooseDamageType(action);
   if (!damageType) return { completed: false };
   const spec = resolvePippingTargetSpec(action, Number(
@@ -1185,7 +1195,7 @@ export async function executePippingAction(
 
   let appliedResults;
   try {
-    appliedResults = await applyPF2eMutations(actor, mutations, action.id);
+    appliedResults = await applyPF2eMutations(actor, mutations, action.id, { executionId });
   } catch (error) {
     if (persistentArea) {
       await removePippingPersistentAreas(actor, state, persistentArea.actionId).catch(() => {});

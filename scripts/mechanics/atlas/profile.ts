@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, clampNumber, optionalString } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const ATLAS_SIDARTA_PROFILE_ID = "atlas-sidarta" as const;
 export const ATLAS_MODIFICATION_IDS = [
@@ -95,9 +96,20 @@ export function normalizeAtlasState(value: unknown): AtlasState {
 }
 
 export const atlasProfile: UniqueMechanicProfile<AtlasState> = {
+  ...legacyProfileAdapter({
+    actions: ["divine-gaze", "complete-divine-gaze"],
+    handlers: {
+      "divine-gaze": "activateAtlasDivineGaze",
+      "complete-divine-gaze": "completeAtlasDivineGaze",
+    },
+    combatHook: "handleCombatTurnAdvance",
+    shortRestHandler: "atlasShortRestReset",
+    longRestHandler: "atlasLongRestReset",
+  }),
   id: ATLAS_SIDARTA_PROFILE_ID,
   core: "concordia",
   label: "Atlas Sidarta - Olhar do Divino",
   defaultState: DEFAULT_ATLAS_STATE,
   normalizeState: normalizeAtlasState,
+  migrateState: normalizeAtlasState,
 };

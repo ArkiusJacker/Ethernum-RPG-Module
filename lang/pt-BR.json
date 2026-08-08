@@ -6,7 +6,8 @@
       "RuneSystem": "Sistema de Runas",
       "DiceCalculator": "Calculadora de Dados",
       "Talents": "Talentos",
-      "UniqueMechanics": "Mecânicas Únicas"
+      "UniqueMechanics": "Mecânicas Únicas",
+      "GMControl": "Controle do Mestre"
     },
     "EtherCurrent": "Éter Atual",
     "EtherMax": "Éter Máximo",
@@ -1140,6 +1141,49 @@
         "ActionFailed": "Não foi possível concluir a ação do temporizador."
       }
     },
+    "GMControl": {
+      "Title": "Controle do Mestre",
+      "Subtitle": "Autoridade, auditoria e operações das Mecânicas Únicas",
+      "Navigation": "Seções do Controle do Mestre",
+      "GMOnly": "Visível somente para mestres",
+      "LastUpdated": "Atualizado em",
+      "Actions": { "Refresh": "Atualizar" },
+      "Sections": { "summary": "Resumo", "queue": "Autorizações", "audit": "Audit Log", "policies": "Políticas", "diagnostics": "Diagnóstico", "admin": "Administração" },
+      "Themes": { "Label": "Tema", "ethernum": "Ethernum", "concordia": "Concórdia" },
+      "Statuses": { "queued": "Pendente", "approved": "Aprovado", "rejected": "Rejeitado", "executed": "Executado", "failed": "Falhou", "cancelled": "Cancelado", "expired": "Expirado", "duplicate": "Duplicado" },
+      "Summary": {
+        "Title": "Resumo operacional", "Description": "Estado atual da autoridade e das solicitações do módulo.",
+        "pending": "Pendentes", "approved": "Aprovadas", "rejected": "Rejeitadas", "failures": "Falhas", "onlineGMs": "Mestres online", "averageLatencyMs": "Latência média"
+      },
+      "Queue": {
+        "Title": "Autorizações pendentes", "Description": "Solicitações sensíveis aguardando decisão do mestre.", "EmptyTitle": "Nenhuma autorização pendente", "EmptyDescription": "Novos pedidos de jogadores aparecerão aqui.",
+        "Columns": { "Request": "Pedido", "Source": "Origem", "Action": "Ação", "Status": "Status", "Expires": "Expira", "Actions": "Comandos" },
+        "Actions": { "approve": "Aprovar", "reject": "Rejeitar", "approve-trust": "Aprovar e confiar", "details": "Ver detalhes", "payload": "Ver payload" }
+      },
+      "Audit": {
+        "Title": "Audit Log", "Description": "Histórico persistente de decisões e execuções.", "EmptyTitle": "Histórico vazio", "EmptyDescription": "As operações registradas aparecerão aqui.", "FilteredResults": "Resultados filtrados",
+        "Actions": { "Clear": "Limpar histórico", "Export": "Exportar JSON", "Details": "Ver detalhes" },
+        "Columns": { "Time": "Data e hora", "Status": "Status", "Source": "Jogador e personagem", "Operation": "Operação", "Duration": "Duração", "Details": "Detalhes" }
+      },
+      "Filters": { "Label": "Filtros do Audit Log", "Search": "Buscar", "SearchPlaceholder": "Ação, personagem, jogador...", "Status": "Status", "User": "Usuário", "Profile": "Perfil", "Type": "Tipo", "Actor": "Ator", "Period": "Período", "AllStatuses": "Todos os status", "AllUsers": "Todos os usuários", "AllProfiles": "Todos os perfis", "AllTypes": "Todos os tipos", "AllActors": "Todos os atores" },
+      "Periods": { "all": "Todo o período", "hour": "Última hora", "day": "Últimas 24 horas", "week": "Últimos 7 dias" },
+      "Policies": {
+        "Title": "Políticas de autoridade", "Description": "Defina quais operações são automáticas, auditadas, aprovadas ou negadas.", "EmptyTitle": "Nenhuma política", "EmptyDescription": "As políticas registradas aparecerão aqui.", "Mode": "Modo", "WorldDefault": "Padrão do mundo", "ProfileOverride": "Substituição por perfil",
+        "Modes": { "auto": "Automático", "approval": "Solicitar aprovação", "deny": "Negado", "log": "Somente registrar" },
+        "Categories": { "actor-damage": "Dano em ator", "actor-healing": "Cura em ator", "condition": "Condições", "effect": "Efeitos", "canvas": "Operações de canvas", "multi-target": "Ações com vários alvos", "reaction": "Reações", "out-of-turn": "Ações fora do turno" }
+      },
+      "Diagnostics": {
+        "Title": "Diagnóstico de autoridade", "Description": "Saúde do canal, fila e processamento atual.", "EmptyTitle": "Sem diagnóstico", "EmptyDescription": "Atualize para coletar o estado atual.",
+        "PrimaryGM": "Mestre primário", "CurrentGM": "Usuário atual", "OnlineUsers": "Usuários online", "Pending": "Pedidos pendentes", "Processed": "Pedidos processados", "Failures": "Falhas recentes", "LastRequest": "Último pedido", "Latency": "Latência média",
+        "Actions": { "refresh": "Atualizar diagnóstico", "clear-expired": "Limpar expirados", "reconcile": "Reconciliar fila", "copy": "Copiar diagnóstico" }
+      },
+      "Admin": {
+        "Title": "Ações administrativas", "Description": "Ferramentas de manutenção e intervenção do mestre.", "Actor": "Personagem", "Amount": "Quantidade", "FulgorDescription": "Concede manualmente Fulgor Negro ao personagem durante o combate.",
+        "Actions": { "grant-fulgor": "Conceder Fulgor Negro", "cleanup-expired": "Limpar expirados", "clear-audit": "Limpar Audit Log", "reconcile-orphans": "Reconciliar execuções", "cancel-stuck": "Cancelar execução presa", "export-data": "Exportar logs" },
+        "Descriptions": { "grant-fulgor": "Libera Fulgor para o personagem.", "cleanup-expired": "Remove pedidos vencidos.", "clear-audit": "Apaga o histórico persistente.", "reconcile-orphans": "Cancela execuções órfãs e reconcilia a fila.", "cancel-stuck": "Libera ações interativas presas.", "export-data": "Baixa fila, políticas, diagnóstico e log." }
+      },
+      "Errors": { "ActionFailed": "Não foi possível concluir a ação do Controle do Mestre.", "PayloadSerialization": "Não foi possível serializar o payload." }
+    },
     "Settings": {
       "LongRestFullRestore": {
         "Name": "Restauração Total no Descanso Longo",
@@ -1165,6 +1209,8 @@
         "Name": "Custo Padrão de Runa por Classe",
         "Hint": "Define o custo de éter padrão (adicional ao custo base da classe) para novas runas de cada classe."
       },
+      "AuthorityApprovalTimeout": { "Name": "Expiração de autorizações", "Hint": "Tempo para o mestre aprovar ou rejeitar uma solicitação.", "Two": "2 minutos", "Five": "5 minutos", "Ten": "10 minutos" },
+      "AuthorityAuditRetention": { "Name": "Retenção do Audit Log", "Hint": "Quantidade máxima de entradas persistentes no histórico do mestre." },
       "CombatTrackerEnabled": {
         "Name": "Exibir rastreador de combate Ethernum",
         "Hint": "Mostra ou oculta o rastreador global para este cliente."

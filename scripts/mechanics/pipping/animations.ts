@@ -646,7 +646,17 @@ async function playSequencerKeys(
       if (!locally) continue;
       effect = asRecord(locally.call(effect)) ?? effect;
     }
-    effect = callChain(effect, "atLocation", origin);
+    const attachTo = request.persistentId && request.source
+      ? callable(effect.attachTo)
+      : null;
+    if (attachTo) {
+      effect = asRecord(attachTo.call(effect, request.source, {
+        bindVisibility: true,
+        followRotation: false,
+      })) ?? effect;
+    } else {
+      effect = callChain(effect, "atLocation", origin);
+    }
     if (destination !== origin && hasTravel(request.definition)) {
       effect = callChain(effect, "stretchTo", destination);
     }
@@ -658,6 +668,7 @@ async function playSequencerKeys(
       clamp(0.65 + request.context.intensity * 0.12, 0.65, 1.4),
     );
     if (request.persistentId) {
+      effect = callChain(effect, "belowTokens");
       effect = callChain(effect, "name", request.persistentId);
       callChain(effect, "persist", true);
     }
@@ -666,8 +677,11 @@ async function playSequencerKeys(
 
   if (effectCount === 0) return { played: false };
   await play.call(sequence);
+  let cleaned = false;
   const cleanup = request.persistentId
     ? async (): Promise<void> => {
+      if (cleaned) return;
+      cleaned = true;
       const manager = sequenceEffectManager();
       const endEffects = callable(manager?.endEffects);
       if (endEffects) await endEffects.call(manager, { name: request.persistentId });
@@ -780,6 +794,74 @@ function destroyDisplayObject(value: unknown): void {
   }
 }
 
+function trackVisualPosition(update: () => void): () => void {
+  const root = globalThis as unknown as Record<string, unknown>;
+  const canvasObject = asRecord(root.canvas);
+  const ticker = asRecord(asRecord(canvasObject?.app)?.ticker);
+  const addTicker = callable(ticker?.add);
+  const removeTicker = callable(ticker?.remove);
+  let active = true;
+
+  if (addTicker && removeTicker) {
+    addTicker.call(ticker, update);
+    return (): void => {
+      if (!active) return;
+      active = false;
+      removeTicker.call(ticker, update);
+    };
+  }
+
+  const requestFrame = callable(root.requestAnimationFrame);
+  const cancelFrame = callable(root.cancelAnimationFrame);
+  if (!requestFrame) return () => undefined;
+
+  let frameId: unknown;
+  const frame = (): void => {
+    if (!active) return;
+    update();
+    frameId = requestFrame.call(root, frame);
+  };
+  frameId = requestFrame.call(root, frame);
+
+  return (): void => {
+    if (!active) return;
+    active = false;
+    if (cancelFrame && frameId !== undefined) cancelFrame.call(root, frameId);
+  };
+}
+
+function addPixiVisual(
+  graphics: Record<string, unknown>,
+  request: PippingAnimationRequest,
+  canvasObject: Record<string, unknown>,
+): boolean {
+  const source = asRecord(request.source);
+  const sourceParent = asRecord(source?.parent);
+  const addChildAt = callable(sourceParent?.addChildAt);
+  const getChildIndex = callable(sourceParent?.getChildIndex);
+
+  if (request.persistentId && source && sourceParent && addChildAt && getChildIndex) {
+    try {
+      const sourceIndex = Number(getChildIndex.call(sourceParent, source));
+      if (Number.isFinite(sourceIndex) && sourceIndex >= 0) {
+        addChildAt.call(sourceParent, graphics, sourceIndex);
+        return true;
+      }
+    } catch {
+      // Fall through to a canvas layer when the token container is rebuilding.
+    }
+  }
+
+  const preferredLayers = request.persistentId
+    ? [canvasObject.background, canvasObject.primary, canvasObject.effects, canvasObject.interface]
+    : [canvasObject.interface, canvasObject.effects, canvasObject.primary];
+  const layer = preferredLayers.map(asRecord).find(candidate => callable(candidate?.addChild));
+  const addChild = callable(layer?.addChild);
+  if (!layer || !addChild) return false;
+  addChild.call(layer, graphics);
+  return true;
+}
+
 async function delay(milliseconds: number): Promise<void> {
   await new Promise<void>(resolve => globalThis.setTimeout(resolve, milliseconds));
 }
@@ -790,20 +872,41 @@ async function defaultPixiDriver(
   const root = globalThis as unknown as Record<string, unknown>;
   const pixi = asRecord(root.PIXI);
   const canvasObject = asRecord(root.canvas);
-  const layer = asRecord(canvasObject?.interface ?? canvasObject?.effects);
   const Graphics = pixi?.Graphics;
-  if (typeof Graphics !== "function" || !layer || !callable(layer.addChild)) {
+  if (typeof Graphics !== "function" || !canvasObject) {
     return { played: false };
   }
 
-  const origin = objectPoint(request.source ?? request.template ?? request.targets[0]);
+  const anchor = request.source ?? request.template ?? request.targets[0];
+  const origin = objectPoint(anchor);
   if (!origin) return { played: false };
-  const targets = request.targets.map(objectPoint).filter((point): point is Point => Boolean(point));
   const graphics = new (Graphics as new () => Record<string, unknown>)();
-  drawPixiVisual(graphics, request, origin, targets);
-  layer.addChild && callable(layer.addChild)?.call(layer, graphics);
+  const redraw = (): void => {
+    const currentOrigin = objectPoint(anchor);
+    if (!currentOrigin) return;
+    callable(graphics.clear)?.call(graphics);
+    const targets = request.targets
+      .map(objectPoint)
+      .filter((point): point is Point => Boolean(point));
+    drawPixiVisual(graphics, request, currentOrigin, targets);
+  };
+  redraw();
+  if (!addPixiVisual(graphics, request, canvasObject)) {
+    destroyDisplayObject(graphics);
+    return { played: false };
+  }
 
-  const cleanup = async (): Promise<void> => destroyDisplayObject(graphics);
+  const stopTracking = request.persistentId && request.source
+    ? trackVisualPosition(redraw)
+    : () => undefined;
+  let cleaned = false;
+  const cleanup = async (): Promise<void> => {
+    if (cleaned) return;
+    cleaned = true;
+    stopTracking();
+    destroyDisplayObject(graphics);
+  };
+
   if (request.persistentId) return { played: true, cleanup };
   await delay(request.durationMs);
   await cleanup();
@@ -846,7 +949,8 @@ async function defaultDomDriver(
   request: PippingAnimationRequest,
 ): Promise<PippingAnimationDriverResult> {
   if (typeof document === "undefined" || !document.body) return { played: false };
-  const worldPoint = objectPoint(request.source ?? request.template ?? request.targets[0]);
+  const anchor = request.source ?? request.template ?? request.targets[0];
+  const worldPoint = objectPoint(anchor);
   const actionAnchor = domActionAnchor(request.context.actionId);
 
   if (!worldPoint && actionAnchor) {
@@ -865,35 +969,51 @@ async function defaultDomDriver(
   }
   if (!worldPoint) return { played: false };
 
-  const point = pointToScreen(worldPoint);
   const element = document.createElement("div");
   const size = 54 + request.context.tier * 8;
   element.className = request.definition.fallbackClass;
   element.dataset.pippingAnimationId = request.persistentId ?? request.context.actionId;
   Object.assign(element.style, {
     position: "fixed",
-    left: `${point.x}px`,
-    top: `${point.y}px`,
     width: `${size}px`,
     height: `${size}px`,
     marginLeft: `${-size / 2}px`,
     marginTop: `${-size / 2}px`,
     pointerEvents: "none",
-    zIndex: "70",
+    zIndex: request.persistentId ? "30" : "70",
     border: `2px solid ${request.definition.colors[2]}`,
     borderRadius: request.definition.visual === "fracture" ? "18% 62% 24% 55%" : "50%",
     boxShadow: `0 0 ${request.mode === "reduced" ? 12 : 30}px ${request.definition.colors[1]}`,
     background: request.definition.asset?.path
       ? `center / contain no-repeat url("${request.definition.asset.path}")`
       : `radial-gradient(circle, ${request.definition.colors[2]}55, ${request.definition.colors[0]}11 70%)`,
-    opacity: request.mode === "reduced" ? "0.62" : "0.86",
+    opacity: request.persistentId
+      ? request.mode === "reduced" ? "0.38" : "0.52"
+      : request.mode === "reduced" ? "0.62" : "0.86",
   });
+  if (request.persistentId) {
+    const centerCutout = "radial-gradient(circle, transparent 0 36%, #000 52%)";
+    element.style.maskImage = centerCutout;
+    element.style.webkitMaskImage = centerCutout;
+  }
+  const updatePosition = (): void => {
+    const currentPoint = objectPoint(anchor);
+    if (!currentPoint) return;
+    const screenPoint = pointToScreen(currentPoint);
+    element.style.left = `${screenPoint.x}px`;
+    element.style.top = `${screenPoint.y}px`;
+  };
+  updatePosition();
   document.body.append(element);
+  const stopTracking = request.persistentId
+    ? trackVisualPosition(updatePosition)
+    : () => undefined;
 
   const animation = callable(element.animate);
+  let animationHandle: Record<string, unknown> | null = null;
   if (animation) {
     const fullMotion = request.mode === "full";
-    animation.call(
+    animationHandle = asRecord(animation.call(
       element,
       [
         { opacity: 0, transform: "scale(0.35) rotate(0deg)" },
@@ -909,10 +1029,17 @@ async function defaultDomDriver(
         fill: "forwards",
         iterations: request.persistentId && fullMotion ? Infinity : 1,
       },
-    );
+    ));
   }
 
-  const cleanup = async (): Promise<void> => element.remove();
+  let cleaned = false;
+  const cleanup = async (): Promise<void> => {
+    if (cleaned) return;
+    cleaned = true;
+    stopTracking();
+    callable(animationHandle?.cancel)?.call(animationHandle);
+    element.remove();
+  };
   if (request.persistentId) return { played: true, cleanup };
   await delay(request.durationMs);
   await cleanup();

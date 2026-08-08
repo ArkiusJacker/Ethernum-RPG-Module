@@ -6,7 +6,8 @@
       "RuneSystem": "Rune System",
       "DiceCalculator": "Dice Calculator",
       "Talents": "Talents",
-      "UniqueMechanics": "Unique Mechanics"
+      "UniqueMechanics": "Unique Mechanics",
+      "GMControl": "GM Control"
     },
     "EtherCurrent": "Current Ether",
     "EtherMax": "Maximum Ether",
@@ -1140,6 +1141,46 @@
         "ActionFailed": "The timer action could not be completed."
       }
     },
+    "GMControl": {
+      "Title": "GM Control Center",
+      "Subtitle": "Authority, audit, and Unique Mechanics operations",
+      "Navigation": "GM Control sections",
+      "GMOnly": "Visible to GMs only",
+      "LastUpdated": "Updated at",
+      "Actions": { "Refresh": "Refresh" },
+      "Sections": { "summary": "Summary", "queue": "Approvals", "audit": "Audit Log", "policies": "Policies", "diagnostics": "Diagnostics", "admin": "Administration" },
+      "Themes": { "Label": "Theme", "ethernum": "Ethernum", "concordia": "Concordia" },
+      "Statuses": { "queued": "Pending", "approved": "Approved", "rejected": "Rejected", "executed": "Executed", "failed": "Failed", "cancelled": "Cancelled", "expired": "Expired", "duplicate": "Duplicate" },
+      "Summary": { "Title": "Operational summary", "Description": "Current state of module authority and requests.", "pending": "Pending", "approved": "Approved", "rejected": "Rejected", "failures": "Failures", "onlineGMs": "Online GMs", "averageLatencyMs": "Average latency" },
+      "Queue": {
+        "Title": "Pending approvals", "Description": "Sensitive requests waiting for a GM decision.", "EmptyTitle": "No pending approvals", "EmptyDescription": "New player requests will appear here.",
+        "Columns": { "Request": "Request", "Source": "Source", "Action": "Action", "Status": "Status", "Expires": "Expires", "Actions": "Commands" },
+        "Actions": { "approve": "Approve", "reject": "Reject", "approve-trust": "Approve and trust", "details": "View details", "payload": "View payload" }
+      },
+      "Audit": {
+        "Title": "Audit Log", "Description": "Persistent history of decisions and executions.", "EmptyTitle": "Empty history", "EmptyDescription": "Recorded operations will appear here.", "FilteredResults": "Filtered results",
+        "Actions": { "Clear": "Clear history", "Export": "Export JSON", "Details": "View details" },
+        "Columns": { "Time": "Date and time", "Status": "Status", "Source": "Player and character", "Operation": "Operation", "Duration": "Duration", "Details": "Details" }
+      },
+      "Filters": { "Label": "Audit Log filters", "Search": "Search", "SearchPlaceholder": "Action, character, player...", "Status": "Status", "User": "User", "Profile": "Profile", "Type": "Type", "Actor": "Actor", "Period": "Period", "AllStatuses": "All statuses", "AllUsers": "All users", "AllProfiles": "All profiles", "AllTypes": "All types", "AllActors": "All actors" },
+      "Periods": { "all": "All time", "hour": "Last hour", "day": "Last 24 hours", "week": "Last 7 days" },
+      "Policies": {
+        "Title": "Authority policies", "Description": "Choose which operations are automatic, logged, approved, or denied.", "EmptyTitle": "No policies", "EmptyDescription": "Registered policies will appear here.", "Mode": "Mode", "WorldDefault": "World default", "ProfileOverride": "Profile override",
+        "Modes": { "auto": "Automatic", "approval": "Request approval", "deny": "Denied", "log": "Log only" },
+        "Categories": { "actor-damage": "Actor damage", "actor-healing": "Actor healing", "condition": "Conditions", "effect": "Effects", "canvas": "Canvas operations", "multi-target": "Multi-target actions", "reaction": "Reactions", "out-of-turn": "Out-of-turn actions" }
+      },
+      "Diagnostics": {
+        "Title": "Authority diagnostics", "Description": "Current channel, queue, and processing health.", "EmptyTitle": "No diagnostics", "EmptyDescription": "Refresh to collect the current state.",
+        "PrimaryGM": "Primary GM", "CurrentGM": "Current user", "OnlineUsers": "Online users", "Pending": "Pending requests", "Processed": "Processed requests", "Failures": "Recent failures", "LastRequest": "Last request", "Latency": "Average latency",
+        "Actions": { "refresh": "Refresh diagnostics", "clear-expired": "Clear expired", "reconcile": "Reconcile queue", "copy": "Copy diagnostics" }
+      },
+      "Admin": {
+        "Title": "Administrative actions", "Description": "GM maintenance and intervention tools.", "Actor": "Character", "Amount": "Amount", "FulgorDescription": "Manually grants Black Fulgor to a character during combat.",
+        "Actions": { "grant-fulgor": "Grant Black Fulgor", "cleanup-expired": "Clear expired", "clear-audit": "Clear Audit Log", "reconcile-orphans": "Reconcile executions", "cancel-stuck": "Cancel stuck execution", "export-data": "Export logs" },
+        "Descriptions": { "grant-fulgor": "Makes Fulgor available to the character.", "cleanup-expired": "Removes expired requests.", "clear-audit": "Deletes persistent audit history.", "reconcile-orphans": "Cancels orphan executions and reconciles the queue.", "cancel-stuck": "Releases stuck interactive actions.", "export-data": "Downloads queue, policies, diagnostics, and log." }
+      },
+      "Errors": { "ActionFailed": "The GM Control action could not be completed.", "PayloadSerialization": "The payload could not be serialized." }
+    },
     "Settings": {
       "LongRestFullRestore": {
         "Name": "Full Restoration on Long Rest",
@@ -1165,6 +1206,8 @@
         "Name": "Default Rune Cost per Class",
         "Hint": "Set the default ether cost (additional to class base cost) for new runes of each class."
       },
+      "AuthorityApprovalTimeout": { "Name": "Approval expiry", "Hint": "Time allowed for the GM to approve or reject a request.", "Two": "2 minutes", "Five": "5 minutes", "Ten": "10 minutes" },
+      "AuthorityAuditRetention": { "Name": "Audit Log retention", "Hint": "Maximum number of persistent entries in the GM history." },
       "CombatTrackerEnabled": {
         "Name": "Show Ethernum combat tracker",
         "Hint": "Shows or hides the global tracker for this client."

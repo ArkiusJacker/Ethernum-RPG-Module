@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, asStringRecord, clampNumber, optionalString } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const CHARLES_PROFILE_ID = "charles" as const;
 
@@ -63,9 +64,24 @@ export function normalizeCharlesState(value: unknown): CharlesState {
 }
 
 export const charlesProfile: UniqueMechanicProfile<CharlesState> = {
+  ...legacyProfileAdapter({
+    actions: ["impulse-climb", "containment-shot", "vector-pull", "cushioning-net", "overloaded-net", "craft-imagination"],
+    handlers: {
+      "impulse-climb": "useCharlesImpulseClimb",
+      "containment-shot": "useCharlesContainmentShot",
+      "vector-pull": "useCharlesVectorPull",
+      "cushioning-net": "deployCharlesCushioningNet",
+      "overloaded-net": "deployCharlesCushioningNet",
+      "craft-imagination": "useCharlesCraftImagination",
+    },
+    combatHook: "handleCombatTurnAdvance",
+    shortRestHandler: "charlesShortRestReset",
+    longRestHandler: "charlesLongRestReset",
+  }),
   id: CHARLES_PROFILE_ID,
   core: "concordia",
   label: "Charles - Miranha em Acao",
   defaultState: DEFAULT_CHARLES_STATE,
   normalizeState: normalizeCharlesState,
+  migrateState: normalizeCharlesState,
 };

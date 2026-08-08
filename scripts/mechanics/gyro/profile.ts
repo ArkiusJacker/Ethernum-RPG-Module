@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, clampNumber, optionalString } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const GYRO_PROFILE_ID = "gyro-spin" as const;
 export type GyroMainAttribute = "dex" | "wis";
@@ -72,9 +73,16 @@ export function normalizeGyroState(value: unknown): GyroSpinState {
 }
 
 export const gyroProfile: UniqueMechanicProfile<GyroSpinState> = {
+  ...legacyProfileAdapter({
+    actions: ["technique"],
+    wildcardHandler: "useGyroTechnique",
+    passActionId: true,
+    combatHook: "handleCombatTurnAdvance",
+  }),
   id: GYRO_PROFILE_ID,
   core: "ethernum-company",
   label: "Gyro Zeppeli - Via da Rotacao Sagrada",
   defaultState: DEFAULT_GYRO_STATE,
   normalizeState: normalizeGyroState,
+  migrateState: normalizeGyroState,
 };

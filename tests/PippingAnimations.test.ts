@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  clearPippingAnimationDatabaseValidationCache,
   getPippingAnimationDefinition,
   PIPPING_ANIMATION_ACTION_IDS,
   PIPPING_ANIMATION_DEFINITIONS,
@@ -30,7 +31,9 @@ const skippedDriver: PippingAnimationDriver = async () => ({ played: false });
 
 afterEach(async () => {
   await PippingAnimationService.shutdown();
+  clearPippingAnimationDatabaseValidationCache();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("Pipping animation definitions", () => {
@@ -198,6 +201,183 @@ describe("Pipping animation modes and fallbacks", () => {
 });
 
 describe("Pipping animation context and cleanup", () => {
+  it("attaches persistent Sequencer effects to the source below tokens", async () => {
+    const source = { visible: true, center: { x: 10, y: 20 } };
+    const endEffects = vi.fn(async () => undefined);
+    const effect: Record<string, ReturnType<typeof vi.fn>> = {};
+    for (const method of [
+      "file",
+      "attachTo",
+      "atLocation",
+      "belowTokens",
+      "duration",
+      "opacity",
+      "scale",
+      "name",
+      "persist",
+    ]) {
+      effect[method] = vi.fn(() => effect);
+    }
+    const sequence = {
+      effect: vi.fn(() => effect),
+      play: vi.fn(async () => undefined),
+    };
+
+    vi.stubGlobal("Sequence", function MockSequence() {
+      return sequence;
+    });
+    vi.stubGlobal("Sequencer", {
+      Database: { entryExists: vi.fn(async () => true) },
+      EffectManager: { endEffects },
+    });
+
+    await PippingAnimationService.playPersistent(context({
+      actionId: "living-night-song",
+      expression: undefined,
+      persistentId: "pipping-following-smoke",
+      environment: { resolveUuid: async () => source },
+    }));
+
+    expect(effect.attachTo).toHaveBeenCalledWith(source, {
+      bindVisibility: true,
+      followRotation: false,
+    });
+    expect(effect.atLocation).not.toHaveBeenCalled();
+    expect(effect.belowTokens).toHaveBeenCalledOnce();
+
+    await PippingAnimationService.stopPersistent("pipping-following-smoke");
+    await PippingAnimationService.stopPersistent("pipping-following-smoke");
+    expect(endEffects).toHaveBeenCalledOnce();
+    expect(endEffects).toHaveBeenCalledWith({ name: "pipping-following-smoke" });
+  });
+
+  it("keeps the persistent PIXI fallback below and synchronized with the source token", async () => {
+    const instances: Array<Record<string, ReturnType<typeof vi.fn>> & {
+      parent?: unknown;
+    }> = [];
+    class Graphics {
+      parent?: unknown;
+      clear = vi.fn();
+      lineStyle = vi.fn();
+      drawCircle = vi.fn();
+      drawRoundedRect = vi.fn();
+      moveTo = vi.fn();
+      lineTo = vi.fn();
+      beginFill = vi.fn();
+      endFill = vi.fn();
+      destroy = vi.fn();
+
+      constructor() {
+        instances.push(this);
+      }
+    }
+    const ticker = {
+      add: vi.fn(),
+      remove: vi.fn(),
+    };
+    const sourceParent: Record<string, unknown> = {
+      getChildIndex: vi.fn(() => 4),
+      addChildAt: vi.fn((child: Graphics) => {
+        child.parent = sourceParent;
+      }),
+      removeChild: vi.fn(),
+    };
+    const source = {
+      visible: true,
+      center: { x: 10, y: 20 },
+      parent: sourceParent,
+    };
+
+    vi.stubGlobal("PIXI", { Graphics });
+    vi.stubGlobal("canvas", { app: { ticker } });
+
+    await PippingAnimationService.playPersistent(context({
+      actionId: "living-night-song",
+      expression: undefined,
+      persistentId: "pipping-pixi-smoke",
+      environment: {
+        resolveUuid: async () => source,
+        sequencer: skippedDriver,
+        jb2a: skippedDriver,
+        dom: skippedDriver,
+      },
+    }));
+
+    const graphics = instances[0];
+    expect(sourceParent.addChildAt).toHaveBeenCalledWith(graphics, 4);
+    expect(ticker.add).toHaveBeenCalledOnce();
+    expect(graphics.drawCircle.mock.calls.some(([x, y]) => x === 10 && y === 20)).toBe(true);
+
+    source.center = { x: 55, y: 65 };
+    const update = ticker.add.mock.calls[0]?.[0] as (() => void) | undefined;
+    update?.();
+    expect(graphics.drawCircle.mock.calls.some(([x, y]) => x === 55 && y === 65)).toBe(true);
+
+    await PippingAnimationService.stopPersistent("pipping-pixi-smoke");
+    await PippingAnimationService.stopPersistent("pipping-pixi-smoke");
+    expect(ticker.remove).toHaveBeenCalledOnce();
+    expect(sourceParent.removeChild).toHaveBeenCalledOnce();
+    expect(graphics.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("tracks persistent DOM fallback position without covering the token center", async () => {
+    const animationHandle = { cancel: vi.fn() };
+    const element = {
+      style: {} as Record<string, string>,
+      dataset: {} as Record<string, string>,
+      animate: vi.fn(() => animationHandle),
+      remove: vi.fn(),
+    };
+    const body = { append: vi.fn() };
+    const ticker = { add: vi.fn(), remove: vi.fn() };
+    const source = { visible: true, center: { x: 10, y: 20 } };
+
+    vi.stubGlobal("document", {
+      body,
+      createElement: vi.fn(() => element),
+      querySelector: vi.fn(() => null),
+    });
+    vi.stubGlobal("canvas", {
+      app: {
+        ticker,
+        view: { getBoundingClientRect: () => ({ left: 5, top: 7 }) },
+      },
+      stage: {
+        worldTransform: { apply: (point: unknown) => point },
+      },
+    });
+
+    await PippingAnimationService.playPersistent(context({
+      actionId: "living-night-song",
+      expression: undefined,
+      persistentId: "pipping-dom-smoke",
+      environment: {
+        resolveUuid: async () => source,
+        sequencer: skippedDriver,
+        jb2a: skippedDriver,
+        pixi: skippedDriver,
+      },
+    }));
+
+    expect(body.append).toHaveBeenCalledWith(element);
+    expect(element.style.left).toBe("15px");
+    expect(element.style.top).toBe("27px");
+    expect(element.style.zIndex).toBe("30");
+    expect(element.style.maskImage).toContain("transparent");
+
+    source.center = { x: 40, y: 60 };
+    const update = ticker.add.mock.calls[0]?.[0] as (() => void) | undefined;
+    update?.();
+    expect(element.style.left).toBe("45px");
+    expect(element.style.top).toBe("67px");
+
+    await PippingAnimationService.stopPersistent("pipping-dom-smoke");
+    await PippingAnimationService.stopPersistent("pipping-dom-smoke");
+    expect(ticker.remove).toHaveBeenCalledOnce();
+    expect(animationHandle.cancel).toHaveBeenCalledOnce();
+    expect(element.remove).toHaveBeenCalledOnce();
+  });
+
   it("passes multiple visible targets and a template to the selected driver", async () => {
     const documents: Record<string, unknown> = {
       "Scene.scene.Token.pipping": { object: { visible: true, center: { x: 10, y: 20 } } },

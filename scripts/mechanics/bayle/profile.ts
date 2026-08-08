@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, clampNumber } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const BAYLE_PROFILE_ID = "bayle-dragon" as const;
 
@@ -46,9 +47,16 @@ export function normalizeBayleState(value: unknown): BayleDragonState {
 }
 
 export const bayleProfile: UniqueMechanicProfile<BayleDragonState> = {
+  ...legacyProfileAdapter({
+    actions: ["placidusax-lightning", "dragon-breath", "dragon-roar", "lightning-lances", "bayle-closure"],
+    wildcardHandler: "useBayleAction",
+    passActionId: true,
+    combatHook: "handleCombatTurnAdvance",
+  }),
   id: BAYLE_PROFILE_ID,
   core: "ethernum-company",
   label: "Bayle, o Horror - Corpo Draconico",
   defaultState: DEFAULT_BAYLE_STATE,
   normalizeState: normalizeBayleState,
+  migrateState: normalizeBayleState,
 };

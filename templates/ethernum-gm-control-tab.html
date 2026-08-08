@@ -1,0 +1,311 @@
+{{#if isGM}}
+<section class="ethernum-gm-control theme-{{theme}}" data-ethernum-gm-control data-theme="{{theme}}" aria-label="{{localize 'ETHERNUM.GMControl.Title'}}">
+  <header class="ethernum-gm-control__header">
+    <div class="ethernum-gm-control__identity">
+      <span class="ethernum-gm-control__mark" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+      <div>
+        <h2>{{localize "ETHERNUM.GMControl.Title"}}</h2>
+        <p>{{localize "ETHERNUM.GMControl.Subtitle"}}</p>
+      </div>
+    </div>
+
+    <div class="ethernum-gm-control__header-actions">
+      <div class="ethernum-gm-control__theme-switch" role="group" aria-label="{{localize 'ETHERNUM.GMControl.Themes.Label'}}">
+        {{#each themes}}
+        <button type="button" class="ethernum-gm-control__theme-button {{#if this.active}}is-active{{/if}}"
+          data-gm-theme="{{this.id}}" aria-pressed="{{this.active}}" title="{{localize this.labelKey}}">
+          <i class="fas {{#if @first}}fa-gem{{else}}fa-fire-flame-curved{{/if}}" aria-hidden="true"></i>
+          <span>{{localize this.labelKey}}</span>
+        </button>
+        {{/each}}
+      </div>
+      <button type="button" class="ethernum-gm-control__icon-button" data-gm-refresh title="{{localize 'ETHERNUM.GMControl.Actions.Refresh'}}" aria-label="{{localize 'ETHERNUM.GMControl.Actions.Refresh'}}">
+        <i class="fas fa-rotate" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <nav class="ethernum-gm-control__tabs" role="tablist" aria-label="{{localize 'ETHERNUM.GMControl.Navigation'}}">
+    {{#each sections}}
+    <button type="button" role="tab" class="ethernum-gm-control__tab {{#if this.active}}is-active{{/if}}"
+      data-gm-section="{{this.id}}" aria-selected="{{this.active}}" aria-controls="ethernum-gm-panel-{{this.id}}">
+      <i class="fas {{this.icon}}" aria-hidden="true"></i>
+      <span>{{localize this.labelKey}}</span>
+    </button>
+    {{/each}}
+  </nav>
+
+  <div class="ethernum-gm-control__body">
+    <section id="ethernum-gm-panel-summary" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.summary'}}" {{#unless panels.summary.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-chart-simple" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Summary.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Summary.Description"}}</p>
+        </div>
+        <span class="ethernum-gm-control__updated"><i class="fas fa-clock" aria-hidden="true"></i>{{updatedAtLabel}}</span>
+      </div>
+      <div class="ethernum-gm-control__metrics">
+        {{#each summaryItems}}
+        <article class="ethernum-gm-control__metric tone-{{this.tone}}">
+          <i class="fas {{this.icon}}" aria-hidden="true"></i>
+          <div>
+            <strong>{{this.value}}</strong>
+            <span>{{localize this.labelKey}}</span>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+    </section>
+
+    <section id="ethernum-gm-panel-queue" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.queue'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-list-check" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Queue.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Queue.Description"}}</p>
+        </div>
+      </div>
+      {{#if queueEmpty}}
+      <div class="ethernum-gm-control__empty">
+        <i class="fas fa-inbox" aria-hidden="true"></i>
+        <strong>{{localize "ETHERNUM.GMControl.Queue.EmptyTitle"}}</strong>
+        <span>{{localize "ETHERNUM.GMControl.Queue.EmptyDescription"}}</span>
+      </div>
+      {{else}}
+      <div class="ethernum-gm-control__table-wrap">
+        <table class="ethernum-gm-control__table ethernum-gm-control__queue-table">
+          <thead>
+            <tr>
+              <th>{{localize "ETHERNUM.GMControl.Queue.Columns.Request"}}</th>
+              <th>{{localize "ETHERNUM.GMControl.Queue.Columns.Source"}}</th>
+              <th>{{localize "ETHERNUM.GMControl.Queue.Columns.Action"}}</th>
+              <th>{{localize "ETHERNUM.GMControl.Queue.Columns.Status"}}</th>
+              <th>{{localize "ETHERNUM.GMControl.Queue.Columns.Expires"}}</th>
+              <th class="ethernum-gm-control__actions-column">{{localize "ETHERNUM.GMControl.Queue.Columns.Actions"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each queueRows}}
+            <tr data-request-row="{{this.id}}">
+              <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Request'}}">
+                <code>{{this.requestId}}</code>
+                <small>{{this.createdLabel}}</small>
+              </td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Source'}}">
+                <strong>{{this.userName}}</strong>
+                <small>{{this.actorName}}</small>
+              </td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Action'}}">
+                <strong>{{this.actionName}}</strong>
+                <small>{{this.profileName}}</small>
+                {{#if this.summary}}<span class="ethernum-gm-control__row-summary">{{this.summary}}</span>{{/if}}
+              </td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Status'}}">
+                <span class="ethernum-gm-control__status status-{{this.status}}">{{localize this.statusLabelKey}}</span>
+              </td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Expires'}}">{{this.expiresLabel}}</td>
+              <td class="ethernum-gm-control__row-actions" data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Actions'}}">
+                {{#each this.actions}}
+                <button type="button" class="ethernum-gm-control__icon-button tone-{{this.tone}}" data-gm-queue-action="{{this.id}}"
+                  data-request-id="{{../id}}" title="{{localize this.labelKey}}" aria-label="{{localize this.labelKey}}">
+                  <i class="fas {{this.icon}}" aria-hidden="true"></i>
+                </button>
+                {{/each}}
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-audit" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.audit'}}" {{#unless panels.audit.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Audit.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Audit.Description"}}</p>
+        </div>
+        <div class="ethernum-gm-control__toolbar">
+          <button type="button" class="ethernum-gm-control__command" data-gm-audit-action="export">
+            <i class="fas fa-file-export" aria-hidden="true"></i><span>{{localize "ETHERNUM.GMControl.Audit.Actions.Export"}}</span>
+          </button>
+          <button type="button" class="ethernum-gm-control__command tone-danger" data-gm-audit-action="clear">
+            <i class="fas fa-trash-can" aria-hidden="true"></i><span>{{localize "ETHERNUM.GMControl.Audit.Actions.Clear"}}</span>
+          </button>
+        </div>
+      </div>
+
+      <form class="ethernum-gm-control__filters" aria-label="{{localize 'ETHERNUM.GMControl.Filters.Label'}}" onsubmit="return false">
+        <label class="ethernum-gm-control__search">
+          <span>{{localize "ETHERNUM.GMControl.Filters.Search"}}</span>
+          <span class="ethernum-gm-control__input-icon"><i class="fas fa-magnifying-glass" aria-hidden="true"></i><input type="search" value="{{filters.search}}" data-gm-audit-filter="search" placeholder="{{localize 'ETHERNUM.GMControl.Filters.SearchPlaceholder'}}"></span>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.Status"}}</span>
+          <select data-gm-audit-filter="status">
+            {{#each statusOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.labelKey}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.User"}}</span>
+          <select data-gm-audit-filter="userId">
+            <option value="">{{localize "ETHERNUM.GMControl.Filters.AllUsers"}}</option>
+            {{#each userOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.Profile"}}</span>
+          <select data-gm-audit-filter="profileId">
+            <option value="">{{localize "ETHERNUM.GMControl.Filters.AllProfiles"}}</option>
+            {{#each profileOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.Type"}}</span>
+          <select data-gm-audit-filter="actionType">
+            <option value="">{{localize "ETHERNUM.GMControl.Filters.AllTypes"}}</option>
+            {{#each actionTypeOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.Actor"}}</span>
+          <select data-gm-audit-filter="actorId">
+            <option value="">{{localize "ETHERNUM.GMControl.Filters.AllActors"}}</option>
+            {{#each actorOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>
+          <span>{{localize "ETHERNUM.GMControl.Filters.Period"}}</span>
+          <select data-gm-audit-filter="period">
+            {{#each periodOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.labelKey}}</option>{{/each}}
+          </select>
+        </label>
+      </form>
+
+      <div class="ethernum-gm-control__result-count">
+        <i class="fas fa-filter" aria-hidden="true"></i><span>{{localize "ETHERNUM.GMControl.Audit.FilteredResults"}}</span><strong>{{auditCount}}</strong>
+      </div>
+      {{#if auditEmpty}}
+      <div class="ethernum-gm-control__empty">
+        <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
+        <strong>{{localize "ETHERNUM.GMControl.Audit.EmptyTitle"}}</strong>
+        <span>{{localize "ETHERNUM.GMControl.Audit.EmptyDescription"}}</span>
+      </div>
+      {{else}}
+      <div class="ethernum-gm-control__table-wrap">
+        <table class="ethernum-gm-control__table ethernum-gm-control__audit-table">
+          <thead><tr>
+            <th>{{localize "ETHERNUM.GMControl.Audit.Columns.Time"}}</th>
+            <th>{{localize "ETHERNUM.GMControl.Audit.Columns.Status"}}</th>
+            <th>{{localize "ETHERNUM.GMControl.Audit.Columns.Source"}}</th>
+            <th>{{localize "ETHERNUM.GMControl.Audit.Columns.Operation"}}</th>
+            <th>{{localize "ETHERNUM.GMControl.Audit.Columns.Duration"}}</th>
+            <th class="ethernum-gm-control__actions-column">{{localize "ETHERNUM.GMControl.Audit.Columns.Details"}}</th>
+          </tr></thead>
+          <tbody>
+            {{#each auditRows}}
+            <tr>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Time'}}">{{this.timestampLabel}}</td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Status'}}"><span class="ethernum-gm-control__status status-{{this.status}}">{{localize this.statusLabelKey}}</span></td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Source'}}"><strong>{{this.userName}}</strong><small>{{this.actorName}}</small></td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Operation'}}"><strong>{{this.actionName}}</strong><small>{{this.profileName}}</small>{{#if this.message}}<span class="ethernum-gm-control__row-summary">{{this.message}}</span>{{/if}}</td>
+              <td data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Duration'}}">{{this.durationMs}}</td>
+              <td class="ethernum-gm-control__row-actions" data-label="{{localize 'ETHERNUM.GMControl.Audit.Columns.Details'}}">
+                <button type="button" class="ethernum-gm-control__icon-button" data-gm-audit-action="details" data-audit-id="{{this.id}}" title="{{localize 'ETHERNUM.GMControl.Audit.Actions.Details'}}" aria-label="{{localize 'ETHERNUM.GMControl.Audit.Actions.Details'}}"><i class="fas fa-circle-info" aria-hidden="true"></i></button>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-policies" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.policies'}}" {{#unless panels.policies.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-shield-halved" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Policies.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Policies.Description"}}</p>
+        </div>
+      </div>
+      {{#if policiesEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-shield" aria-hidden="true"></i><strong>{{localize "ETHERNUM.GMControl.Policies.EmptyTitle"}}</strong><span>{{localize "ETHERNUM.GMControl.Policies.EmptyDescription"}}</span></div>
+      {{else}}
+      <div class="ethernum-gm-control__policy-list">
+        {{#each policies}}
+        <div class="ethernum-gm-control__policy-row">
+          <div class="ethernum-gm-control__policy-name">
+            <i class="fas fa-shield" aria-hidden="true"></i>
+            <div><strong>{{localize this.categoryLabelKey}}</strong><span>{{localize this.scopeLabelKey}}{{#if this.profileName}} · {{this.profileName}}{{/if}}</span></div>
+          </div>
+          <label>
+            <span class="sr-only">{{localize "ETHERNUM.GMControl.Policies.Mode"}}</span>
+            <select data-gm-policy data-policy-id="{{this.id}}" data-category="{{this.category}}" {{#if this.disabled}}disabled{{/if}}>
+              {{#each this.modeOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.labelKey}}</option>{{/each}}
+            </select>
+          </label>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-diagnostics" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.diagnostics'}}" {{#unless panels.diagnostics.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-stethoscope" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Diagnostics.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Diagnostics.Description"}}</p>
+        </div>
+        <div class="ethernum-gm-control__toolbar">
+          {{#each diagnosticActions}}
+          <button type="button" class="ethernum-gm-control__command" data-gm-diagnostics-action="{{this.id}}" title="{{localize this.labelKey}}"><i class="fas {{this.icon}}" aria-hidden="true"></i><span>{{localize this.labelKey}}</span></button>
+          {{/each}}
+        </div>
+      </div>
+      {{#if diagnosticsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-heart-pulse" aria-hidden="true"></i><strong>{{localize "ETHERNUM.GMControl.Diagnostics.EmptyTitle"}}</strong><span>{{localize "ETHERNUM.GMControl.Diagnostics.EmptyDescription"}}</span></div>
+      {{else}}
+      <dl class="ethernum-gm-control__diagnostic-grid">
+        {{#each diagnostics}}
+        <div class="ethernum-gm-control__diagnostic tone-{{this.tone}}">
+          <dt>{{localize this.labelKey}}</dt><dd>{{this.value}}</dd>{{#if this.detail}}<span>{{this.detail}}</span>{{/if}}
+        </div>
+        {{/each}}
+      </dl>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-admin" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.admin'}}" {{#unless panels.admin.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div>
+          <h3><i class="fas fa-screwdriver-wrench" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Admin.Title"}}</h3>
+          <p>{{localize "ETHERNUM.GMControl.Admin.Description"}}</p>
+        </div>
+      </div>
+      <div class="ethernum-gm-control__admin-grid">
+        {{#each adminActions}}
+          {{#if this.requiresActor}}
+          <section class="ethernum-gm-control__admin-tool tone-{{this.tone}}">
+            <div><i class="fas {{this.icon}}" aria-hidden="true"></i><strong>{{localize this.labelKey}}</strong><span>{{localize "ETHERNUM.GMControl.Admin.FulgorDescription"}}</span></div>
+            <div class="ethernum-gm-control__admin-fields">
+              <label><span>{{localize "ETHERNUM.GMControl.Admin.Actor"}}</span><select data-gm-admin-actor {{#if ../actorsEmpty}}disabled{{/if}}>{{#each ../actors}}<option value="{{this.id}}" {{#if this.disabled}}disabled{{/if}}>{{this.name}}</option>{{/each}}</select></label>
+              <label><span>{{localize "ETHERNUM.GMControl.Admin.Amount"}}</span><input type="number" min="1" max="99" value="1" data-gm-admin-amount></label>
+              <button type="button" class="ethernum-gm-control__command tone-{{this.tone}}" data-gm-admin-action="{{this.id}}" {{#if ../actorsEmpty}}disabled{{/if}}><i class="fas {{this.icon}}" aria-hidden="true"></i><span>{{localize this.labelKey}}</span></button>
+            </div>
+          </section>
+          {{else}}
+          <button type="button" class="ethernum-gm-control__admin-tool ethernum-gm-control__admin-button tone-{{this.tone}}" data-gm-admin-action="{{this.id}}">
+            <i class="fas {{this.icon}}" aria-hidden="true"></i><span>{{localize this.labelKey}}</span><small>{{localize this.descriptionKey}}</small>
+          </button>
+          {{/if}}
+        {{/each}}
+      </div>
+    </section>
+  </div>
+
+  <footer class="ethernum-gm-control__footer">
+    <span><i class="fas fa-user-shield" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.GMOnly"}}</span>
+    <span>{{localize "ETHERNUM.GMControl.LastUpdated"}} {{updatedAtLabel}}</span>
+  </footer>
+</section>
+{{/if}}

@@ -6,6 +6,12 @@ import {
 } from "../mechanics/pipping/progression.js";
 import { normalizePippingState, type PippingTier } from "../mechanics/pipping/state.js";
 import { AutomationAuthority } from "./AutomationAuthority.js";
+import { isTerminalExecutionStage } from "../unique/core/UniqueExecutionManager.js";
+import {
+  getAuthorityApprovalTimeoutMs,
+  getEthernumAuthorityBridge,
+  initializeEthernumAuthorityBridge,
+} from "./EthernumAuthority.js";
 
 export interface PF2eConditionMutation {
   slug: string;
@@ -92,6 +98,7 @@ interface MutationRequest {
   requesterId: string;
   sourceActorUuid: string;
   actionId: string;
+  executionId?: string;
   mutations: PF2eActorMutation[];
 }
 
@@ -104,6 +111,13 @@ interface MutationResponse {
 }
 
 type AdapterSocketMessage = MutationRequest | MutationResponse;
+
+interface PF2eAuthorityPayload {
+  sourceActorUuid: string;
+  actionId: string;
+  executionId?: string;
+  mutations: PF2eActorMutation[];
+}
 
 const SOCKET_CHANNEL = `module.${ETHERNUM.MODULE_NAME}`;
 const REQUEST_TIMEOUT_MS = 12_000;
@@ -807,10 +821,18 @@ function validatePippingMutationRequest(
   const level = actorLevel(source);
   const tier = Math.max(state.tier, pippingTierForLevel(level)) as PippingTier;
   const availability = getPippingActionAvailability(action, state, level, tier);
+  const execution = state.executions.find(entry => entry.id === request.executionId);
+  const reservedPulse = Number(execution?.reservedResources?.pulse ?? -1);
+  const maximumReservedPulse = action.pulseCost + (action.id === "dark-whisper" ? 1 : 0);
   if (
     !availability.usable
-    || state.pendingAction?.actionId !== action.id
-    || state.pendingAction.pulseCost !== action.pulseCost
+    || !execution
+    || execution.actionId !== action.id
+    || execution.sourceActorUuid !== source.uuid
+    || execution.requesterUserId !== request.requesterId
+    || isTerminalExecutionStage(execution.stage)
+    || reservedPulse < action.pulseCost
+    || reservedPulse > maximumReservedPulse
   ) {
     throw new Error("The requested Pipping action is not reserved or available.");
   }
@@ -985,57 +1007,92 @@ function handleMutationResponse(response: MutationResponse): void {
 
 export function initializePF2eAdapterSocket(): void {
   if (socketInitialized) return;
-  const socket = game.socket as unknown as {
-    on?: (channel: string, callback: (message: AdapterSocketMessage) => void) => void;
-  } | undefined;
-  if (!socket?.on) return;
   socketInitialized = true;
-  socket.on(SOCKET_CHANNEL, message => {
-    if (message?.type === "pf2e-mutation-request") {
-      void handleMutationRequest(message);
-    } else if (message?.type === "pf2e-mutation-response") {
-      handleMutationResponse(message);
-    }
-  });
+  const bridge = initializeEthernumAuthorityBridge();
+  bridge.registerHandler<PF2eAuthorityPayload, PF2eMutationResult[]>(
+    "pf2e-mutations",
+    {
+      validate: async ({ request }) => {
+        const payload = request.payload;
+        const adapterRequest: MutationRequest = {
+          type: "pf2e-mutation-request",
+          requestId: request.requestId,
+          requesterId: request.requesterId,
+          sourceActorUuid: payload.sourceActorUuid,
+          actionId: payload.actionId,
+          executionId: payload.executionId,
+          mutations: payload.mutations,
+        };
+        if (!await requesterOwnsSource(adapterRequest)) {
+          throw new Error("Requester does not own the unique-mechanic source actor.");
+        }
+        const source = await resolveActor(payload.sourceActorUuid);
+        if (!source) throw new Error("The source actor was not found.");
+        if (sourceUsesPipping(source) && getPippingAction(payload.actionId)) {
+          validatePippingMutationRequest(adapterRequest, source);
+        } else {
+          validateUniqueMutationRequest(adapterRequest, source);
+        }
+        return { payload };
+      },
+      execute: async ({ request }) => {
+        const results: PF2eMutationResult[] = [];
+        for (const mutation of request.payload.mutations.slice(0, 50)) {
+          results.push(await applyMutationLocally(mutation));
+        }
+        return results;
+      },
+    },
+  );
+}
+
+function mutationCategory(mutations: PF2eActorMutation[]): string {
+  if (mutations.length > 1) return "multi-target";
+  if (mutations.some(mutation => Number(mutation.damage?.total ?? 0) > 0 || Number(mutation.hpDelta ?? 0) < 0)) {
+    return "actor-damage";
+  }
+  if (mutations.some(mutation => Number(mutation.healing?.total ?? 0) > 0 || Number(mutation.hpDelta ?? 0) > 0)) {
+    return "actor-healing";
+  }
+  if (mutations.some(mutation => (mutation.conditions?.length ?? 0) > 0)) return "condition";
+  return "effect";
 }
 
 export async function applyPF2eMutations(
   sourceActor: Actor,
   mutations: PF2eActorMutation[],
   actionId: string,
+  options: { executionId?: string } = {},
 ): Promise<PF2eMutationResult[]> {
   if (mutations.length === 0) return [];
-  if (AutomationAuthority.isPrimaryGM() || !AutomationAuthority.getPrimaryGM()) {
+  initializePF2eAdapterSocket();
+  const bridge = getEthernumAuthorityBridge();
+  if (!bridge.getPrimaryGM()) {
     const results: PF2eMutationResult[] = [];
     for (const mutation of mutations) results.push(await applyMutationLocally(mutation));
     return results;
   }
 
-  initializePF2eAdapterSocket();
-  const socket = game.socket as unknown as {
-    emit?: (channel: string, payload: AdapterSocketMessage) => void;
-  } | undefined;
-  const requesterId = game.user?.id;
-  if (!socket?.emit || !requesterId) {
-    throw new Error("No active authority socket is available.");
-  }
-
-  const requestId = foundry.utils.randomID();
-  const request: MutationRequest = {
-    type: "pf2e-mutation-request",
-    requestId,
-    requesterId,
+  const unique = record(sourceActor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics"));
+  const payload: PF2eAuthorityPayload = {
     sourceActorUuid: sourceActor.uuid,
     actionId,
+    executionId: options.executionId,
     mutations,
   };
-  const response = new Promise<PF2eMutationResult[]>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      pendingRequests.delete(requestId);
-      reject(new Error("The primary GM did not answer the PF2e mutation request."));
-    }, REQUEST_TIMEOUT_MS);
-    pendingRequests.set(requestId, { resolve, reject, timeout });
+  return bridge.request<PF2eAuthorityPayload, PF2eMutationResult[]>({
+    handlerId: "pf2e-mutations",
+    category: mutationCategory(mutations),
+    profileId: String(unique.activeProfile ?? ""),
+    actionId,
+    executionId: options.executionId,
+    sourceActorUuid: sourceActor.uuid,
+    summary: actionId,
+    details: `${mutations.length} target mutation(s)`,
+    payload,
+    ...(options.executionId
+      ? { idempotencyKey: `${options.executionId}:pf2e:${actionId}` }
+      : {}),
+    approvalTtlMs: getAuthorityApprovalTimeoutMs(),
   });
-  socket.emit(SOCKET_CHANNEL, request);
-  return response;
 }

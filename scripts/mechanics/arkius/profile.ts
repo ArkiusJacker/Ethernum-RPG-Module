@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, asStringRecord, clampNumber, optionalString } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const ARKIUS_JACKER_PROFILE_ID = "arkius-jacker" as const;
 export type ArkiusAttunement = "none" | "fluxo" | "brasas";
@@ -160,9 +161,28 @@ export function hasActiveArkiusKineticAura(state: ArkiusJackerState): boolean {
 }
 
 export const arkiusProfile: UniqueMechanicProfile<ArkiusJackerState> = {
+  ...legacyProfileAdapter({
+    actions: [
+      "nucleo-em-brasas", "sintonia-fluxo", "sintonia-brasas", "aura-cinetica",
+      "thermal-nimbus", "exaurir-o-sol", "resiliencia-reativa",
+    ],
+    handlers: {
+      "nucleo-em-brasas": "toggleNucleoEmBrasas",
+      "sintonia-fluxo": "setSintoniaFluxo",
+      "sintonia-brasas": "setSintoniaBrasas",
+      "aura-cinetica": "toggleArkiusKineticAura",
+      "thermal-nimbus": "toggleThermalNimbus",
+      "exaurir-o-sol": "exaurirOSol",
+      "resiliencia-reativa": "resilienciaReativa",
+    },
+    combatHook: "handleCombatTurnAdvance",
+    shortRestHandler: "shortRestReset",
+    longRestHandler: "longRestReset",
+  }),
   id: ARKIUS_JACKER_PROFILE_ID,
   core: "concordia",
   label: "Arkius Jacker - Concordia",
   defaultState: DEFAULT_ARKIUS_STATE,
   normalizeState: normalizeArkiusState,
+  migrateState: normalizeArkiusState,
 };

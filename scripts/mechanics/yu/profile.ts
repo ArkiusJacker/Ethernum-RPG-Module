@@ -1,5 +1,6 @@
 import type { UniqueMechanicProfile } from "../types.js";
 import { asRecord, clampNumber, optionalString } from "../state.js";
+import { legacyProfileAdapter } from "../profile-runtime.js";
 
 export const YU_JIU_JI_TAE_PROFILE_ID = "yu-jiu-ji-tae" as const;
 
@@ -45,9 +46,22 @@ export function normalizeYuState(value: unknown): YuRageState {
 }
 
 export const yuProfile: UniqueMechanicProfile<YuRageState> = {
+  ...legacyProfileAdapter({
+    actions: ["rage", "flurry-of-blows", "stunning-fist"],
+    handlers: {
+      rage: "toggleYuRage",
+      "flurry-of-blows": "useYuFlurryOfBlows",
+      "stunning-fist": "rollYuStunningFistDamage",
+    },
+    combatHook: "handleCombatTurnAdvance",
+    actorHook: "handleYuActorUpdate",
+    shortRestHandler: "yuShortRestReset",
+    longRestHandler: "yuLongRestReset",
+  }),
   id: YU_JIU_JI_TAE_PROFILE_ID,
   core: "concordia",
   label: "Yu, Jiu Ji Tae - Rage in the Flesh",
   defaultState: DEFAULT_YU_STATE,
   normalizeState: normalizeYuState,
+  migrateState: normalizeYuState,
 };
