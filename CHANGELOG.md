@@ -5,6 +5,22 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.5.5] - 2026-08-08
+
+### Adicionado
+- Ponte de autoridade validada para jogadores aplicarem dano, cura, condições e efeitos das mecânicas de Gyro, Yu, Charles, Atlas e Arkius em atores que não controlam diretamente.
+- Ponte de autoridade de canvas para Aura Cinética, Rede de Amortecimento e Exaurir o Sol, preservando a autoria do template para o jogador que solicitou a ação.
+- Controle na aba do mestre para conceder uma carga de Fulgor Negro ao personagem durante o combate, sem alvo pré-definido e com o limite normal da habilidade-chave.
+- Testes de regressão para políticas de permissão, limites de mutação, operações de canvas, Aura Cinética sem Thermal Nimbus e concessão manual de Fulgor.
+
+### Corrigido
+- A Aura Cinética de Arkius Jacker acompanha o token mesmo quando Thermal Nimbus está desativado e usa as coordenadas novas do documento no mesmo movimento.
+- Ações de jogadores deixam de falhar ao criar templates protegidos ou aplicar efeitos em aliados e inimigos que pertencem ao mestre ou a outros usuários.
+- IDs de template armazenados em flags só podem localizar documentos com o tipo e o personagem de origem correspondentes.
+
+### Segurança
+- Solicitações remotas validam propriedade do personagem, perfil ativo, habilidade, quantidade de alvos, limites de PV, condições, regras PF2e, cena e token de origem antes da execução pelo mestre principal.
+
 ## [3.5.4] - 2026-08-07
 
 ### Adicionado

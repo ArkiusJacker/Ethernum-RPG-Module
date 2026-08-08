@@ -391,6 +391,18 @@ export function createFulgorTrigger(
   };
 }
 
+export function createGrantedFulgor(
+  maxChain: number,
+  turnKey: string,
+): CombatMomentumState["fulgor"] {
+  return {
+    ...createEmptyFulgor(),
+    active: true,
+    maxChain: Math.max(1, clamp(maxChain, 1, 10)),
+    turnKey,
+  };
+}
+
 function getControlledActor(): Actor | null {
   return canvas?.tokens?.controlled?.[0]?.actor ?? game.user?.character ?? null;
 }
@@ -1160,6 +1172,39 @@ export class CombatMomentumSystem {
           : state.visualEvent,
       });
     });
+  }
+
+  static async grantFulgor(actor: Actor): Promise<CombatMomentumState> {
+    if (!game.user?.isGM) return this.getState(actor);
+    const combat = getActiveCombat();
+    if (!combat?.id) {
+      ui.notifications?.warn("Fulgor Negro só pode ser concedido durante um combate ativo.");
+      return this.getState(actor);
+    }
+    let granted = false;
+    const next = await this.enqueue(actor, async () => {
+      const state = this.prepareForCombat(this.getState(actor), combat.id as string);
+      if (state.fulgor.active) return state;
+      granted = true;
+      return this.setState(actor, {
+        ...state,
+        fulgor: createGrantedFulgor(getKeyAbilityModifier(actor), getCombatTurnKey(combat)),
+        stats: {
+          ...state.stats,
+          fulgorTriggers: state.stats.fulgorTriggers + 1,
+        },
+        visualEvent: createVisualEvent("fulgor-start", 3, "Concedido pelo mestre"),
+      });
+    });
+    if (granted && next.fulgor.active) {
+      await createMechanicCard(actor, `
+        <section class="fulgor">
+          <h3>Fulgor Negro concedido</h3>
+          <p>O mestre liberou uma ação livre de Fulgor Negro para <strong>${escapeHTML(actor.name)}</strong>. O alvo será definido ao usar a habilidade.</p>
+          <p><strong>Limite:</strong> ${next.fulgor.maxChain} ataque(s), conforme o modificador da habilidade-chave.</p>
+        </section>`);
+    }
+    return next;
   }
 
   static async endFulgor(actor: Actor, reason = ""): Promise<CombatMomentumState> {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createDefaultCombatMomentumState,
   createFulgorTrigger,
+  createGrantedFulgor,
   resolveFidesAttack,
   resolveFulgorContinuation,
 } from "../scripts/table/CombatMomentumSystem.js";
@@ -53,6 +54,19 @@ describe("Fulgor Negro rules", () => {
       targetActorRef: target.actorRef,
       mapIncreases: 1,
       turnKey: "turn-a",
+    });
+  });
+
+  it("allows the GM grant to start without a predefined target", () => {
+    expect(createGrantedFulgor(4, "turn-gm")).toEqual({
+      active: true,
+      chainCount: 0,
+      maxChain: 4,
+      targetActorRef: "",
+      targetTokenRef: "",
+      targetName: "",
+      mapIncreases: 0,
+      turnKey: "turn-gm",
     });
   });
 

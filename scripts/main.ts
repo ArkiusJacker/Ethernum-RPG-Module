@@ -9,6 +9,7 @@ import { ARKIUS_ICON_ASSET, GYRO_SPINBALL_ASSET, UniqueMechanicsSystem, type Gyr
 import { migrateWorld } from './utils/DataMigration.js';
 import { ensureManagedMacros as ensureManagedMacroDefinitions } from './core/ManagedMacroService.js';
 import { initializePF2eAdapterSocket } from './core/PF2eAdapter.js';
+import { initializeUniqueCanvasSocket } from './core/UniqueCanvasAdapter.js';
 import { initializePippingCanvasSocket } from './mechanics/pipping/canvas.js';
 import {
   getPippingAction,
@@ -811,6 +812,7 @@ Hooks.once("ready", async () => {
 
   await migrateWorld();
   initializePF2eAdapterSocket();
+  initializeUniqueCanvasSocket();
   initializePippingCanvasSocket();
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();

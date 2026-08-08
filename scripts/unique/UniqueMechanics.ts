@@ -52,6 +52,7 @@ import { resolveTokenDocumentAnchor, type TokenAnchor } from '../core/TokenAncho
 import {
   ARKIUS_JACKER_PROFILE_ID,
   DEFAULT_ARKIUS_STATE,
+  hasActiveArkiusKineticAura,
   normalizeArkiusState as normalizeArkiusProfileState,
   type ArkiusAttunement,
   type ArkiusConcordiaAspect,
@@ -85,6 +86,13 @@ import {
   isKnownUniqueMechanicProfileId,
 } from '../mechanics/registry.js';
 import { AutomationAuthority } from '../core/AutomationAuthority.js';
+import {
+  applyPF2eMutations,
+  type PF2eActorMutation,
+  type PF2eConditionMutation,
+  type PF2eEffectMutation,
+} from '../core/PF2eAdapter.js';
+import { executeUniqueCanvasOperation } from '../core/UniqueCanvasAdapter.js';
 
 export type {
   UniqueMechanicProfileId,
@@ -2004,6 +2012,39 @@ async function applyActorHpDelta(actor: Actor, amount: number): Promise<boolean>
   return true;
 }
 
+async function applyAuthorizedMutation(
+  source: Actor,
+  actionId: string,
+  mutation: PF2eActorMutation,
+): Promise<boolean> {
+  const [result] = await applyPF2eMutations(source, [mutation], actionId);
+  return Boolean(result?.applied);
+}
+
+async function applyAuthorizedCondition(
+  source: Actor,
+  target: Actor,
+  actionId: string,
+  condition: PF2eConditionMutation,
+): Promise<boolean> {
+  return applyAuthorizedMutation(source, actionId, {
+    actorUuid: target.uuid,
+    conditions: [condition],
+  });
+}
+
+async function applyAuthorizedEffect(
+  source: Actor,
+  target: Actor,
+  actionId: string,
+  effect: PF2eEffectMutation,
+): Promise<boolean> {
+  return applyAuthorizedMutation(source, actionId, {
+    actorUuid: target.uuid,
+    effects: [effect],
+  });
+}
+
 function getActorClassOrKineticDC(actor: Actor): number {
   const system = asRecord(actor.system);
   const attributes = asRecord(system.attributes);
@@ -2417,21 +2458,13 @@ async function applyCharlesClimbEffect(actor: Actor): Promise<void> {
 }
 
 async function removeCharlesNetTemplate(actor: Actor, templateId?: string): Promise<void> {
-  const scene = canvas?.scene as unknown as {
-    deleteEmbeddedDocuments?: (embeddedName: string, ids: string[]) => Promise<unknown[]>;
-  } | undefined;
-  if (!scene?.deleteEmbeddedDocuments) return;
-  const actorKey = getActorKey(actor);
-  const ids = getSceneMeasuredTemplates()
-    .filter(template => {
-      const sameId = templateId && template.id === templateId;
-      const sameType = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === CHARLES_NET_TEMPLATE_SLUG;
-      const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
-      return sameId || (sameType && sameActor);
-    })
-    .map(template => template.id)
-    .filter((id): id is string => typeof id === "string");
-  if (ids.length > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
+  const sceneId = canvas?.scene?.id;
+  if (!sceneId) return;
+  await executeUniqueCanvasOperation(actor, {
+    type: "remove-charles-net",
+    sceneId,
+    templateId,
+  });
 }
 
 function findCharlesNetTemplate(actor: Actor, templateId?: string): (
@@ -2442,12 +2475,11 @@ function findCharlesNetTemplate(actor: Actor, templateId?: string): (
   }
 ) | null {
   const actorKey = getActorKey(actor);
-  const template = getSceneMeasuredTemplates().find(entry => {
-    const sameId = templateId && entry.id === templateId;
-    const sameType = entry.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === CHARLES_NET_TEMPLATE_SLUG;
-    const sameActor = entry.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
-    return sameId || (sameType && sameActor);
-  });
+  const templates = getSceneMeasuredTemplates().filter(entry => (
+    entry.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === CHARLES_NET_TEMPLATE_SLUG
+      && entry.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey
+  ));
+  const template = templates.find(entry => Boolean(templateId && entry.id === templateId)) ?? templates[0];
   return (template ?? null) as (
     Record<string, unknown> & {
       id?: string;
@@ -2458,30 +2490,17 @@ function findCharlesNetTemplate(actor: Actor, templateId?: string): (
 }
 
 async function createCharlesNetTemplate(actor: Actor, radius: number, overloaded: boolean): Promise<string | undefined> {
-  const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
-  const scene = canvas?.scene as {
-    createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]>;
-  } | undefined;
-  if (!token?.center || !scene?.createEmbeddedDocuments) return undefined;
-  await removeCharlesNetTemplate(actor);
-  const created = await scene.createEmbeddedDocuments("MeasuredTemplate", [{
-    t: "circle",
-    user: game.user?.id,
-    x: token.center.x,
-    y: token.center.y,
-    distance: radius,
-    direction: 0,
-    fillColor: overloaded ? "#ff6b1a" : "#e0a428",
-    flags: {
-      [ETHERNUM.MODULE_NAME]: {
-        uniqueTemplate: CHARLES_NET_TEMPLATE_SLUG,
-        actorKey: getActorKey(actor),
-        overloaded,
-      },
-    },
-  }]);
-  const template = Array.isArray(created) ? asRecord(created[0]) : {};
-  return typeof template.id === "string" ? template.id : undefined;
+  const token = getActorToken(actor) as (Token & { id?: string }) | null;
+  const sceneId = canvas?.scene?.id;
+  if (!token?.id || !sceneId) return undefined;
+  const result = await executeUniqueCanvasOperation(actor, {
+    type: "create-charles-net",
+    sceneId,
+    sourceTokenId: token.id,
+    radius,
+    overloaded,
+  });
+  return result?.templateId;
 }
 
 function tokenInCharlesNet(actor: Actor, targetToken: unknown, state: CharlesState): boolean {
@@ -2580,27 +2599,25 @@ async function applyAtlasFatigueEffect(actor: Actor): Promise<void> {
 
 async function applyAtlasVigorEffect(actor: Actor, source: Actor): Promise<void> {
   const slug = `atlas-vigor-atletismo-${getActorKey(source)}`;
-  await removeActorUniqueEffects(actor, [slug]);
-  await createActorEffect(actor, buildConcordiaEffectData(
-    "Vigor da Linha de Frente",
+  await applyAuthorizedEffect(source, actor, "atlas-frontline-vigor", {
+    name: "Vigor da Linha de Frente",
     slug,
-    "<p>+2 de status em rolagens de Atletismo por 1 rodada após receber a cura em cone do Olhar do Divino.</p>",
-    [{
+    description: "+2 de status em rolagens de Atletismo por 1 rodada após receber a cura em cone do Olhar do Divino.",
+    rules: [{
       key: "FlatModifier",
       selector: "athletics",
       type: "status",
       value: 2,
       label: "Vigor da Linha de Frente",
     }],
-    { value: 1, unit: "rounds", sustained: false, expiry: "turn-start" },
-    ["divine", "healing"],
-    "icons/svg/regen.svg",
-  ));
+    duration: { value: 1, unit: "rounds", expiry: "turn-start" },
+    traits: ["divine", "healing"],
+    img: "icons/svg/regen.svg",
+  });
 }
 
 async function applyAtlasSteelResonanceEffect(actor: Actor, source: Actor, physicalResistance: boolean): Promise<void> {
   const slug = `atlas-ressonancia-de-aco-${getActorKey(source)}`;
-  await removeActorUniqueEffects(actor, [slug]);
   const rules: Array<Record<string, unknown>> = [{
     key: "FlatModifier",
     selector: "ac",
@@ -2618,15 +2635,15 @@ async function applyAtlasSteelResonanceEffect(actor: Actor, source: Actor, physi
       });
     }
   }
-  await createActorEffect(actor, buildConcordiaEffectData(
-    "Ressonância de Aço",
+  await applyAuthorizedEffect(source, actor, "atlas-steel-resonance", {
+    name: "Ressonância de Aço",
     slug,
-    `<p>+1 de status na CA por 2 rodadas.${physicalResistance ? " Armadura metálica detectada: resistência 5 a dano físico." : ""}</p>`,
+    description: `+1 de status na CA por 2 rodadas.${physicalResistance ? " Armadura metálica detectada: resistência 5 a dano físico." : ""}`,
     rules,
-    { value: 2, unit: "rounds", sustained: false, expiry: "turn-start" },
-    ["divine", "metal"],
-    "icons/svg/shield.svg",
-  ));
+    duration: { value: 2, unit: "rounds", expiry: "turn-start" },
+    traits: ["divine", "metal"],
+    img: "icons/svg/shield.svg",
+  });
 }
 
 function getTokensWithinDistance(originToken: unknown, distance: number): unknown[] {
@@ -2664,29 +2681,22 @@ function getSceneMeasuredTemplates(sceneId?: string): Array<Record<string, unkno
 }
 
 async function removeArkiusKineticAuraTemplate(actor: Actor, templateId?: string, sceneId?: string): Promise<void> {
-  const scene = getArkiusAuraScene(sceneId);
-  if (!scene?.deleteEmbeddedDocuments) return;
-  const actorKey = getActorKey(actor);
-  const ids = getSceneMeasuredTemplates(sceneId)
-    .filter(template => {
-      const sameTemplate = templateId && template.id === templateId;
-      const sameAura = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG;
-      const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
-      return sameTemplate || (sameAura && sameActor);
-    })
-    .map(template => template.id)
-    .filter((id): id is string => typeof id === "string");
-  if (ids.length > 0) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
+  const targetSceneId = sceneId ?? canvas?.scene?.id;
+  if (!targetSceneId) return;
+  await executeUniqueCanvasOperation(actor, {
+    type: "remove-arkius-aura",
+    sceneId: targetSceneId,
+    templateId,
+  });
 }
 
 function findArkiusKineticAuraTemplate(actor: Actor, templateId?: string, sceneId?: string): (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null {
   const actorKey = getActorKey(actor);
-  const template = getSceneMeasuredTemplates(sceneId).find(template => {
-    const sameTemplate = templateId && template.id === templateId;
-    const sameAura = template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG;
-    const sameActor = template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey;
-    return sameTemplate || (sameAura && sameActor);
-  });
+  const templates = getSceneMeasuredTemplates(sceneId).filter(template => (
+    template.getFlag?.(ETHERNUM.MODULE_NAME, "uniqueTemplate") === ARKIUS_KINETIC_AURA_EFFECT_SLUG
+      && template.getFlag?.(ETHERNUM.MODULE_NAME, "actorKey") === actorKey
+  ));
+  const template = templates.find(entry => Boolean(templateId && entry.id === templateId)) ?? templates[0];
   return (template ?? null) as (Record<string, unknown> & { id?: string; update?: (data: Record<string, unknown>, operation?: Record<string, unknown>) => Promise<unknown>; getFlag?: (scope: string, key: string) => unknown }) | null;
 }
 
@@ -2696,6 +2706,17 @@ async function createArkiusKineticAuraTemplate(
   anchor?: TokenAnchor | null,
 ): Promise<string | undefined> {
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
+  if (!anchor) {
+    const sceneId = canvas?.scene?.id;
+    if (!sceneId || !token?.id) return undefined;
+    const result = await executeUniqueCanvasOperation(actor, {
+      type: "upsert-arkius-aura",
+      sceneId,
+      sourceTokenId: token.id,
+      radius,
+    });
+    return result?.templateId;
+  }
   const scene = getArkiusAuraScene(anchor?.sceneId);
   const center = anchor?.center ?? token?.center;
   if (!center || !scene?.createEmbeddedDocuments) return undefined;
@@ -2726,6 +2747,18 @@ async function syncArkiusKineticAuraTemplate(
   const state = normalizeArkiusState(asRecord(UniqueMechanicsSystem.getState(actor).profiles)[ARKIUS_JACKER_PROFILE_ID]);
   if (!state.kineticAura.active) return undefined;
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number } }) | null;
+  if (!anchor) {
+    const sceneId = canvas?.scene?.id;
+    if (!sceneId || !token?.id) return state.kineticAura.templateId;
+    const result = await executeUniqueCanvasOperation(actor, {
+      type: "upsert-arkius-aura",
+      sceneId,
+      sourceTokenId: token.id,
+      templateId: state.kineticAura.templateId,
+      radius: state.kineticAura.radius,
+    });
+    return result?.templateId ?? state.kineticAura.templateId;
+  }
   const center = anchor?.center ?? token?.center;
   if (!center) return state.kineticAura.templateId;
   const template = findArkiusKineticAuraTemplate(actor, state.kineticAura.templateId, anchor?.sceneId);
@@ -2779,33 +2812,34 @@ async function confirmArkiusSolarExecution(area: ArkiusSolarArea, data: ArkiusSo
 
 async function createArkiusSolarTemplate(actor: Actor, area: ArkiusSolarArea): Promise<ArkiusTemplateResult | null> {
   const token = getActorToken(actor) as (Token & { center?: { x: number; y: number }; document?: { rotation?: number } }) | null;
-  const scene = canvas?.scene as { createEmbeddedDocuments?: (embeddedName: string, data: Record<string, unknown>[]) => Promise<unknown[]> } | undefined;
-  if (!token?.center || !scene?.createEmbeddedDocuments) return null;
+  const scene = canvas?.scene as unknown as {
+    id?: string;
+    templates?: { get?: (id: string) => unknown };
+  } | undefined;
+  if (!token?.center || !token.id || !scene?.id) return null;
   const userColor = String((game.user as unknown as { color?: string })?.color ?? "#d94122");
   const direction = Number(token.document?.rotation ?? 0) || 0;
-  const templateData: Record<string, unknown> = {
-    t: area.templateType,
-    user: game.user?.id,
-    x: token.center.x,
-    y: token.center.y,
+  const reference = await executeUniqueCanvasOperation(actor, {
+    type: "create-arkius-solar",
+    sceneId: scene.id,
+    sourceTokenId: token.id,
+    templateType: area.templateType,
     distance: area.distance,
+    angle: area.templateType === "cone" ? area.angle ?? 90 : undefined,
     direction,
-    fillColor: userColor,
-    flags: {
-      [ETHERNUM.MODULE_NAME]: {
-        uniqueTemplate: "arkius-exaurir-o-sol",
-      },
-    },
-  };
-  if (area.templateType === "cone") templateData.angle = area.angle ?? 90;
-  if (area.templateType === "ray") templateData.width = 5;
-  const created = await scene.createEmbeddedDocuments("MeasuredTemplate", [templateData]);
+    fillColor: /^#[0-9a-f]{6}$/i.test(userColor) ? userColor : "#d94122",
+  });
+  if (!reference?.templateId) return null;
+  const templateDocument = scene.templates?.get?.(reference.templateId) ?? null;
   return {
     area,
-    templateDocument: Array.isArray(created) ? created[0] ?? null : null,
-    origin: { x: token.center.x, y: token.center.y },
-    direction,
-    width: 5,
+    templateDocument,
+    origin: {
+      x: Number(reference.x ?? token.center.x),
+      y: Number(reference.y ?? token.center.y),
+    },
+    direction: Number(reference.direction ?? direction),
+    width: Number(reference.width ?? 5),
   };
 }
 
@@ -3139,8 +3173,15 @@ function getArkiusTriggeredWeaknesses(actor: Actor, options: ArkiusWeaknessOptio
   return { total, labels };
 }
 
-async function resolveArkiusSolarTargetSaves(targets: ArkiusSolarTarget[], dc: number, totalDamage: number): Promise<ArkiusSolarTargetResult[]> {
+async function resolveArkiusSolarTargetSaves(
+  source: Actor,
+  targets: ArkiusSolarTarget[],
+  dc: number,
+  totalDamage: number,
+): Promise<ArkiusSolarTargetResult[]> {
   const results: ArkiusSolarTargetResult[] = [];
+  const mutations: PF2eActorMutation[] = [];
+  const mutationIndexes: number[] = [];
   for (const target of targets) {
     const modifier = getActorSaveModifier(target.actor, "reflex");
     const roll = new Roll(`1d20 + ${modifier}`);
@@ -3151,12 +3192,10 @@ async function resolveArkiusSolarTargetSaves(targets: ArkiusSolarTarget[], dc: n
     const baseDamage = getBasicSaveDamage(totalDamage, degree);
     const weakness = baseDamage > 0 ? getArkiusTriggeredWeaknesses(target.actor) : { total: 0, labels: [] as string[] };
     const damageApplied = baseDamage + weakness.total;
-    let applied = damageApplied <= 0;
+    const applied = damageApplied <= 0;
     if (damageApplied > 0) {
-      applied = await applyActorHpDelta(target.actor, -damageApplied).catch(error => {
-        console.warn("Ethernum RPG Module | Could not apply Arkius solar damage", error);
-        return false;
-      });
+      mutationIndexes.push(results.length);
+      mutations.push({ actorUuid: target.actor.uuid, hpDelta: -damageApplied });
     }
     results.push({
       name: target.name,
@@ -3168,6 +3207,15 @@ async function resolveArkiusSolarTargetSaves(targets: ArkiusSolarTarget[], dc: n
       weaknessLabels: weakness.labels,
       damageApplied,
       applied,
+    });
+  }
+  if (mutations.length > 0) {
+    const appliedResults = await applyPF2eMutations(source, mutations, "arkius-exaurir-o-sol").catch(error => {
+      console.warn("Ethernum RPG Module | Could not apply Arkius solar damage", error);
+      return [];
+    });
+    mutationIndexes.forEach((resultIndex, index) => {
+      results[resultIndex].applied = Boolean(appliedResults[index]?.applied);
     });
   }
   return results;
@@ -4631,19 +4679,19 @@ export class UniqueMechanicsSystem {
     const degree = getBasicSaveDegree(total, dc, getRollNaturalD20(save));
     let condition = "Sem efeito";
     if (degree === "Falha crítica") {
-      await createManagedPF2ECondition(
+      await applyAuthorizedCondition(
+        target,
         configuration.target.actor,
-        "restrained",
-        `charles-containment-restrained-${getActorKey(target)}`,
-        { turnStartsRemaining: 2, sourceName: "Disparo de Contenção" },
+        "charles-containment-shot",
+        { slug: "restrained", turnStartsRemaining: 2 },
       );
       condition = "Restrained por 1 rodada";
     } else if (degree === "Falha") {
-      await createManagedPF2ECondition(
+      await applyAuthorizedCondition(
+        target,
         configuration.target.actor,
-        "grabbed",
-        `charles-containment-grabbed-${getActorKey(target)}`,
-        { sourceName: "Disparo de Contenção" },
+        "charles-containment-shot",
+        { slug: "grabbed" },
       );
       condition = "Grabbed pela teia";
     }
@@ -4729,11 +4777,11 @@ export class UniqueMechanicsSystem {
     const success = degree === "Sucesso" || degree === "Sucesso crítico";
     const offGuard = success && getActorSizeRank(choice!.actor) <= getActorSizeRank(target);
     if (offGuard) {
-      await createManagedPF2ECondition(
+      await applyAuthorizedCondition(
+        target,
         choice!.actor,
-        "off-guard",
-        `charles-vector-off-guard-${getActorKey(target)}`,
-        { turnStartsRemaining: 1, sourceName: "Puxão Vetorial" },
+        "charles-vector-pull",
+        { slug: "off-guard", turnStartsRemaining: 1 },
       );
     }
     await ChatMessage.create({
@@ -4950,11 +4998,11 @@ export class UniqueMechanicsSystem {
     const degree = incapacitation ? improveDegreeOfSuccess(baseDegree) : baseDegree;
     const immobilized = degree === "Falha" || degree === "Falha crítica";
     if (immobilized) {
-      await createManagedPF2ECondition(
+      await applyAuthorizedCondition(
+        source,
         targetActor,
-        "immobilized",
-        `charles-net-immobilized-${getActorKey(source)}`,
-        { turnStartsRemaining: 2, sourceName: "Rede de Amortecimento" },
+        "charles-cushioning-net",
+        { slug: "immobilized", turnStartsRemaining: 2 },
       );
     }
     await this.updateCharlesState(source, {
@@ -5109,14 +5157,14 @@ export class UniqueMechanicsSystem {
       const total = Number(roll.total ?? 0);
       const degree = getBasicSaveDegree(total, dc, getRollNaturalD20(roll));
       if (degree === "Falha" || degree === "Falha crítica") {
-        await createManagedPF2ECondition(
+        await applyAuthorizedCondition(
+          actor,
           enemy,
-          "frightened",
-          `atlas-clamor-${getActorKey(actor)}`,
+          "atlas-gorum-clamor",
           {
+            slug: "frightened",
             value: 1,
             turnStartsRemaining: degree === "Falha crítica" ? 2 : 1,
-            sourceName: "Clamor de Gorum",
           },
         );
       }
@@ -6017,7 +6065,7 @@ export class UniqueMechanicsSystem {
     void this.playArkiusExaurirOSolAnimation(target, area, solar, finalTemplate?.templateDocument ?? null);
     const possibleTargets = findArkiusSolarTargets(target, finalTemplate);
     const selectedTargets = await confirmArkiusSolarTargets(possibleTargets, area);
-    const targetResults = await resolveArkiusSolarTargetSaves(selectedTargets, solar.dc, Math.max(0, Math.floor(Number(roll.total ?? 0) || 0)));
+    const targetResults = await resolveArkiusSolarTargetSaves(target, selectedTargets, solar.dc, Math.max(0, Math.floor(Number(roll.total ?? 0) || 0)));
     await removeActorUniqueEffects(target, [ARKIUS_NUCLEO_EFFECT_SLUG]);
     await applyArkiusNarrativeEffect(
       target,
@@ -6431,6 +6479,14 @@ export class UniqueMechanicsSystem {
     });
   }
 
+  static getActiveArkiusKineticAuraActors(): Actor[] {
+    return Array.from(game.actors ?? []).filter(actor => {
+      if ((actor.type as string) !== "character") return false;
+      if (this.getState(actor).activeProfile !== ARKIUS_JACKER_PROFILE_ID) return false;
+      return hasActiveArkiusKineticAura(this.getArkiusState(actor));
+    });
+  }
+
   static async handleArkiusThermalNimbusTurnStart(combat: Combat): Promise<void> {
     if (!AutomationAuthority.isPrimaryGM()) return;
     const targetToken = (combat as Combat & { combatant?: { token?: unknown; tokenId?: string; actor?: Actor } }).combatant?.token;
@@ -6481,9 +6537,13 @@ export class UniqueMechanicsSystem {
         }
       }
     }
-    for (const actor of this.getActiveThermalNimbusActors()) {
+    for (const actor of this.getActiveArkiusKineticAuraActors()) {
       if (movedActor?.id === actor.id) {
         await syncArkiusKineticAuraTemplate(actor, anchor);
+      }
+    }
+    for (const actor of this.getActiveThermalNimbusActors()) {
+      if (movedActor?.id === actor.id) {
         await this.applyThermalNimbusToTokensInAura(actor, "aura movida", undefined, anchor);
       } else {
         await this.applyThermalNimbusToToken(actor, tokenDocument, "entrada na aura");
@@ -6688,7 +6748,10 @@ export class UniqueMechanicsSystem {
     const frightened = degree === "Falha crítica" ? 3 : degree === "Falha" ? 2 : 0;
     let conditionApplied = false;
     if (frightened > 0) {
-      conditionApplied = await tryIncreaseActorCondition(choice.actor, "frightened", frightened);
+      conditionApplied = await applyAuthorizedCondition(target, choice.actor, "yu-flurry-fear", {
+        slug: "frightened",
+        value: frightened,
+      });
       if (!conditionApplied) {
         await applyYuNarrativeEffect(
           choice.actor,
@@ -6737,7 +6800,10 @@ export class UniqueMechanicsSystem {
     const degree = getBasicSaveDegree(total, dc, natural);
     const stunned = degree === "Falha crítica" ? 3 : degree === "Falha" ? 1 : 0;
     const conditionApplied = stunned > 0
-      ? await tryIncreaseActorCondition(choice.actor, "stunned", stunned)
+      ? await applyAuthorizedCondition(target, choice.actor, "yu-stunning-fist", {
+        slug: "stunned",
+        value: stunned,
+      })
       : false;
 
     await ChatMessage.create({
@@ -7431,7 +7497,10 @@ export class UniqueMechanicsSystem {
       const roll = new Roll(formula);
       await roll.evaluate();
       const total = Number(roll.total ?? 0);
-      const applied = await applyActorHpDelta(choice.actor, total).catch(error => {
+      const applied = await applyAuthorizedMutation(actor, "gyro-medicinal-spin", {
+        actorUuid: choice.actor.uuid,
+        hpDelta: total,
+      }).catch(error => {
         console.warn("Ethernum RPG Module | Could not apply Gyro healing", error);
         return false;
       });
@@ -7455,7 +7524,10 @@ export class UniqueMechanicsSystem {
       const roll = new Roll(formula);
       await roll.evaluate();
       const total = Number(roll.total ?? 0);
-      const applied = await applyActorHpDelta(choice.actor, -total).catch(error => {
+      const applied = await applyAuthorizedMutation(actor, "gyro-spiral-ricochet", {
+        actorUuid: choice.actor.uuid,
+        hpDelta: -total,
+      }).catch(error => {
         console.warn("Ethernum RPG Module | Could not apply Gyro ricochet damage", error);
         return false;
       });

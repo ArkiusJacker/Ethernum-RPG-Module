@@ -219,7 +219,7 @@ await game.ethernum.macros.concordia.atlas.completeDivineGaze();
 O rastreador de Momentum Fides e Fulgor Negro fica disponível sobre o canvas, sem depender de uma ficha aberta.
 
 - A visão **Jogador** acompanha o personagem atribuído ou o token controlado, exibe as marcas e cargas de Fides, a cadeia de Fulgor e os resultados do combate.
-- A visão **Mestre** reúne os personagens dos jogadores e oferece correção de marcas, encerramento de Fulgor e resets de combate ou preparações diárias.
+- A visão **Mestre** reúne os personagens dos jogadores e oferece correção de marcas, concessão ou encerramento de Fulgor e resets de combate ou preparações diárias.
 - Falhas e críticos de testes com d20 são lidos diretamente das mensagens do PF2e. Resultado natural e grau final permanecem separados; Fides e Fulgor continuam restritos a ataques contra CA.
 - O estado diário fica salvo na flag do ator; marcas, estatísticas do encontro e cadeias são limpas ao encerrar o combate.
 - O temporizador de turnos fica visível para todos e é controlado pelo mestre, com duração em segundos ou minutos, pausa, reset e avanço automático opcional.

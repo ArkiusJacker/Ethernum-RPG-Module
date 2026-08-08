@@ -155,6 +155,10 @@ export function normalizeArkiusState(value: unknown): ArkiusJackerState {
   };
 }
 
+export function hasActiveArkiusKineticAura(state: ArkiusJackerState): boolean {
+  return state.kineticAura.active;
+}
+
 export const arkiusProfile: UniqueMechanicProfile<ArkiusJackerState> = {
   id: ARKIUS_JACKER_PROFILE_ID,
   core: "concordia",

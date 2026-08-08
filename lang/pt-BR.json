@@ -1095,6 +1095,7 @@
         "UseFulgor": "Executar o ataque livre de Fulgor Negro",
         "RemoveMarker": "Remover uma marca de Fides",
         "AddMarker": "Adicionar uma marca de Fides",
+        "GrantFulgor": "Conceder uma carga de Fulgor Negro",
         "EndFulgor": "Encerrar Fulgor Negro",
         "ResetCombatActor": "Limpar rastreio deste combate",
         "ResetDailyActor": "Restaurar preparações diárias",

@@ -24,6 +24,12 @@ export interface PF2eEffectMutation {
   slug: string;
   description: string;
   durationRounds?: number;
+  duration?: {
+    value: number;
+    unit: "rounds" | "minutes" | "hours" | "days" | "unlimited";
+    expiry?: "turn-start" | "turn-end" | null;
+  };
+  traits?: string[];
   rules?: Array<Record<string, unknown>>;
   img?: string;
 }
@@ -490,6 +496,11 @@ async function applyCondition(
 }
 
 function effectData(effect: PF2eEffectMutation): Record<string, unknown> {
+  const duration = effect.duration ?? {
+    value: Math.max(1, effect.durationRounds ?? 1),
+    unit: "rounds" as const,
+    expiry: "turn-start" as const,
+  };
   return {
     name: effect.name,
     type: "effect",
@@ -499,20 +510,23 @@ function effectData(effect: PF2eEffectMutation): Record<string, unknown> {
       description: { value: `<p>${escapeHtml(effect.description)}</p>` },
       level: { value: 1 },
       duration: {
-        value: Math.max(1, effect.durationRounds ?? 1),
-        unit: "rounds",
+        value: duration.unit === "unlimited" ? -1 : Math.max(1, duration.value),
+        unit: duration.unit,
         sustained: false,
-        expiry: "turn-start",
+        expiry: duration.expiry ?? null,
       },
       tokenIcon: { show: true },
-      traits: { value: ["occult"] },
+      traits: {
+        value: effect.traits
+          ?? (effect.slug.startsWith("ethernum-pipping-") ? ["occult"] : []),
+      },
       rules: effect.rules ?? [],
     },
     flags: {
       [ETHERNUM.MODULE_NAME]: {
         uniqueMechanics: true,
         uniqueEffect: effect.slug,
-        pippingEffect: true,
+        ...(effect.slug.startsWith("ethernum-pipping-") ? { pippingEffect: true } : {}),
       },
     },
   };
@@ -604,6 +618,179 @@ function actorLevel(actor: Actor): number {
   const details = record(system.details);
   const level = Number(record(details.level).value ?? record(system.level).value ?? 1);
   return Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
+}
+
+export interface UniqueMutationPolicy {
+  profileId: string;
+  maxTargets: number;
+  hpDelta?: "damage" | "healing";
+  damageTypes?: string[];
+  conditions?: string[];
+  effectPrefixes?: string[];
+  allowedRuleKeys?: string[];
+}
+
+const UNIQUE_MUTATION_POLICIES: Record<string, UniqueMutationPolicy> = {
+  "gyro-medicinal-spin": {
+    profileId: "gyro-spin",
+    maxTargets: 1,
+    hpDelta: "healing",
+  },
+  "gyro-spiral-ricochet": {
+    profileId: "gyro-spin",
+    maxTargets: 1,
+    hpDelta: "damage",
+  },
+  "charles-containment-shot": {
+    profileId: "charles",
+    maxTargets: 1,
+    conditions: ["grabbed", "restrained"],
+  },
+  "charles-vector-pull": {
+    profileId: "charles",
+    maxTargets: 1,
+    conditions: ["off-guard"],
+  },
+  "charles-cushioning-net": {
+    profileId: "charles",
+    maxTargets: 30,
+    conditions: ["immobilized"],
+  },
+  "atlas-frontline-vigor": {
+    profileId: "atlas-sidarta",
+    maxTargets: 30,
+    effectPrefixes: ["atlas-vigor-atletismo-"],
+    allowedRuleKeys: ["FlatModifier"],
+  },
+  "atlas-steel-resonance": {
+    profileId: "atlas-sidarta",
+    maxTargets: 30,
+    effectPrefixes: ["atlas-ressonancia-de-aco-"],
+    allowedRuleKeys: ["FlatModifier", "Resistance"],
+  },
+  "atlas-gorum-clamor": {
+    profileId: "atlas-sidarta",
+    maxTargets: 30,
+    conditions: ["frightened"],
+  },
+  "arkius-exaurir-o-sol": {
+    profileId: "arkius-jacker",
+    maxTargets: 30,
+    hpDelta: "damage",
+  },
+  "yu-flurry-fear": {
+    profileId: "yu-jiu-ji-tae",
+    maxTargets: 1,
+    conditions: ["frightened"],
+  },
+  "yu-stunning-fist": {
+    profileId: "yu-jiu-ji-tae",
+    maxTargets: 1,
+    conditions: ["stunned"],
+  },
+};
+
+export function getUniqueMutationPolicy(
+  profileId: string,
+  actionId: string,
+): UniqueMutationPolicy | null {
+  const policy = UNIQUE_MUTATION_POLICIES[actionId];
+  return policy?.profileId === profileId ? policy : null;
+}
+
+export function validateUniqueMutationPayload(
+  profileId: string,
+  actionId: string,
+  mutations: PF2eActorMutation[],
+): void {
+  const policy = getUniqueMutationPolicy(profileId, actionId);
+  if (!policy) throw new Error("A mutação solicitada não pertence à mecânica ativa do personagem.");
+  if (mutations.length < 1 || mutations.length > policy.maxTargets) {
+    throw new Error("A mutação solicitada possui uma quantidade inválida de alvos.");
+  }
+
+  const conditions = new Set(policy.conditions ?? []);
+  const ruleKeys = new Set(policy.allowedRuleKeys ?? []);
+  for (const mutation of mutations) {
+    if (!mutation.actorUuid) throw new Error("A mutação solicitada não possui um alvo válido.");
+    const hpDelta = Number(mutation.hpDelta ?? 0);
+    const damageTotal = Number(mutation.damage?.total ?? 0);
+    const healingTotal = Number(mutation.healing?.total ?? 0);
+    if (
+      !Number.isFinite(hpDelta)
+      || !Number.isFinite(damageTotal)
+      || !Number.isFinite(healingTotal)
+      || Math.abs(hpDelta) > 500
+      || damageTotal < 0
+      || damageTotal > 500
+      || healingTotal < 0
+      || healingTotal > 500
+    ) {
+      throw new Error("A alteração de PV solicitada está fora dos limites permitidos.");
+    }
+    if (
+      (policy.hpDelta === "damage" && hpDelta > 0)
+      || (policy.hpDelta === "healing" && hpDelta < 0)
+      || (!policy.hpDelta && hpDelta !== 0)
+    ) {
+      throw new Error("A alteração de PV não corresponde à habilidade solicitada.");
+    }
+    if (damageTotal > 0 && !(policy.damageTypes ?? []).includes(String(mutation.damage?.type ?? ""))) {
+      throw new Error("O tipo de dano não corresponde à habilidade solicitada.");
+    }
+    if (healingTotal > 0 || damageTotal > 0) {
+      throw new Error("Esta habilidade deve usar a alteração de PV validada pelo módulo.");
+    }
+    for (const condition of mutation.conditions ?? []) {
+      const value = Number(condition.value ?? 1);
+      const turns = Number(condition.turnStartsRemaining ?? 0);
+      if (
+        !conditions.has(condition.slug)
+        || condition.mode === "decrease"
+        || condition.persistent
+        || !Number.isFinite(value)
+        || value < 1
+        || value > 4
+        || !Number.isFinite(turns)
+        || turns < 0
+        || turns > 10
+      ) {
+        throw new Error("A condição solicitada não corresponde à habilidade.");
+      }
+    }
+    for (const effect of mutation.effects ?? []) {
+      if (
+        !(policy.effectPrefixes ?? []).some(prefix => effect.slug.startsWith(prefix))
+        || effect.name.length > 120
+        || effect.description.length > 1000
+        || (effect.rules?.length ?? 0) > 10
+        || (effect.traits?.length ?? 0) > 10
+      ) {
+        throw new Error("O efeito solicitado não corresponde à habilidade.");
+      }
+      const duration = effect.duration;
+      if (duration && (duration.value < -1 || duration.value > 1440)) {
+        throw new Error("A duração do efeito solicitado está fora dos limites permitidos.");
+      }
+      for (const rule of effect.rules ?? []) {
+        if (!ruleKeys.has(String(rule.key ?? ""))) {
+          throw new Error("O efeito solicitado contém uma regra PF2e não autorizada.");
+        }
+        if ("value" in rule && Math.abs(Number(rule.value)) > 50) {
+          throw new Error("O valor de uma regra PF2e está fora dos limites permitidos.");
+        }
+      }
+    }
+  }
+}
+
+function validateUniqueMutationRequest(request: MutationRequest, source: Actor): void {
+  const unique = record(source.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics"));
+  validateUniqueMutationPayload(
+    String(unique.activeProfile ?? ""),
+    request.actionId,
+    request.mutations,
+  );
 }
 
 function validatePippingMutationRequest(
@@ -757,7 +944,11 @@ async function handleMutationRequest(request: MutationRequest): Promise<void> {
     }
     const source = await resolveActor(request.sourceActorUuid);
     if (!source) throw new Error("Pipping source actor was not found.");
-    validatePippingMutationRequest(request, source);
+    if (sourceUsesPipping(source) && getPippingAction(request.actionId)) {
+      validatePippingMutationRequest(request, source);
+    } else {
+      validateUniqueMutationRequest(request, source);
+    }
     const results: PF2eMutationResult[] = [];
     for (const mutation of request.mutations.slice(0, 50)) {
       results.push(await applyMutationLocally(mutation));

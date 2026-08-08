@@ -315,6 +315,9 @@ function gmActorRowHTML(entry: TrackedActor): string {
         <button type="button" data-action="marker-up" title="${t("Actions.AddMarker")}">
           <i class="fas fa-plus"></i>
         </button>
+        <button type="button" data-action="grant-fulgor" title="${t("Actions.GrantFulgor")}" ${state.fulgor.active ? "disabled" : ""}>
+          <i class="fas fa-bolt"></i>
+        </button>
         <button type="button" data-action="end-fulgor" title="${t("Actions.EndFulgor")}" ${state.fulgor.active ? "" : "disabled"}>
           <i class="fas fa-ban"></i>
         </button>
@@ -497,6 +500,7 @@ export class CombatMomentumTracker {
           if (!actor) return;
           if (action === "marker-down") await CombatMomentumSystem.adjustFidesMarkers(actor, -1);
           if (action === "marker-up") await CombatMomentumSystem.adjustFidesMarkers(actor, 1);
+          if (action === "grant-fulgor") await CombatMomentumSystem.grantFulgor(actor);
           if (action === "end-fulgor") await CombatMomentumSystem.endFulgor(actor);
           if (action === "reset-combat-actor") await CombatMomentumSystem.resetCombat(actor);
           if (action === "reset-daily-actor") await CombatMomentumSystem.dailyReset(actor);

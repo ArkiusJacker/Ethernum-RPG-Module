@@ -6256,9 +6256,13 @@
 
 .ethernum-combat-gm-controls {
   display: grid;
-  grid-template-columns: repeat(5, 30px);
+  grid-template-columns: repeat(6, 30px);
   gap: 5px;
   margin-top: 8px;
+}
+
+.ethernum-combat-gm-controls [data-action="grant-fulgor"]:not(:disabled) i {
+  color: var(--fulgor-red);
 }
 
 .ethernum-combat-gm-controls button {

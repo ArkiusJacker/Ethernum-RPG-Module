@@ -1095,6 +1095,7 @@
         "UseFulgor": "Use the free Black Radiance attack",
         "RemoveMarker": "Remove a Fides mark",
         "AddMarker": "Add a Fides mark",
+        "GrantFulgor": "Grant one Black Radiance charge",
         "EndFulgor": "End Black Radiance",
         "ResetCombatActor": "Clear this combat's tracking",
         "ResetDailyActor": "Restore daily preparations",
