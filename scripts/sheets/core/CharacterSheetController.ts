@@ -10,6 +10,7 @@ import {
   type CharacterSheetShellDefinition,
 } from "../ethernum/EthernumCompanySheet.js";
 import { CharacterSheetCache } from "./CharacterSheetCache.js";
+import { presentCharacterSheetError } from "./CharacterSheetDiagnosticsService.js";
 import { CharacterSheetModuleRegistry, type CharacterSheetModuleMetric } from "./CharacterSheetModuleRegistry.js";
 import { buildCharacterSheetPresentation } from "./CharacterSheetPresentation.js";
 import {
@@ -23,6 +24,12 @@ import {
   type ResolvedCharacterSheetMode,
 } from "./CharacterSheetRegistry.js";
 import { CharacterSheetState, type CharacterSheetViewState } from "./CharacterSheetState.js";
+import { CharacterRichTextService } from "./CharacterRichTextService.js";
+import { PF2eBridgeTelemetry, type PF2eBridgeTelemetryEntry } from "./PF2eBridgeTelemetry.js";
+import {
+  PF2ePreparedDataService,
+  type PF2ePreparedDataSource,
+} from "./PF2ePreparedDataService.js";
 
 export interface CharacterSheetPermissions {
   owner: boolean;
@@ -42,9 +49,18 @@ export interface EthernumCharacterSheetContext extends Record<string, unknown> {
   ui: CharacterSheetViewState & {
     tabs: ReturnType<CharacterSheetShellDefinition["tabs"]>;
     showStowed: boolean;
+    skillDetailsCollapsed: boolean;
+    overviewDetailsCollapsed: boolean;
+    overviewActivitiesCollapsed: boolean;
+    overviewCraftingCollapsed: boolean;
+    overviewBiographyCollapsed: boolean;
   };
   failedModules: Array<{ id: string; message: string }>;
-  moduleFailures: Record<string, { id: string; message: string }>;
+  moduleFailures: Record<string, {
+    id: string;
+    message: string;
+    technical: ReturnType<typeof presentCharacterSheetError>["technical"];
+  }>;
   renderTimeMs: number;
 }
 
@@ -63,6 +79,15 @@ export interface CharacterSheetDiagnostics {
   foundryVersion: string;
   pf2eVersion: string;
   capabilities: PF2eCharacterCapabilities;
+  capabilityStatus: {
+    richText: "supported" | "fallback" | "unsupported";
+    craftingPreparedData: "supported" | "fallback" | "unsupported";
+  };
+  preparedData: {
+    spellcasting: PF2ePreparedDataSource;
+    crafting: PF2ePreparedDataSource;
+  };
+  telemetry: PF2eBridgeTelemetryEntry[];
   fallbacksUsed: string[];
 }
 
@@ -80,6 +105,29 @@ function record(value: unknown): Record<string, unknown> {
 
 function now(): number {
   return globalThis.performance?.now() ?? Date.now();
+}
+
+function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function recordPreparedOperation(
+  actor: Actor,
+  operation: string,
+  capability: string,
+  source: PF2ePreparedDataSource,
+  durationMs: number,
+  diagnostics: Array<{ scope: string }>,
+): void {
+  PF2eBridgeTelemetry.record({
+    actorId: actorId(actor),
+    operation,
+    capability,
+    source: source === "prepared" ? "pf2e-prepared" : source === "adapter" ? "adapter" : "pf2e-sheet",
+    status: source === "prepared" ? "success" : "fallback",
+    durationMs: Math.max(0, durationMs),
+    message: diagnostics.length > 0 ? diagnostics.map(entry => entry.scope).join(", ") : undefined,
+  });
 }
 
 function actorId(actor: Actor): string {
@@ -160,6 +208,71 @@ export const CharacterSheetController = {
       (data, module) => Object.assign(data, module.output),
       {},
     );
+    const [spellcastingResult, craftingResult, enrichedBiography] = await Promise.all([
+      (async () => {
+        const operationStarted = now();
+        const value = await PF2ePreparedDataService.spellcasting(actor);
+        return { value, durationMs: now() - operationStarted };
+      })(),
+      (async () => {
+        const operationStarted = now();
+        const value = await PF2ePreparedDataService.crafting(actor);
+        return { value, durationMs: now() - operationStarted };
+      })(),
+      CharacterRichTextService.biography(actor),
+    ]);
+    const preparedSpellcasting = spellcastingResult.value;
+    const preparedCrafting = craftingResult.value;
+    if (preparedSpellcasting.source !== "prepared" || preparedSpellcasting.diagnostics.length > 0) {
+      recordPreparedOperation(
+        actor,
+        "prepare-spellcasting",
+        "spellCollections",
+        preparedSpellcasting.source,
+        spellcastingResult.durationMs,
+        preparedSpellcasting.diagnostics,
+      );
+    }
+    if (preparedCrafting.source !== "prepared" || preparedCrafting.diagnostics.length > 0) {
+      recordPreparedOperation(
+        actor,
+        "prepare-crafting",
+        "craftingPreparedData",
+        preparedCrafting.source,
+        craftingResult.durationMs,
+        preparedCrafting.diagnostics,
+      );
+    }
+
+    const preparedEntryIds = new Set(preparedSpellcasting.entries.map(entry => entry.entryId));
+    const spellcastingData = record(preparedSpellcasting.snapshot ?? moduleData.spellcasting);
+    moduleData.spellcasting = {
+      ...spellcastingData,
+      entries: list(spellcastingData.entries).map(value => {
+        const entry = record(value);
+        return { ...entry, preparedDataAvailable: preparedEntryIds.has(String(entry.id ?? "")) };
+      }),
+      preparedSource: preparedSpellcasting.source,
+      preparedDiagnostics: preparedSpellcasting.diagnostics.map(entry => entry.scope),
+      openPF2eSheet: preparedSpellcasting.openPF2eSheet,
+    };
+
+    const detailsData = record(moduleData.details);
+    const craftingData = record(preparedCrafting.snapshot ?? detailsData.crafting);
+    moduleData.details = {
+      ...detailsData,
+      biography: enrichedBiography,
+      crafting: {
+        ...craftingData,
+        preparedSource: preparedCrafting.source,
+        preparedDiagnostics: preparedCrafting.diagnostics.map(entry => entry.scope),
+        openPF2eSheet: preparedCrafting.openPF2eSheet,
+      },
+      specialActions: PF2ePreparedDataService.deduplicateSpecialActions(
+        list(detailsData.specialActions) as Array<Record<string, unknown>>,
+        list(moduleData.actions) as Array<Record<string, unknown>>,
+      ),
+    };
     const sheetPermissions = permissionsFor(actor);
     const presentedData = buildCharacterSheetPresentation(moduleData, sheetPermissions);
     const spellcasting = presentedData.spellcasting as { hasSpellcasting?: boolean } | undefined;
@@ -185,9 +298,9 @@ export const CharacterSheetController = {
         };
       });
     }
-    const spellcastingData = record(presentedData.spellcasting);
-    if (Array.isArray(spellcastingData.entries)) {
-      spellcastingData.entries = spellcastingData.entries.map(entryValue => {
+    const presentedSpellcastingData = record(presentedData.spellcasting);
+    if (Array.isArray(presentedSpellcastingData.entries)) {
+      presentedSpellcastingData.entries = presentedSpellcastingData.entries.map(entryValue => {
         const entry = record(entryValue);
         const id = String(entry.id ?? "");
         return { ...entry, collapsed: savedState.collapsed[`spellcasting:${id}`] === true };
@@ -197,10 +310,19 @@ export const CharacterSheetController = {
       ? savedState.activeTab
       : tabs[0]?.id ?? "overview";
     if (activeTab !== savedState.activeTab) localState.setActiveTab(activeTab);
+    const safeModuleFailure = game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.ModuleUnavailable")
+      ?? "This section could not be loaded.";
     const failedModules = report.metrics.flatMap(metric => metric.status === "failed"
       ? [{
         id: metric.id,
-        message: metric.error instanceof Error ? metric.error.message : String(metric.error),
+        message: safeModuleFailure,
+        technical: presentCharacterSheetError(metric.error, {
+          isGM: sheetPermissions.gm,
+          module: metric.id,
+          capability: metric.phase,
+          foundryVersion: String((game as Game & { version?: string }).version ?? "unknown"),
+          pf2eVersion: String(game.system?.version ?? "unknown"),
+        }).technical,
       }]
       : []);
     const moduleFailures = Object.fromEntries(failedModules.map(module => [module.id, module]));
@@ -216,6 +338,11 @@ export const CharacterSheetController = {
         ...savedState,
         activeTab,
         showStowed,
+        skillDetailsCollapsed: savedState.collapsed["overview:skill-details"] === true,
+        overviewDetailsCollapsed: savedState.collapsed["overview:details"] === true,
+        overviewActivitiesCollapsed: savedState.collapsed["overview:activities"] === true,
+        overviewCraftingCollapsed: savedState.collapsed["overview:crafting"] === true,
+        overviewBiographyCollapsed: savedState.collapsed["overview:biography"] === true,
         tabs: tabs.map(tab => ({
           ...tab,
           active: tab.id === activeTab,
@@ -228,9 +355,26 @@ export const CharacterSheetController = {
       ...presentedData,
     };
     const uniqueState = UniqueMechanicStateService.getState(actor);
-    const capabilities = detectPF2eCharacterCapabilities(actor);
+    const itemDocument = (globalThis as unknown as {
+      Item?: { fromDropData?: (data: Record<string, unknown>) => unknown };
+    }).Item;
+    const capabilities = detectPF2eCharacterCapabilities(actor, {
+      ...(typeof itemDocument?.fromDropData === "function" ? { dropResolver: itemDocument.fromDropData } : {}),
+    });
     const foundryVersion = String((game as Game & { version?: string }).version ?? "unknown");
     const pf2eVersion = String(game.system?.version ?? "unknown");
+    const capabilityStatus = {
+      richText: CharacterRichTextService.capabilityStatus(),
+      craftingPreparedData: preparedCrafting.source === "prepared"
+        ? "supported" as const
+        : preparedCrafting.source === "adapter"
+          ? "fallback" as const
+          : "unsupported" as const,
+    };
+    const preparedFallbacks = [
+      preparedSpellcasting.source !== "prepared" ? `spellcasting:${preparedSpellcasting.source}` : "",
+      preparedCrafting.source !== "prepared" ? `crafting:${preparedCrafting.source}` : "",
+    ].filter(Boolean);
     diagnostics.set(id, {
       actorId: id,
       actorName: actor.name ?? "",
@@ -246,7 +390,16 @@ export const CharacterSheetController = {
       foundryVersion,
       pf2eVersion,
       capabilities,
-      fallbacksUsed: failedModules.map(module => `module:${module.id}`),
+      capabilityStatus,
+      preparedData: {
+        spellcasting: preparedSpellcasting.source,
+        crafting: preparedCrafting.source,
+      },
+      telemetry: PF2eBridgeTelemetry.list({ actorId: id }),
+      fallbacksUsed: [
+        ...failedModules.map(module => `module:${module.id}`),
+        ...preparedFallbacks,
+      ],
     });
     return context;
   },

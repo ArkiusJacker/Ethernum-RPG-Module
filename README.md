@@ -1,22 +1,23 @@
 # Ethernum RPG Module - Sistema de Éter
 
-[![Foundry VTT](https://img.shields.io/badge/Foundry-v11%20--%20v14-orange)](https://foundryvtt.com)
+[![Foundry VTT](https://img.shields.io/badge/Foundry-13.351%20primary-orange)](https://foundryvtt.com)
 [![Pathfinder 2E](https://img.shields.io/badge/System-Pathfinder%202E-blue)](https://foundryvtt.com/packages/pf2e/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
+Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.2
+## Versão 3.7.3
 
-- Ficha Concórdia redesenhada como registro arcano-industrial, visualmente distinta da Ethernum Company.
-- Navegação superior para Personagem, Combate, Arsenal, Talentos, Magia, Mecânica Única e Efeitos, sem Éter, FE ou Runas Ethernum.
-- Cabeçalho responsivo com retrato ampliado, PV, Pontos Heroicos, CA, Percepção e salvamentos.
-- Biografia, proficiências, CDs de classe, sentidos, idiomas, exploração, downtime, crafting e ações especiais lidos do Actor PF2e.
-- Spellcasting por collections com ranks, slots, usos, preparação, assinatura, Focus Points e fallback seguro para edição avançada.
-- Arsenal sobre o inventário PF2e existente, preservando Bulk, carga, investimento, consumíveis e recipientes.
-- Mecânicas de Arkius, Charles, Atlas e Yu ganham destaque e accents próprios sem alterar suas regras ou flags.
-- Mensagens de chat recebem apresentação distinta para Ethernum Company e Concórdia sem substituir cards do PF2e.
-- Capabilities, falhas isoladas e fallbacks ficam disponíveis em `game.ethernum.ui.characterSheetDiagnostics(actor)`.
+- Viewport, aba ativa, seções recolhíveis e foco são restaurados depois de rerenders sem gravar estado visual no Actor.
+- Thumbnails recebem papéis próprios, dimensões estáveis e fallback por tipo para retratos, itens, armas, talentos, magias e ações.
+- Spellcasting e crafting passam por um serviço assíncrono de dados preparados do PF2e, com fallback para o snapshot existente e para a ficha oficial.
+- Biografia e notas usam enriquecimento Rich Text do PF2e/Foundry, respeitando permissões e blocos secretos.
+- Ranks, idiomas, sentidos, traits, tradições e unidades são apresentados pelas configurações e traduções oficiais disponíveis.
+- Special Actions sintéticas são deduplicadas das ações normais usando identificadores estáveis.
+- Overview ganha seções recolhíveis locais e um modo compacto mais denso sem perder ações ou valores importantes.
+- Telemetria local limitada e um painel de diagnóstico exclusivo do mestre registram capabilities, fallbacks, tempos e falhas de módulos sem conteúdo confidencial.
+- O CSS Concórdia foi decomposto por responsabilidade mantendo a mesma ordem visual da versão anterior.
+- O Test Harness 2.0 cobre nove classes PF2e, viewport, imagens, prepared data, Rich Text, localização, telemetria e diagnóstico.
 
 ### Paridade da ficha PF2e
 

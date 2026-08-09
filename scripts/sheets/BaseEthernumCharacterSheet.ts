@@ -5,8 +5,15 @@ import { CombatMomentumSystem } from "../table/CombatMomentumSystem.js";
 import { EtherTabManager } from "../ui/EtherTabManager.js";
 import { UniqueMechanicActionService } from "../unique/services/UniqueMechanicActionService.js";
 import { CharacterSheetController } from "./core/CharacterSheetController.js";
+import { openCharacterSheetDiagnostics } from "./core/CharacterSheetDiagnosticsApp.js";
+import {
+  presentCharacterSheetError,
+  type CharacterSheetSafeErrorPresentation,
+} from "./core/CharacterSheetDiagnosticsService.js";
+import { CharacterSheetImageService } from "./core/CharacterSheetImageService.js";
 import { openOriginalPF2eCharacterSheet } from "./core/CharacterSheetLifecycle.js";
 import { openCharacterSheetSwitcher } from "./core/CharacterSheetSwitcher.js";
+import { CharacterSheetViewportService } from "./core/CharacterSheetViewportService.js";
 import { PF2eCharacterActions } from "./core/PF2eCharacterActions.js";
 
 function numeric(value: unknown, fallback = 0): number {
@@ -18,14 +25,39 @@ function data(element: HTMLElement, key: string): string {
   return element.dataset[key] ?? "";
 }
 
-function selectSheetTab(actor: Actor, html: JQuery<HTMLElement>, tabId: string): void {
-  if (!tabId) return;
-  const state = CharacterSheetController.state(actor);
-  const previousTab = state.load().activeTab;
-  const workspace = html.find<HTMLElement>(".ecs-workspace").get(0);
-  if (workspace) state.setScroll(previousTab, workspace.scrollTop);
-  state.setActiveTab(tabId);
+function escapeMarkup(value: unknown): string {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
+function showCharacterSheetActionError(actor: Actor, presentation: CharacterSheetSafeErrorPresentation): void {
+  const technical = presentation.technical;
+  const technicalContent = technical
+    ? `<details class="ecs-error-technical"><summary>${escapeMarkup(game.i18n?.localize("ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails") ?? "Technical details")}</summary><dl><dt>Error</dt><dd>${escapeMarkup(technical.errorType)}: ${escapeMarkup(technical.message)}</dd><dt>Module</dt><dd>${escapeMarkup(technical.module)}</dd><dt>Capability</dt><dd>${escapeMarkup(technical.capability)}</dd><dt>PF2e</dt><dd>${escapeMarkup(technical.pf2eVersion)}</dd><dt>Foundry</dt><dd>${escapeMarkup(technical.foundryVersion)}</dd></dl></details>`
+    : "";
+  new Dialog({
+    title: presentation.title,
+    content: `<div class="ecs-error-dialog"><p>${escapeMarkup(presentation.message)}</p>${technicalContent}</div>`,
+    buttons: {
+      pf2e: {
+        icon: '<i class="fas fa-up-right-from-square"></i>',
+        label: presentation.action.label,
+        callback: () => openOriginalPF2eCharacterSheet(actor),
+      },
+      close: {
+        icon: '<i class="fas fa-xmark"></i>',
+        label: game.i18n?.localize("ETHERNUM.Common.Close") ?? "Close",
+      },
+    },
+    default: "pf2e",
+  }).render(true);
+}
+
+function syncSheetTabFallback(html: JQuery<HTMLElement>, tabId: string): void {
   html.find<HTMLElement>("[data-sheet-tab]").each((_index, tab) => {
     const active = data(tab, "sheetTab") === tabId;
     tab.classList.toggle("is-active", active);
@@ -35,8 +67,6 @@ function selectSheetTab(actor: Actor, html: JQuery<HTMLElement>, tabId: string):
   html.find<HTMLElement>(".ecs-tab-panel[data-tab]").each((_index, panel) => {
     panel.hidden = data(panel, "tab") !== tabId;
   });
-
-  if (workspace) workspace.scrollTop = state.load().scroll[tabId] ?? 0;
 }
 
 const ActorSheetBase = ((foundry as unknown as {
@@ -44,6 +74,9 @@ const ActorSheetBase = ((foundry as unknown as {
 }).appv1?.sheets?.ActorSheet ?? (globalThis as unknown as { ActorSheet: typeof ActorSheet }).ActorSheet);
 
 export class BaseEthernumCharacterSheet extends ActorSheetBase {
+  readonly #imageService = new CharacterSheetImageService();
+  #viewport: CharacterSheetViewportService | null = null;
+
   static override get defaultOptions(): ActorSheet.Options {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["ethernum-rpg-module", "ethernum-character-sheet-window"],
@@ -61,6 +94,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
   }
 
   override render(force = false, options: Application.RenderOptions = {}): this {
+    this.#viewportService().capture(this.#sheetRoot());
     if (CharacterSheetController.resolve(this.actor).resolvedSheet === "pf2e") {
       openOriginalPF2eCharacterSheet(this.actor);
       return this;
@@ -74,13 +108,20 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       return { ...(await super.getData(options)), ...context };
     } catch (error) {
       console.error("Ethernum | Character sheet render failed", this.actor, error);
+      const presentation = presentCharacterSheetError(error, {
+        isGM: Boolean(game.user?.isGM),
+        module: "character-sheet",
+        moduleLabel: game.i18n?.localize("ETHERNUM.CharacterSheet.Label") ?? "character sheet",
+        foundryVersion: String((game as Game & { version?: string }).version ?? "unknown"),
+        pf2eVersion: String(game.system?.version ?? "unknown"),
+      });
       ui.notifications?.error(game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.Render")
-        ?? "Ethernum could not render this character sheet.");
+        ?? presentation.title);
       return {
         ...(await super.getData(options)),
         actor: this.actor,
         emergency: true,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorPresentation: presentation,
       };
     }
   }
@@ -88,30 +129,47 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
   override activateListeners(html: JQuery<HTMLElement>): void {
     super.activateListeners(html);
     EtherTabManager.activateEmbeddedUniqueMechanic(this, html, this.actor);
+    const root = this.#sheetRoot(html);
+    const viewport = this.#viewportService();
+    if (root) {
+      viewport.bind(root);
+      this.#imageService.bind(root);
+    }
 
     const sheetTabs = html.find<HTMLElement>("[data-sheet-tab]");
     sheetTabs.on("click.ethernum-sheet-tabs", event => {
       event.preventDefault();
       event.stopPropagation();
       const target = event.currentTarget as HTMLElement;
-      selectSheetTab(this.actor, html, data(target, "sheetTab"));
-      target.focus();
+      if (root) viewport.selectTab(root, data(target, "sheetTab"));
+      else syncSheetTabFallback(html, data(target, "sheetTab"));
     });
 
     html.on("click.ethernum-sheet", "[data-action]", event => {
       const element = event.currentTarget as HTMLElement;
       if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) return;
+      viewport.capture(root);
       event.preventDefault();
       void this.#handleAction(element).catch(error => {
         console.error("Ethernum | Character sheet action failed", data(element, "action"), error);
-        ui.notifications?.error(error instanceof Error ? error.message : String(error));
+        const presentation = presentCharacterSheetError(error, {
+          isGM: Boolean(game.user?.isGM),
+          module: data(element, "action") || "character-sheet-action",
+          foundryVersion: String((game as Game & { version?: string }).version ?? "unknown"),
+          pf2eVersion: String(game.system?.version ?? "unknown"),
+        });
+        ui.notifications?.error(game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.ActionFailed")
+          ?? presentation.message);
+        showCharacterSheetActionError(this.actor, presentation);
       });
     });
 
     html.find('[data-action="update-hp"]').on("change.ethernum-sheet", event => {
+      viewport.capture(root);
       void PF2eCharacterActions.updateHP(this.actor, numeric((event.currentTarget as HTMLInputElement).value));
     });
     html.find<HTMLSelectElement>('select[data-action="change-carry-type"]').on("change.ethernum-sheet", event => {
+      viewport.capture(root);
       const select = event.currentTarget;
       const [carryType, hands] = select.value.split(":");
       if (!["held", "worn", "stowed", "dropped"].includes(carryType)) return;
@@ -120,7 +178,8 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
         ...(carryType === "held" ? { handsHeld: numeric(hands, 1) } : {}),
       }).catch(error => {
         console.error("Ethernum | Carry type change failed", error);
-        ui.notifications?.warn(error instanceof Error ? error.message : String(error));
+        ui.notifications?.warn(game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.ActionFailed")
+          ?? "This action could not be completed. Open the original PF2e sheet to continue.");
       });
     });
     html.on("input.ethernum-sheet", '[data-action="filter-inventory"], [data-action="filter-feats"]', event => {
@@ -144,22 +203,31 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
           : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
       const target = tabs.get(next);
       if (!target) return;
-      selectSheetTab(this.actor, html, data(target, "sheetTab"));
-      target.focus();
+      if (root) viewport.selectTab(root, data(target, "sheetTab"));
+      else syncSheetTabFallback(html, data(target, "sheetTab"));
     });
-    html.find<HTMLElement>(".ecs-workspace").on("scroll.ethernum-sheet", event => {
-      const state = CharacterSheetController.state(this.actor);
-      const activeTab = state.load().activeTab;
-      state.setScroll(activeTab, (event.currentTarget as HTMLElement).scrollTop);
+    void viewport.restoreAfterRender(root).catch(error => {
+      console.warn("Ethernum | Character sheet viewport restore failed", error);
     });
-    const state = CharacterSheetController.state(this.actor).load();
-    const workspace = html.find<HTMLElement>(".ecs-workspace").get(0);
-    if (workspace) workspace.scrollTop = state.scroll[state.activeTab] ?? 0;
   }
 
   async #handleAction(element: HTMLElement): Promise<void> {
     const action = data(element, "action");
     const itemId = data(element, "itemId");
+    if (action !== "toggle-sheet-menu") {
+      const menu = element.closest<HTMLElement>(".ecs-sheet-menu")
+        ?.querySelector<HTMLElement>(".ecs-sheet-menu__panel");
+      if (menu) menu.hidden = true;
+    }
+    if (action === "toggle-sheet-menu") {
+      const menu = element.closest<HTMLElement>(".ecs-sheet-menu")
+        ?.querySelector<HTMLElement>(".ecs-sheet-menu__panel");
+      if (!menu) return;
+      menu.hidden = !menu.hidden;
+      element.setAttribute("aria-expanded", String(!menu.hidden));
+      if (!menu.hidden) menu.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+      return;
+    }
     if (action === "open-pf2e-sheet" || action === "manage-actions" || action === "browse-effects"
       || action === "create-item" || action === "create-spellcasting-entry"
       || action === "manage-spell-preparation" || action === "open-crafting-pf2e") {
@@ -168,6 +236,10 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     }
     if (action === "open-gm-control" || action === "manage-combat-momentum") {
       if (game.user?.isGM) await game.ethernum?.ui.openGMControlCenter();
+      return;
+    }
+    if (action === "open-sheet-diagnostics") {
+      await openCharacterSheetDiagnostics(this.actor);
       return;
     }
     if (action === "open-actor-image") {
@@ -277,7 +349,8 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       CharacterSheetController.state(this.actor).setCollapsed("inventory:stowed", !showStowed);
       return;
     }
-    if (action === "toggle-inventory-category" || action === "toggle-spell-entry" || action === "toggle-skill-details") {
+    if (action === "toggle-inventory-category" || action === "toggle-spell-entry"
+      || action === "toggle-skill-details" || action === "toggle-overview-section") {
       const container = element.closest<HTMLElement>("section, article, .ecs-section");
       const currentExpanded = element.getAttribute("aria-expanded") !== "false";
       const nextExpanded = !currentExpanded;
@@ -292,7 +365,9 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
         ? `inventory:${data(element, "category")}`
         : action === "toggle-spell-entry"
           ? `spellcasting:${data(element, "entryId")}`
-          : "overview:skill-details";
+          : action === "toggle-overview-section"
+            ? `overview:${data(element, "section")}`
+            : "overview:skill-details";
       CharacterSheetController.state(this.actor).setCollapsed(sectionId, !nextExpanded);
       return;
     }
@@ -332,6 +407,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
   }
 
   protected override async _onDrop(event: DragEvent): Promise<unknown> {
+    this.#viewportService().capture(this.#sheetRoot());
     const target = event.target instanceof Element ? event.target : null;
     const spellEntry = target?.closest<HTMLElement>(".ecs-spell-entry[data-entry-id]");
     if (spellEntry) {
@@ -364,6 +440,30 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       }
     }
     return super._onDrop(event);
+  }
+
+  #sheetRoot(html?: JQuery<HTMLElement>): HTMLElement | null {
+    const applicationElement = (this as unknown as {
+      element?: JQuery<HTMLElement> | HTMLElement;
+    }).element;
+    const candidate = html?.get(0)
+      ?? (applicationElement as JQuery<HTMLElement> | undefined)?.get?.(0)
+      ?? applicationElement as HTMLElement | undefined;
+    if (!candidate || typeof candidate.querySelector !== "function") return null;
+    return candidate.matches?.(".ethernum-character-sheet")
+      ? candidate
+      : candidate.querySelector<HTMLElement>(".ethernum-character-sheet") ?? candidate;
+  }
+
+  #viewportService(): CharacterSheetViewportService {
+    if (this.#viewport) return this.#viewport;
+    const resolution = CharacterSheetController.resolve(this.actor);
+    this.#viewport = new CharacterSheetViewportService({
+      actorId: String(this.actor.id ?? this.actor.uuid ?? this.actor.name ?? "actor"),
+      sheetId: resolution.resolvedSheet,
+      state: CharacterSheetController.state(this.actor, resolution.resolvedSheet),
+    });
+    return this.#viewport;
   }
 
   #filterRows(element: HTMLElement): void {

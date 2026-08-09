@@ -2,7 +2,13 @@
 <section class="ethernum-sheet-emergency">
   <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
   <h2>{{localize "ETHERNUM.CharacterSheet.Errors.Render"}}</h2>
-  <p>{{errorMessage}}</p>
+  <p>{{errorPresentation.message}}</p>
+  {{#if errorPresentation.technical}}
+  <details>
+    <summary>{{localize "ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails"}}</summary>
+    <p>{{errorPresentation.technical.errorType}}: {{errorPresentation.technical.message}}</p>
+  </details>
+  {{/if}}
   <button type="button" data-action="open-pf2e-sheet">
     <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
     <span>PF2e</span>
@@ -13,6 +19,7 @@
       data-shell-id="{{shell.id}}"
       data-actor-id="{{actor.id}}"
       data-unique-profile="{{uniqueMechanic.activeProfile}}"
+      data-viewport-root
       aria-label="{{shell.title}}"
       autocomplete="off">
   {{> "modules/ethernum-rpg-module/templates/sheets/base/sheet-base.html"}}

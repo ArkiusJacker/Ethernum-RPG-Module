@@ -18,6 +18,23 @@ describe("Character Sheet architecture", () => {
     expect(sources).not.toContain("UniqueMechanicsLegacy");
   });
 
+  it("keeps visual themes declarative and separate from prepared character data", async () => {
+    const { EthernumCompanyShell } = await import("../scripts/sheets/ethernum/EthernumCompanySheet.js");
+    const { ConcordiaShell } = await import("../scripts/sheets/concordia/ConcordiaSheet.js");
+
+    expect(EthernumCompanyShell.theme).toMatchObject({
+      id: "ethernum-company",
+      shellClass: "ethernum-company-sheet",
+    });
+    expect(ConcordiaShell.theme).toMatchObject({
+      id: "concordia",
+      shellClass: "concordia-character-sheet",
+    });
+    expect(EthernumCompanyShell.theme.componentVariants?.combat).not.toBe(
+      ConcordiaShell.theme.componentVariants?.combat,
+    );
+  });
+
   it("keeps changed character-sheet labels in both locale catalogs", () => {
     const pt = JSON.parse(readFileSync(join(process.cwd(), "lang", "pt-BR.json"), "utf8"));
     const en = JSON.parse(readFileSync(join(process.cwd(), "lang", "en.json"), "utf8"));

@@ -1,0 +1,53 @@
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-toolbar {
+  padding: 10px 12px;
+  border: 1px solid #404748;
+  border-left: 4px solid var(--concordia-brass);
+  background: #181d1f;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-group {
+  border: 1px solid #3d4445;
+  border-top-color: #697071;
+  background: rgba(22, 26, 28, 0.86);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-group-heading {
+  padding: 0 10px;
+  border-bottom-color: #66503f;
+  background: linear-gradient(90deg, #30241e, #1c2224 64%);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item {
+  border-bottom-color: #353c3d;
+  background: rgba(17, 21, 23, 0.62);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item:nth-child(even) {
+  background: rgba(24, 54, 77, 0.16);
+}

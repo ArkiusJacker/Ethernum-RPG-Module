@@ -4,6 +4,17 @@ export const ConcordiaShell: CharacterSheetShellDefinition = {
   id: "concordia",
   title: "ETHERNUM.CharacterSheet.Concordia.Title",
   themeClass: "concordia-character-sheet",
+  theme: {
+    id: "concordia",
+    shellClass: "concordia-character-sheet",
+    accent: "arcane",
+    density: "comfortable",
+    componentVariants: {
+      header: "arcane-register",
+      combat: "tactical-grimoire",
+      inventory: "field-arsenal",
+    },
+  },
   tabs: hasSpellcasting => [
     { id: "overview", label: "ETHERNUM.CharacterSheet.Tabs.Character", icon: "fas fa-user" },
     { id: "combat", label: "ETHERNUM.CharacterSheet.Tabs.Combat", icon: "fas fa-swords" },

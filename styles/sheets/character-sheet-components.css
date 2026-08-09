@@ -207,12 +207,16 @@
 }
 
 .ecs-item-image {
+  flex: 0 0 42px;
   width: 42px;
   min-width: 42px;
   height: 42px;
   min-height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   padding: 0;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
   border-color: var(--ecs-border-strong);
   background: #0b0c0d;
 }
@@ -221,7 +225,11 @@
   display: block;
   width: 100%;
   height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  max-width: none;
   object-fit: cover;
+  object-position: center;
 }
 
 .ecs-action-glyph {
@@ -337,6 +345,58 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(150px, 1fr));
   gap: 2px var(--ecs-space-3);
+}
+
+.ethernum-character-sheet.is-compact .ecs-overview-grid {
+  grid-template-columns: minmax(210px, 0.65fr) minmax(300px, 1.15fr) minmax(220px, 0.75fr);
+  gap: var(--ecs-space-3);
+}
+
+.ethernum-character-sheet.is-compact .ecs-character-ledger,
+.ethernum-character-sheet.is-compact .ecs-overview-side {
+  gap: var(--ecs-space-2);
+}
+
+.ethernum-character-sheet.is-compact .ecs-section {
+  padding: var(--ecs-space-2);
+}
+
+.ethernum-character-sheet.is-compact .ecs-ability {
+  min-height: 48px;
+}
+
+.ethernum-character-sheet.is-compact .ecs-defense {
+  min-height: 54px;
+}
+
+.ethernum-character-sheet.is-compact .ecs-item-image {
+  flex-basis: 34px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  max-width: 34px;
+  max-height: 34px;
+}
+
+.ethernum-character-sheet.is-compact .ecs-strike,
+.ethernum-character-sheet.is-compact .ecs-action-row,
+.ethernum-character-sheet.is-compact .ecs-feat-row,
+.ethernum-character-sheet.is-compact .ecs-effect-row,
+.ethernum-character-sheet.is-compact .ecs-spell-row,
+.ethernum-character-sheet.is-compact .ecs-rune-row,
+.ethernum-character-sheet.is-compact .ecs-inventory-item {
+  min-height: 44px;
+  padding-top: var(--ecs-space-1);
+  padding-bottom: var(--ecs-space-1);
+}
+
+.ethernum-character-sheet.is-compact .ecs-trait-list,
+.ethernum-character-sheet.is-compact .ecs-action-row__body p,
+.ethernum-character-sheet.is-compact .ecs-feat-row__body p,
+.ethernum-character-sheet.is-compact .ecs-effect-row__body p,
+.ethernum-character-sheet.is-compact .ecs-rune-row__body > p {
+  display: none;
 }
 
 .ethernum-character-sheet .ecs-skill-row {
@@ -1573,6 +1633,57 @@
   margin: 0;
 }
 
+.ecs-ledger-group {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.ecs-ledger-group__header {
+  display: flex;
+  gap: var(--ecs-space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  margin-bottom: var(--ecs-space-3);
+  padding: 0 0 var(--ecs-space-2);
+  border-bottom: 1px solid var(--ecs-border-strong);
+}
+
+.ecs-ledger-group__header h2 {
+  display: flex;
+  gap: var(--ecs-space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--ecs-text);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.ecs-ledger-group__header h2 i {
+  color: var(--ecs-accent);
+}
+
+.ecs-ledger-group__content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ecs-space-4);
+  min-width: 0;
+}
+
+.ecs-ledger-group.is-collapsed .ecs-ledger-group__header {
+  margin-bottom: 0;
+}
+
+.ecs-ledger-group.is-collapsed [data-action="toggle-overview-section"] i {
+  transform: rotate(-90deg);
+}
+
+.ecs-section__actions {
+  display: flex;
+  gap: var(--ecs-space-2);
+  align-items: center;
+}
+
 .ecs-ledger-section--wide {
   grid-column: 1 / -1;
 }
@@ -1582,6 +1693,37 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: var(--ecs-space-2);
+}
+
+.ecs-crafting-summary,
+.ecs-crafting-formulas,
+.ecs-crafting-abilities {
+  grid-column: 1 / -1;
+}
+
+.ecs-crafting-formulas > h3 {
+  margin: 0 0 var(--ecs-space-2);
+  color: var(--ecs-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.ecs-crafting-abilities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ecs-space-3);
+}
+
+.ecs-crafting-abilities article {
+  min-width: 0;
+  padding: var(--ecs-space-3);
+  border-left: 3px solid var(--ecs-accent);
+  background: var(--ecs-surface-soft);
+}
+
+.ecs-crafting-abilities h3 {
+  margin-bottom: var(--ecs-space-2);
+  font-size: 13px;
 }
 
 .ecs-stat-ledger > div,
@@ -1690,9 +1832,18 @@
   text-align: left;
 }
 
-.ecs-activity-columns button img {
+.ecs-activity-thumbnail {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  min-height: 26px;
+}
+
+.ecs-activity-columns button .ecs-activity-thumbnail img {
   width: 26px;
   height: 26px;
+  min-width: 26px;
+  min-height: 26px;
   object-fit: cover;
 }
 

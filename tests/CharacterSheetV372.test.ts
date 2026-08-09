@@ -35,7 +35,9 @@ describe("Character Sheet v3.7.2 contract", () => {
     const header = read("templates/sheets/base/header.html");
     const navigation = read("templates/sheets/base/navigation.html");
     const baseStyles = read("styles/sheets/character-sheet-base.css");
-    const styles = read("styles/sheets/concordia-sheet.css");
+    const styles = [
+      "shell", "header", "navigation", "overview", "combat", "arsenal", "spellcasting", "unique", "effects", "responsive",
+    ].map(name => read(`styles/sheets/concordia/${name}.css`)).join("\n");
 
     expect(sheet).toContain('data-unique-profile="{{uniqueMechanic.activeProfile}}"');
     expect(header).toContain("ecs-concordia-defenses");
@@ -75,7 +77,7 @@ describe("Character Sheet v3.7.2 contract", () => {
     expect(spellcasting).toContain('data-action="manage-spell-preparation"');
     expect(controller).toContain("moduleFailures");
     expect(controller).toContain("fallbacksUsed");
-    expect(controller).toContain("detectPF2eCharacterCapabilities(actor)");
+    expect(controller).toContain("detectPF2eCharacterCapabilities(actor,");
   });
 
   it("ships both chat presentations and matching locale keys", () => {

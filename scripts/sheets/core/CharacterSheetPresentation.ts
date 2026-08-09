@@ -1,5 +1,6 @@
 import { ETHERNUM } from "../../config.js";
 import type { CharacterSheetPermissions } from "./CharacterSheetController.js";
+import { PF2ePresentationLocalization } from "./PF2ePresentationLocalization.js";
 
 type Data = Record<string, unknown>;
 
@@ -19,6 +20,12 @@ function number(value: unknown, fallback = 0): number {
 function localize(key: string, fallback = key): string {
   const value = game.i18n?.localize(key);
   return value && value !== key ? value : fallback;
+}
+
+function humanize(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 function percent(value: number, max: number): number {
@@ -94,6 +101,7 @@ function viewStrikes(value: unknown): Data[] {
       name: strike.label,
       img: strike.image ?? "icons/svg/sword.svg",
       modifier: number(strike.attackModifier),
+      traits: list(strike.traits).map(PF2ePresentationLocalization.trait),
       attackVariants: [map.first, map.second, map.third].map((modifier, index) => ({
         index,
         label: `${number(modifier) >= 0 ? "+" : ""}${number(modifier)}`,
@@ -112,7 +120,8 @@ function viewActions(value: unknown): Data[] {
       name: action.label,
       img: action.image ?? "icons/svg/book.svg",
       actionGlyph: actions > 0 ? String(actions) : action.actionType === "reaction" ? "R" : "",
-      actionLabel: action.actionType,
+      actionLabel: PF2ePresentationLocalization.actionType(action.actionType),
+      traits: list(action.traits).map(PF2ePresentationLocalization.trait),
     };
   });
 }
@@ -195,7 +204,7 @@ function viewSpellcasting(value: unknown): Data {
       ritual: "Ritual",
       items: "Items",
     };
-    const categoryLabel = localize(
+    const categoryLabel = PF2ePresentationLocalization.preparation(preparation) || localize(
       `ETHERNUM.CharacterSheet.Spellcasting.${categoryKey[preparation] ?? "Other"}`,
       preparation || localize("ETHERNUM.CharacterSheet.Spellcasting.Other", "Other"),
     );
@@ -215,7 +224,13 @@ function viewSpellcasting(value: unknown): Data {
         label: groupLabel,
         spells: list(group.spells).map(spellValue => {
           const spell = record(spellValue);
-          return { ...spell, img: spell.image, rank: number(spell.rank, rank), castRank: number(spell.castRank, rank) };
+          return {
+            ...spell,
+            img: spell.image,
+            rank: number(spell.rank, rank),
+            castRank: number(spell.castRank, rank),
+            traditions: list(spell.traditions).map(PF2ePresentationLocalization.tradition),
+          };
         }),
       };
     });
@@ -232,6 +247,7 @@ function viewSpellcasting(value: unknown): Data {
       attack: entry.spellAttack,
       category: preparation,
       categoryLabel,
+      tradition: PF2ePresentationLocalization.tradition(entry.tradition),
       isPrepared: preparation === "prepared",
       isSpontaneous: preparation === "spontaneous",
       isInnate: preparation === "innate",
@@ -337,7 +353,11 @@ function viewCharacterDetails(value: unknown): Data {
   });
   const craftingAbilities = list(crafting.abilities).map(abilityValue => {
     const ability = record(abilityValue);
-    return { ...ability, prepared: list(ability.prepared) };
+    return {
+      ...ability,
+      prepared: list(ability.prepared),
+      resourceLabel: humanize(ability.resource),
+    };
   });
 
   return {
@@ -347,13 +367,35 @@ function viewCharacterDetails(value: unknown): Data {
       hasContent: biographyFields.some(field => String(biography[field] ?? "").trim().length > 0),
     },
     proficiencies: {
-      weapons: list(proficiencies.weapons),
-      armor: list(proficiencies.armor),
+      weapons: list(proficiencies.weapons).map(value => {
+        const proficiency = record(value);
+        return {
+          ...proficiency,
+          label: PF2ePresentationLocalization.weaponGroup(proficiency.slug) || proficiency.label,
+          rankLabel: PF2ePresentationLocalization.rank(proficiency.rank),
+        };
+      }),
+      armor: list(proficiencies.armor).map(value => {
+        const proficiency = record(value);
+        return {
+          ...proficiency,
+          label: PF2ePresentationLocalization.armorGroup(proficiency.slug) || proficiency.label,
+          rankLabel: PF2ePresentationLocalization.rank(proficiency.rank),
+        };
+      }),
     },
     classDCs: {
       ...classDCs,
-      primary: Object.keys(record(classDCs.primary)).length > 0 ? classDCs.primary : null,
-      secondary: list(classDCs.secondary),
+      primary: Object.keys(record(classDCs.primary)).length > 0
+        ? {
+          ...record(classDCs.primary),
+          rankLabel: PF2ePresentationLocalization.rank(record(classDCs.primary).rank),
+        }
+        : null,
+      secondary: list(classDCs.secondary).map(value => {
+        const dc = record(value);
+        return { ...dc, rankLabel: PF2ePresentationLocalization.rank(dc.rank) };
+      }),
       hasAny: Object.keys(record(classDCs.primary)).length > 0 || list(classDCs.secondary).length > 0,
     },
     senses: list(details.senses).map(senseValue => {
@@ -361,12 +403,20 @@ function viewCharacterDetails(value: unknown): Data {
       const range = number(sense.range);
       return {
         ...sense,
-        detail: [sense.acuity, range > 0 ? `${range} ft` : "", sense.source].filter(Boolean).join(" · "),
+        label: PF2ePresentationLocalization.sense(sense.slug) || sense.label,
+        detail: [
+          PF2ePresentationLocalization.senseAcuity(sense.acuity),
+          range > 0 ? `${range} ${PF2ePresentationLocalization.distanceUnit()}` : "",
+          sense.source,
+        ].filter(Boolean).join(" · "),
       };
     }),
     languages: {
       ...languages,
-      values: list(languages.values),
+      values: list(languages.values).map(value => {
+        const language = record(value);
+        return { ...language, label: PF2ePresentationLocalization.language(language.slug) || language.label };
+      }),
       hasAny: list(languages.values).length > 0 || Boolean(String(languages.details ?? "").trim()),
     },
     exploration: { active: activity(exploration.active), other: activity(exploration.other) },
@@ -452,7 +502,14 @@ export function buildCharacterSheetPresentation(
     vitals: viewVitals(moduleData.vitals),
     abilities: viewAbilities(moduleData.abilities),
     defenses: viewDefenses(moduleData.defenses),
-    movement: list(record(moduleData.movement).speeds).map(speed => ({ ...record(speed), unit: "ft" })),
+    movement: list(record(moduleData.movement).speeds).map(speed => {
+      const movement = record(speed);
+      return {
+        ...movement,
+        label: PF2ePresentationLocalization.movement(movement.type) || movement.label,
+        unit: PF2ePresentationLocalization.distanceUnit(),
+      };
+    }),
     resources: viewResources(moduleData.resources),
     details: viewCharacterDetails(moduleData.details),
     strikes: viewStrikes(moduleData.strikes),
@@ -461,7 +518,7 @@ export function buildCharacterSheetPresentation(
     spellcasting: viewSpellcasting(moduleData.spellcasting),
     feats: list(moduleData.feats).map(featValue => {
       const feat = record(featValue);
-      return { ...feat, img: feat.image };
+      return { ...feat, img: feat.image, traits: list(feat.traits).map(PF2ePresentationLocalization.trait) };
     }),
     effects: viewEffects(moduleData.effects),
     combatMomentum: viewCombatMomentum(moduleData.combatMomentum),

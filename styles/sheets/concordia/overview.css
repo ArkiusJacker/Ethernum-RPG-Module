@@ -1,0 +1,103 @@
+/* Overview uses a broader skills ledger and a full-width bank of field instruments. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-overview-grid {
+  grid-template-columns: minmax(250px, 0.78fr) minmax(360px, 1.35fr);
+  gap: 0 30px;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-section--abilities,
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-section--defenses {
+  grid-column: 1;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-section--skills {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-overview-side {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-ability,
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-defense,
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-condition-strip span {
+  border-radius: 0;
+  border-color: #454c4d;
+  background: linear-gradient(145deg, #202527, #15191b 72%);
+  box-shadow: inset 3px 0 0 var(--concordia-blue);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-defense--ac {
+  border-color: var(--concordia-brass);
+  box-shadow: inset 3px 0 0 var(--concordia-wine);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-skill-row {
+  min-height: 38px;
+  border-bottom-color: #383e3f;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-skill-row:hover:not(:disabled) {
+  border-bottom-color: #7b8586;
+  background: rgba(24, 54, 77, 0.35);
+}
+

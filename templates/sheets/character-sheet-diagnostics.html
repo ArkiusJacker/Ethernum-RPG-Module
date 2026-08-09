@@ -1,0 +1,93 @@
+<section class="ethernum-sheet-diagnostics" data-access="{{access}}" data-status="{{status}}" aria-labelledby="ethernum-diagnostics-title">
+  <header class="ethernum-sheet-diagnostics__header">
+    <div>
+      <p class="ethernum-sheet-diagnostics__eyebrow">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Eyebrow'}}</p>
+      <h2 id="ethernum-diagnostics-title">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Title'}}</h2>
+      <p>{{actor.label}} <span>{{actor.id}}</span> <strong>{{status}}</strong></p>
+    </div>
+    <button type="button" data-action="copy-sheet-diagnostics" title="{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}">
+      <i class="fas fa-copy" aria-hidden="true"></i>
+      <span>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}</span>
+    </button>
+  </header>
+
+  <dl class="ethernum-sheet-diagnostics__identity">
+    <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Shell'}}</dt><dd>{{sheet.shell}}</dd></div>
+    <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.ConfiguredMode'}}</dt><dd>{{sheet.configuredMode}}</dd></div>
+    <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.ActiveCore'}}</dt><dd>{{sheet.activeCore}}</dd></div>
+    <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.UniqueProfile'}}</dt><dd>{{sheet.uniqueProfile}}</dd></div>
+    <div><dt>Foundry</dt><dd>{{versions.foundry}}</dd></div>
+    <div><dt>PF2e</dt><dd>{{versions.pf2e}}</dd></div>
+    <div><dt>Ethernum</dt><dd>{{versions.ethernum}}</dd></div>
+  </dl>
+
+  <div class="ethernum-sheet-diagnostics__columns">
+    <section aria-labelledby="ethernum-diagnostics-capabilities">
+      <h3 id="ethernum-diagnostics-capabilities">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Capabilities'}}</h3>
+      <ul class="ethernum-sheet-diagnostics__status-list">
+        {{#each capabilities}}
+        <li data-status="{{status}}">
+          <span>{{label}}</span>
+          <strong>{{status}}</strong>
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+
+    <section aria-labelledby="ethernum-diagnostics-modules">
+      <h3 id="ethernum-diagnostics-modules">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Modules'}}</h3>
+      <ul class="ethernum-sheet-diagnostics__status-list">
+        {{#each modules}}
+        <li data-status="{{status}}">
+          <span>{{label}}</span>
+          <strong>{{status}}</strong>
+          {{#if durationMs}}<small>{{durationMs}}ms</small>{{/if}}
+          {{#if technical}}
+          <details>
+            <summary>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails'}}</summary>
+            <dl>
+              <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.ErrorType'}}</dt><dd>{{technical.errorType}}</dd></div>
+              <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Message'}}</dt><dd>{{technical.message}}</dd></div>
+              <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Module'}}</dt><dd>{{technical.module}}</dd></div>
+            </dl>
+          </details>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+  </div>
+
+  <section aria-labelledby="ethernum-diagnostics-performance">
+    <h3 id="ethernum-diagnostics-performance">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Performance'}}</h3>
+    <dl class="ethernum-sheet-diagnostics__performance">
+      <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.LastRender'}}</dt><dd>{{#if performance.lastRenderMs}}{{performance.lastRenderMs}}ms{{else}}-{{/if}}</dd></div>
+      <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.SlowestModule'}}</dt><dd>{{#if performance.slowestModule}}{{performance.slowestModule.id}} {{performance.slowestModule.durationMs}}ms{{else}}-{{/if}}</dd></div>
+      <div><dt>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.DirtyPaths'}}</dt><dd>{{#each performance.dirtyPaths}}{{this}}{{#unless @last}}, {{/unless}}{{else}}none{{/each}}</dd></div>
+    </dl>
+    <ul class="ethernum-sheet-diagnostics__build-times" aria-label="{{localize 'ETHERNUM.CharacterSheet.Diagnostics.BuildTimes'}}">
+      {{#each performance.moduleBuildTimes}}
+      <li><span>{{id}}</span><strong>{{durationMs}}ms</strong></li>
+      {{else}}
+      <li><span>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.NoBuildTimes'}}</span></li>
+      {{/each}}
+    </ul>
+  </section>
+
+  <section aria-labelledby="ethernum-diagnostics-operations">
+    <h3 id="ethernum-diagnostics-operations">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Operations'}}</h3>
+    <ol class="ethernum-sheet-diagnostics__operations">
+      {{#each operations}}
+      <li data-status="{{status}}">
+        <time>{{time}}</time>
+        <span>{{operation}}</span>
+        <small>{{sourceLabel}}</small>
+        <strong>{{statusLabel}}</strong>
+        {{#if durationMs}}<small>{{durationMs}}ms</small>{{/if}}
+      </li>
+      {{else}}
+      <li class="ethernum-sheet-diagnostics__empty">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.NoOperations'}}</li>
+      {{/each}}
+    </ol>
+  </section>
+</section>

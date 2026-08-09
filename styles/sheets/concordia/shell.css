@@ -1,0 +1,50 @@
+/* Concordia v3.7.2: arcane-industrial shell with aged metal and occult instrumentation. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) {
+  --ecs-bg: #101315;
+  --ecs-surface: #191d20;
+  --ecs-surface-raised: #25292b;
+  --ecs-surface-soft: #151a1e;
+  --ecs-text: #ece9df;
+  --ecs-text-muted: #aeb3b2;
+  --ecs-border: #484d4d;
+  --ecs-border-strong: #707677;
+  --ecs-accent: #b8833f;
+  --ecs-accent-strong: #e0bd72;
+  --ecs-accent-contrast: #17120b;
+  --ecs-secondary: #6d9fbb;
+  --ecs-danger: #b94c49;
+  --ecs-warning: #d39b49;
+  --ecs-success: #72a681;
+  --ecs-focus: #91c5df;
+  --ecs-hp: #8e3344;
+  --ecs-radius: 2px;
+  --ecs-header-height: 148px;
+  --ecs-nav-height: 50px;
+  --concordia-coal: #0c0f11;
+  --concordia-iron: #596061;
+  --concordia-steel: #b7bec0;
+  --concordia-brass: #b8833f;
+  --concordia-copper: #a65f3f;
+  --concordia-blue: #18364d;
+  --concordia-wine: #572534;
+  --concordia-rivet: #7b7060;
+  color-scheme: dark;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-shell {
+  background-color: var(--ecs-bg);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 54px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 26px);
+}
+

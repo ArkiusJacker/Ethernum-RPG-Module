@@ -1,3 +1,8 @@
+import {
+  measurePF2eBridgeOperation,
+  type PF2eBridgeTelemetrySource,
+} from "./PF2eBridgeTelemetry.js";
+
 export type CharacterSaveSlug = "fortitude" | "reflex" | "will";
 
 type RollOptions = Record<string, unknown>;
@@ -155,28 +160,51 @@ function unavailable(key: string, fallback: string): Error {
   return new Error(localize(key, fallback));
 }
 
+function actorId(actor: Actor): string {
+  return String(actor.id ?? actor.uuid ?? actor.name ?? "actor");
+}
+
+function measured<T>(
+  actor: Actor,
+  operation: string,
+  capability: string,
+  source: PF2eBridgeTelemetrySource,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  return measurePF2eBridgeOperation({
+    actorId: actorId(actor),
+    operation,
+    capability,
+    source,
+  }, callback);
+}
+
 export const PF2eCharacterActions = {
   canUse: canUseCharacterActions,
 
   async rollSkill(actor: Actor, slug: string, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
-    return preparedRoll((actor as PF2eActorActions).skills?.[slug], options);
+    return measured(actor, "roll-skill", "preparedRoll", "pf2e-prepared",
+      () => preparedRoll((actor as PF2eActorActions).skills?.[slug], options));
   },
 
   async rollSave(actor: Actor, slug: CharacterSaveSlug, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
-    return preparedRoll((actor as PF2eActorActions).saves?.[slug], options);
+    return measured(actor, "roll-save", "preparedRoll", "pf2e-prepared",
+      () => preparedRoll((actor as PF2eActorActions).saves?.[slug], options));
   },
 
   async rollPerception(actor: Actor, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
-    return preparedRoll((actor as PF2eActorActions).perception, options);
+    return measured(actor, "roll-perception", "preparedRoll", "pf2e-prepared",
+      () => preparedRoll((actor as PF2eActorActions).perception, options));
   },
 
   async rollInitiative(actor: Actor, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
     const initiative = (actor as Actor & { initiative?: PreparedRoll }).initiative;
-    return preparedRoll(initiative, options);
+    return measured(actor, "roll-initiative", "preparedRoll", "pf2e-prepared",
+      () => preparedRoll(initiative, options));
   },
 
   async rollStrike(actor: Actor, strikeId: string, mapIndex = 0, options: RollOptions = {}): Promise<unknown> {
@@ -189,21 +217,21 @@ export const PF2eCharacterActions = {
         "The PF2e prepared Strike is not available.",
       ));
     }
-    return Promise.resolve(variant.roll(options));
+    return measured(actor, "roll-strike", "strike", "pf2e-prepared", () => variant.roll!(options));
   },
 
   async rollStrikeDamage(actor: Actor, strikeId: string, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
     const strike = getStrike(actor, strikeId);
     if (typeof strike.damage !== "function") throw new Error("Ethernum | PF2e Strike damage is unavailable.");
-    return Promise.resolve(strike.damage(options));
+    return measured(actor, "roll-strike-damage", "strike", "pf2e-prepared", () => strike.damage!(options));
   },
 
   async rollStrikeCriticalDamage(actor: Actor, strikeId: string, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
     const strike = getStrike(actor, strikeId);
     if (typeof strike.critical !== "function") throw new Error("Ethernum | PF2e critical damage is unavailable.");
-    return Promise.resolve(strike.critical(options));
+    return measured(actor, "roll-strike-critical", "strike", "pf2e-prepared", () => strike.critical!(options));
   },
 
   openItem(actor: Actor, itemId: string): unknown {
@@ -259,7 +287,8 @@ export const PF2eCharacterActions = {
         : {}),
       ...(options.carryType === "worn" && options.inSlot !== undefined ? { inSlot: options.inSlot } : {}),
     };
-    return Promise.resolve(operation.call(actor, item, normalized));
+    return measured(actor, "carry-type", "carryType", "pf2e-prepared",
+      () => operation.call(actor, item, normalized));
   },
 
   async toggleEquipped(actor: Actor, itemId: string, equipped: boolean): Promise<unknown> {
@@ -295,7 +324,7 @@ export const PF2eCharacterActions = {
       );
     }
     const rank = Math.max(0, Math.min(10, Math.trunc(options.rank)));
-    return Promise.resolve(cast.call(collection.entry, spell, {
+    return measured(actor, "cast-spell", "spellCast", "pf2e-prepared", () => cast.call(collection.entry, spell, {
       rank,
       ...(Number.isInteger(options.slotId) ? { slotId: options.slotId } : {}),
     }));
@@ -310,7 +339,8 @@ export const PF2eCharacterActions = {
         "PF2e cannot add this spell from the Ethernum sheet.",
       );
     }
-    return Promise.resolve(collection.addSpell(spell, groupId === undefined ? {} : { groupId }));
+    return measured(actor, "add-spell", "spellCollections", "pf2e-prepared",
+      () => collection.addSpell!(spell, groupId === undefined ? {} : { groupId }));
   },
 
   async increaseCondition(actor: Actor, slug: string, options: Record<string, unknown> = {}): Promise<unknown> {
@@ -319,7 +349,8 @@ export const PF2eCharacterActions = {
     if (typeof operation !== "function") {
       throw unavailable("ETHERNUM.CharacterSheet.Errors.ConditionUnavailable", "PF2e condition controls are unavailable.");
     }
-    return Promise.resolve(operation.call(actor, slug, options));
+    return measured(actor, "increase-condition", "conditions", "pf2e-prepared",
+      () => operation.call(actor, slug, options));
   },
 
   async decreaseCondition(actor: Actor, slug: string, options: Record<string, unknown> = {}): Promise<unknown> {
@@ -328,7 +359,8 @@ export const PF2eCharacterActions = {
     if (typeof operation !== "function") {
       throw unavailable("ETHERNUM.CharacterSheet.Errors.ConditionUnavailable", "PF2e condition controls are unavailable.");
     }
-    return Promise.resolve(operation.call(actor, slug, options));
+    return measured(actor, "decrease-condition", "conditions", "pf2e-prepared",
+      () => operation.call(actor, slug, options));
   },
 
   async setResource(actor: Actor, slug: string, value: number): Promise<unknown> {
@@ -339,7 +371,8 @@ export const PF2eCharacterActions = {
       throw unavailable("ETHERNUM.CharacterSheet.Errors.ResourceUnavailable", "PF2e resource controls are unavailable.");
     }
     const next = Math.max(0, Math.min(Number.isFinite(resource.max) ? resource.max : value, Math.trunc(value)));
-    return Promise.resolve(operation.call(actor, slug, next));
+    return measured(actor, "update-resource", "resources", "pf2e-prepared",
+      () => operation.call(actor, slug, next));
   },
 
   async adjustResource(actor: Actor, slug: string, delta: number): Promise<unknown> {
@@ -352,7 +385,8 @@ export const PF2eCharacterActions = {
 
   async updateHP(actor: Actor, value: number): Promise<unknown> {
     assertCanUse(actor);
-    return updateDocument(actor, { "system.attributes.hp.value": Math.max(0, Math.trunc(value)) });
+    return measured(actor, "update-hp", "actorDocument", "document-fallback",
+      () => updateDocument(actor, { "system.attributes.hp.value": Math.max(0, Math.trunc(value)) }));
   },
 
   async updateHeroPoints(actor: Actor, value: number): Promise<unknown> {

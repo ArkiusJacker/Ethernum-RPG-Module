@@ -1,10 +1,10 @@
 <header class="ecs-header">
   <button type="button"
-          class="ecs-portrait"
+          class="ecs-portrait ecs-thumbnail"
           data-action="open-actor-image"
           aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPortrait'}}"
           title="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPortrait'}}">
-    <img src="{{identity.img}}" alt="{{localize 'ETHERNUM.CharacterSheet.Header.Portrait'}}" />
+    <img src="{{identity.img}}" data-image-role="portrait" alt="{{localize 'ETHERNUM.CharacterSheet.Header.Portrait'}}" />
   </button>
 
   <div class="ecs-identity">
@@ -94,7 +94,15 @@
     <button type="button" data-action="open-pf2e-sheet" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
     <button type="button" data-action="toggle-compact" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Compact'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.Compact'}}"><i class="fas fa-compress" aria-hidden="true"></i></button>
     {{#if permissions.canConfigureSheet}}
-    <button type="button" data-action="configure-sheet" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Configure'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.Configure'}}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
+    <div class="ecs-sheet-menu">
+      <button type="button" data-action="toggle-sheet-menu" aria-haspopup="menu" aria-expanded="false" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.More'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.More'}}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
+      <div class="ecs-sheet-menu__panel" role="menu" hidden>
+        <button type="button" role="menuitem" data-action="configure-sheet"><i class="fas fa-gear" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.Configure'}}</span></button>
+        {{#if permissions.gm}}
+        <button type="button" role="menuitem" data-action="open-sheet-diagnostics"><i class="fas fa-stethoscope" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.Diagnostics'}}</span></button>
+        {{/if}}
+      </div>
+    </div>
     {{/if}}
     {{#if permissions.gm}}
     <button type="button" data-action="open-gm-control" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.GMControl'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.GMControl'}}"><i class="fas fa-user-gear" aria-hidden="true"></i></button>

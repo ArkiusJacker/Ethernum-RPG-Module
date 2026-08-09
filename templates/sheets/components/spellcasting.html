@@ -1,6 +1,7 @@
 <section id="ecs-panel-spellcasting"
          class="ecs-tab-panel"
          data-tab="spellcasting"
+         data-scroll-region="spellcasting"
          role="tabpanel"
          aria-labelledby="ecs-tab-spellcasting"
          {{#unless (ethernum-eq ui.activeTab "spellcasting")}}hidden{{/unless}}>
@@ -25,7 +26,7 @@
   {{#if moduleFailures.spellcasting}}
   <section class="ecs-module-fallback" role="alert">
     <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-    <div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.SpellcastingModule'}}</strong><p>{{moduleFailures.spellcasting.message}}</p></div>
+    <div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.SpellcastingModule'}}</strong><p>{{moduleFailures.spellcasting.message}}</p>{{#if moduleFailures.spellcasting.technical}}<details><summary>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails'}}</summary><p>{{moduleFailures.spellcasting.technical.errorType}}: {{moduleFailures.spellcasting.technical.message}}</p></details>{{/if}}</div>
     <button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button>
   </section>
   {{/if}}
@@ -59,7 +60,7 @@
           <div class="ecs-spell-list">
             {{#each this.spells}}
             <article class="ecs-spell-row {{#if this.expended}}is-expended{{/if}}" data-item-id="{{this.id}}" data-slot-id="{{this.slotId}}">
-              <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+              <button type="button" class="ecs-item-image ecs-thumbnail" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" data-image-role="spell" alt="" /></button>
               <div class="ecs-spell-row__name">
                 <h4>{{this.name}}</h4>
                 <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
@@ -96,7 +97,7 @@
     <div class="ecs-item-list">
       {{#each spellcasting.unassignedSpells}}
       <article class="ecs-action-row" data-item-id="{{this.id}}">
-        <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Common.Open'}} {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+        <button type="button" class="ecs-item-image ecs-thumbnail" data-action="open-item" data-item-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Common.Open'}} {{this.name}}"><img src="{{this.img}}" data-image-role="spell" alt="" /></button>
         <div class="ecs-action-row__body"><h4>{{this.name}}</h4><p>{{this.rankLabel}}</p></div>
         <button type="button" data-action="manage-spell-preparation"><i class="fas fa-list-check" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.ManagePreparation'}}</span></button>
       </article>

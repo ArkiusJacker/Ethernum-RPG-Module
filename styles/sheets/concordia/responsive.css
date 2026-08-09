@@ -1,0 +1,410 @@
+/* Responsive reflow keeps every control in document flow and preserves readable labels. */
+@media (max-width: 1100px) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-header {
+    grid-template-columns: 108px minmax(220px, 1fr) minmax(270px, 0.75fr);
+    gap-inline: 16px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-portrait {
+    width: 100px;
+    height: 112px;
+    min-width: 100px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-identity__name {
+    font-size: 24px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-navigation__tab {
+    min-width: 98px;
+    padding-inline: 11px;
+  }
+}
+
+@media (max-width: 900px) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) {
+    --ecs-header-height: 174px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-header {
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-portrait {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 84px;
+    height: 112px;
+    min-width: 84px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-identity {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-header-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-vitals {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-section--abilities,
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-section--defenses,
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-section--skills,
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-overview-side {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-overview-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) {
+    --ecs-header-height: 226px;
+    --ecs-nav-height: 48px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-header {
+    grid-template-columns: 74px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 8px 12px;
+    padding: 12px 12px 12px 18px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-portrait {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 68px;
+    height: 86px;
+    min-width: 68px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-identity {
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: 2px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-identity__name {
+    min-height: 30px;
+    padding-inline: 4px;
+    font-size: 20px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-level {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-identity__traits {
+    display: none;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-header-actions {
+    grid-column: 2;
+    grid-row: 2;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-vitals {
+    grid-column: 1 / 3;
+    grid-row: 3;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-navigation__tab {
+    min-width: 88px;
+    height: 40px;
+    padding-inline: 9px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-tab-panel {
+    padding: 16px 14px 24px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-panel-heading {
+    align-items: stretch;
+    padding-inline: 12px 8px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-overview-side {
+    grid-template-columns: 1fr;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-spell-entry {
+    padding-inline: 8px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-spell-entry__header {
+    grid-template-columns: minmax(0, 1fr) repeat(2, 34px);
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-spell-entry__stats {
+    grid-column: 1 / -1;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-tab-panel--unique {
+    padding: 12px 10px 20px;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-unique-quick-actions {
+    top: -12px;
+  }
+}
+
+@media (max-width: 480px) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-vitals {
+    grid-template-columns: 1fr;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-vital {
+    border-right: 0;
+    border-bottom: 1px solid #424849;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-vital--hero {
+    border-bottom: 0;
+  }
+
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-navigation__tab {
+    min-width: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ),
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) *,
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) *::before,
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

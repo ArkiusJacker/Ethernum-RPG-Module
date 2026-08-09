@@ -5,6 +5,34 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.3] - 2026-08-09
+
+### Adicionado
+- Serviço de viewport que preserva aba, scroll, foco e seções recolhíveis durante rerenders e entre visitas às abas.
+- Papéis de imagem com dimensionamento estável, modos `cover`/`contain` e fallbacks seguros por tipo de conteúdo.
+- Prepared Data Service assíncrono para spellcasting e crafting, preservando as collections e APIs públicas do PF2e 7.8.
+- Rich Text enriquecido pelas APIs PF2e/Foundry com remoção estrutural de blocos secretos para usuários sem permissão.
+- Telemetria local em buffer limitado e painel de diagnóstico GM com capabilities, módulos, fallbacks, tempos de render e cópia sanitizada.
+- Fixtures representativas de Fighter, Wizard, Sorcerer, Cleric, Kineticist, Inventor, Thaumaturge, Alchemist e Monk.
+- Matriz de compatibilidade documentada em `docs/COMPATIBILITY.md`.
+
+### Alterado
+- Spellcasting e crafting priorizam dados preparados do PF2e antes do adapter e do fallback para a ficha oficial.
+- Overview organiza Details, Activities, Crafting e Biography em seções recolhíveis persistidas apenas localmente.
+- Compact Mode reduz padding, altura de linhas, thumbnails e metadados secundários preservando controles essenciais.
+- Ranks, idiomas, sentidos, traits, tradições e unidades usam localização oficial quando disponível.
+- CSS Concórdia passa a ser dividido por shell, header, navegação, overview, combate, arsenal, magia, mecânica única, efeitos e responsividade sem alterar a ordem visual.
+
+### Corrigido
+- Ações, recursos e atualizações de Actor deixam de devolver a ficha ao topo ou perder o foco equivalente após rerender.
+- Imagens largas, altas, transparentes ou ausentes deixam de comprimir colunas, distorcer proporções ou exibir o ícone quebrado do navegador.
+- Special Actions deixam de repetir ações já representadas em Combate.
+- Erros técnicos ficam disponíveis apenas ao mestre; jogadores recebem mensagem curta e acesso seguro à ficha PF2e.
+- Diagnóstico de drag and drop, Rich Text, crafting e módulos passa a refletir capabilities reais em vez de inferências otimistas.
+
+### Testes
+- 411 testes automatizados cobrindo paridade PF2e, viewport, foco, imagens, prepared data, Rich Text, localização, deduplicação, telemetria, diagnóstico e regressões das fichas existentes.
+
 ## [3.7.2] - 2026-08-09
 
 ### Adicionado

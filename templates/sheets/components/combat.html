@@ -1,11 +1,12 @@
 <section id="ecs-panel-combat"
          class="ecs-tab-panel"
          data-tab="combat"
+         data-scroll-region="combat"
          role="tabpanel"
          aria-labelledby="ecs-tab-combat"
          {{#unless (ethernum-eq ui.activeTab "combat")}}hidden{{/unless}}>
   {{#if moduleFailures.combat}}
-  <section class="ecs-module-fallback" role="alert"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.ModuleUnavailable'}}</strong><p>{{moduleFailures.combat.message}}</p></div><button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button></section>
+  <section class="ecs-module-fallback" role="alert"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.ModuleUnavailable'}}</strong><p>{{moduleFailures.combat.message}}</p>{{#if moduleFailures.combat.technical}}<details><summary>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails'}}</summary><p>{{moduleFailures.combat.technical.errorType}}: {{moduleFailures.combat.technical.message}}</p></details>{{/if}}</div><button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button></section>
   {{/if}}
   <div class="ecs-panel-heading">
     <div>
@@ -52,9 +53,9 @@
     <div class="ecs-strike-list">
       {{#each strikes}}
       <article class="ecs-strike" data-strike-id="{{this.id}}">
-        {{#if this.itemId}}<button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}" title="Abrir item">
-          <img src="{{this.img}}" alt="" />
-        </button>{{else}}<img class="ecs-item-image" src="{{this.img}}" alt="" />{{/if}}
+        {{#if this.itemId}}<button type="button" class="ecs-item-image ecs-thumbnail" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}" title="Abrir item">
+          <img src="{{this.img}}" data-image-role="weapon" alt="" />
+        </button>{{else}}<span class="ecs-item-image ecs-thumbnail"><img src="{{this.img}}" data-image-role="weapon" alt="" /></span>{{/if}}
         <div class="ecs-strike__identity">
           <h4>{{this.name}}</h4>
           <div class="ecs-tags">
@@ -92,7 +93,7 @@
     <div class="ecs-action-list">
       {{#each actions}}
       <article class="ecs-action-row" data-action-type="{{this.actionType}}">
-        {{#if this.itemId}}<button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>{{else}}<img class="ecs-item-image" src="{{this.img}}" alt="" />{{/if}}
+        {{#if this.itemId}}<button type="button" class="ecs-item-image ecs-thumbnail" data-action="open-item" data-item-id="{{this.itemId}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" data-image-role="action" alt="" /></button>{{else}}<span class="ecs-item-image ecs-thumbnail"><img src="{{this.img}}" data-image-role="action" alt="" /></span>{{/if}}
         <div class="ecs-action-row__body">
           <h4>{{this.name}}</h4>
           {{#if this.summary}}<p>{{this.summary}}</p>{{/if}}

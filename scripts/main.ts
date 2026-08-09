@@ -31,6 +31,7 @@ import {
   registerEthernumCharacterSheet,
 } from './sheets/core/CharacterSheetLifecycle.js';
 import { CharacterSheetController } from './sheets/core/CharacterSheetController.js';
+import { openCharacterSheetDiagnostics } from './sheets/core/CharacterSheetDiagnosticsApp.js';
 import { injectPF2eSheetSwitcher } from './sheets/core/CharacterSheetSwitcher.js';
 import { initChatMessagePresentation } from './ui/ChatMessagePresentation.js';
 
@@ -63,6 +64,7 @@ declare global {
         restoreGMControlCenterSize: () => boolean;
         refreshGMControlCenter: () => Promise<boolean>;
         characterSheetDiagnostics: (actor: Actor) => ReturnType<typeof CharacterSheetController.diagnostics>;
+        openCharacterSheetDiagnostics: (actor: Actor) => Promise<boolean>;
       };
       macros: {
         getActor: () => Actor | null;
@@ -638,6 +640,7 @@ Hooks.once("init", () => {
     `${ETHERNUM.TEMPLATE_PATH}sheets/components/ether.html`,
     `${ETHERNUM.TEMPLATE_PATH}sheets/components/runes.html`,
     `${ETHERNUM.TEMPLATE_PATH}sheets/components/unique.html`,
+    `${ETHERNUM.TEMPLATE_PATH}sheets/character-sheet-diagnostics.html`,
   ]);
 
   game.ethernum = {
@@ -652,6 +655,7 @@ Hooks.once("init", () => {
       restoreGMControlCenterSize: () => GMControlCenterOverlay.restoreSize(),
       refreshGMControlCenter: () => GMControlCenterOverlay.refresh(),
       characterSheetDiagnostics: (actor: Actor) => CharacterSheetController.diagnostics(actor),
+      openCharacterSheetDiagnostics,
     },
     macros: buildMacroApi(),
   };

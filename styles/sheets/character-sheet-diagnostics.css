@@ -1,0 +1,177 @@
+.ethernum-sheet-diagnostics {
+  --diagnostics-ok: #6fbf8f;
+  --diagnostics-partial: #d7ab52;
+  --diagnostics-failed: #d96b6b;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  color: var(--color-text-light-highlight, #f1f1f1);
+  background: #17191d;
+}
+
+.ethernum-sheet-diagnostics__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #806b3c;
+  padding-bottom: 10px;
+}
+
+.ethernum-sheet-diagnostics__header h2,
+.ethernum-sheet-diagnostics__header p,
+.ethernum-sheet-diagnostics__header button {
+  margin: 0;
+}
+
+.ethernum-sheet-diagnostics__header h2 {
+  font-size: 20px;
+}
+
+.ethernum-sheet-diagnostics__header p span,
+.ethernum-sheet-diagnostics small,
+.ethernum-sheet-diagnostics dt {
+  color: #aeb4bd;
+}
+
+.ethernum-sheet-diagnostics__eyebrow {
+  color: #d7ab52;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ethernum-sheet-diagnostics__header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+
+.ethernum-sheet-diagnostics__identity,
+.ethernum-sheet-diagnostics__performance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.ethernum-sheet-diagnostics__identity > div,
+.ethernum-sheet-diagnostics__performance > div {
+  min-width: 0;
+  border-left: 2px solid #806b3c;
+  padding: 5px 8px;
+  background: #202329;
+}
+
+.ethernum-sheet-diagnostics dd {
+  overflow-wrap: anywhere;
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.ethernum-sheet-diagnostics__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ethernum-sheet-diagnostics h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.ethernum-sheet-diagnostics__status-list,
+.ethernum-sheet-diagnostics__operations,
+.ethernum-sheet-diagnostics__build-times {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ethernum-sheet-diagnostics__build-times {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin-top: 7px;
+}
+
+.ethernum-sheet-diagnostics__build-times > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #363b44;
+  padding: 5px 2px;
+}
+
+.ethernum-sheet-diagnostics__status-list > li,
+.ethernum-sheet-diagnostics__operations > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #363b44;
+  padding: 6px 8px;
+  background: #202329;
+}
+
+.ethernum-sheet-diagnostics [data-status="supported"] strong,
+.ethernum-sheet-diagnostics [data-status="success"] strong,
+.ethernum-sheet-diagnostics [data-status="ok"] strong {
+  color: var(--diagnostics-ok);
+}
+
+.ethernum-sheet-diagnostics [data-status="fallback"] strong,
+.ethernum-sheet-diagnostics [data-status="partial"] strong {
+  color: var(--diagnostics-partial);
+}
+
+.ethernum-sheet-diagnostics [data-status="unsupported"] strong,
+.ethernum-sheet-diagnostics [data-status="failed"] strong {
+  color: var(--diagnostics-failed);
+}
+
+.ethernum-sheet-diagnostics [data-status="not-applicable"] {
+  opacity: 0.7;
+}
+
+.ethernum-sheet-diagnostics details {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.ethernum-sheet-diagnostics details dl {
+  margin: 6px 0 0;
+}
+
+.ethernum-sheet-diagnostics__operations > li {
+  grid-template-columns: auto minmax(110px, 1fr) minmax(100px, auto) auto auto;
+}
+
+.ethernum-sheet-diagnostics__empty {
+  display: block !important;
+  color: #aeb4bd;
+}
+
+@media (max-width: 620px) {
+  .ethernum-sheet-diagnostics__columns {
+    grid-template-columns: 1fr;
+  }
+
+  .ethernum-sheet-diagnostics__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ethernum-sheet-diagnostics__operations > li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .ethernum-sheet-diagnostics__operations > li small {
+    grid-column: 2;
+  }
+}

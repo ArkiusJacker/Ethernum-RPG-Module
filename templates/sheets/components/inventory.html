@@ -1,11 +1,12 @@
 <section id="ecs-panel-inventory"
          class="ecs-tab-panel"
          data-tab="inventory"
+         data-scroll-region="inventory"
          role="tabpanel"
          aria-labelledby="ecs-tab-inventory"
          {{#unless (ethernum-eq ui.activeTab "inventory")}}hidden{{/unless}}>
   {{#if moduleFailures.inventory}}
-  <section class="ecs-module-fallback" role="alert"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.ModuleUnavailable'}}</strong><p>{{moduleFailures.inventory.message}}</p></div><button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button></section>
+  <section class="ecs-module-fallback" role="alert"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.ModuleUnavailable'}}</strong><p>{{moduleFailures.inventory.message}}</p>{{#if moduleFailures.inventory.technical}}<details><summary>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails'}}</summary><p>{{moduleFailures.inventory.technical.errorType}}: {{moduleFailures.inventory.technical.message}}</p></details>{{/if}}</div><button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button></section>
   {{/if}}
   <div class="ecs-panel-heading">
     <div>
@@ -51,7 +52,7 @@
       <div id="ecs-inventory-items-{{this.id}}" class="ecs-item-list" {{#if this.collapsed}}hidden{{/if}}>
         {{#each this.items}}
         <article class="ecs-inventory-item" data-item-id="{{this.id}}" data-carry-type="{{this.carryType}}" {{#if this.hidden}}hidden{{/if}}>
-          <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+          <button type="button" class="ecs-item-image ecs-thumbnail" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" data-image-role="item" alt="" /></button>
           <div class="ecs-inventory-item__name">
             <h3>{{this.name}}</h3>
             <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>

@@ -1,3 +1,5 @@
+import type { CharacterSheetThemeDefinition } from "../core/CharacterSheetTheme.js";
+
 export interface CharacterSheetTabDefinition {
   id: string;
   label: string;
@@ -8,6 +10,7 @@ export interface CharacterSheetShellDefinition {
   id: "ethernum" | "concordia";
   title: string;
   themeClass: string;
+  theme: CharacterSheetThemeDefinition;
   tabs: (hasSpellcasting: boolean) => CharacterSheetTabDefinition[];
 }
 
@@ -15,6 +18,17 @@ export const EthernumCompanyShell: CharacterSheetShellDefinition = {
   id: "ethernum",
   title: "ETHERNUM.CharacterSheet.Ethernum.Title",
   themeClass: "ethernum-company-sheet",
+  theme: {
+    id: "ethernum-company",
+    shellClass: "ethernum-company-sheet",
+    accent: "aether",
+    density: "comfortable",
+    componentVariants: {
+      header: "corporate-dossier",
+      combat: "field-terminal",
+      inventory: "equipment-manifest",
+    },
+  },
   tabs: hasSpellcasting => [
     { id: "overview", label: "ETHERNUM.CharacterSheet.Tabs.Overview", icon: "fas fa-id-badge" },
     { id: "combat", label: "ETHERNUM.CharacterSheet.Tabs.Combat", icon: "fas fa-swords" },
