@@ -32,6 +32,7 @@ import {
 } from './sheets/core/CharacterSheetLifecycle.js';
 import { CharacterSheetController } from './sheets/core/CharacterSheetController.js';
 import { injectPF2eSheetSwitcher } from './sheets/core/CharacterSheetSwitcher.js';
+import { initChatMessagePresentation } from './ui/ChatMessagePresentation.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -608,6 +609,7 @@ Hooks.once("init", () => {
   registerHandlebarsHelpers();
   registerSettings();
   initializeCharacterSheetLifecycle();
+  initChatMessagePresentation();
   const pippingDefinitionErrors = validatePippingActionDefinitions();
   if (pippingDefinitionErrors.length > 0) {
     console.error(

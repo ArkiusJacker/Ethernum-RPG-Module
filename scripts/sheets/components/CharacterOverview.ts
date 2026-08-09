@@ -12,5 +12,6 @@ export const CharacterOverviewModule: CharacterSheetModule<CharacterSheetModuleC
     defenses: PF2eCharacterAdapter.defenses(actor),
     movement: PF2eCharacterAdapter.movement(actor),
     resources: PF2eCharacterAdapter.resources(actor),
+    details: PF2eCharacterAdapter.details(actor),
   })),
 };

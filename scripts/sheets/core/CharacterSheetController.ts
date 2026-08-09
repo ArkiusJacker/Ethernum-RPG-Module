@@ -39,8 +39,12 @@ export interface EthernumCharacterSheetContext extends Record<string, unknown> {
   configuredMode: CharacterSheetMode;
   shell: CharacterSheetShellDefinition;
   permissions: CharacterSheetPermissions;
-  ui: CharacterSheetViewState & { tabs: ReturnType<CharacterSheetShellDefinition["tabs"]> };
+  ui: CharacterSheetViewState & {
+    tabs: ReturnType<CharacterSheetShellDefinition["tabs"]>;
+    showStowed: boolean;
+  };
   failedModules: Array<{ id: string; message: string }>;
+  moduleFailures: Record<string, { id: string; message: string }>;
   renderTimeMs: number;
 }
 
@@ -159,9 +163,36 @@ export const CharacterSheetController = {
     const sheetPermissions = permissionsFor(actor);
     const presentedData = buildCharacterSheetPresentation(moduleData, sheetPermissions);
     const spellcasting = presentedData.spellcasting as { hasSpellcasting?: boolean } | undefined;
-    const tabs = shell.tabs(Boolean(spellcasting?.hasSpellcasting));
+    const spellcastingFailed = report.metrics.some(metric => metric.id === "spellcasting" && metric.status === "failed");
+    const tabs = shell.tabs(Boolean(spellcasting?.hasSpellcasting) || spellcastingFailed);
     const localState = stateFor(actor, resolution.resolvedSheet);
     const savedState = localState.load();
+    const showStowed = savedState.collapsed["inventory:stowed"] !== true;
+    const inventoryData = record(presentedData.inventory);
+    if (Array.isArray(inventoryData.categories)) {
+      inventoryData.categories = inventoryData.categories.map(categoryValue => {
+        const category = record(categoryValue);
+        const id = String(category.id ?? "");
+        return {
+          ...category,
+          collapsed: savedState.collapsed[`inventory:${id}`] === true,
+          items: Array.isArray(category.items)
+            ? category.items.map(itemValue => {
+              const item = record(itemValue);
+              return { ...item, hidden: !showStowed && item.carryType === "stowed" };
+            })
+            : [],
+        };
+      });
+    }
+    const spellcastingData = record(presentedData.spellcasting);
+    if (Array.isArray(spellcastingData.entries)) {
+      spellcastingData.entries = spellcastingData.entries.map(entryValue => {
+        const entry = record(entryValue);
+        const id = String(entry.id ?? "");
+        return { ...entry, collapsed: savedState.collapsed[`spellcasting:${id}`] === true };
+      });
+    }
     const activeTab = tabs.some(tab => tab.id === savedState.activeTab)
       ? savedState.activeTab
       : tabs[0]?.id ?? "overview";
@@ -172,6 +203,7 @@ export const CharacterSheetController = {
         message: metric.error instanceof Error ? metric.error.message : String(metric.error),
       }]
       : []);
+    const moduleFailures = Object.fromEntries(failedModules.map(module => [module.id, module]));
     const renderTimeMs = Math.max(0, now() - started);
     const context: EthernumCharacterSheetContext = {
       actor,
@@ -183,6 +215,7 @@ export const CharacterSheetController = {
       ui: {
         ...savedState,
         activeTab,
+        showStowed,
         tabs: tabs.map(tab => ({
           ...tab,
           active: tab.id === activeTab,
@@ -190,6 +223,7 @@ export const CharacterSheetController = {
         })),
       },
       failedModules,
+      moduleFailures,
       renderTimeMs,
       ...presentedData,
     };

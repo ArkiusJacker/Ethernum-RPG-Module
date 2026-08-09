@@ -5,6 +5,9 @@
          role="tabpanel"
          aria-labelledby="ecs-tab-unique"
          {{#unless (ethernum-eq ui.activeTab "unique")}}hidden{{/unless}}>
+  {{#if moduleFailures.unique}}
+  <section class="ecs-module-fallback" role="alert"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><strong>{{localize 'ETHERNUM.CharacterSheet.Errors.ModuleUnavailable'}}</strong><p>{{moduleFailures.unique.message}}</p></div><button type="button" data-action="open-pf2e-sheet"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}</span></button></section>
+  {{/if}}
   {{#if uniqueMechanic.hasProfile}}
     {{#if uniqueMechanic.actions.length}}
     <nav class="ecs-unique-quick-actions" aria-label="{{localize 'ETHERNUM.CharacterSheet.UniquePanel.QuickActions'}}">

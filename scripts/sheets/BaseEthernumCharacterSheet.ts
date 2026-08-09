@@ -162,7 +162,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     const itemId = data(element, "itemId");
     if (action === "open-pf2e-sheet" || action === "manage-actions" || action === "browse-effects"
       || action === "create-item" || action === "create-spellcasting-entry"
-      || action === "manage-spell-preparation") {
+      || action === "manage-spell-preparation" || action === "open-crafting-pf2e") {
       openOriginalPF2eCharacterSheet(this.actor);
       return;
     }
@@ -233,6 +233,10 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       await PF2eCharacterActions.updateHeroPoints(this.actor, current + numeric(data(element, "delta")));
       return;
     }
+    if (action === "adjust-focus-points") {
+      await PF2eCharacterActions.adjustResource(this.actor, "focus", numeric(data(element, "delta")));
+      return;
+    }
     if (action === "adjust-item-quantity") {
       const item = this.actor.items.get(itemId) as Item & { system?: { quantity?: number } };
       await PF2eCharacterActions.setQuantity(this.actor, itemId, numeric(item?.system?.quantity) + numeric(data(element, "delta")));
@@ -264,9 +268,32 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       this.#filterRows(element);
       return;
     }
-    if (action === "toggle-inventory-category" || action === "toggle-stowed-items" || action === "toggle-spell-entry" || action === "toggle-skill-details") {
+    if (action === "toggle-stowed-items") {
+      const showStowed = element.getAttribute("aria-pressed") !== "true";
+      element.setAttribute("aria-pressed", String(showStowed));
+      element.closest<HTMLElement>(".ecs-tab-panel")
+        ?.querySelectorAll<HTMLElement>('.ecs-inventory-item[data-carry-type="stowed"]')
+        .forEach(item => { item.hidden = !showStowed; });
+      CharacterSheetController.state(this.actor).setCollapsed("inventory:stowed", !showStowed);
+      return;
+    }
+    if (action === "toggle-inventory-category" || action === "toggle-spell-entry" || action === "toggle-skill-details") {
       const container = element.closest<HTMLElement>("section, article, .ecs-section");
-      container?.classList.toggle("is-collapsed");
+      const currentExpanded = element.getAttribute("aria-expanded") !== "false";
+      const nextExpanded = !currentExpanded;
+      const controls = element.getAttribute("aria-controls");
+      const controlled = controls
+        ? container?.querySelector<HTMLElement>(`[id="${CSS.escape(controls)}"]`) ?? null
+        : null;
+      element.setAttribute("aria-expanded", String(nextExpanded));
+      if (controlled) controlled.hidden = !nextExpanded;
+      container?.classList.toggle("is-collapsed", !nextExpanded);
+      const sectionId = action === "toggle-inventory-category"
+        ? `inventory:${data(element, "category")}`
+        : action === "toggle-spell-entry"
+          ? `spellcasting:${data(element, "entryId")}`
+          : "overview:skill-details";
+      CharacterSheetController.state(this.actor).setCollapsed(sectionId, !nextExpanded);
       return;
     }
     if (action === "use-rune") {

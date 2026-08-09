@@ -297,6 +297,101 @@ export interface CharacterResourceSnapshot {
   classResources: Record<string, CharacterNumericResourceSnapshot>;
 }
 
+export interface CharacterBiographySnapshot {
+  appearance: string;
+  backstory: string;
+  campaignNotes: string;
+  allies: string;
+  enemies: string;
+  organizations: string;
+}
+
+export interface CharacterProficiencySnapshot {
+  slug: string;
+  label: string;
+  rank: number;
+  rankLabel: string;
+  modifier?: number;
+}
+
+export interface CharacterClassDCSnapshot {
+  slug: string;
+  label: string;
+  dc: number | null;
+  rank: number;
+  rankLabel: string;
+  primary: boolean;
+}
+
+export interface CharacterClassDCsSnapshot {
+  primary?: CharacterClassDCSnapshot;
+  secondary: CharacterClassDCSnapshot[];
+}
+
+export interface CharacterProficienciesSnapshot {
+  weapons: CharacterProficiencySnapshot[];
+  armor: CharacterProficiencySnapshot[];
+}
+
+export interface CharacterSenseSnapshot {
+  slug: string;
+  label: string;
+  acuity?: string;
+  range?: number;
+  source?: string;
+}
+
+export interface CharacterLanguageSnapshot {
+  slug: string;
+  label: string;
+}
+
+export interface CharacterLanguagesSnapshot {
+  values: CharacterLanguageSnapshot[];
+  details: string;
+}
+
+export interface CharacterCraftingFormulaSnapshot {
+  uuid: string;
+  name?: string;
+  quantity: number;
+  expended: boolean;
+  signature: boolean;
+}
+
+export interface CharacterCraftingAbilitySnapshot {
+  slug: string;
+  label: string;
+  isPrepared: boolean;
+  isDailyPrep: boolean;
+  isAlchemical: boolean;
+  maxSlots?: number;
+  maxItemLevel?: number;
+  resource?: string;
+  prepared: CharacterCraftingFormulaSnapshot[];
+}
+
+export interface CharacterCraftingSnapshot {
+  available: boolean;
+  knownFormulas: CharacterCraftingFormulaSnapshot[];
+  abilities: CharacterCraftingAbilitySnapshot[];
+}
+
+export interface CharacterDetailsSnapshot {
+  biography: CharacterBiographySnapshot;
+  proficiencies: CharacterProficienciesSnapshot;
+  classDCs: CharacterClassDCsSnapshot;
+  senses: CharacterSenseSnapshot[];
+  languages: CharacterLanguagesSnapshot;
+  exploration: {
+    active: CharacterActionSnapshot[];
+    other: CharacterActionSnapshot[];
+  };
+  downtime: CharacterActionSnapshot[];
+  crafting: CharacterCraftingSnapshot;
+  specialActions: CharacterActionSnapshot[];
+}
+
 export interface PF2eCharacterAdapterInterface {
   identity(actor: Actor): CharacterIdentitySnapshot;
   vitals(actor: Actor): CharacterVitalsSnapshot;
@@ -311,6 +406,7 @@ export interface PF2eCharacterAdapterInterface {
   spellcasting(actor: Actor): CharacterSpellcastingSnapshot;
   effects(actor: Actor): CharacterEffectSnapshot[];
   resources(actor: Actor): CharacterResourceSnapshot;
+  details(actor: Actor): CharacterDetailsSnapshot;
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -347,6 +443,14 @@ function optionalFinite(value: unknown): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function firstOptionalFinite(values: unknown[]): number | undefined {
+  for (const value of values) {
+    const numeric = optionalFinite(value);
+    if (numeric !== undefined) return numeric;
+  }
+  return undefined;
 }
 
 function text(value: unknown, fallback = ""): string {
@@ -389,6 +493,11 @@ function recordEntries(value: unknown): Array<[string, UnknownRecord]> {
     });
   }
   return Object.entries(record(value)).map(([key, entry]) => [key, record(entry)]);
+}
+
+function structuredValues(value: unknown): unknown[] {
+  const collected = collectionValues(value);
+  return collected.length > 0 ? collected : Object.values(record(value));
 }
 
 function uniqueDocuments(collections: unknown[]): UnknownRecord[] {
@@ -1215,6 +1324,383 @@ export function readCharacterResources(actorValue: Actor | unknown): CharacterRe
   };
 }
 
+function readCharacterBiography(actor: UnknownRecord): CharacterBiographySnapshot {
+  const system = record(actor.system);
+  const sourceSystem = record(record(actor._source).system);
+  const sources = [
+    record(record(actor.details).biography),
+    record(record(system.details).biography),
+    record(record(sourceSystem.details).biography),
+  ];
+  const field = (key: keyof CharacterBiographySnapshot) => {
+    for (const source of sources) {
+      const value = text(source[key]);
+      if (value) return value;
+    }
+    return "";
+  };
+
+  return {
+    appearance: field("appearance"),
+    backstory: field("backstory"),
+    campaignNotes: field("campaignNotes"),
+    allies: field("allies"),
+    enemies: field("enemies"),
+    organizations: field("organizations"),
+  };
+}
+
+function readCharacterProficiencies(actor: UnknownRecord): CharacterProficienciesSnapshot {
+  const system = record(actor.system);
+  const sourceSystem = record(record(actor._source).system);
+  const prepared = record(actor.proficiencies);
+  const stored = record(system.proficiencies);
+  const source = record(sourceSystem.proficiencies);
+  const readGroup = (groupNames: string[]): CharacterProficiencySnapshot[] => {
+    const sourceEntries = [prepared, stored, source].map(container => {
+      const groupName = groupNames.find(name => container[name] !== undefined);
+      return new Map(recordEntries(groupName ? container[groupName] : undefined));
+    });
+    const slugs = new Set(sourceEntries.flatMap(entries => [...entries.keys()]));
+
+    return [...slugs].flatMap(slug => {
+      const candidates = sourceEntries.map(entries => entries.get(slug) ?? {});
+      const rank = Math.max(0, Math.min(4, integer(firstFinite(candidates.flatMap(data => [
+        data.rank,
+        data.proficient,
+      ])))));
+      const visible = candidates.find(data => typeof data.visible === "boolean")?.visible;
+      const custom = candidates.some(data => data.custom === true);
+      if (visible === false || (rank === 0 && !custom)) return [];
+
+      const label = candidates.map(data => text(data.label)).find(Boolean) || slug;
+      const modifier = firstOptionalFinite(candidates.flatMap(data => [data.value, data.modifier, data.mod]));
+      return [{
+        slug,
+        label,
+        rank,
+        rankLabel: candidates.map(data => text(data.rankLabel)).find(Boolean) || RANK_LABELS[rank],
+        ...(modifier !== undefined ? { modifier } : {}),
+      }];
+    });
+  };
+
+  return {
+    weapons: readGroup(["attacks", "weapons"]),
+    armor: readGroup(["defenses", "armor"]),
+  };
+}
+
+function readCharacterClassDCs(actor: UnknownRecord): CharacterClassDCsSnapshot {
+  const system = record(actor.system);
+  const sourceSystem = record(record(actor._source).system);
+  const primaryStatistic = record(actor.classDC);
+  const preparedEntries = recordEntries(actor.classDCs);
+  const storedEntries = recordEntries(record(record(system.proficiencies).classDCs));
+  const sourceEntries = recordEntries(record(record(sourceSystem.proficiencies).classDCs));
+  const preparedMap = new Map(preparedEntries);
+  const storedMap = new Map(storedEntries);
+  const sourceMap = new Map(sourceEntries);
+  const primarySlug = text(primaryStatistic.slug);
+
+  if (Object.keys(primaryStatistic).length > 0 && !preparedEntries.some(([, data]) => data === primaryStatistic)) {
+    preparedMap.set(primarySlug || "class-dc", primaryStatistic);
+  }
+
+  const slugs = new Set([...preparedMap.keys(), ...storedMap.keys(), ...sourceMap.keys()]);
+  const dcs = [...slugs].map(slug => {
+    const prepared = preparedMap.get(slug) ?? {};
+    const stored = storedMap.get(slug) ?? {};
+    const source = sourceMap.get(slug) ?? {};
+    const candidates = [prepared, stored, source];
+    const rank = Math.max(0, Math.min(4, integer(firstFinite(candidates.flatMap(data => [
+      data.rank,
+      data.proficient,
+    ])))));
+    const dc = firstOptionalFinite(candidates.flatMap(data => [
+      record(data.dc).value,
+      typeof data.dc === "number" ? data.dc : undefined,
+      data.value,
+    ]));
+    const resolvedSlug = text(prepared.slug, text(stored.slug, text(source.slug, slug)));
+    const primary = prepared === primaryStatistic
+      || (!!primarySlug && resolvedSlug === primarySlug)
+      || candidates.some(data => data.primary === true);
+
+    return {
+      slug: resolvedSlug,
+      label: candidates.map(data => text(data.label)).find(Boolean) || resolvedSlug,
+      dc: dc ?? null,
+      rank,
+      rankLabel: candidates.map(data => text(data.rankLabel)).find(Boolean) || RANK_LABELS[rank],
+      primary,
+    };
+  });
+  const primary = dcs.find(dc => dc.primary);
+
+  return {
+    ...(primary ? { primary } : {}),
+    secondary: dcs.filter(dc => dc !== primary),
+  };
+}
+
+function readCharacterSenses(actor: UnknownRecord): CharacterSenseSnapshot[] {
+  const system = record(actor.system);
+  const sourceSystem = record(record(actor._source).system);
+  const sources = [
+    record(actor.perception).senses,
+    record(system.perception).senses,
+    record(sourceSystem.perception).senses,
+  ];
+  const seen = new Set<string>();
+
+  return sources.flatMap(source => structuredValues(source).flatMap(value => {
+    const sense = record(value);
+    const slug = text(sense.type, text(sense.slug));
+    if (!slug || seen.has(slug)) return [];
+    seen.add(slug);
+    const range = optionalFinite(sense.range);
+    const acuity = text(sense.acuity);
+    const senseSource = text(sense.source);
+    return [{
+      slug,
+      label: text(sense.label, text(sense.name, slug)),
+      ...(acuity ? { acuity } : {}),
+      ...(range !== undefined ? { range } : {}),
+      ...(senseSource ? { source: senseSource } : {}),
+    }];
+  }));
+}
+
+function readCharacterLanguages(actor: UnknownRecord): CharacterLanguagesSnapshot {
+  const system = record(actor.system);
+  const sourceSystem = record(record(actor._source).system);
+  const systemLanguages = record(record(system.details).languages);
+  const sourceLanguages = record(record(sourceSystem.details).languages);
+  const languageSources = [actor.languages, systemLanguages.value, sourceLanguages.value];
+  const seen = new Set<string>();
+  const values = languageSources.flatMap(source => {
+    const nestedValue = record(source).value;
+    const entries = nestedValue !== undefined ? structuredValues(nestedValue) : structuredValues(source);
+    return entries.flatMap(value => {
+      const language = record(value);
+      const slug = typeof value === "string"
+        ? text(value)
+        : text(language.slug, text(language.value, text(language.id)));
+      if (!slug || seen.has(slug)) return [];
+      seen.add(slug);
+      return [{ slug, label: text(language.label, text(language.name, slug)) }];
+    });
+  });
+
+  return {
+    values,
+    details: text(systemLanguages.details, text(sourceLanguages.details)),
+  };
+}
+
+function readonlyActionSnapshot(action: UnknownRecord): CharacterActionSnapshot {
+  const embeddedItem = record(action.item);
+  const hasEmbeddedItem = Object.keys(embeddedItem).length > 0;
+  const item = hasEmbeddedItem ? embeddedItem : action;
+  const system = record(item.system);
+  const actionCost = record(action.actionCost ?? item.actionCost);
+  const systemActionType = record(system.actionType);
+  const actionType = text(
+    action.actionType,
+    text(actionCost.type, text(systemActionType.value, text(system.actionType, text(action.type, "action")))),
+  );
+  const actions = firstOptionalFinite([
+    action.actions,
+    actionCost.value,
+    record(system.actions).value,
+    system.actions,
+  ]);
+  const image = itemImage(item) || itemImage(action);
+  const id = text(action.id, text(action.slug, itemId(item)));
+  const directItemId = ["action", "feat"].includes(text(item.type)) ? itemId(item) : "";
+
+  return {
+    id,
+    ...(itemId(embeddedItem) || directItemId ? { itemId: itemId(embeddedItem) || directItemId } : {}),
+    label: text(action.label, text(action.name, text(item.name, "Action"))),
+    ...(image ? { image } : {}),
+    actionType,
+    ...(actions !== undefined ? { actions: Math.max(0, integer(actions)) } : {}),
+    traits: Array.from(new Set([
+      ...stringArray(action.traits),
+      ...stringArray(record(system.traits).value),
+    ])),
+    usable: action.usable !== false && action.disabled !== true && action.suppressed !== true && item.suppressed !== true,
+  };
+}
+
+function uniqueActionSnapshots(values: unknown[]): CharacterActionSnapshot[] {
+  const seen = new Set<string>();
+  return values.map(record).flatMap(value => {
+    const snapshot = readonlyActionSnapshot(value);
+    const key = snapshot.id || snapshot.itemId || `${snapshot.label}:${snapshot.actionType}`;
+    if (!key || seen.has(key)) return [];
+    seen.add(key);
+    return [snapshot];
+  });
+}
+
+function actionIdentifiers(value: unknown): Set<string> {
+  return new Set(structuredValues(value).flatMap(entry => {
+    if (typeof entry === "string") return text(entry) ? [text(entry)] : [];
+    const data = record(entry);
+    return [text(data.id), text(data.uuid), text(data.slug)].filter(Boolean);
+  }));
+}
+
+function activityItems(actor: UnknownRecord): UnknownRecord[] {
+  return actorItems(actor).filter(item => {
+    if (item.suppressed === true) return false;
+    if (text(item.type) === "action") return true;
+    if (text(item.type) !== "feat") return false;
+    const system = record(item.system);
+    return Object.keys(record(item.actionCost)).length > 0
+      || Object.keys(record(system.actionType)).length > 0
+      || text(system.actionType) !== "";
+  });
+}
+
+function readCharacterActivities(actor: UnknownRecord): Pick<CharacterDetailsSnapshot, "exploration" | "downtime"> {
+  const system = record(actor.system);
+  const actorExploration = record(actor.exploration);
+  const activityGroups = record(actor.activities);
+  const groupedExploration = record(activityGroups.exploration);
+  const activeIds = actionIdentifiers([
+    ...structuredValues(Array.isArray(actor.exploration) ? actor.exploration : undefined),
+    ...structuredValues(system.exploration),
+  ]);
+  const items = activityItems(actor);
+  const explorationItems = items.filter(item => stringArray(record(record(item.system).traits).value).includes("exploration"));
+  const downtimeItems = items.filter(item => stringArray(record(record(item.system).traits).value).includes("downtime"));
+  const explicitActive = [actorExploration.active, groupedExploration.active].flatMap(structuredValues);
+  const explicitOther = [actorExploration.other, groupedExploration.other].flatMap(structuredValues);
+  const explicitDowntime = [actor.downtime, activityGroups.downtime].flatMap(structuredValues);
+  const isActive = (item: UnknownRecord) => [itemId(item), text(item.uuid), text(item.slug)].some(id => id && activeIds.has(id));
+  const active = uniqueActionSnapshots([...explicitActive, ...explorationItems.filter(isActive)]);
+  const activeKeys = new Set(active.flatMap(action => [action.id, action.itemId].filter(Boolean)));
+  const other = uniqueActionSnapshots([
+    ...explicitOther,
+    ...explorationItems.filter(item => !isActive(item) && !activeKeys.has(itemId(item))),
+  ]);
+
+  return {
+    exploration: { active, other },
+    downtime: uniqueActionSnapshots([...explicitDowntime, ...downtimeItems]),
+  };
+}
+
+function isWeaponStrikeAction(action: UnknownRecord): boolean {
+  const item = record(action.item);
+  const type = text(action.actionType, text(action.type)).toLowerCase();
+  return ["strike", "melee"].includes(type) || ["weapon", "melee"].includes(text(item.type).toLowerCase());
+}
+
+function readCharacterSpecialActions(actor: UnknownRecord): CharacterActionSnapshot[] {
+  const system = record(actor.system);
+  const preparedGroups = record(actor.preparedActions);
+  const activityGroups = record(actor.activities);
+  const explicit = [
+    actor.specialActions,
+    preparedGroups.special,
+    activityGroups.special,
+    system.specialActions,
+  ].flatMap(structuredValues);
+  const prepared = structuredValues(actor.actions).map(record).filter(action => {
+    if (isWeaponStrikeAction(action)) return false;
+    const traits = stringArray(action.traits);
+    return !traits.includes("exploration") && !traits.includes("downtime");
+  });
+  return uniqueActionSnapshots([...explicit, ...prepared]);
+}
+
+function craftingFormulaSnapshot(value: unknown): CharacterCraftingFormulaSnapshot {
+  const formula = record(value);
+  const item = record(formula.item);
+  const uuid = text(formula.uuid, text(item.uuid));
+  const name = text(formula.name, text(item.name));
+  return {
+    uuid,
+    ...(name ? { name } : {}),
+    quantity: Math.max(0, integer(firstFinite([formula.quantity], 1))),
+    expended: formula.expended === true,
+    signature: formula.isSignatureItem === true || formula.signature === true,
+  };
+}
+
+function readCharacterCrafting(actor: UnknownRecord): CharacterCraftingSnapshot {
+  const systemCrafting = record(record(actor.system).crafting);
+  const sourceCrafting = record(record(record(actor._source).system).crafting);
+  const preparedCrafting = record(actor.crafting);
+  const preparedAbilities = new Map(recordEntries(preparedCrafting.abilities));
+  const storedAbilities = new Map(recordEntries(systemCrafting.entries));
+  const sourceAbilities = new Map(recordEntries(sourceCrafting.entries));
+  const slugs = new Set([...preparedAbilities.keys(), ...storedAbilities.keys(), ...sourceAbilities.keys()]);
+  const abilities = [...slugs].map(slug => {
+    const prepared = preparedAbilities.get(slug) ?? {};
+    const stored = storedAbilities.get(slug) ?? {};
+    const source = sourceAbilities.get(slug) ?? {};
+    const candidates = [prepared, stored, source];
+    const formulaSources = candidates.flatMap(ability => [
+      ability.prepared,
+      ability.preparedFormulas,
+      ability.preparedFormulaData,
+    ]);
+    const preparedFormulas = formulaSources.map(structuredValues).find(formulas => formulas.length > 0) ?? [];
+    const maxSlots = firstOptionalFinite(candidates.map(ability => ability.maxSlots));
+    const maxItemLevel = firstOptionalFinite(candidates.map(ability => ability.maxItemLevel));
+    const resource = candidates.map(ability => text(ability.resource)).find(Boolean);
+
+    return {
+      slug,
+      label: candidates.map(ability => text(ability.label)).find(Boolean) || slug,
+      isPrepared: candidates.some(ability => ability.isPrepared === true),
+      isDailyPrep: candidates.some(ability => ability.isDailyPrep === true),
+      isAlchemical: candidates.some(ability => ability.isAlchemical === true),
+      ...(maxSlots !== undefined ? { maxSlots: Math.max(0, integer(maxSlots)) } : {}),
+      ...(maxItemLevel !== undefined ? { maxItemLevel: Math.max(0, integer(maxItemLevel)) } : {}),
+      ...(resource ? { resource } : {}),
+      prepared: preparedFormulas.map(craftingFormulaSnapshot),
+    };
+  });
+  const knownFormulaSources = [
+    preparedCrafting.formulas,
+    systemCrafting.formulas,
+    sourceCrafting.formulas,
+  ];
+  const knownFormulas = (knownFormulaSources.map(structuredValues).find(formulas => formulas.length > 0) ?? [])
+    .map(craftingFormulaSnapshot);
+
+  return {
+    available: Object.keys(preparedCrafting).length > 0
+      || Object.keys(systemCrafting).length > 0
+      || Object.keys(sourceCrafting).length > 0,
+    knownFormulas,
+    abilities,
+  };
+}
+
+function readCharacterDetails(actorValue: Actor | unknown): CharacterDetailsSnapshot {
+  const actor = record(actorValue);
+  const activities = readCharacterActivities(actor);
+  return {
+    biography: readCharacterBiography(actor),
+    proficiencies: readCharacterProficiencies(actor),
+    classDCs: readCharacterClassDCs(actor),
+    senses: readCharacterSenses(actor),
+    languages: readCharacterLanguages(actor),
+    exploration: activities.exploration,
+    downtime: activities.downtime,
+    crafting: readCharacterCrafting(actor),
+    specialActions: readCharacterSpecialActions(actor),
+  };
+}
+
 export function createPF2eCharacterSnapshot(actorValue: Actor | unknown): EthernumPF2eCharacterSnapshot {
   const identity = readCharacterIdentity(actorValue);
   const vitals = readCharacterVitals(actorValue);
@@ -1265,6 +1751,7 @@ export const PF2eCharacterAdapter = {
   spellcasting: readCharacterSpellcasting,
   effects: readCharacterEffects,
   resources: readCharacterResources,
+  details: readCharacterDetails,
   snapshot: createPF2eCharacterSnapshot,
 } as const satisfies PF2eCharacterAdapterInterface & {
   snapshot(actor: Actor): EthernumPF2eCharacterSnapshot;

@@ -186,15 +186,33 @@ function viewSpellcasting(value: unknown): Data {
   const spellcasting = record(value);
   const entries = list(spellcasting.entries).map(entryValue => {
     const entry = record(entryValue);
+    const preparation = String(entry.preparation ?? "").toLowerCase();
+    const categoryKey: Record<string, string> = {
+      prepared: "Prepared",
+      spontaneous: "Spontaneous",
+      innate: "Innate",
+      focus: "Focus",
+      ritual: "Ritual",
+      items: "Items",
+    };
+    const categoryLabel = localize(
+      `ETHERNUM.CharacterSheet.Spellcasting.${categoryKey[preparation] ?? "Other"}`,
+      preparation || localize("ETHERNUM.CharacterSheet.Spellcasting.Other", "Other"),
+    );
     const preparedGroups = list(entry.groups).map(groupValue => {
       const group = record(groupValue);
       const rank = number(group.rank);
+      const groupLabel = preparation === "focus" || entry.focus === true
+        ? localize("ETHERNUM.CharacterSheet.Spellcasting.Focus", "Focus")
+        : preparation === "ritual"
+          ? localize("ETHERNUM.CharacterSheet.Spellcasting.Rituals", "Rituals")
+          : rank === 0
+            ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Cantrips")
+            : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Rank {rank}").replace("{rank}", String(rank));
       return {
         ...group,
         rank,
-        label: rank === 0
-          ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Truques")
-          : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Círculo {rank}").replace("{rank}", String(rank)),
+        label: groupLabel,
         spells: list(group.spells).map(spellValue => {
           const spell = record(spellValue);
           return { ...spell, img: spell.image, rank: number(spell.rank, rank), castRank: number(spell.castRank, rank) };
@@ -212,19 +230,48 @@ function viewSpellcasting(value: unknown): Data {
     return {
       ...entry,
       attack: entry.spellAttack,
-      category: entry.preparation,
+      category: preparation,
+      categoryLabel,
+      isPrepared: preparation === "prepared",
+      isSpontaneous: preparation === "spontaneous",
+      isInnate: preparation === "innate",
+      isFocus: preparation === "focus" || entry.focus === true,
+      isRitual: preparation === "ritual",
       groups: preparedGroups.length > 0
         ? preparedGroups
         : [...grouped.entries()].sort(([a], [b]) => a - b).map(([rank, spells]) => ({
           rank,
-          label: rank === 0
-            ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Truques")
-            : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Círculo {rank}").replace("{rank}", String(rank)),
+          label: preparation === "focus" || entry.focus === true
+            ? localize("ETHERNUM.CharacterSheet.Spellcasting.Focus", "Focus")
+            : preparation === "ritual"
+              ? localize("ETHERNUM.CharacterSheet.Spellcasting.Rituals", "Rituals")
+              : rank === 0
+                ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Cantrips")
+                : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Rank {rank}").replace("{rank}", String(rank)),
           spells,
         })),
     };
   });
-  return { ...spellcasting, entries };
+  const focusPoints = record(spellcasting.focusPoints);
+  const focusCurrent = number(focusPoints.current);
+  const focusMax = number(focusPoints.max);
+  return {
+    ...spellcasting,
+    entries,
+    focusPoints: { ...focusPoints, current: focusCurrent, max: focusMax, percentage: percent(focusCurrent, focusMax) },
+    unassignedSpells: list(spellcasting.unassignedSpells).map(spellValue => {
+      const spell = record(spellValue);
+      const rank = number(spell.rank);
+      return {
+        ...spell,
+        img: spell.image,
+        rank,
+        rankLabel: rank === 0
+          ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Cantrips")
+          : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Rank {rank}").replace("{rank}", String(rank)),
+      };
+    }),
+  };
 }
 
 function viewEffects(value: unknown): Data {
@@ -270,6 +317,67 @@ function viewCombatMomentum(value: unknown): Data {
       max: fulgorMax,
       percentage: percent(fulgorProgress, fulgorMax),
       canUse: fulgor.active === true,
+    },
+  };
+}
+
+function viewCharacterDetails(value: unknown): Data {
+  const details = record(value);
+  const biography = record(details.biography);
+  const proficiencies = record(details.proficiencies);
+  const classDCs = record(details.classDCs);
+  const languages = record(details.languages);
+  const exploration = record(details.exploration);
+  const crafting = record(details.crafting);
+  const biographyFields = ["appearance", "backstory", "campaignNotes", "allies", "enemies", "organizations"];
+  const activity = (source: unknown) => viewActions(source);
+  const knownFormulas = list(crafting.knownFormulas).map(formulaValue => {
+    const formula = record(formulaValue);
+    return { ...formula, label: formula.name || formula.uuid };
+  });
+  const craftingAbilities = list(crafting.abilities).map(abilityValue => {
+    const ability = record(abilityValue);
+    return { ...ability, prepared: list(ability.prepared) };
+  });
+
+  return {
+    ...details,
+    biography: {
+      ...biography,
+      hasContent: biographyFields.some(field => String(biography[field] ?? "").trim().length > 0),
+    },
+    proficiencies: {
+      weapons: list(proficiencies.weapons),
+      armor: list(proficiencies.armor),
+    },
+    classDCs: {
+      ...classDCs,
+      primary: Object.keys(record(classDCs.primary)).length > 0 ? classDCs.primary : null,
+      secondary: list(classDCs.secondary),
+      hasAny: Object.keys(record(classDCs.primary)).length > 0 || list(classDCs.secondary).length > 0,
+    },
+    senses: list(details.senses).map(senseValue => {
+      const sense = record(senseValue);
+      const range = number(sense.range);
+      return {
+        ...sense,
+        detail: [sense.acuity, range > 0 ? `${range} ft` : "", sense.source].filter(Boolean).join(" · "),
+      };
+    }),
+    languages: {
+      ...languages,
+      values: list(languages.values),
+      hasAny: list(languages.values).length > 0 || Boolean(String(languages.details ?? "").trim()),
+    },
+    exploration: { active: activity(exploration.active), other: activity(exploration.other) },
+    downtime: activity(details.downtime),
+    specialActions: activity(details.specialActions),
+    crafting: {
+      ...crafting,
+      knownFormulas,
+      abilities: craftingAbilities,
+      formulaCount: knownFormulas.length,
+      preparedCount: craftingAbilities.reduce((total, ability) => total + list(record(ability).prepared).length, 0),
     },
   };
 }
@@ -346,6 +454,7 @@ export function buildCharacterSheetPresentation(
     defenses: viewDefenses(moduleData.defenses),
     movement: list(record(moduleData.movement).speeds).map(speed => ({ ...record(speed), unit: "ft" })),
     resources: viewResources(moduleData.resources),
+    details: viewCharacterDetails(moduleData.details),
     strikes: viewStrikes(moduleData.strikes),
     actions: viewActions(moduleData.actions),
     inventory: viewInventory(moduleData.inventory),

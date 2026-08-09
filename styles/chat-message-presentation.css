@@ -1,0 +1,94 @@
+/* Additive chat chrome. PF2e card markup and layout remain under PF2e ownership. */
+#chat-log .chat-message.ethernum-chat-presentation {
+  --ecp-accent: #c6a15b;
+  --ecp-accent-strong: #f0ca79;
+  --ecp-secondary: #5bb8c8;
+  --ecp-surface: #171a1e;
+  --ecp-surface-raised: #22272c;
+  --ecp-text: #f4f1e8;
+  --ecp-muted: #b8bec3;
+  background: var(--ecp-surface);
+  border: 1px solid color-mix(in srgb, var(--ecp-accent) 58%, #5e6266);
+  border-left: 4px solid var(--ecp-accent);
+  box-shadow: 0 2px 9px rgb(0 0 0 / 28%);
+}
+
+#chat-log .chat-message.ethernum-chat-presentation--ethernum {
+  --ecp-accent: #c6a15b;
+  --ecp-accent-strong: #f0ca79;
+  --ecp-secondary: #51b7c8;
+  --ecp-surface: #171a1e;
+  --ecp-surface-raised: #24292e;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation--concordia {
+  --ecp-accent: #d49b45;
+  --ecp-accent-strong: #f1ddbc;
+  --ecp-secondary: #60d7c8;
+  --ecp-surface: #211713;
+  --ecp-surface-raised: #32231d;
+  border-left-color: #d94122;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-header {
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--ecp-accent) 42%, transparent);
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.38rem;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-sender {
+  color: var(--ecp-accent-strong);
+  font-weight: 700;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-metadata,
+#chat-log .chat-message.ethernum-chat-presentation .message-metadata time {
+  color: var(--ecp-muted);
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-content > :not(.chat-card, .pf2e, [data-pf2e-chat-card]) {
+  color: var(--ecp-text);
+  line-height: 1.45;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-content > .dice-roll {
+  background: var(--ecp-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--ecp-secondary) 45%, transparent);
+  padding: 0.35rem;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-content > .dice-roll .dice-formula,
+#chat-log .chat-message.ethernum-chat-presentation .message-content > .dice-roll .dice-total {
+  background: rgb(0 0 0 / 18%);
+  border-color: var(--ecp-accent);
+  color: var(--ecp-text);
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-content > button,
+#chat-log .chat-message.ethernum-chat-presentation .message-content [class*="ethernum-"][class*="chat"] button {
+  background: var(--ecp-surface-raised);
+  border: 1px solid var(--ecp-accent);
+  color: var(--ecp-text);
+  min-height: 2rem;
+  transition: border-color 140ms ease, box-shadow 140ms ease, color 140ms ease;
+}
+
+#chat-log .chat-message.ethernum-chat-presentation .message-content > button:hover,
+#chat-log .chat-message.ethernum-chat-presentation .message-content > button:focus-visible,
+#chat-log .chat-message.ethernum-chat-presentation .message-content [class*="ethernum-"][class*="chat"] button:hover,
+#chat-log .chat-message.ethernum-chat-presentation .message-content [class*="ethernum-"][class*="chat"] button:focus-visible {
+  border-color: var(--ecp-secondary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ecp-secondary) 28%, transparent);
+  color: #fff;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #chat-log .chat-message.ethernum-chat-presentation,
+  #chat-log .chat-message.ethernum-chat-presentation * {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

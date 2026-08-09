@@ -75,7 +75,7 @@ describe("character sheet lifecycle dependency maps", () => {
 
   it.each([
     ["condition", ["effects", "vitals", "overview", "combat"]],
-    ["feat", ["feats", "combat"]],
+    ["feat", ["feats", "combat", "overview"]],
     ["weapon", ["inventory", "combat"]],
     ["armor", ["inventory", "vitals", "overview", "combat"]],
     ["spell", ["spellcasting"]],

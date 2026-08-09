@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.2] - 2026-08-09
+
+### Adicionado
+- Overhaul arcano-industrial da ficha Concórdia com navegação superior própria para Personagem, Combate, Arsenal, Talentos, Magia, Mecânica Única e Efeitos.
+- Painéis somente leitura para biografia, proficiências de armas e armaduras, CDs de classe, sentidos, idiomas, exploração, downtime, crafting e ações especiais preparadas pelo PF2e.
+- Recursos de Focus, classificação de conjuração preparada, espontânea, inata, focus e ritual, grupos por rank e fallback explícito para preparação avançada.
+- Apresentação temática e não invasiva do chat para mensagens Ethernum Company e Concórdia, preservando os cards e rolagens do PF2e.
+- Accents visuais discretos para Arkius, Charles, Atlas e Yu dentro da Mecânica Única de Concórdia.
+
+### Alterado
+- Cabeçalho de Concórdia recebe retrato ampliado e faixa compacta de CA, Percepção e salvamentos, mantendo PV e Pontos Heroicos no mesmo Actor PF2e.
+- Inventário é apresentado como Arsenal sem duplicar itens, Bulk, investimento, recipientes ou estados de carga.
+- Grupos de inventário e magia e a visibilidade de itens guardados passam a restaurar estado local da ficha sem gravar preferências no Actor.
+- Diagnóstico de ficha passa a expor falhas isoladas, fallbacks utilizados e capabilities centralizadas do PF2e.
+
+### Corrigido
+- Falhas em Overview, Combate, Arsenal, Magia, Talentos, Mecânica Única ou Efeitos deixam de derrubar o restante da ficha e oferecem retorno seguro à ficha PF2e.
+- A classe histórica usada pela Mecânica Única deixa de ocultar o painel embutido nas fichas novas; Arkius e Pipping voltam a exibir o conteúdo completo ao trocar de aba.
+- Atualizações de itens de ação invalidam também os dados de exploração, downtime e ações especiais exibidos em Personagem.
+- A ficha Ethernum Company mantém suas abas, sistemas de Éter, FE e Runas sem herdar módulos exclusivos de Concórdia.
+
+### Testes
+- Cobertura de paridade para detalhes preparados do PF2e, ficha Concórdia, isolamento de módulos, estado local, spellcasting, chat temático, fallbacks, capabilities e regressões dos perfis existentes.
+
 ## [3.7.1] - 2026-08-09
 
 ### Adicionado

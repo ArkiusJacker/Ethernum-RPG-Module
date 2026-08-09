@@ -6,18 +6,40 @@
 
 Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## Versão 3.7.1
+## Versão 3.7.2
 
-- Framework endurecido com cache por dependência, capabilities PF2e centralizadas e fallback seguro para a ficha original.
-- Seletor de ficha acessível dentro da folha Ethernum e da folha PF2e original, respeitando a permissão de owners definida pelo mundo.
-- Cabeçalho responsivo e abas superiores clicáveis nos modos normal e compacto, sem sobreposição de identidade ou comandos.
-- Abas funcionais de personagem, combate, inventário, talentos, magia, efeitos, Éter, FE, Runas e Mecânica Única.
-- Bulk preparado, estados de carga e investimento sincronizados com as APIs do PF2e.
-- Conjuração por collection, rank e slot, com representação de magia preparada, gasta, assinatura e usos quando disponíveis.
-- Momentum Fides e Fulgor Negro integrados como resumos acionáveis, mantendo o rastreador global independente.
-- Imunidades, resistências, fraquezas, condições e dano persistente integrados ao painel de efeitos.
-- Interface alterada traduzida em português e inglês e testada sobre o mesmo Actor PF2e usado pela ficha original.
-- Macros gerenciadas passam a vir dos perfis, preservando nomes, IDs, comandos, imagens, flags e aliases históricos.
+- Ficha Concórdia redesenhada como registro arcano-industrial, visualmente distinta da Ethernum Company.
+- Navegação superior para Personagem, Combate, Arsenal, Talentos, Magia, Mecânica Única e Efeitos, sem Éter, FE ou Runas Ethernum.
+- Cabeçalho responsivo com retrato ampliado, PV, Pontos Heroicos, CA, Percepção e salvamentos.
+- Biografia, proficiências, CDs de classe, sentidos, idiomas, exploração, downtime, crafting e ações especiais lidos do Actor PF2e.
+- Spellcasting por collections com ranks, slots, usos, preparação, assinatura, Focus Points e fallback seguro para edição avançada.
+- Arsenal sobre o inventário PF2e existente, preservando Bulk, carga, investimento, consumíveis e recipientes.
+- Mecânicas de Arkius, Charles, Atlas e Yu ganham destaque e accents próprios sem alterar suas regras ou flags.
+- Mensagens de chat recebem apresentação distinta para Ethernum Company e Concórdia sem substituir cards do PF2e.
+- Capabilities, falhas isoladas e fallbacks ficam disponíveis em `game.ethernum.ui.characterSheetDiagnostics(actor)`.
+
+### Paridade da ficha PF2e
+
+| Feature | Ethernum | Concórdia | PF2e Fallback |
+| --- | --- | --- | --- |
+| HP / Temp HP / Hero Points | Native | Native | Native |
+| AC / Perception / Saves | Native | Native | Native |
+| Skills / Initiative / Movement | Native | Native | Native |
+| Conditions / Effects / IWR | Native | Native | Native |
+| Strikes / MAP / Damage / Critical | Native | Native | Native |
+| Actions / Reactions / Free Actions | Native | Native | Native |
+| Exploration / Downtime | Native | Native | Native |
+| Inventory / Bulk / Carry Type | Native | Native | Native |
+| Investment / Consumables / Containers | Native | Native | Native |
+| Feats | Native | Native | Native |
+| Prepared / Spontaneous / Innate spells | Native | Native | Native |
+| Focus spells / Focus Points / Spell Slots | Native | Native | Native |
+| Rituals | Partial | Partial | Native |
+| Spell preparation management | PF2e Fallback | PF2e Fallback | Native |
+| Drag/drop | Native | Native | Native |
+| Class DC / Senses / Languages | Native | Native | Native |
+| Biography editing | PF2e Fallback | PF2e Fallback | Native |
+| Crafting | Partial | Partial | Native |
 
 ## 🌟 Características Principais
 

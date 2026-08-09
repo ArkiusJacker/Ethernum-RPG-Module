@@ -12,6 +12,7 @@
 <form class="ethernum-character-sheet {{shell.themeClass}} {{#if ui.compact}}is-compact{{/if}}"
       data-shell-id="{{shell.id}}"
       data-actor-id="{{actor.id}}"
+      data-unique-profile="{{uniqueMechanic.activeProfile}}"
       aria-label="{{shell.title}}"
       autocomplete="off">
   {{> "modules/ethernum-rpg-module/templates/sheets/base/sheet-base.html"}}

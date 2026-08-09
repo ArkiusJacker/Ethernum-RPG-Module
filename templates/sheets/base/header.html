@@ -75,6 +75,16 @@
         {{/if}}
       </div>
     </div>
+
+    {{#if (ethernum-eq shell.id "concordia")}}
+    <div class="ecs-concordia-defenses" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.Defenses'}}">
+      <span><small>{{localize 'ETHERNUM.CharacterSheet.Overview.ArmorClass'}}</small><strong>{{defenses.ac.value}}</strong></span>
+      <button type="button" data-action="roll-perception" title="{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}"><small>{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}</small><strong>{{defenses.perception.modifier}}</strong></button>
+      {{#each defenses.saves}}
+      <button type="button" data-action="roll-save" data-save="{{this.slug}}" title="{{this.label}}"><small>{{this.label}}</small><strong>{{this.modifier}}</strong></button>
+      {{/each}}
+    </div>
+    {{/if}}
   </section>
 
   <div class="ecs-header-actions" role="toolbar" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Actions'}}">

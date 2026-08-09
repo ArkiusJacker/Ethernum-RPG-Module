@@ -356,6 +356,45 @@
   font-size: 10px;
 }
 
+.ecs-concordia-defenses {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ecs-space-1);
+  min-width: 0;
+}
+
+.ecs-concordia-defenses > span,
+.ethernum-character-sheet .ecs-concordia-defenses > button {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 38px;
+  padding: 3px 5px;
+  border: 1px solid var(--ecs-border);
+  border-radius: 2px;
+  color: var(--ecs-text);
+  background: var(--ecs-surface-soft);
+}
+
+.ecs-concordia-defenses small {
+  max-width: 100%;
+  color: var(--ecs-text-muted);
+  font-size: 9px;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ecs-concordia-defenses strong {
+  color: var(--ecs-accent-strong);
+  font-size: 14px;
+}
+
 .ecs-meter {
   width: 100%;
   height: 5px;
@@ -523,6 +562,14 @@
   overflow-y: auto;
   scrollbar-color: var(--ecs-border-strong) transparent;
   scrollbar-width: thin;
+}
+
+/* The embedded legacy mechanic keeps its historical hook without inheriting
+   the absolute, hidden PF2e-tab layout from styles/ethernum.css. */
+.ethernum-character-sheet .ecs-tab-panel.ethernum-content {
+  position: relative;
+  inset: auto;
+  display: block;
 }
 
 .ecs-tab-panel[hidden] {
@@ -706,6 +753,11 @@
     grid-column: 1 / 4;
     grid-row: 2;
     grid-template-columns: minmax(150px, 1fr) auto;
+  }
+
+  .ecs-concordia-defenses {
+    grid-template-columns: repeat(5, minmax(48px, 1fr));
+    overflow-x: auto;
   }
 
   .ecs-header-actions {
