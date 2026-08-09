@@ -22,7 +22,7 @@
       {{/each}}
     </nav>
     {{/if}}
-    <div class="ecs-legacy-unique-host ecs-panel" data-ui-role="panel" data-panel-kind="unique-mechanic" data-unique-profile="{{uniqueMechanic.activeProfile}}">
+    <div class="ecs-legacy-unique-host ecs-panel" data-ui-role="panel" data-panel-kind="unique-mechanic" data-unique-profile="{{uniqueMechanic.activeProfile}}" data-material="arcane">
       {{> "modules/ethernum-rpg-module/templates/unique-mechanics-tab.html" uniqueMechanics=uniqueMechanic isGM=permissions.isGM}}
     </div>
   {{else}}

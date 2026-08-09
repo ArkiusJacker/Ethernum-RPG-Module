@@ -43,7 +43,7 @@
 
   <div class="ecs-inventory-groups">
     {{#each inventory.categories}}
-    <section class="ecs-inventory-group ecs-panel" data-ui-role="panel" data-panel-kind="inventory-category" data-category="{{this.id}}" aria-labelledby="ecs-inventory-{{this.id}}">
+    <section class="ecs-inventory-group ecs-panel" data-ui-role="panel" data-panel-kind="inventory-category" data-category="{{this.id}}" data-material="metal" aria-labelledby="ecs-inventory-{{this.id}}">
       <header class="ecs-group-heading">
         <button type="button" data-action="toggle-inventory-category" data-category="{{this.id}}" aria-expanded="{{#if this.collapsed}}false{{else}}true{{/if}}" aria-controls="ecs-inventory-items-{{this.id}}">
           <i class="fas fa-chevron-down" aria-hidden="true"></i>

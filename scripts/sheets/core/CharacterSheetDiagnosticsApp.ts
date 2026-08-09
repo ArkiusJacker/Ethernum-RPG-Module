@@ -49,6 +49,7 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
     isGM: true,
     diagnostics: controllerDiagnostics,
     ethernumVersion: moduleVersion,
+    animationMode: String(game.settings.get(ETHERNUM.MODULE_NAME, "characterSheetAnimations") ?? "full"),
     telemetry: PF2eBridgeTelemetry.list({ actorId: controllerDiagnostics.actorId }),
     capabilityStatus: controllerDiagnostics.capabilityStatus,
   });

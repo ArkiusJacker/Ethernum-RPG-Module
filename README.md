@@ -6,16 +6,16 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.4
+## Versão 3.7.5
 
-- A ficha Ethernum Company recebe identidade industrial em aço, carvão, ouro e ciano, com hierarquia visual própria e isolamento completo da ficha Concórdia.
-- Cabeçalho operacional reorganiza retrato, identidade, selo de nível, PV, pulso vital, Pontos Heroicos e comandos sem sobreposições.
-- Overview usa três colunas em telas largas e adaptação progressiva em janelas menores, com atributos, perícias, defesas, recursos e dados PF2e preservados.
-- Recursos finitos ganham marcadores visuais derivados dos valores preparados do Actor, sem novas flags e sem duplicar dados do PF2e.
-- Rolagens, dano, cura, gasto e recuperação de recursos recebem feedback transitório que sobrevive a rerenders sem persistir apresentação no personagem.
-- Nova preferência local de animações permite escolher movimento completo, reduzido ou desligado e respeita a configuração do sistema operacional.
-- Navegação, painéis, controles, tabelas, cards e estados de foco foram polidos para mouse, teclado e densidade compacta.
-- O contrato automatizado da ficha cobre tema, semântica, movimento, feedbacks e integrações PF2e existentes.
+- A ficha Concórdia recebe identidade própria de grimório mecânico em cobre, latão, couro escuro e energia arcana ciano.
+- Cabeçalho reorganiza retrato circular, identidade, selo de nível, tubo de PV, Pontos Heroicos e defesas sem sobreposições.
+- Personagem, Combate, Arsenal, Magia, Talentos, Mecânica Única e Efeitos usam materiais e hierarquias visuais adequados a cada conteúdo.
+- O tubo de PV deriva preenchimento e estado do Actor PF2e, sem duplicar dados nem criar flags de apresentação.
+- Perfis de Arkius, Charles, Atlas e Yu preservam seus acentos próprios dentro da linguagem visual compartilhada de Concórdia.
+- Estados completo, reduzido e desligado continuam disponíveis para animações, com respeito a `prefers-reduced-motion`.
+- O isolamento de tema impede que o acabamento de Concórdia altere a ficha Ethernum Company.
+- O contrato automatizado cobre semântica, materiais, PV, diagnóstico e oito instâncias independentes de ficha.
 
 ### Paridade da ficha PF2e
 

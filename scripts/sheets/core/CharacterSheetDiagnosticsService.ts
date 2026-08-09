@@ -45,6 +45,8 @@ export interface CharacterSheetDiagnosticsInput {
   shell: string;
   configuredMode: string;
   activeCore: string;
+  theme?: string;
+  animationMode?: string;
   uniqueProfile?: string;
   foundryVersion: string;
   pf2eVersion: string;
@@ -91,6 +93,8 @@ export interface CharacterSheetDiagnosticsSnapshot {
     shell: string;
     configuredMode: string;
     activeCore: string;
+    theme: string;
+    animationMode: string;
     uniqueProfile: string;
   };
   versions: { foundry: string; pf2e: string; ethernum: string };
@@ -111,6 +115,7 @@ export interface CharacterSheetControllerDiagnosticsLike {
   configuredMode: string;
   resolvedSheet: string;
   activeCore: string;
+  animationMode?: string;
   adapterStatus?: "ok" | "partial" | "failed";
   profile?: string;
   moduleMetrics?: CharacterSheetModuleMetric[];
@@ -125,6 +130,7 @@ export interface CharacterSheetControllerDiagnosticsInput {
   isGM: boolean;
   diagnostics: CharacterSheetControllerDiagnosticsLike;
   ethernumVersion: string;
+  animationMode?: string;
   telemetry?: PF2eBridgeTelemetryEntry[];
   capabilityStatus?: CharacterSheetDiagnosticsInput["capabilityStatus"];
   moduleStatus?: CharacterSheetDiagnosticsInput["moduleStatus"];
@@ -296,6 +302,8 @@ export function createCharacterSheetDiagnostics(
       shell: safeText(input.shell, "unknown"),
       configuredMode: safeText(input.configuredMode, "unknown"),
       activeCore: safeText(input.activeCore, "unknown"),
+      theme: safeText(input.theme, input.shell === "concordia" ? "Mechanical Grimoire" : "Operational Dossier"),
+      animationMode: safeText(input.animationMode, "unknown"),
       uniqueProfile: safeText(input.uniqueProfile, "none"),
     },
     versions: {
@@ -322,6 +330,8 @@ export function createCharacterSheetDiagnosticsFromController(
     shell: diagnostics.resolvedSheet,
     configuredMode: diagnostics.configuredMode,
     activeCore: diagnostics.activeCore,
+    theme: diagnostics.resolvedSheet === "concordia" ? "Mechanical Grimoire" : "Operational Dossier",
+    animationMode: input.animationMode,
     uniqueProfile: diagnostics.profile,
     foundryVersion: diagnostics.foundryVersion,
     pf2eVersion: diagnostics.pf2eVersion,
@@ -349,6 +359,8 @@ export function serializeCharacterSheetDiagnostics(snapshot: CharacterSheetDiagn
     `Shell: ${snapshot.sheet.shell}`,
     `Configured Mode: ${snapshot.sheet.configuredMode}`,
     `Active Core: ${snapshot.sheet.activeCore}`,
+    `Theme: ${snapshot.sheet.theme}`,
+    `Animation Mode: ${snapshot.sheet.animationMode}`,
     `Unique Profile: ${snapshot.sheet.uniqueProfile}`,
     `Foundry: ${snapshot.versions.foundry}`,
     `PF2e: ${snapshot.versions.pf2e}`,

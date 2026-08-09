@@ -1,44 +1,17 @@
-/* Combat, arsenal and magic each receive their own material language. */
+/* Mundane combat: weapon strikes are machined plates; actions remain a flat field log. */
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-combat-momentum {
-  border: 1px solid #5c4840;
+  border: 1px solid #665145;
   border-left: 5px solid var(--concordia-copper);
-  background: linear-gradient(100deg, rgba(87, 37, 52, 0.46), #171b1d 45%);
-}
-
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-strike,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-action-row,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-feat-row,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-effect-row {
   border-radius: 0;
-  border-color: #404748;
-  border-left: 4px solid var(--concordia-copper);
-  background: #171b1d;
-  box-shadow: inset 0 -1px 0 #090b0c;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 42px),
+    linear-gradient(100deg, rgba(87, 37, 52, 0.58), #171b1d 45%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 :where(
@@ -46,7 +19,188 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-strike:nth-child(even),
+) [data-panel-kind="strikes"] {
+  border-color: #656d6f;
+  border-radius: 0;
+  background: linear-gradient(180deg, #161a1c, #101315);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike-list {
+  gap: 6px;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  border: 1px solid #596163;
+  border-left: 5px solid var(--concordia-copper);
+  border-radius: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.055), transparent 25%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 5px),
+    #1b2022;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.52);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 3px 3px, #94846b 0 1px, #211c17 1.5px 2.5px, transparent 3px),
+    radial-gradient(circle at calc(100% - 3px) calc(100% - 3px), #94846b 0 1px, #211c17 1.5px 2.5px, transparent 3px);
+  pointer-events: none;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike:nth-child(even) {
+  border-left-color: #527d98;
+  background:
+    linear-gradient(115deg, rgba(82, 125, 152, 0.09), transparent 30%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 5px),
+    #171e22;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike:hover {
+  border-color: #8d9799;
+  border-left-color: var(--ecs-focus);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(145, 197, 223, 0.2);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike:focus-within {
+  border-color: var(--ecs-focus);
+  box-shadow: inset 4px 0 0 var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-strike__identity h4 {
+  overflow-wrap: anywhere;
+  color: #f2e6cd;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-strike__attacks, .ecs-strike__damage) {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-strike__attacks, .ecs-strike__damage) button {
+  border-color: #5c6466;
+  border-radius: 0;
+  background: linear-gradient(180deg, #2b3234, #161a1c);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: border-color 130ms ease, color 130ms ease, background-color 130ms ease;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-strike__attacks, .ecs-strike__damage) button:is(:hover, :focus-visible):not(:disabled) {
+  color: #fff6dd;
+  border-color: var(--ecs-focus);
+  background: linear-gradient(180deg, #30444d, #18262d);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-strike__attacks, .ecs-strike__damage) button:focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: 2px;
+}
+
+/* Actions are ledger rows, deliberately quieter than strike hardware. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="actions"] {
+  border-color: #484f50;
+  border-radius: 0;
+  background: #131719;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-action-list {
+  gap: 0;
+  border-top: 1px solid #3b4243;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-action-row {
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #3c4344;
+  border-left: 4px solid var(--concordia-copper);
+  border-radius: 0;
+  background: rgba(23, 27, 29, 0.86);
+  box-shadow: inset 0 -1px 0 #090b0c;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
@@ -54,7 +208,7 @@
   [data-shell-id="concordia"]
 ) .ecs-action-row:nth-child(even) {
   border-left-color: #527d98;
-  background: #151c21;
+  background: rgba(21, 28, 33, 0.9);
 }
 
 :where(
@@ -62,24 +216,47 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-strike__identity h4,
+) .ecs-action-row:is(:hover, :focus-within) {
+  border-left-color: var(--ecs-focus);
+  background: rgba(24, 54, 77, 0.34);
+  box-shadow: inset 3px 0 0 var(--ecs-focus);
+}
+
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-action-row__body h4,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-inventory-item__name h3,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-spell-row__name h4 {
+) .ecs-action-row__body h4 {
   overflow-wrap: anywhere;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-primary-action, .ecs-filter-group button, .ecs-panel-heading__actions button):focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: 2px;
+  border-color: var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="reduced"], .ecs-motion-reduced) #ecs-panel-combat :is(.ecs-strike, .ecs-action-row, button) {
+  transition-duration: 0.01ms;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="off"], .ecs-motion-off) #ecs-panel-combat :is(.ecs-strike, .ecs-action-row, button) {
+  transition: none !important;
+  animation: none !important;
 }

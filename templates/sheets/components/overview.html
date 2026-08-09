@@ -15,7 +15,7 @@
   </section>
   {{/if}}
   <div class="ecs-overview-grid">
-    <section class="ecs-section ecs-section--abilities ecs-panel" data-ui-role="panel" data-panel-kind="abilities" aria-labelledby="ecs-abilities-title">
+    <section class="ecs-section ecs-section--abilities ecs-panel" data-ui-role="panel" data-panel-kind="abilities" data-material="metal" aria-labelledby="ecs-abilities-title">
       <header class="ecs-section__header">
         <h2 id="ecs-abilities-title"><i class="fas fa-dumbbell" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Abilities'}}</h2>
       </header>
@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <section class="ecs-section ecs-section--defenses ecs-panel" data-ui-role="panel" data-panel-kind="defenses" aria-labelledby="ecs-defenses-title">
+    <section class="ecs-section ecs-section--defenses ecs-panel" data-ui-role="panel" data-panel-kind="defenses" data-material="metal" aria-labelledby="ecs-defenses-title">
       <header class="ecs-section__header">
         <h2 id="ecs-defenses-title"><i class="fas fa-shield-halved" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Defenses'}}</h2>
       </header>
@@ -53,7 +53,7 @@
       </div>
     </section>
 
-    <section class="ecs-section ecs-section--skills ecs-panel" data-ui-role="panel" data-panel-kind="skills" aria-labelledby="ecs-skills-title">
+    <section class="ecs-section ecs-section--skills ecs-panel" data-ui-role="panel" data-panel-kind="skills" data-material="instrument" aria-labelledby="ecs-skills-title">
       <header class="ecs-section__header">
         <h2 id="ecs-skills-title"><i class="fas fa-list-check" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Skills'}}</h2>
         <button type="button" class="ecs-icon-control" data-action="toggle-skill-details" aria-expanded="{{#if ui.skillDetailsCollapsed}}false{{else}}true{{/if}}" aria-controls="ecs-overview-skill-list" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.SkillDetails'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.SkillDetails'}}"><i class="fas fa-sliders" aria-hidden="true"></i></button>
@@ -77,7 +77,7 @@
     </section>
 
     <div class="ecs-overview-side">
-      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="movement" aria-labelledby="ecs-movement-title">
+      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="movement" data-material="metal" aria-labelledby="ecs-movement-title">
         <header class="ecs-section__header"><h2 id="ecs-movement-title"><i class="fas fa-person-running" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Movement'}}</h2></header>
         <div class="ecs-movement-list">
           {{#each movement}}
@@ -86,7 +86,7 @@
         </div>
       </section>
 
-      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="resources" aria-labelledby="ecs-resources-title">
+      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="resources" data-material="instrument" aria-labelledby="ecs-resources-title">
         <header class="ecs-section__header"><h2 id="ecs-resources-title"><i class="fas fa-gauge-high" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Resources'}}</h2></header>
         <div class="ecs-resource-list">
           {{#each resources}}
@@ -105,7 +105,7 @@
         </div>
       </section>
 
-      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="conditions" aria-labelledby="ecs-condition-title">
+      <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="conditions" data-material="leather" aria-labelledby="ecs-condition-title">
         <header class="ecs-section__header"><h2 id="ecs-condition-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.State'}}</h2></header>
         <div class="ecs-condition-strip">
           <span>{{localize 'PF2E.ConditionTypeWounded'}} <strong>{{vitals.wounded}}</strong></span>
@@ -117,7 +117,7 @@
   </div>
 
   <div class="ecs-character-ledger">
-    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewDetailsCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="details" aria-labelledby="ecs-details-group-title">
+    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewDetailsCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="details" data-material="metal" aria-labelledby="ecs-details-group-title">
       <header class="ecs-ledger-group__header">
         <h2 id="ecs-details-group-title"><i class="fas fa-address-card" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Details'}}</h2>
         <button type="button" class="ecs-icon-control" data-action="toggle-overview-section" data-section="details" aria-expanded="{{#if ui.overviewDetailsCollapsed}}false{{else}}true{{/if}}" aria-controls="ecs-overview-details" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
@@ -169,7 +169,7 @@
       </div>
     </section>
 
-    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewActivitiesCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="activities" aria-labelledby="ecs-activities-group-title">
+    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewActivitiesCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="activities" data-material="leather" aria-labelledby="ecs-activities-group-title">
       <header class="ecs-ledger-group__header">
         <h2 id="ecs-activities-group-title"><i class="fas fa-compass" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Activities'}}</h2>
         <button type="button" class="ecs-icon-control" data-action="toggle-overview-section" data-section="activities" aria-expanded="{{#if ui.overviewActivitiesCollapsed}}false{{else}}true{{/if}}" aria-controls="ecs-overview-activities" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
@@ -208,7 +208,7 @@
     </section>
 
     {{#if details.crafting.available}}
-    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewCraftingCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="crafting" aria-labelledby="ecs-crafting-title">
+    <section class="ecs-ledger-group ecs-panel {{#if ui.overviewCraftingCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="crafting" data-material="instrument" aria-labelledby="ecs-crafting-title">
       <header class="ecs-ledger-group__header"><h2 id="ecs-crafting-title"><i class="fas fa-hammer" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Details.Crafting'}}</h2><div class="ecs-section__actions"><button type="button" class="ecs-icon-control" data-action="open-crafting-pf2e" aria-label="{{localize 'ETHERNUM.CharacterSheet.Details.OpenCrafting'}}" title="{{localize 'ETHERNUM.CharacterSheet.Details.OpenCrafting'}}"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button><button type="button" class="ecs-icon-control" data-action="toggle-overview-section" data-section="crafting" aria-expanded="{{#if ui.overviewCraftingCollapsed}}false{{else}}true{{/if}}" aria-controls="ecs-overview-crafting" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button></div></header>
       <div id="ecs-overview-crafting" class="ecs-ledger-group__content" {{#if ui.overviewCraftingCollapsed}}hidden{{/if}}>
         <div class="ecs-crafting-summary"><span><small>{{localize 'ETHERNUM.CharacterSheet.Details.Formulas'}}</small><strong>{{details.crafting.formulaCount}}</strong></span><span><small>{{localize 'ETHERNUM.CharacterSheet.Details.PreparedItems'}}</small><strong>{{details.crafting.preparedCount}}</strong></span></div>
@@ -239,7 +239,7 @@
     {{/if}}
 
     {{#if details.biography.hasContent}}
-    <section class="ecs-ledger-group ecs-ledger-group--wide ecs-panel {{#if ui.overviewBiographyCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="biography" aria-labelledby="ecs-biography-title">
+    <section class="ecs-ledger-group ecs-ledger-group--wide ecs-panel {{#if ui.overviewBiographyCollapsed}}is-collapsed{{/if}}" data-ui-role="panel" data-panel-kind="biography" data-material="parchment" aria-labelledby="ecs-biography-title">
       <header class="ecs-ledger-group__header"><h2 id="ecs-biography-title"><i class="fas fa-book-open" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Details.Biography'}}</h2><div class="ecs-section__actions"><button type="button" class="ecs-icon-control" data-action="open-pf2e-sheet" aria-label="{{localize 'ETHERNUM.CharacterSheet.Details.EditBiography'}}" title="{{localize 'ETHERNUM.CharacterSheet.Details.EditBiography'}}"><i class="fas fa-pen" aria-hidden="true"></i></button><button type="button" class="ecs-icon-control" data-action="toggle-overview-section" data-section="biography" aria-expanded="{{#if ui.overviewBiographyCollapsed}}false{{else}}true{{/if}}" aria-controls="ecs-overview-biography" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.ToggleSection'}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button></div></header>
       <div id="ecs-overview-biography" class="ecs-biography-grid ecs-ledger-group__content" {{#if ui.overviewBiographyCollapsed}}hidden{{/if}}>
         {{#if details.biography.appearance}}<article><h3>{{localize 'ETHERNUM.CharacterSheet.Details.Appearance'}}</h3><div>{{{details.biography.appearance}}}</div></article>{{/if}}

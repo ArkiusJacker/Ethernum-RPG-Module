@@ -5,6 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.5] - 2026-08-09
+
+### Adicionado
+- Identidade visual exclusiva da ficha Concórdia como grimório mecânico em cobre, latão, couro escuro e energia arcana ciano.
+- Papéis semânticos de material para metal, couro, pergaminho, vidro, arcano e instrumentos mecânicos.
+- Tubo de PV com preenchimento proporcional, estados estável, cheio e crítico derivados diretamente do Actor PF2e.
+- Acentos de perfil preservados para Arkius, Charles, Atlas e Yu dentro da Mecânica Única.
+
+### Alterado
+- Cabeçalho recebe retrato circular mecânico, selo de nível, tubo de PV e bloco compacto de defesas inspirado no registro arcano de Concórdia.
+- Personagem, Combate, Arsenal, Magia, Talentos, Mecânica Única e Efeitos recebem hierarquia, materiais e contraste próprios.
+- Entradas de magia diferenciam foco, ritual e inata sem alterar os dados ou o fluxo de conjuração do PF2e.
+- Diagnóstico GM passa a informar o tema `Mechanical Grimoire` e o modo de animação ativo.
+
+### Corrigido
+- Títulos e níveis deixam de perder contraste em Magia, Talentos e Efeitos.
+- O preenchimento de PV usa transformação estável e não provoca deslocamento de layout durante atualizações.
+- Regras de Concórdia permanecem isoladas da ficha Ethernum Company.
+
+### Testes
+- 442 testes automatizados, incluindo oito apresentações independentes de ficha, estados de PV, materiais, diagnóstico e isolamento entre temas.
+
 ## [3.7.4] - 2026-08-09
 
 ### Adicionado

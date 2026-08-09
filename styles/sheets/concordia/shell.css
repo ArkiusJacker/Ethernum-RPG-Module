@@ -1,38 +1,61 @@
-/* Concordia v3.7.2: arcane-industrial shell with aged metal and occult instrumentation. */
+/* Concordia v3.7.5: a hand-built field grimoire of leather, parchment and arcane machinery. */
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) {
-  --ecs-bg: #101315;
-  --ecs-surface: #191d20;
-  --ecs-surface-raised: #25292b;
-  --ecs-surface-soft: #151a1e;
-  --ecs-text: #ece9df;
-  --ecs-text-muted: #aeb3b2;
-  --ecs-border: #484d4d;
-  --ecs-border-strong: #707677;
-  --ecs-accent: #b8833f;
-  --ecs-accent-strong: #e0bd72;
-  --ecs-accent-contrast: #17120b;
-  --ecs-secondary: #6d9fbb;
-  --ecs-danger: #b94c49;
-  --ecs-warning: #d39b49;
-  --ecs-success: #72a681;
-  --ecs-focus: #91c5df;
-  --ecs-hp: #8e3344;
-  --ecs-radius: 2px;
-  --ecs-header-height: 148px;
-  --ecs-nav-height: 50px;
-  --concordia-coal: #0c0f11;
-  --concordia-iron: #596061;
-  --concordia-steel: #b7bec0;
-  --concordia-brass: #b8833f;
-  --concordia-copper: #a65f3f;
-  --concordia-blue: #18364d;
-  --concordia-wine: #572534;
-  --concordia-rivet: #7b7060;
+  --con-bg: #121315;
+  --con-graphite: #1b1d1f;
+  --con-leather: #2b211c;
+  --con-leather-deep: #1c1613;
+  --con-parchment: #b79b70;
+  --con-parchment-light: #d6c39b;
+  --con-copper: #9a5f3a;
+  --con-brass: #b7924f;
+  --con-brass-light: #d6b86f;
+  --con-steel: #687176;
+  --con-aether: #49bfd0;
+  --con-arcane: #8264c7;
+  --con-text: #eee5d2;
+  --con-muted: #b9ad98;
+  --con-ink: #27221c;
+  --con-danger: #a8433f;
+  --con-success: #69a77b;
+  --con-recovery: var(--con-success);
+  --con-glass: rgba(183, 222, 221, 0.1);
+  --con-speed-fast: 150ms;
+  --con-speed-normal: 280ms;
+  --con-speed-slow: 520ms;
+  --con-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ecs-bg: var(--con-bg);
+  --ecs-surface: var(--con-graphite);
+  --ecs-surface-raised: #292728;
+  --ecs-surface-soft: var(--con-leather-deep);
+  --ecs-text: var(--con-text);
+  --ecs-text-muted: var(--con-muted);
+  --ecs-border: #51483e;
+  --ecs-border-strong: var(--con-steel);
+  --ecs-accent: var(--con-brass);
+  --ecs-accent-strong: var(--con-brass-light);
+  --ecs-accent-contrast: var(--con-ink);
+  --ecs-secondary: var(--con-aether);
+  --ecs-danger: var(--con-danger);
+  --ecs-warning: #c88c49;
+  --ecs-success: var(--con-recovery);
+  --ecs-focus: #83d7e1;
+  --ecs-hp: #b44645;
+  --ecs-radius: 3px;
+  --ecs-header-height: 174px;
+  --ecs-nav-height: 52px;
+  --concordia-coal: var(--con-bg);
+  --concordia-iron: var(--con-steel);
+  --concordia-steel: #a8afb0;
+  --concordia-brass: var(--con-brass);
+  --concordia-copper: var(--con-copper);
+  --concordia-blue: #17343a;
+  --concordia-wine: #4d294f;
+  --concordia-rivet: #827563;
   color-scheme: dark;
 }
 
@@ -42,9 +65,135 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-shell {
-  background-color: var(--ecs-bg);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid #4d4236;
+  background-color: var(--con-bg);
   background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 54px),
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 26px);
+    linear-gradient(105deg, transparent 0 67%, rgba(130, 100, 199, 0.035) 67% 67.4%, transparent 67.4%),
+    radial-gradient(circle at 8% 12%, rgba(73, 191, 208, 0.055) 0 1px, transparent 1.5px),
+    repeating-linear-gradient(97deg, rgba(255, 255, 255, 0.013) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(3deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 29px);
+  box-shadow:
+    inset 0 0 0 3px #171310,
+    inset 0 0 0 4px rgba(183, 146, 79, 0.26),
+    0 16px 34px rgba(0, 0, 0, 0.48);
 }
 
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-shell::before {
+  position: absolute;
+  z-index: 10;
+  inset: 6px;
+  border: 1px solid rgba(183, 146, 79, 0.2);
+  border-radius: 2px 0 3px 1px;
+  content: "";
+  pointer-events: none;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-shell::after {
+  position: absolute;
+  z-index: 0;
+  right: 22px;
+  bottom: 18px;
+  width: 116px;
+  height: 116px;
+  border: 1px dashed rgba(73, 191, 208, 0.08);
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent 48%, rgba(130, 100, 199, 0.07) 49% 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, rgba(73, 191, 208, 0.06) 49% 51%, transparent 52%);
+  content: "";
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(input, select, button) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reusable material vocabulary. Component styles may refine these surfaces. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-panel, .ecs-feat-row, .ecs-spell-rank)[data-material="metal"] {
+  border-color: color-mix(in srgb, var(--con-steel) 68%, #28231e);
+  background-color: var(--con-graphite);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-panel, .ecs-feat-row)[data-material="leather"] {
+  border-color: color-mix(in srgb, var(--con-copper) 70%, #241b17);
+  background-color: var(--con-leather);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-panel, .ecs-feat-row)[data-material="parchment"] {
+  border-color: var(--con-copper);
+  color: var(--con-ink);
+  background: linear-gradient(96deg, #b2976e, var(--con-parchment-light) 48%, #aa8b61);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-feat-row[data-material="parchment"] :is(h3, p, .ecs-feat-row__title > span) {
+  color: var(--con-ink);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-panel, .ecs-spell-rank)[data-material="glass"] {
+  border-color: color-mix(in srgb, var(--con-aether) 48%, var(--con-steel));
+  background-color: color-mix(in srgb, var(--con-glass) 76%, var(--con-graphite));
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-panel, .ecs-spell-rank)[data-material="arcane"] {
+  border-color: color-mix(in srgb, var(--con-arcane) 62%, var(--con-copper));
+  background-color: color-mix(in srgb, var(--con-arcane) 8%, var(--con-graphite));
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-panel[data-material="instrument"] {
+  border-color: var(--con-brass);
+  background-color: color-mix(in srgb, var(--con-steel) 12%, var(--con-graphite));
+}

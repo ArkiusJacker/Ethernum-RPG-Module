@@ -1,4 +1,19 @@
-/* Overview uses a broader skills ledger and a full-width bank of field instruments. */
+/* Mundane Concordia content: machined records for rules, parchment for lore. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) {
+  --concordia-metal-deep: #111517;
+  --concordia-metal-face: #202628;
+  --concordia-metal-edge: #697173;
+  --concordia-metal-line: #343b3d;
+  --concordia-paper: #c9b88f;
+  --concordia-paper-deep: #9b865e;
+  --concordia-paper-ink: #292116;
+}
+
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
@@ -6,7 +21,7 @@
   [data-shell-id="concordia"]
 ) .ecs-overview-grid {
   grid-template-columns: minmax(250px, 0.78fr) minmax(360px, 1.35fr);
-  gap: 0 30px;
+  gap: 24px 30px;
 }
 
 :where(
@@ -47,6 +62,59 @@
   gap: 24px;
 }
 
+/* Statistical panels read as sections of one steel instrument board. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) #ecs-panel-overview :is(
+  .ecs-section--abilities,
+  .ecs-section--defenses,
+  .ecs-section--skills,
+  .ecs-overview-side > .ecs-panel,
+  [data-panel-kind="details"],
+  [data-panel-kind="activities"],
+  [data-panel-kind="crafting"]
+) {
+  overflow: hidden;
+  border-color: var(--concordia-metal-edge);
+  border-radius: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.035), transparent 26%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 6px),
+    var(--concordia-metal-deep);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) #ecs-panel-overview :is(.ecs-section__header, .ecs-ledger-group__header) {
+  border-bottom-color: #6b5236;
+  background: linear-gradient(90deg, rgba(166, 95, 63, 0.2), rgba(24, 54, 77, 0.12) 48%, transparent);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) #ecs-panel-overview :is(.ecs-section__header, .ecs-ledger-group__header) h2::after {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  margin-left: 9px;
+  vertical-align: middle;
+  background: var(--concordia-brass);
+  opacity: 0.72;
+}
+
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
@@ -65,10 +133,25 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-condition-strip span {
+  min-width: 0;
   border-radius: 0;
   border-color: #454c4d;
-  background: linear-gradient(145deg, #202527, #15191b 72%);
-  box-shadow: inset 3px 0 0 var(--concordia-blue);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 34%),
+    linear-gradient(145deg, var(--concordia-metal-face), #15191b 72%);
+  box-shadow:
+    inset 3px 0 0 var(--concordia-blue),
+    inset 0 -1px 0 #080a0b;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-ability > i {
+  color: var(--concordia-steel);
+  opacity: 0.82;
 }
 
 :where(
@@ -78,7 +161,19 @@
   [data-shell-id="concordia"]
 ) .ecs-defense--ac {
   border-color: var(--concordia-brass);
-  box-shadow: inset 3px 0 0 var(--concordia-wine);
+  box-shadow:
+    inset 3px 0 0 var(--concordia-wine),
+    inset 0 -1px 0 #080a0b;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-skill-list {
+  gap: 0 16px;
+  border-top: 1px solid var(--concordia-metal-line);
 }
 
 :where(
@@ -89,6 +184,8 @@
 ) .ecs-skill-row {
   min-height: 38px;
   border-bottom-color: #383e3f;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.018), transparent 56%);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 :where(
@@ -97,7 +194,269 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-skill-row:hover:not(:disabled) {
-  border-bottom-color: #7b8586;
-  background: rgba(24, 54, 77, 0.35);
+  border-bottom-color: #829092;
+  background: linear-gradient(90deg, rgba(24, 54, 77, 0.7), rgba(24, 54, 77, 0.16));
+  box-shadow: inset 2px 0 0 var(--ecs-focus);
 }
 
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-skill-row, .ecs-defense.ecs-rollable):focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: -2px;
+  border-color: var(--ecs-focus);
+  box-shadow: inset 3px 0 0 var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-movement-row, .ecs-resource-row) {
+  min-width: 0;
+  border-bottom-color: var(--concordia-metal-line);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-movement-row, .ecs-resource-row):last-child {
+  border-bottom-color: transparent;
+}
+
+/* The lower rules ledger remains metal and flat, with dividers instead of cards. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-stat-ledger > div, .ecs-crafting-summary > span, .ecs-detail-tags > span) {
+  border: 0;
+  border-bottom: 1px solid var(--concordia-metal-line);
+  border-left: 3px solid var(--concordia-iron);
+  border-radius: 0;
+  background: rgba(32, 38, 40, 0.7);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-crafting-abilities article {
+  border: 0;
+  border-left: 3px solid var(--concordia-copper);
+  border-radius: 0;
+  background: transparent;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-activity-columns, .ecs-activity-list) button {
+  border-radius: 0;
+  border-color: var(--concordia-metal-line);
+  background: rgba(18, 23, 25, 0.84);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-activity-columns, .ecs-activity-list) button:is(:hover, :focus-visible):not(:disabled) {
+  border-color: var(--ecs-focus);
+  background: rgba(24, 54, 77, 0.45);
+  box-shadow: inset 3px 0 0 var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-activity-columns, .ecs-activity-list) button:focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: 2px;
+}
+
+/* Biography is a single open folio; its entries are columns on the page, not cards. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="biography"] {
+  overflow: hidden;
+  border: 1px solid var(--concordia-paper-deep);
+  border-radius: 0;
+  color: var(--concordia-paper-ink);
+  background:
+    repeating-linear-gradient(0deg, rgba(72, 53, 28, 0.075) 0 1px, transparent 1px 24px),
+    linear-gradient(100deg, #aa986f 0, var(--concordia-paper) 6%, #d4c69f 50%, #b5a276 94%, #8e7952 100%);
+  box-shadow:
+    inset 0 0 28px rgba(70, 47, 20, 0.32),
+    inset 0 1px 0 rgba(255, 248, 214, 0.28);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="biography"] .ecs-ledger-group__header {
+  color: #f0dfb3;
+  border-bottom: 1px solid #665034;
+  background: linear-gradient(90deg, #32271b, #514027 58%, #2b2218);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="biography"] .ecs-ledger-group__header :is(h2, i) {
+  color: #f0dfb3;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="biography"] .ecs-icon-control {
+  color: #f0dfb3;
+  border-color: #8e7650;
+  background: rgba(31, 24, 16, 0.5);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) [data-panel-kind="biography"] .ecs-icon-control:is(:hover, :focus-visible):not(:disabled) {
+  color: #fff5d8;
+  border-color: #d9bd7c;
+  background: #473721;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid {
+  gap: 0;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid article {
+  min-width: 0;
+  padding: 14px 18px;
+  border: 0;
+  border-left: 0;
+  border-bottom: 1px solid rgba(75, 56, 32, 0.28);
+  border-radius: 0;
+  color: var(--concordia-paper-ink);
+  background: transparent;
+  box-shadow: none;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid article:nth-child(even) {
+  border-left: 1px solid rgba(75, 56, 32, 0.32);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid h3 {
+  color: #4d351d;
+  border-bottom: 1px solid rgba(75, 56, 32, 0.34);
+  font-weight: 900;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid article > div {
+  color: var(--concordia-paper-ink);
+  overflow-wrap: anywhere;
+  scrollbar-color: #806b45 transparent;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-biography-grid article > div :is(a, button) {
+  color: #623b20;
+}
+
+/* Shared motion preference: full eases; reduced and off remain immediate. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="reduced"], .ecs-motion-reduced) #ecs-panel-overview :is(
+  .ecs-skill-row,
+  .ecs-defense,
+  .ecs-activity-columns button,
+  .ecs-activity-list button,
+  .ecs-icon-control
+) {
+  transition-duration: 0.01ms;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="off"], .ecs-motion-off) #ecs-panel-overview :is(
+  .ecs-skill-row,
+  .ecs-defense,
+  .ecs-activity-columns button,
+  .ecs-activity-list button,
+  .ecs-icon-control
+) {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 650px) {
+  :where(
+    .ecs-sheet--concordia,
+    .concordia-sheet,
+    [data-shell="concordia"],
+    [data-shell-id="concordia"]
+  ) .ecs-biography-grid article:nth-child(even) {
+    border-left: 0;
+  }
+}

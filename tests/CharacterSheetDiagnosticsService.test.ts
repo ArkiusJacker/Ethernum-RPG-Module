@@ -127,11 +127,18 @@ describe("CharacterSheetDiagnosticsService", () => {
         dirtyPaths: ["inventory"],
         renderTimeMs: 11,
       },
+      animationMode: "reduced",
     });
 
     expect(snapshot).toMatchObject({
       status: "failed",
-      sheet: { shell: "concordia", configuredMode: "auto", activeCore: "concordia" },
+      sheet: {
+        shell: "concordia",
+        configuredMode: "auto",
+        activeCore: "concordia",
+        theme: "Mechanical Grimoire",
+        animationMode: "reduced",
+      },
       versions: { ethernum: "3.7.3" },
     });
     expect(snapshot?.modules.find(module => module.id === "inventory")?.status).toBe("failed");

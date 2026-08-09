@@ -1,18 +1,21 @@
-/* Top navigation becomes a plated rail rather than a corporate tab strip. */
+/* Metal page markers fixed to the leather spine of the field grimoire. */
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation {
-  gap: 3px;
-  align-items: stretch;
+  gap: 4px;
+  align-items: end;
   min-height: var(--ecs-nav-height);
-  padding: 4px 8px 3px;
-  border-top: 1px solid #080a0b;
-  border-bottom: 2px solid var(--concordia-iron);
-  background-color: #101416;
-  background-image: repeating-linear-gradient(90deg, rgba(184, 131, 63, 0.1) 0 1px, transparent 1px 72px);
+  padding: 5px 9px 3px;
+  border-top: 1px solid #0b0908;
+  border-bottom: 2px solid var(--con-copper);
+  background-color: var(--con-leather-deep);
+  background-image:
+    linear-gradient(90deg, rgba(154, 95, 58, 0.24), transparent 26%, transparent 76%, rgba(130, 100, 199, 0.06)),
+    repeating-linear-gradient(90deg, rgba(183, 146, 79, 0.08) 0 1px, transparent 1px 76px);
+  box-shadow: inset 0 -3px 0 #0b0c0d;
 }
 
 :where(
@@ -22,14 +25,22 @@
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab {
   min-width: 108px;
-  height: 41px;
+  height: 42px;
   padding: 0 14px;
-  border: 1px solid #343a3c;
-  border-bottom-color: #626868;
-  border-radius: 0;
-  color: #aeb4b4;
-  background: #1b2022;
-  box-shadow: inset 0 -2px 0 #0d1011;
+  border: 1px solid #4f575a;
+  border-bottom-color: #767d7e;
+  border-radius: 5px 2px 0 0;
+  color: #bbb8ae;
+  background:
+    radial-gradient(circle at 8px 8px, #171819 0 2px, #7b8181 2.5px 3px, transparent 3.5px),
+    linear-gradient(165deg, #303435, #1a1d1e 68%);
+  box-shadow: inset 0 -2px 0 #0d1011, 2px 0 0 rgba(0, 0, 0, 0.24);
+  transition:
+    border-color var(--con-speed-fast) ease,
+    color var(--con-speed-fast) ease,
+    background-color var(--con-speed-fast) ease,
+    box-shadow var(--con-speed-fast) ease,
+    transform var(--con-speed-fast) var(--con-ease);
 }
 
 :where(
@@ -38,12 +49,13 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab::before {
-  width: 4px;
-  height: 4px;
-  flex: 0 0 4px;
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border: 1px solid #1a1b1b;
   border-radius: 50%;
-  background: #7b8080;
-  box-shadow: 0 0 0 1px #090b0c;
+  background: var(--con-steel);
+  box-shadow: 0 0 0 1px #777c7d;
   content: "";
 }
 
@@ -53,11 +65,18 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab::after {
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 3px;
+  right: 9px;
+  bottom: 2px;
+  left: 9px;
+  height: 2px;
+  border-radius: 50%;
   background: transparent;
+  opacity: 0;
+  transform: scaleX(0) rotate(-0.4deg);
+  transform-origin: left;
+  transition:
+    opacity var(--con-speed-fast) ease,
+    transform var(--con-speed-normal) var(--con-ease);
 }
 
 :where(
@@ -65,10 +84,32 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-navigation__tab:hover:not(:disabled) {
-  border-color: #687071;
-  color: #e4e5df;
-  background: #262c2e;
+) .ecs-navigation__tab:is(:hover, :focus-visible):not(:disabled) {
+  border-color: var(--con-brass);
+  color: var(--con-text);
+  background-color: #36322d;
+  box-shadow: inset 0 -2px 0 #17120e, 0 -4px 10px rgba(183, 146, 79, 0.1);
+  transform: translateY(-2px);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-navigation__tab:is(:hover, :focus-visible):not(:disabled)::after {
+  background: var(--con-brass);
+  opacity: 0.75;
+  transform: scaleX(1) rotate(-0.4deg);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-navigation__tab:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
 }
 
 :where(
@@ -77,10 +118,17 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab.is-active {
-  border-color: var(--concordia-brass);
-  color: #f0dfb9;
-  background: #302920;
-  box-shadow: inset 0 0 0 1px #17130e;
+  border-color: var(--con-aether);
+  border-bottom-color: #192124;
+  color: #eafcff;
+  background:
+    linear-gradient(180deg, rgba(73, 191, 208, 0.13), transparent 46%),
+    linear-gradient(165deg, #283538, #171c1e 72%);
+  box-shadow:
+    inset 0 0 0 1px rgba(73, 191, 208, 0.12),
+    0 -3px 10px rgba(73, 191, 208, 0.16),
+    3px 0 0 rgba(130, 100, 199, 0.34);
+  transform: translateY(-1px);
 }
 
 :where(
@@ -88,14 +136,21 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-navigation__tab.is-active::before,
+) .ecs-navigation__tab.is-active::before {
+  border-color: #17373b;
+  background: var(--con-aether);
+  box-shadow: 0 0 7px rgba(73, 191, 208, 0.7);
+}
+
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab.is-active::after {
-  background: var(--concordia-copper);
+  background: linear-gradient(90deg, var(--con-aether), var(--con-arcane));
+  opacity: 1;
+  transform: scaleX(1) rotate(-0.4deg);
 }
 
 :where(
@@ -110,7 +165,7 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab[data-sheet-tab="inventory"] i {
-  color: #cc835d;
+  color: #cb845c;
 }
 
 :where(
@@ -118,8 +173,14 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-navigation__tab[data-sheet-tab="spellcasting"] i {
-  color: #82b5d0;
+) .ecs-navigation__tab[data-sheet-tab="spellcasting"] i,
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-navigation__tab[data-sheet-tab="effects"] i {
+  color: var(--con-arcane);
 }
 
 :where(
@@ -128,9 +189,11 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab[data-sheet-tab="unique"] {
-  border-color: #7d4050;
-  color: #e4b8c4;
-  background: #321c24;
+  border-color: #65517f;
+  color: #d8caef;
+  background:
+    linear-gradient(180deg, rgba(130, 100, 199, 0.12), transparent 55%),
+    linear-gradient(165deg, #302a38, #1b1920 72%);
 }
 
 :where(
@@ -139,22 +202,26 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-navigation__tab[data-sheet-tab="unique"].is-active {
-  border-color: #bd6d7f;
-  color: #ffe9ed;
-  background: var(--concordia-wine);
+  border-color: #9b80d4;
+  color: #f2eaff;
+  box-shadow:
+    inset 0 0 0 1px rgba(130, 100, 199, 0.2),
+    0 -3px 11px rgba(130, 100, 199, 0.2),
+    3px 0 0 rgba(73, 191, 208, 0.4);
 }
 
-/* Workspace and section rhythm. */
+/* Content remains mounted to a stable dark base, with parchment used as a reading material. */
 :where(
   .ecs-sheet--concordia,
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-workspace {
-  background-color: var(--concordia-coal);
+  background-color: var(--con-bg);
   background-image:
-    linear-gradient(90deg, rgba(24, 54, 77, 0.12), transparent 34%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 32px);
+    radial-gradient(circle at 78% 20%, rgba(130, 100, 199, 0.05), transparent 24%),
+    linear-gradient(90deg, rgba(154, 95, 58, 0.1), transparent 28%),
+    repeating-linear-gradient(1deg, rgba(214, 195, 155, 0.013) 0 1px, transparent 1px 31px);
 }
 
 :where(
@@ -163,6 +230,8 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-tab-panel {
+  position: relative;
+  z-index: 1;
   padding: 22px 28px 30px;
 }
 
@@ -173,13 +242,18 @@
   [data-shell-id="concordia"]
 ) .ecs-panel-heading {
   align-items: center;
-  min-height: 62px;
+  min-height: 60px;
   margin-bottom: 22px;
-  padding: 8px 12px 10px 16px;
-  border: 0;
-  border-left: 5px solid var(--concordia-copper);
-  border-bottom: 3px double #62696a;
-  background: linear-gradient(90deg, rgba(24, 54, 77, 0.65), rgba(25, 29, 32, 0.18) 70%);
+  padding: 8px 14px 10px 17px;
+  border: 1px solid #695638;
+  border-left: 5px solid var(--con-copper);
+  border-radius: 2px 8px 2px 5px;
+  color: var(--con-ink);
+  background-color: var(--con-parchment-light);
+  background-image:
+    linear-gradient(95deg, rgba(154, 95, 58, 0.18), transparent 24% 82%, rgba(39, 34, 28, 0.12)),
+    repeating-linear-gradient(0deg, rgba(39, 34, 28, 0.03) 0 1px, transparent 1px 7px);
+  box-shadow: inset 0 0 14px rgba(62, 40, 24, 0.16), 4px 5px 0 rgba(0, 0, 0, 0.2);
 }
 
 :where(
@@ -193,13 +267,7 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-section__header h2,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-section__header h3 {
+) .ecs-section__header :is(h2, h3) {
   font-family: "Palatino Linotype", "Book Antiqua", serif;
 }
 
@@ -209,8 +277,9 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-panel-heading h2 {
-  color: #f0eadf;
-  font-size: 25px;
+  color: var(--con-ink);
+  font-size: 24px;
+  text-shadow: 0 1px rgba(255, 255, 255, 0.22);
 }
 
 :where(
@@ -219,7 +288,7 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-eyebrow {
-  color: #d8ad74;
+  color: #71462e;
 }
 
 :where(
@@ -230,8 +299,17 @@
 ) .ecs-section {
   position: relative;
   margin-bottom: 26px;
-  padding-left: 12px;
-  border-left: 1px solid #363d3e;
+  padding-left: 13px;
+  border-left: 1px solid #514537;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-section:nth-of-type(even) {
+  border-left-color: rgba(73, 191, 208, 0.34);
 }
 
 :where(
@@ -240,11 +318,16 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-section__header {
-  min-height: 38px;
-  margin-left: -12px;
-  padding: 5px 9px 6px 12px;
-  border-bottom: 2px solid #4f5657;
-  background: linear-gradient(90deg, #202527, transparent 82%);
+  min-height: 39px;
+  margin-left: -13px;
+  padding: 6px 10px 7px 13px;
+  border: 1px solid #514c44;
+  border-left: 3px solid var(--con-brass);
+  border-radius: 2px 6px 2px 3px;
+  background:
+    linear-gradient(90deg, rgba(154, 95, 58, 0.16), transparent 68%),
+    #242424;
+  box-shadow: inset 0 -1px 0 #111;
 }
 
 :where(
@@ -253,10 +336,12 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-section__header::before {
-  width: 5px;
-  height: 18px;
-  flex: 0 0 5px;
-  background: var(--concordia-brass);
+  width: 6px;
+  height: 17px;
+  flex: 0 0 6px;
+  border-radius: 50% 2px;
+  background: linear-gradient(var(--con-brass-light), var(--con-copper));
+  box-shadow: 0 0 0 1px #171717;
   content: "";
 }
 
@@ -265,14 +350,8 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-section__header h2,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-section__header h3 {
-  color: #e5e1d8;
+) .ecs-section__header :is(h2, h3) {
+  color: var(--con-text);
   font-size: 14px;
 }
 
@@ -281,16 +360,12 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) .ecs-section__count,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) .ecs-navigation__badge {
-  border-radius: 2px;
-  color: #17120b;
-  background: var(--concordia-brass);
+) :is(.ecs-section__count, .ecs-navigation__badge) {
+  border: 1px solid #594224;
+  border-radius: 50% 3px 50% 3px;
+  color: var(--con-ink);
+  background: var(--con-brass);
+  box-shadow: inset 0 0 0 1px rgba(255, 236, 189, 0.18);
 }
 
 :where(
@@ -298,20 +373,8 @@
   .concordia-sheet,
   [data-shell="concordia"],
   [data-shell-id="concordia"]
-) button,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) input,
-:where(
-  .ecs-sheet--concordia,
-  .concordia-sheet,
-  [data-shell="concordia"],
-  [data-shell-id="concordia"]
-) select {
-  border-radius: 2px;
+) :is(button, input, select) {
+  border-radius: 3px;
 }
 
 :where(
@@ -320,10 +383,10 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-primary-action {
-  border-color: #d0a35c;
-  color: #17120b;
-  background: #b8833f;
-  box-shadow: inset 0 -2px 0 #6c4524;
+  border-color: var(--con-brass-light);
+  color: var(--con-ink);
+  background: linear-gradient(180deg, #d0ad66, var(--con-brass));
+  box-shadow: inset 0 -2px 0 #6c4524, 2px 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 :where(
@@ -332,8 +395,63 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-primary-action:hover:not(:disabled) {
-  border-color: #efca83;
+  border-color: #f1d28b;
   color: #110e09;
-  background: #d0a35c;
+  background: linear-gradient(180deg, #e0c17c, #c79d51);
 }
 
+/* Rollable rows are visibly interactive before hover and keep keyboard focus explicit. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-rollable {
+  position: relative;
+  transition:
+    color var(--con-speed-fast) ease,
+    border-color var(--con-speed-fast) ease,
+    box-shadow var(--con-speed-fast) ease,
+    transform var(--con-speed-fast) var(--con-ease);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-rollable:is(:hover, :focus-visible) {
+  border-color: var(--con-aether);
+  color: var(--con-text);
+  box-shadow: 0 0 9px rgba(73, 191, 208, 0.16);
+  transform: translateX(2px);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-rollable:active {
+  transform: translateX(2px) scale(0.985);
+}
+
+@keyframes concordia-panel-settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+:is(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="full"], .ecs-motion-full) .ecs-tab-panel.is-active,
+html[data-ethernum-sheet-motion="full"] :where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-tab-panel.is-active {
+  animation: concordia-panel-settle 320ms var(--con-ease) both;
+}

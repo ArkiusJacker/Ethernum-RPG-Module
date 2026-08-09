@@ -1,3 +1,17 @@
+/* Mundane arsenal: a wall rack above a dense quartermaster ledger. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) #ecs-panel-inventory .ecs-inventory-summary {
+  padding: 8px 12px;
+  border: 1px solid #575f60;
+  border-left: 4px solid var(--concordia-copper);
+  border-radius: 0;
+  background: linear-gradient(135deg, #242a2c, #15191b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
 
 :where(
   .ecs-sheet--concordia,
@@ -6,9 +20,44 @@
   [data-shell-id="concordia"]
 ) .ecs-toolbar {
   padding: 10px 12px;
-  border: 1px solid #404748;
+  border: 1px solid #4f5758;
   border-left: 4px solid var(--concordia-brass);
-  background: #181d1f;
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.016) 0 1px, transparent 1px 38px),
+    #181d1f;
+  box-shadow: inset 0 -2px 0 #0b0d0e;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-toolbar :is(input, button) {
+  border-radius: 0;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-toolbar :is(input, button):focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: 2px;
+  border-color: var(--ecs-focus);
+  box-shadow: inset 3px 0 0 var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-groups {
+  gap: 14px;
 }
 
 :where(
@@ -17,9 +66,17 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-inventory-group {
-  border: 1px solid #3d4445;
-  border-top-color: #697071;
-  background: rgba(22, 26, 28, 0.86);
+  overflow: hidden;
+  border: 1px solid #4f5657;
+  border-top-color: #7a8283;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(166, 95, 63, 0.045), transparent 36%),
+    rgba(18, 22, 24, 0.92);
+  box-shadow:
+    inset 5px 0 0 #202628,
+    inset -5px 0 0 #202628,
+    inset 0 -2px 0 #090b0c;
 }
 
 :where(
@@ -29,8 +86,51 @@
   [data-shell-id="concordia"]
 ) .ecs-group-heading {
   padding: 0 10px;
-  border-bottom-color: #66503f;
-  background: linear-gradient(90deg, #30241e, #1c2224 64%);
+  border-bottom-color: #795f43;
+  background:
+    repeating-linear-gradient(90deg, rgba(221, 187, 124, 0.055) 0 1px, transparent 1px 34px),
+    linear-gradient(90deg, #36281f, #22292b 64%);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-group-heading > button {
+  color: #eadfc8;
+  transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-group-heading > button:is(:hover, :focus-visible):not(:disabled) {
+  color: #fff4d7;
+  background: rgba(184, 131, 63, 0.12);
+  box-shadow: inset 3px 0 0 var(--concordia-brass);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-group-heading > button:focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: -2px;
+}
+
+/* Item entries are ledger rows within the rack, never nested cards. */
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-item-list {
+  gap: 0;
 }
 
 :where(
@@ -39,8 +139,14 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-inventory-item {
-  border-bottom-color: #353c3d;
-  background: rgba(17, 21, 23, 0.62);
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid #394142;
+  border-left: 4px solid transparent;
+  border-radius: 0;
+  background: rgba(17, 21, 23, 0.7);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.42);
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
 :where(
@@ -49,5 +155,125 @@
   [data-shell="concordia"],
   [data-shell-id="concordia"]
 ) .ecs-inventory-item:nth-child(even) {
-  background: rgba(24, 54, 77, 0.16);
+  background: rgba(24, 54, 77, 0.18);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item:last-child {
+  border-bottom-color: transparent;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item:is(:hover, :focus-within) {
+  border-left-color: var(--ecs-focus);
+  background: rgba(32, 59, 72, 0.42);
+  box-shadow: inset 3px 0 0 var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item > * {
+  min-width: 0;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-inventory-item__name h3 {
+  overflow-wrap: anywhere;
+  color: #eee5d3;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-carry-control {
+  min-width: 0;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-carry-control select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-color: #555e60;
+  border-radius: 0;
+  color: var(--ecs-text);
+  background-color: #151a1c;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) :is(.ecs-carry-control select, .ecs-quantity button, .ecs-item-controls button, .ecs-item-image):focus-visible {
+  outline: 2px solid var(--ecs-focus);
+  outline-offset: 2px;
+  border-color: var(--ecs-focus);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+) .ecs-item-controls button.is-active {
+  color: #f2cf79;
+  border-color: var(--concordia-brass);
+  background: rgba(184, 131, 63, 0.18);
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="reduced"], .ecs-motion-reduced) #ecs-panel-inventory :is(
+  .ecs-toolbar input,
+  .ecs-toolbar button,
+  .ecs-group-heading button,
+  .ecs-inventory-item,
+  .ecs-carry-control select,
+  .ecs-quantity button,
+  .ecs-item-controls button
+) {
+  transition-duration: 0.01ms;
+}
+
+:where(
+  .ecs-sheet--concordia,
+  .concordia-sheet,
+  [data-shell="concordia"],
+  [data-shell-id="concordia"]
+):is([data-motion="off"], .ecs-motion-off) #ecs-panel-inventory :is(
+  .ecs-toolbar input,
+  .ecs-toolbar button,
+  .ecs-group-heading button,
+  .ecs-inventory-item,
+  .ecs-carry-control select,
+  .ecs-quantity button,
+  .ecs-item-controls button
+) {
+  transition: none !important;
+  animation: none !important;
 }

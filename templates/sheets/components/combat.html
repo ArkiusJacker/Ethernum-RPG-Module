@@ -24,7 +24,7 @@
   </div>
 
   {{#if combatMomentum.enabled}}
-  <section class="ecs-combat-momentum ecs-panel" data-ui-role="panel" data-panel-kind="combat-resources" aria-label="Momentum Fides e Fulgor Negro">
+  <section class="ecs-combat-momentum ecs-panel" data-ui-role="panel" data-panel-kind="combat-resources" data-material="instrument" aria-label="Momentum Fides e Fulgor Negro">
     <div class="ecs-combat-momentum__heading">
       <i class="fas fa-bolt-lightning" aria-hidden="true"></i>
       <div><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Rhythm'}}</span><strong>{{combatMomentum.statusLabel}}</strong></div>
@@ -47,7 +47,7 @@
   </section>
   {{/if}}
 
-  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="strikes" aria-labelledby="ecs-strikes-title">
+  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="strikes" data-material="metal" aria-labelledby="ecs-strikes-title">
     <header class="ecs-section__header">
       <h3 id="ecs-strikes-title"><i class="fas fa-swords" aria-hidden="true"></i>Strikes</h3>
       <span class="ecs-section__count">{{strikes.length}}</span>
@@ -82,7 +82,7 @@
     </div>
   </section>
 
-  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="actions" aria-labelledby="ecs-actions-title">
+  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="actions" data-material="leather" aria-labelledby="ecs-actions-title">
     <header class="ecs-section__header">
       <h3 id="ecs-actions-title"><i class="fas fa-circle-play" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Combat.Actions'}}</h3>
       <div class="ecs-filter-group" role="group" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.Filter'}}">

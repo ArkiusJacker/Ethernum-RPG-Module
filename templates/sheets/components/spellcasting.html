@@ -35,7 +35,7 @@
 
   <div class="ecs-spellcasting-list">
     {{#each spellcasting.entries}}
-    <section class="ecs-spell-entry ecs-panel" data-ui-role="panel" data-panel-kind="spell-entry" data-entry-id="{{this.id}}" aria-labelledby="ecs-spell-entry-{{this.id}}">
+    <section class="ecs-spell-entry ecs-panel" data-ui-role="panel" data-panel-kind="spell-entry" data-entry-id="{{this.id}}" data-entry-category="{{this.category}}" data-material="glass" aria-labelledby="ecs-spell-entry-{{this.id}}">
       <header class="ecs-spell-entry__header">
         <button type="button" class="ecs-spell-entry__toggle" data-action="toggle-spell-entry" data-entry-id="{{this.id}}" aria-expanded="{{#if this.collapsed}}false{{else}}true{{/if}}" aria-controls="ecs-spell-entry-body-{{this.id}}">
           <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -54,7 +54,7 @@
 
       <div id="ecs-spell-entry-body-{{this.id}}" class="ecs-spell-entry__body" {{#if this.collapsed}}hidden{{/if}}>
         {{#each this.groups}}
-        <section class="ecs-spell-rank" data-ui-role="spell-rank" data-rank="{{this.rank}}" aria-labelledby="ecs-spell-rank-{{../id}}-{{this.rank}}">
+        <section class="ecs-spell-rank" data-ui-role="spell-rank" data-rank="{{this.rank}}" data-material="arcane" aria-labelledby="ecs-spell-rank-{{../id}}-{{this.rank}}">
           <header class="ecs-spell-rank__header">
             <h3 id="ecs-spell-rank-{{../id}}-{{this.rank}}">{{this.label}}</h3>
             {{#if this.slots}}<span class="ecs-resource" data-ui-role="resource" data-resource-kind="spell-slots">{{this.slots.value}} / {{this.slots.max}}</span>{{/if}}
