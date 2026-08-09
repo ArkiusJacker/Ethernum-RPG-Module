@@ -6,10 +6,11 @@
 
 Sistema de RPG com múltiplas funções e compatibilidade declarada para Foundry VTT 11-14, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo adiciona o Sistema de Éter (S.E), uma calculadora de dados com sistema de talentos e ranks, e um sistema de runas personalizável com 5 classes de poder.
 
-## Versão 3.7.0
+## Versão 3.7.0.1
 
-- Character Sheet Framework com shells próprios Ethernum Company e Concórdia sobre dados e rolagens preparados do PF2e.
-- Seleção automática pelo core da campanha, override por ator e botão para abrir a ficha PF2e original sem alterar a escolha permanente.
+- Hotfix do Character Sheet Framework com shells próprios Ethernum Company e Concórdia sobre dados e rolagens preparados do PF2e.
+- Seletor de ficha acessível dentro da folha Ethernum e da folha PF2e original, respeitando a permissão de owners definida pelo mundo.
+- Abas e navegação responsiva corrigidas, com rastreador e Central do Mestre permanecendo abaixo das janelas do Foundry.
 - Abas funcionais de personagem, combate, inventário, talentos, magia, efeitos, Éter, FE, Runas e Mecânica Única.
 - Momentum Fides e Fulgor Negro integrados como resumos acionáveis, mantendo o rastreador global independente.
 - Adapter PF2e 2.0, cache curto, módulos com falha isolada, diagnóstico GM e UI local por mundo/usuário/ator.

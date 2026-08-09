@@ -78,6 +78,9 @@
   </section>
 
   <div class="ecs-header-actions" role="toolbar" aria-label="Ações da ficha">
+    {{#if permissions.canConfigureSheet}}
+    <button type="button" data-action="change-sheet-class" aria-label="{{localize 'ETHERNUM.CharacterSheet.Switch.Button'}}" title="{{localize 'ETHERNUM.CharacterSheet.Switch.Button'}}"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
+    {{/if}}
     <button type="button" data-action="open-pf2e-sheet" aria-label="Abrir ficha original do PF2e" title="Ficha original do PF2e"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
     <button type="button" data-action="toggle-compact" aria-label="Alternar modo compacto" title="Modo compacto"><i class="fas fa-compress" aria-hidden="true"></i></button>
     {{#if permissions.canConfigureSheet}}

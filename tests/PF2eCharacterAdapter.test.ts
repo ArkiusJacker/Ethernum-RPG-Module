@@ -232,17 +232,37 @@ describe("PF2eCharacterAdapter", () => {
     expect(PF2eCharacterAdapter.movement(actor as never)).toEqual({
       land: 35,
       fly: 40,
-      swim: 25,
+      swim: 20,
       climb: 15,
       burrow: 10,
       speeds: [
         { type: "land", label: "Land", value: 35 },
         { type: "fly", label: "Fly", value: 40 },
-        { type: "swim", label: "Swim", value: 25 },
+        { type: "swim", label: "Swim", value: 20 },
         { type: "climb", label: "Climb", value: 15 },
         { type: "burrow", label: "Burrow", value: 10 },
       ],
     });
+  });
+
+  it("does not read the deprecated PF2e speed path when modern movement data exists", () => {
+    const attributes = { ac: { value: 20 } } as Record<string, unknown>;
+    Object.defineProperty(attributes, "speed", {
+      get: () => {
+        throw new Error("deprecated system.attributes.speed was read");
+      },
+    });
+    const movement = PF2eCharacterAdapter.movement({
+      movement: {
+        speeds: [
+          { type: "land", value: 30 },
+          { type: "fly", value: 15 },
+        ],
+      },
+      system: { attributes },
+    } as never);
+
+    expect(movement).toMatchObject({ land: 30, fly: 15 });
   });
 
   it("unites actor items, typed conditions, and effects without duplicates", () => {

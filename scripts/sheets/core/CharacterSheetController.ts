@@ -206,7 +206,15 @@ export const CharacterSheetController = {
     return stateFor(actor, sheetId ?? this.resolve(actor).resolvedSheet);
   },
 
-  async setMode(actor: Actor, modeValue: unknown): Promise<CharacterSheetMode> {
+  permissions(actor: Actor): CharacterSheetPermissions {
+    return permissionsFor(actor);
+  },
+
+  async setMode(
+    actor: Actor,
+    modeValue: unknown,
+    options: { sheetClassId?: string } = {},
+  ): Promise<CharacterSheetMode> {
     const mode = normalizeCharacterSheetMode(modeValue);
     if (!permissionsFor(actor).canChooseSheet) {
       const message = game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.Permission")
@@ -214,7 +222,11 @@ export const CharacterSheetController = {
       ui.notifications?.warn(message);
       throw new Error(message);
     }
-    await actor.setFlag(ETHERNUM.MODULE_NAME, "characterSheetMode", mode);
+    const update: Record<string, unknown> = {
+      [`flags.${ETHERNUM.MODULE_NAME}.characterSheetMode`]: mode,
+    };
+    if (options.sheetClassId) update["flags.core.sheetClass"] = options.sheetClassId;
+    await actor.update(update);
     CharacterSheetCache.invalidate(actorId(actor), "all");
     return mode;
   },

@@ -5716,7 +5716,7 @@
   position: fixed;
   right: 320px;
   bottom: 16px;
-  z-index: 10001;
+  z-index: calc(var(--z-index-ui, 60) + 1);
   width: min(390px, calc(100vw - 32px));
   overflow: hidden;
   color: var(--tracker-text);

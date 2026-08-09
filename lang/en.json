@@ -38,6 +38,12 @@
         "Save": "Save",
         "ResetLayout": "Reset local layout"
       },
+      "Switch": {
+        "Title": "Change character sheet",
+        "Button": "Change sheet",
+        "Apply": "Change sheet",
+        "Success": "Character sheet changed."
+      },
       "Ether": { "ChooseAttribute": "Choose the Ether Attribute" },
       "Errors": {
         "Permission": "You do not have permission to perform this action.",
@@ -45,6 +51,7 @@
         "StrikeUnavailable": "The PF2e prepared Strike is unavailable.",
         "ActionUnavailable": "The PF2e prepared action is unavailable.",
         "PF2eUnavailable": "The original PF2e sheet could not be found.",
+        "SheetClassUnavailable": "The selected sheet is not registered in Foundry.",
         "Render": "The Ethernum sheet encountered an error. Use the original PF2e sheet to access this character."
       }
     },

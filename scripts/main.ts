@@ -31,6 +31,7 @@ import {
   registerEthernumCharacterSheet,
 } from './sheets/core/CharacterSheetLifecycle.js';
 import { CharacterSheetController } from './sheets/core/CharacterSheetController.js';
+import { injectPF2eSheetSwitcher } from './sheets/core/CharacterSheetSwitcher.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -530,7 +531,10 @@ function renderEthernumTabs(app: Application & { actor?: Actor }, html: JQuery<H
   });
 }
 
-Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => renderEthernumTabs(app, html));
+Hooks.on("renderCharacterSheetPF2e", (app: Application & { actor?: Actor }, html: JQuery<HTMLElement>) => {
+  renderEthernumTabs(app, html);
+  injectPF2eSheetSwitcher(app, html);
+});
 Hooks.on("renderApplicationV2", (app: Application & { actor?: Actor }, element: HTMLElement) => renderEthernumTabs(app, element));
 Hooks.on("createActor", (actor: Actor) => {
   if (!AutomationAuthority.isPrimaryGM()) return;
@@ -594,12 +598,15 @@ Hooks.on("pf2e.restForTheNight", (actor: Actor) => {
   }
 });
 
+Hooks.once("setup", () => {
+  registerEthernumCharacterSheet(BaseEthernumCharacterSheet);
+});
+
 Hooks.once("init", () => {
   console.log(`Ethernum RPG Module | Inicializando Sistema de Éter v${game.modules?.get(ETHERNUM.MODULE_NAME)?.version ?? "?"}`);
 
   registerHandlebarsHelpers();
   registerSettings();
-  registerEthernumCharacterSheet(BaseEthernumCharacterSheet);
   initializeCharacterSheetLifecycle();
   const pippingDefinitionErrors = validatePippingActionDefinitions();
   if (pippingDefinitionErrors.length > 0) {

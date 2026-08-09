@@ -4,9 +4,9 @@
     <button type="button"
             id="ecs-tab-{{this.id}}"
             class="ecs-navigation__tab {{#if this.active}}is-active{{/if}}"
-            data-action="change-tab"
-            data-tab="{{this.id}}"
+            data-sheet-tab="{{this.id}}"
             role="tab"
+            tabindex="{{#if this.active}}0{{else}}-1{{/if}}"
             aria-controls="ecs-panel-{{this.id}}"
             aria-selected="{{#if this.active}}true{{else}}false{{/if}}"
             {{#if this.disabled}}disabled aria-disabled="true"{{/if}}>

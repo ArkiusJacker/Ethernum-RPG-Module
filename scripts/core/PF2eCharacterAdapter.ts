@@ -646,9 +646,36 @@ function normalizeMovementType(value: unknown): CharacterMovementType | undefine
 
 export function readCharacterMovement(actorValue: Actor | unknown): CharacterMovementSnapshot {
   const actor = record(actorValue);
-  const systemSpeed = record(record(record(actor.system).attributes).speed);
+  const system = record(actor.system);
+  const systemMovement = record(system.movement);
   const preparedSpeed = record(actor.speed);
   const preparedMovement = record(actor.movement);
+  const hasModernMovement = Object.keys(systemMovement).length > 0 || Object.keys(preparedMovement).length > 0;
+  const systemSpeed = hasModernMovement ? {} : record(record(system.attributes).speed);
+  const movementEntries = (value: unknown): Array<[string, unknown]> => {
+    if (Array.isArray(value)) {
+      return value.map((entry, index) => {
+        const data = record(entry);
+        return [text(data.type, text(data.slug, String(index))), entry];
+      });
+    }
+    if (value instanceof Map) return Array.from(value.entries()).map(([type, entry]) => [String(type), entry]);
+    if (value instanceof Set) {
+      return Array.from(value).map((entry, index) => {
+        const data = record(entry);
+        return [text(data.type, text(data.slug, String(index))), entry];
+      });
+    }
+    return Object.entries(record(value));
+  };
+  const modernSpeeds = [
+    ...movementEntries(preparedMovement.speeds),
+    ...movementEntries(systemMovement.speeds),
+  ];
+  const modernLand = modernSpeeds.find(([type, speed]) =>
+    normalizeMovementType(record(speed).type ?? record(speed).slug ?? type) === "land",
+  )?.[1];
+  const modernLandData = record(modernLand);
   const byType = new Map<CharacterMovementType, CharacterMovementSpeedSnapshot>();
   const add = (typeValue: unknown, valueCandidates: unknown[], labelValue?: unknown) => {
     const type = normalizeMovementType(typeValue);
@@ -658,17 +685,46 @@ export function readCharacterMovement(actorValue: Actor | unknown): CharacterMov
     byType.set(type, { type, label: text(labelValue, type[0].toUpperCase() + type.slice(1)), value });
   };
 
-  add("land", [preparedSpeed.total, preparedSpeed.value, preparedMovement.land, systemSpeed.total, systemSpeed.value], "Land");
+  const preparedLand = record(preparedMovement.land);
+  const storedLand = record(systemMovement.land);
+  add("land", [
+    preparedSpeed.total,
+    preparedSpeed.value,
+    preparedLand.total,
+    preparedLand.value,
+    preparedMovement.land,
+    storedLand.total,
+    storedLand.value,
+    systemMovement.land,
+    modernLandData.total,
+    modernLandData.value,
+    modernLandData.speed,
+    modernLand,
+    systemSpeed.total,
+    systemSpeed.value,
+  ], "Land");
   for (const speed of [
     ...collectionValues(preparedSpeed.otherSpeeds),
     ...collectionValues(systemSpeed.otherSpeeds),
-    ...collectionValues(preparedMovement.speeds),
+    ...modernSpeeds.map(([type, value]) => ({ type, value })),
   ]) {
     const data = record(speed);
-    add(data.type ?? data.slug, [data.total, data.value, data.speed], data.label);
+    const nested = record(data.value);
+    add(
+      nested.type ?? nested.slug ?? data.type ?? data.slug,
+      [nested.total, nested.value, nested.speed, data.total, data.value, data.speed],
+      nested.label ?? data.label,
+    );
   }
   for (const type of MOVEMENT_TYPES.slice(1)) {
-    add(type, [record(preparedMovement[type]).total, record(preparedMovement[type]).value, preparedMovement[type]]);
+    add(type, [
+      record(preparedMovement[type]).total,
+      record(preparedMovement[type]).value,
+      preparedMovement[type],
+      record(systemMovement[type]).total,
+      record(systemMovement[type]).value,
+      systemMovement[type],
+    ]);
   }
 
   const speeds = MOVEMENT_TYPES.flatMap(type => byType.has(type) ? [byType.get(type)!] : []);

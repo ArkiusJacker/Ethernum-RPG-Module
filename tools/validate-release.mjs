@@ -169,7 +169,7 @@ function validate() {
 
   const manifest = readJson(manifestPath);
   if (manifest.id !== MODULE_ID) throw new Error(`Expected manifest id "${MODULE_ID}", found "${manifest.id ?? ""}"`);
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(manifest.version ?? ""))) {
+  if (!/^\d+\.\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?$/.test(String(manifest.version ?? ""))) {
     throw new Error(`Invalid manifest version: ${manifest.version ?? ""}`);
   }
   if (options.expectedVersion && manifest.version !== options.expectedVersion) {

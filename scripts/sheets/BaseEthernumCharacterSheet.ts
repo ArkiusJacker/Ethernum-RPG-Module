@@ -6,6 +6,7 @@ import { EtherTabManager } from "../ui/EtherTabManager.js";
 import { UniqueMechanicActionService } from "../unique/services/UniqueMechanicActionService.js";
 import { CharacterSheetController } from "./core/CharacterSheetController.js";
 import { openOriginalPF2eCharacterSheet } from "./core/CharacterSheetLifecycle.js";
+import { openCharacterSheetSwitcher } from "./core/CharacterSheetSwitcher.js";
 import { PF2eCharacterActions } from "./core/PF2eCharacterActions.js";
 
 function numeric(value: unknown, fallback = 0): number {
@@ -17,7 +18,32 @@ function data(element: HTMLElement, key: string): string {
   return element.dataset[key] ?? "";
 }
 
-export class BaseEthernumCharacterSheet extends ActorSheet {
+function selectSheetTab(actor: Actor, html: JQuery<HTMLElement>, tabId: string): void {
+  if (!tabId) return;
+  const state = CharacterSheetController.state(actor);
+  const previousTab = state.load().activeTab;
+  const workspace = html.find<HTMLElement>(".ecs-workspace").get(0);
+  if (workspace) state.setScroll(previousTab, workspace.scrollTop);
+  state.setActiveTab(tabId);
+
+  html.find<HTMLElement>("[data-sheet-tab]").each((_index, tab) => {
+    const active = data(tab, "sheetTab") === tabId;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+  });
+  html.find<HTMLElement>(".ecs-tab-panel[data-tab]").each((_index, panel) => {
+    panel.hidden = data(panel, "tab") !== tabId;
+  });
+
+  if (workspace) workspace.scrollTop = state.load().scroll[tabId] ?? 0;
+}
+
+const ActorSheetBase = ((foundry as unknown as {
+  appv1?: { sheets?: { ActorSheet?: typeof ActorSheet } };
+}).appv1?.sheets?.ActorSheet ?? (globalThis as unknown as { ActorSheet: typeof ActorSheet }).ActorSheet);
+
+export class BaseEthernumCharacterSheet extends ActorSheetBase {
   static override get defaultOptions(): ActorSheet.Options {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["ethernum-rpg-module", "ethernum-character-sheet-window"],
@@ -60,6 +86,15 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
     super.activateListeners(html);
     EtherTabManager.activateEmbeddedUniqueMechanic(this, html, this.actor);
 
+    const sheetTabs = html.find<HTMLElement>("[data-sheet-tab]");
+    sheetTabs.on("click.ethernum-sheet-tabs", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const target = event.currentTarget as HTMLElement;
+      selectSheetTab(this.actor, html, data(target, "sheetTab"));
+      target.focus();
+    });
+
     html.on("click.ethernum-sheet", "[data-action]", event => {
       const element = event.currentTarget as HTMLElement;
       if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) return;
@@ -81,12 +116,21 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
         row.hidden = Boolean(query && !row.textContent?.toLocaleLowerCase().includes(query));
       });
     });
-    html.find('[data-action="change-tab"]').on("keydown.ethernum-sheet", event => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-      const tabs = html.find<HTMLElement>('[data-action="change-tab"]');
+    sheetTabs.on("keydown.ethernum-sheet", event => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const tabs = sheetTabs.filter(":enabled");
       const index = tabs.index(event.currentTarget);
-      const next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-      tabs.eq(next).trigger("click").trigger("focus");
+      const next = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      const target = tabs.get(next);
+      if (!target) return;
+      selectSheetTab(this.actor, html, data(target, "sheetTab"));
+      target.focus();
     });
     html.find<HTMLElement>(".ecs-workspace").on("scroll.ethernum-sheet", event => {
       const state = CharacterSheetController.state(this.actor);
@@ -101,11 +145,6 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
   async #handleAction(element: HTMLElement): Promise<void> {
     const action = data(element, "action");
     const itemId = data(element, "itemId");
-    if (action === "change-tab") {
-      CharacterSheetController.state(this.actor).setActiveTab(data(element, "tab"));
-      this.render(false);
-      return;
-    }
     if (action === "open-pf2e-sheet" || action === "manage-actions" || action === "browse-effects"
       || action === "create-item" || action === "create-spellcasting-entry") {
       openOriginalPF2eCharacterSheet(this.actor);
@@ -116,7 +155,18 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
       return;
     }
     if (action === "open-actor-image") {
-      new ImagePopout(this.actor.img ?? "icons/svg/mystery-man.svg", { title: this.actor.name ?? "" }).render(true);
+      const ImagePopoutApp = (foundry.applications.apps as unknown as {
+        ImagePopout: new (options: {
+          src: string;
+          uuid?: string;
+          window: { title: string };
+        }) => { render: (options: { force: boolean }) => unknown };
+      }).ImagePopout;
+      new ImagePopoutApp({
+        src: this.actor.img ?? "icons/svg/mystery-man.svg",
+        uuid: this.actor.uuid,
+        window: { title: this.actor.name ?? "" },
+      }).render({ force: true });
       return;
     }
     if (action === "toggle-compact") {
@@ -125,7 +175,10 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
       this.render(false);
       return;
     }
-    if (action === "configure-sheet") return this.#configureSheet();
+    if (action === "change-sheet-class" || action === "configure-sheet") {
+      openCharacterSheetSwitcher(this.actor);
+      return;
+    }
     if (action === "open-item") {
       PF2eCharacterActions.openItem(this.actor, itemId);
       return;
@@ -241,36 +294,6 @@ export class BaseEthernumCharacterSheet extends ActorSheet {
       button.classList.toggle("is-active", button === element);
       button.setAttribute("aria-pressed", String(button === element));
     });
-  }
-
-  #configureSheet(): void {
-    const current = CharacterSheetController.resolve(this.actor).configuredMode;
-    new Dialog({
-      title: game.i18n?.localize("ETHERNUM.CharacterSheet.Configure.Title") ?? "Character Sheet",
-      content: `<label>${game.i18n?.localize("ETHERNUM.CharacterSheet.Configure.Mode") ?? "Mode"}
-        <select name="mode">
-          ${["auto", "ethernum", "concordia", "pf2e"].map(mode => `<option value="${mode}" ${mode === current ? "selected" : ""}>${game.i18n?.localize(`ETHERNUM.CharacterSheet.Modes.${mode}`) ?? mode}</option>`).join("")}
-        </select></label>`,
-      buttons: {
-        save: {
-          icon: '<i class="fas fa-check"></i>',
-          label: game.i18n?.localize("ETHERNUM.CharacterSheet.Configure.Save") ?? "Save",
-          callback: html => {
-            const mode = String(html.find<HTMLSelectElement>('[name="mode"]').val() ?? "auto");
-            void CharacterSheetController.setMode(this.actor, mode).then(() => this.render(true));
-          },
-        },
-        reset: {
-          icon: '<i class="fas fa-rotate-left"></i>',
-          label: game.i18n?.localize("ETHERNUM.CharacterSheet.Configure.ResetLayout") ?? "Reset layout",
-          callback: () => {
-            CharacterSheetController.state(this.actor).reset();
-            this.render(false);
-          },
-        },
-      },
-      default: "save",
-    }).render(true);
   }
 
   async #chooseEtherAttribute(talent: string): Promise<void> {

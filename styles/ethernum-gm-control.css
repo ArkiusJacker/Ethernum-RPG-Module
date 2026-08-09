@@ -951,7 +951,7 @@
   --overlay-muted: #a7acb5;
   --overlay-accent: #d2b35f;
   position: fixed;
-  z-index: 10002;
+  z-index: calc(var(--z-index-ui, 60) + 2);
   display: flex;
   flex-direction: column;
   min-width: 460px;

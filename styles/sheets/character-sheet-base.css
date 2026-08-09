@@ -414,10 +414,11 @@
 .ethernum-character-sheet .ecs-navigation__tab {
   position: relative;
   display: inline-flex;
-  flex: 1 0 auto;
+  flex: 0 0 auto;
   gap: var(--ecs-space-2);
   align-items: center;
   justify-content: center;
+  width: auto;
   min-width: 104px;
   height: var(--ecs-nav-height);
   padding: 0 var(--ecs-space-4);
@@ -428,6 +429,29 @@
   background: transparent;
   font-size: 12px;
   font-weight: 700;
+}
+
+.window-header .ethernum-sheet-switcher {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  align-items: center;
+  width: auto;
+  height: var(--header-height, 30px);
+  padding: 0 5px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  line-height: normal;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.window-header .ethernum-sheet-switcher:hover,
+.window-header .ethernum-sheet-switcher:focus-visible {
+  color: var(--color-light-1, #fff);
+  text-shadow: 0 0 8px var(--color-shadow-primary, #ff6400);
 }
 
 .ethernum-character-sheet .ecs-navigation__tab::after {

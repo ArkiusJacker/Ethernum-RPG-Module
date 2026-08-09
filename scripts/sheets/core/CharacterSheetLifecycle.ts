@@ -55,7 +55,13 @@ export function openOriginalPF2eCharacterSheet(actor: Actor): ActorSheet | null 
 
 export function registerEthernumCharacterSheet(sheetClass: ActorSheetConstructor): void {
   captureOriginalPF2eCharacterSheet();
-  Actors.registerSheet(ETHERNUM.MODULE_NAME, sheetClass as unknown as ActorSheet.AnyConstructor, {
+  const actors = (foundry as unknown as {
+    documents?: { collections?: { Actors?: { registerSheet?: (...args: unknown[]) => unknown } } };
+  }).documents?.collections?.Actors;
+  if (typeof actors?.registerSheet !== "function") {
+    throw new Error("Ethernum | Foundry actor sheet registration API is unavailable.");
+  }
+  actors.registerSheet(ETHERNUM.MODULE_NAME, sheetClass as unknown as ActorSheet.AnyConstructor, {
     types: ["character"],
     makeDefault: true,
     label: "ETHERNUM.CharacterSheet.Label",

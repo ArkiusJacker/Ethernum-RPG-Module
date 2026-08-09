@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.0.1] - 2026-08-09
+
+### Adicionado
+- Seletor direto de ficha na interface Ethernum e no cabeçalho da ficha PF2e original, com opções Automático, Ethernum Company, Concórdia e PF2e Original.
+
+### Corrigido
+- O registro da ficha Ethernum agora ocorre depois do registro do PF2e, preservando corretamente a escolha padrão quando o mundo não possui override explícito.
+- As abas da ficha personalizada alternam o painel visível sem disputar renderizações e deixam de retornar ao conteúdo anterior.
+- Os botões de navegação deixam de ocupar individualmente toda a largura da ficha.
+- Rastreador de Combate e Central do Mestre permanecem acima do canvas, mas abaixo de fichas, diálogos e configurações do Foundry.
+- O adaptador de movimento prioriza `system.movement` e os dados preparados, evitando o acesso obsoleto a `system.attributes.speed` no PF2e 7.8.
+- Registro de fichas e herança da Application V1 usam os namespaces atuais do Foundry 13 quando disponíveis.
+- O retrato da ficha usa a API atual de `ImagePopout`, sem os avisos de assinatura obsoleta do Foundry 13.
+
+### Compatibilidade
+- A troca grava somente o modo Ethernum e o identificador de ficha oficial do Foundry no ator; dados, flags e aliases de mecânicas existentes permanecem inalterados.
+
 ## [3.7.0] - 2026-08-08
 
 ### Adicionado

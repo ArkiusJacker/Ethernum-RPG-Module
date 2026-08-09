@@ -38,6 +38,12 @@
         "Save": "Salvar",
         "ResetLayout": "Resetar layout local"
       },
+      "Switch": {
+        "Title": "Trocar ficha de personagem",
+        "Button": "Trocar ficha",
+        "Apply": "Trocar ficha",
+        "Success": "Ficha de personagem alterada."
+      },
       "Ether": { "ChooseAttribute": "Escolha o Atributo de Éter" },
       "Errors": {
         "Permission": "Você não possui permissão para realizar esta ação.",
@@ -45,6 +51,7 @@
         "StrikeUnavailable": "O Strike preparado do PF2e não está disponível.",
         "ActionUnavailable": "A ação preparada do PF2e não está disponível.",
         "PF2eUnavailable": "A ficha original do PF2e não pôde ser localizada.",
+        "SheetClassUnavailable": "A ficha selecionada não está registrada no Foundry.",
         "Render": "A ficha Ethernum encontrou um erro. Use a ficha PF2e original para acessar o personagem."
       }
     },
