@@ -1,5 +1,7 @@
 <section id="ecs-panel-combat"
-         class="ecs-tab-panel"
+         class="ecs-tab-panel ecs-interface-panel"
+         data-ui-role="tab-panel"
+         data-panel-id="combat"
          data-tab="combat"
          data-scroll-region="combat"
          role="tabpanel"
@@ -14,7 +16,7 @@
       <h2>{{localize 'ETHERNUM.CharacterSheet.Combat.Title'}}</h2>
     </div>
     <div class="ecs-panel-heading__actions">
-      <button type="button" data-action="roll-initiative" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.Initiative'}}"><i class="fas fa-bolt" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Initiative'}}</span></button>
+      <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="initiative" data-action="roll-initiative" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.Initiative'}}"><i class="fas fa-bolt" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Initiative'}}</span></button>
       {{#if permissions.canUpdateActor}}
       <button type="button" data-action="manage-actions" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.Manage'}}"><i class="fas fa-pen-to-square" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Manage'}}</span></button>
       {{/if}}
@@ -22,22 +24,22 @@
   </div>
 
   {{#if combatMomentum.enabled}}
-  <section class="ecs-combat-momentum" aria-label="Momentum Fides e Fulgor Negro">
+  <section class="ecs-combat-momentum ecs-panel" data-ui-role="panel" data-panel-kind="combat-resources" aria-label="Momentum Fides e Fulgor Negro">
     <div class="ecs-combat-momentum__heading">
       <i class="fas fa-bolt-lightning" aria-hidden="true"></i>
       <div><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Rhythm'}}</span><strong>{{combatMomentum.statusLabel}}</strong></div>
     </div>
-    <div class="ecs-combat-momentum__resource">
+    <div class="ecs-combat-momentum__resource ecs-resource" data-ui-role="resource" data-resource="momentum-fides" data-resource-kind="momentum-fides">
       <span>Momentum Fides</span>
       <strong>{{combatMomentum.fides.charges}} / {{combatMomentum.fides.max}}</strong>
-      <div class="ecs-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.FidesCharges'}}" aria-valuemin="0" aria-valuemax="{{combatMomentum.fides.max}}" aria-valuenow="{{combatMomentum.fides.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fides.percentage}}%;"></span></div>
-      <button type="button" data-action="use-momentum-fides" {{#unless combatMomentum.fides.canUse}}disabled{{/unless}}><i class="fas fa-gem" aria-hidden="true"></i><span>Momentum</span></button>
+      <div class="ecs-meter" data-ui-role="resource-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.FidesCharges'}}" aria-valuemin="0" aria-valuemax="{{combatMomentum.fides.max}}" aria-valuenow="{{combatMomentum.fides.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fides.percentage}}%;"></span></div>
+      <button type="button" class="ecs-interactive" data-ui-role="action" data-action="use-momentum-fides" {{#unless combatMomentum.fides.canUse}}disabled{{/unless}}><i class="fas fa-gem" aria-hidden="true"></i><span>Momentum</span></button>
     </div>
-    <div class="ecs-combat-momentum__resource ecs-combat-momentum__resource--fulgor">
+    <div class="ecs-combat-momentum__resource ecs-combat-momentum__resource--fulgor ecs-resource" data-ui-role="resource" data-resource="fulgor-negro" data-resource-kind="fulgor-negro">
       <span>Fulgor Negro</span>
       <strong>{{combatMomentum.fulgor.charges}}</strong>
-      <div class="ecs-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.FulgorProgress'}}" aria-valuemin="0" aria-valuemax="{{combatMomentum.fulgor.max}}" aria-valuenow="{{combatMomentum.fulgor.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fulgor.percentage}}%;"></span></div>
-      <button type="button" data-action="use-fulgor-negro" {{#unless combatMomentum.fulgor.canUse}}disabled{{/unless}}><i class="fas fa-bolt" aria-hidden="true"></i><span>Fulgor</span></button>
+      <div class="ecs-meter" data-ui-role="resource-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.FulgorProgress'}}" aria-valuemin="0" aria-valuemax="{{combatMomentum.fulgor.max}}" aria-valuenow="{{combatMomentum.fulgor.charges}}"><span style="--ecs-meter-value: {{combatMomentum.fulgor.percentage}}%;"></span></div>
+      <button type="button" class="ecs-interactive" data-ui-role="action" data-action="use-fulgor-negro" {{#unless combatMomentum.fulgor.canUse}}disabled{{/unless}}><i class="fas fa-bolt" aria-hidden="true"></i><span>Fulgor</span></button>
     </div>
     {{#if permissions.canManageCombatMomentum}}
     <button type="button" class="ecs-icon-control" data-action="manage-combat-momentum" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.ManageRhythm'}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Manage'}}"><i class="fas fa-sliders" aria-hidden="true"></i></button>
@@ -45,7 +47,7 @@
   </section>
   {{/if}}
 
-  <section class="ecs-section" aria-labelledby="ecs-strikes-title">
+  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="strikes" aria-labelledby="ecs-strikes-title">
     <header class="ecs-section__header">
       <h3 id="ecs-strikes-title"><i class="fas fa-swords" aria-hidden="true"></i>Strikes</h3>
       <span class="ecs-section__count">{{strikes.length}}</span>
@@ -64,14 +66,14 @@
         </div>
         <div class="ecs-strike__attacks" role="group" aria-label="Ataques com {{this.name}}">
           {{#each this.attackVariants}}
-          <button type="button" data-action="roll-strike" data-strike-id="{{../id}}" data-variant-index="{{this.index}}" aria-label="Ataque {{this.label}} com {{../name}}">{{this.label}}</button>
+          <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="strike" data-action="roll-strike" data-strike-id="{{../id}}" data-variant-index="{{this.index}}" aria-label="Ataque {{this.label}} com {{../name}}">{{this.label}}</button>
           {{else}}
-          <button type="button" data-action="roll-strike" data-strike-id="{{this.id}}" data-variant-index="0" aria-label="Atacar com {{this.name}}">{{this.modifier}}</button>
+          <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="strike" data-action="roll-strike" data-strike-id="{{this.id}}" data-variant-index="0" aria-label="Atacar com {{this.name}}">{{this.modifier}}</button>
           {{/each}}
         </div>
         <div class="ecs-strike__damage" role="group" aria-label="Dano de {{this.name}}">
-          <button type="button" data-action="roll-strike-damage" data-strike-id="{{this.id}}"><i class="fas fa-burst" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Damage'}}</span></button>
-          <button type="button" data-action="roll-strike-critical" data-strike-id="{{this.id}}"><i class="fas fa-skull" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Critical'}}</span></button>
+          <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="strike-damage" data-action="roll-strike-damage" data-strike-id="{{this.id}}"><i class="fas fa-burst" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Damage'}}</span></button>
+          <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="strike-critical" data-action="roll-strike-critical" data-strike-id="{{this.id}}"><i class="fas fa-skull" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Combat.Critical'}}</span></button>
         </div>
       </article>
       {{else}}
@@ -80,7 +82,7 @@
     </div>
   </section>
 
-  <section class="ecs-section" aria-labelledby="ecs-actions-title">
+  <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="actions" aria-labelledby="ecs-actions-title">
     <header class="ecs-section__header">
       <h3 id="ecs-actions-title"><i class="fas fa-circle-play" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Combat.Actions'}}</h3>
       <div class="ecs-filter-group" role="group" aria-label="{{localize 'ETHERNUM.CharacterSheet.Combat.Filter'}}">
@@ -99,7 +101,7 @@
           {{#if this.summary}}<p>{{this.summary}}</p>{{/if}}
         </div>
         <span class="ecs-action-glyph" aria-label="{{this.actionLabel}}">{{this.actionGlyph}}</span>
-        <button type="button" class="ecs-primary-action" data-action="use-action" data-prepared-action-id="{{this.id}}" data-item-id="{{this.itemId}}"><i class="fas fa-play" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}</span></button>
+        <button type="button" class="ecs-primary-action ecs-interactive" data-ui-role="action" data-action="use-action" data-prepared-action-id="{{this.id}}" data-item-id="{{this.itemId}}"><i class="fas fa-play" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}</span></button>
       </article>
       {{else}}
       <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Combat.NoActions'}}</p>

@@ -1,5 +1,7 @@
 <section id="ecs-panel-unique"
-         class="ecs-tab-panel ecs-tab-panel--unique ethernum-content"
+         class="ecs-tab-panel ecs-tab-panel--unique ecs-interface-panel ethernum-content"
+         data-ui-role="tab-panel"
+         data-panel-id="unique"
          data-tab="unique"
          data-scroll-region="unique"
          data-ethernum-tab="ethernum-unique"
@@ -13,14 +15,14 @@
     {{#if uniqueMechanic.actions.length}}
     <nav class="ecs-unique-quick-actions" aria-label="{{localize 'ETHERNUM.CharacterSheet.UniquePanel.QuickActions'}}">
       {{#each uniqueMechanic.actions}}
-      <button type="button" data-action="unique-action" data-unique-action="{{this.id}}">
+      <button type="button" class="ecs-interactive" data-ui-role="action" data-action="unique-action" data-unique-action="{{this.id}}">
         <i class="fas fa-play" aria-hidden="true"></i>
         <span>{{#if this.label}}{{this.label}}{{else}}{{this.id}}{{/if}}</span>
       </button>
       {{/each}}
     </nav>
     {{/if}}
-    <div class="ecs-legacy-unique-host" data-unique-profile="{{uniqueMechanic.activeProfile}}">
+    <div class="ecs-legacy-unique-host ecs-panel" data-ui-role="panel" data-panel-kind="unique-mechanic" data-unique-profile="{{uniqueMechanic.activeProfile}}">
       {{> "modules/ethernum-rpg-module/templates/unique-mechanics-tab.html" uniqueMechanics=uniqueMechanic isGM=permissions.isGM}}
     </div>
   {{else}}

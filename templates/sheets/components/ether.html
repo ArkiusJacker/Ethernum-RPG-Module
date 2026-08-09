@@ -1,5 +1,7 @@
 <section id="ecs-panel-ether"
-         class="ecs-tab-panel"
+         class="ecs-tab-panel ecs-interface-panel"
+         data-ui-role="tab-panel"
+         data-panel-id="ether"
          data-tab="ether"
          data-scroll-region="ether"
          role="tabpanel"
@@ -7,7 +9,7 @@
          {{#unless (ethernum-eq ui.activeTab "ether")}}hidden{{/unless}}>
   <div class="ecs-panel-heading ecs-panel-heading--system">
     <div><span class="ecs-eyebrow">{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Eyebrow'}}</span><h2>{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Title'}}</h2></div>
-    <div class="ecs-system-resource" aria-label="{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Tokens'}}">
+    <div class="ecs-system-resource ecs-resource" data-ui-role="resource" data-resource="fe" data-resource-kind="fe" aria-label="{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Tokens'}}">
       <i class="fas fa-coins" aria-hidden="true"></i>
       <span>FE</span>
       <strong>{{ethernumSystems.fe.value}}</strong>
@@ -17,13 +19,14 @@
     </div>
   </div>
 
-  <section class="ecs-ether-core" aria-labelledby="ecs-ether-reserve-title">
-    <div class="ecs-ether-reserve">
+  <section class="ecs-ether-core ecs-panel" data-ui-role="panel" data-panel-kind="ether-reserve" aria-labelledby="ecs-ether-reserve-title">
+    <span class="ecs-rune-engraving ecs-rune-engraving--source" data-ui-role="decorative-rune" data-rune-group="source" role="presentation" aria-hidden="true"></span>
+    <div class="ecs-ether-reserve ecs-resource" data-ui-role="resource" data-resource="ether" data-resource-kind="ether">
       <div class="ecs-ether-reserve__heading">
         <span id="ecs-ether-reserve-title">{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Reserve'}}</span>
         <strong>{{ethernumSystems.ether.value}} / {{ethernumSystems.ether.max}}</strong>
       </div>
-      <div class="ecs-meter ecs-meter--large" role="meter" aria-label="Reserva de Éter" aria-valuemin="0" aria-valuemax="{{ethernumSystems.ether.max}}" aria-valuenow="{{ethernumSystems.ether.value}}">
+      <div class="ecs-meter ecs-meter--large" data-ui-role="resource-meter" role="meter" aria-label="Reserva de Éter" aria-valuemin="0" aria-valuemax="{{ethernumSystems.ether.max}}" aria-valuenow="{{ethernumSystems.ether.value}}">
         <span style="--ecs-meter-value: {{ethernumSystems.ether.percentage}}%;"></span>
       </div>
       {{#if permissions.canUpdateEthernum}}
@@ -41,7 +44,7 @@
   </section>
 
   <div class="ecs-system-grid">
-    <section class="ecs-section" aria-labelledby="ecs-ether-attributes-title">
+    <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="ether-attributes" aria-labelledby="ecs-ether-attributes-title">
       <header class="ecs-section__header">
         <h3 id="ecs-ether-attributes-title"><i class="fas fa-atom" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Attributes'}}</h3>
         {{#if permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="manage-ether-attributes" aria-label="{{localize 'ETHERNUM.CharacterSheet.EtherPanel.ManageAttributes'}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Manage'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
@@ -59,7 +62,7 @@
       </div>
     </section>
 
-    <section class="ecs-section" aria-labelledby="ecs-ether-talents-title">
+    <section class="ecs-section ecs-panel" data-ui-role="panel" data-panel-kind="ether-talents" aria-labelledby="ecs-ether-talents-title">
       <header class="ecs-section__header">
         <h3 id="ecs-ether-talents-title"><i class="fas fa-diagram-project" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EtherPanel.Talents'}}</h3>
         {{#if permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="manage-ether-talents" aria-label="{{localize 'ETHERNUM.CharacterSheet.EtherPanel.ManageTalents'}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Manage'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
@@ -69,7 +72,7 @@
         <article class="ecs-ether-talent">
           <div><h3>{{this.name}}</h3>{{#if this.summary}}<p>{{this.summary}}</p>{{/if}}</div>
           {{#if this.cost}}<span class="ecs-cost">{{this.cost}} Éter</span>{{/if}}
-          {{#if this.canUse}}<button type="button" data-action="use-ether-talent" data-talent-id="{{this.id}}" aria-label="Usar {{this.name}}"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
+          {{#if this.canUse}}<button type="button" class="ecs-interactive" data-ui-role="action" data-action="use-ether-talent" data-talent-id="{{this.id}}" aria-label="Usar {{this.name}}"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
         </article>
         {{else}}
         <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.EtherPanel.NoTalents'}}</p>

@@ -20,6 +20,7 @@ declare global {
     "ethernum-rpg-module.combatTrackerEnabled": boolean;
     "ethernum-rpg-module.combatTrackerOnlyInCombat": boolean;
     "ethernum-rpg-module.combatTrackerDetailedStats": boolean;
+    "ethernum-rpg-module.characterSheetAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.combatAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimationSpeed": "fast" | "normal" | "cinematic";

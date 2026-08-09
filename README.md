@@ -6,18 +6,16 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.3
+## Versão 3.7.4
 
-- Viewport, aba ativa, seções recolhíveis e foco são restaurados depois de rerenders sem gravar estado visual no Actor.
-- Thumbnails recebem papéis próprios, dimensões estáveis e fallback por tipo para retratos, itens, armas, talentos, magias e ações.
-- Spellcasting e crafting passam por um serviço assíncrono de dados preparados do PF2e, com fallback para o snapshot existente e para a ficha oficial.
-- Biografia e notas usam enriquecimento Rich Text do PF2e/Foundry, respeitando permissões e blocos secretos.
-- Ranks, idiomas, sentidos, traits, tradições e unidades são apresentados pelas configurações e traduções oficiais disponíveis.
-- Special Actions sintéticas são deduplicadas das ações normais usando identificadores estáveis.
-- Overview ganha seções recolhíveis locais e um modo compacto mais denso sem perder ações ou valores importantes.
-- Telemetria local limitada e um painel de diagnóstico exclusivo do mestre registram capabilities, fallbacks, tempos e falhas de módulos sem conteúdo confidencial.
-- O CSS Concórdia foi decomposto por responsabilidade mantendo a mesma ordem visual da versão anterior.
-- O Test Harness 2.0 cobre nove classes PF2e, viewport, imagens, prepared data, Rich Text, localização, telemetria e diagnóstico.
+- A ficha Ethernum Company recebe identidade industrial em aço, carvão, ouro e ciano, com hierarquia visual própria e isolamento completo da ficha Concórdia.
+- Cabeçalho operacional reorganiza retrato, identidade, selo de nível, PV, pulso vital, Pontos Heroicos e comandos sem sobreposições.
+- Overview usa três colunas em telas largas e adaptação progressiva em janelas menores, com atributos, perícias, defesas, recursos e dados PF2e preservados.
+- Recursos finitos ganham marcadores visuais derivados dos valores preparados do Actor, sem novas flags e sem duplicar dados do PF2e.
+- Rolagens, dano, cura, gasto e recuperação de recursos recebem feedback transitório que sobrevive a rerenders sem persistir apresentação no personagem.
+- Nova preferência local de animações permite escolher movimento completo, reduzido ou desligado e respeita a configuração do sistema operacional.
+- Navegação, painéis, controles, tabelas, cards e estados de foco foram polidos para mouse, teclado e densidade compacta.
+- O contrato automatizado da ficha cobre tema, semântica, movimento, feedbacks e integrações PF2e existentes.
 
 ### Paridade da ficha PF2e
 

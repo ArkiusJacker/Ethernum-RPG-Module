@@ -1,5 +1,7 @@
 <section id="ecs-panel-runes"
-         class="ecs-tab-panel"
+         class="ecs-tab-panel ecs-interface-panel"
+         data-ui-role="tab-panel"
+         data-panel-id="runes"
          data-tab="runes"
          data-scroll-region="runes"
          role="tabpanel"
@@ -13,7 +15,8 @@
   </div>
 
   {{#if ethernumSystems.runeFormula.enabled}}
-  <section class="ecs-rune-formula" aria-labelledby="ecs-rune-formula-title">
+  <section class="ecs-rune-formula ecs-panel" data-ui-role="panel" data-panel-kind="rune-formula" aria-labelledby="ecs-rune-formula-title">
+    <span class="ecs-rune-engraving ecs-rune-engraving--trinity" data-ui-role="decorative-rune" data-rune-group="trinity" role="presentation" aria-hidden="true"></span>
     <header>
       <span id="ecs-rune-formula-title">{{localize 'ETHERNUM.CharacterSheet.RunesPanel.ActiveTrinity'}}</span>
       {{#if ethernumSystems.runeFormula.complete}}<strong>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Complete'}}</strong>{{else}}<strong>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Incomplete'}}</strong>{{/if}}
@@ -47,16 +50,16 @@
 
   <div class="ecs-rune-list">
     {{#each ethernumSystems.runes}}
-    <article class="ecs-rune-row ecs-rune-row--{{this.classId}}" data-rune-id="{{this.id}}">
-      <div class="ecs-rune-sigil" aria-hidden="true"><i class="{{this.icon}}"></i></div>
+    <article class="ecs-rune-row ecs-rune-row--{{this.classId}} ecs-panel" data-ui-role="panel" data-panel-kind="rune" data-rune-id="{{this.id}}">
+      <div class="ecs-rune-sigil ecs-rune-engraving" data-ui-role="decorative-rune" data-rune-group="{{this.classId}}" role="presentation" aria-hidden="true"><i class="{{this.icon}}"></i></div>
       <div class="ecs-rune-row__body">
         <div class="ecs-rune-row__title"><h3>{{this.name}}</h3><span>{{this.classLabel}}</span></div>
         <p>{{this.formula}}</p>
         <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
       </div>
       <div class="ecs-rune-row__meta"><span>{{localize 'ETHERNUM.Rune.CostValue'}}</span><strong>{{this.cost}}</strong><small>{{this.statusLabel}}</small></div>
-      <button type="button" class="ecs-primary-action" data-action="use-rune" data-rune-id="{{this.id}}" {{#unless this.canUse}}disabled{{/unless}}><i class="fas fa-play" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}</span></button>
-      {{#if ../permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="edit-rune" data-rune-id="{{this.id}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Edit'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
+      <button type="button" class="ecs-primary-action ecs-interactive" data-ui-role="action" data-action="use-rune" data-rune-id="{{this.id}}" {{#unless this.canUse}}disabled{{/unless}}><i class="fas fa-play" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}</span></button>
+      {{#if ../permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="edit-rune" data-rune-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Common.Edit'}} {{this.name}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Edit'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
     </article>
     {{else}}
     <section class="ecs-empty-state"><i class="fas fa-compass-drafting" aria-hidden="true"></i><h3>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Empty'}}</h3></section>

@@ -5,6 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.4] - 2026-08-09
+
+### Adicionado
+- Identidade visual industrial exclusiva da Ethernum Company em aço, carvão, ouro envelhecido e ciano de Éter.
+- Selo ampliado de nível, traço vital no painel de PV, ícones de atributos e marcadores visuais para recursos PF2e finitos.
+- Serviço de movimento com preferência local `completo`, `reduzido` ou `desligado`, incluindo respeito a `prefers-reduced-motion`.
+- Feedback visual transitório para rolagens, críticos, dano, cura, gasto e recuperação de recursos.
+
+### Alterado
+- Cabeçalho, navegação, Overview, Combate, Equipamento, Magia, Talentos, Éter, Runas, Mecânica Única e Efeitos recebem acabamento coerente com o dossiê operacional.
+- Overview passa a priorizar três colunas em telas largas e reorganiza o painel lateral em duas ou uma coluna conforme o espaço disponível.
+- Cartões de atributos acomodam nomes longos sem abreviação; recursos reservam largura estável para rótulo, valor e marcadores.
+- Estados hover, foco, ativo, bloqueado, vazio e gasto ficam mais claros sem substituir ações do Foundry ou do PF2e.
+
+### Corrigido
+- Elementos decorativos deixam de participar da grade principal e não deslocam cabeçalho, abas ou conteúdo.
+- Feedbacks que provocam rerender são restaurados no novo DOM sem gravar flags de apresentação no Actor.
+- Marcadores de recursos com máximo alto deixam de comprimir ou sobrepor rótulos e valores.
+
+### Testes
+- 437 testes automatizados cobrindo regressões existentes e o contrato visual, semântico, responsivo e de movimento da Ethernum Company.
+
 ## [3.7.3] - 2026-08-09
 
 ### Adicionado

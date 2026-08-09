@@ -11,7 +11,9 @@ import {
   type CharacterSheetSafeErrorPresentation,
 } from "./core/CharacterSheetDiagnosticsService.js";
 import { CharacterSheetImageService } from "./core/CharacterSheetImageService.js";
+import { CharacterSheetInteractionFeedback } from "./core/CharacterSheetInteractionFeedback.js";
 import { openOriginalPF2eCharacterSheet } from "./core/CharacterSheetLifecycle.js";
+import { CharacterSheetMotionService, type CharacterSheetMotionMode } from "./core/CharacterSheetMotionService.js";
 import { openCharacterSheetSwitcher } from "./core/CharacterSheetSwitcher.js";
 import { CharacterSheetViewportService } from "./core/CharacterSheetViewportService.js";
 import { PF2eCharacterActions } from "./core/PF2eCharacterActions.js";
@@ -75,6 +77,11 @@ const ActorSheetBase = ((foundry as unknown as {
 
 export class BaseEthernumCharacterSheet extends ActorSheetBase {
   readonly #imageService = new CharacterSheetImageService();
+  readonly #feedback = new CharacterSheetInteractionFeedback();
+  readonly #motion = new CharacterSheetMotionService({
+    readPreference: () => game.settings?.get(ETHERNUM.MODULE_NAME, "characterSheetAnimations"),
+    readSystemPrefersReducedMotion: () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
+  });
   #viewport: CharacterSheetViewportService | null = null;
 
   static override get defaultOptions(): ActorSheet.Options {
@@ -134,6 +141,8 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     if (root) {
       viewport.bind(root);
       this.#imageService.bind(root);
+      this.#applyMotionMode(root);
+      this.#feedback.restore(root, this.#motion.mode);
     }
 
     const sheetTabs = html.find<HTMLElement>("[data-sheet-tab]");
@@ -149,6 +158,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       const element = event.currentTarget as HTMLElement;
       if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) return;
       viewport.capture(root);
+      this.#playActionFeedback(root, element);
       event.preventDefault();
       void this.#handleAction(element).catch(error => {
         console.error("Ethernum | Character sheet action failed", data(element, "action"), error);
@@ -166,7 +176,10 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
 
     html.find('[data-action="update-hp"]').on("change.ethernum-sheet", event => {
       viewport.capture(root);
-      void PF2eCharacterActions.updateHP(this.actor, numeric((event.currentTarget as HTMLInputElement).value));
+      const nextHP = numeric((event.currentTarget as HTMLInputElement).value);
+      const currentHP = numeric(foundry.utils.getProperty(this.actor, "system.attributes.hp.value"));
+      this.#feedback.queue(nextHP < currentHP ? "damage" : "healing", { resource: "hp" });
+      void PF2eCharacterActions.updateHP(this.actor, nextHP);
     });
     html.find<HTMLSelectElement>('select[data-action="change-carry-type"]').on("change.ethernum-sheet", event => {
       viewport.capture(root);
@@ -477,6 +490,56 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       button.classList.toggle("is-active", button === element);
       button.setAttribute("aria-pressed", String(button === element));
     });
+  }
+
+  #applyMotionMode(root: HTMLElement): CharacterSheetMotionMode {
+    const mode = this.#motion.mode;
+    root.dataset.motion = mode;
+    root.classList.toggle("ecs-motion-full", mode === "full");
+    root.classList.toggle("ecs-motion-reduced", mode === "reduced");
+    root.classList.toggle("ecs-motion-off", mode === "off");
+    return mode;
+  }
+
+  #playActionFeedback(root: HTMLElement | null, element: HTMLElement): void {
+    const action = data(element, "action");
+    const delta = numeric(data(element, "delta"));
+    const resourceByAction: Record<string, string> = {
+      "adjust-hero-points": "hero-points",
+      "adjust-focus-points": "focus",
+      "adjust-ether": "ether",
+      "adjust-item-quantity": "item-quantity",
+    };
+    const target = {
+      action,
+      itemId: data(element, "itemId") || undefined,
+      entryId: data(element, "entryId") || undefined,
+      resource: data(element, "resource") || resourceByAction[action] || undefined,
+    };
+    if (["adjust-hero-points", "adjust-focus-points", "adjust-ether", "adjust-item-quantity"].includes(action)) {
+      const resourceTarget = action === "adjust-item-quantity"
+        ? { action, itemId: target.itemId }
+        : { resource: target.resource };
+      this.#feedback.queue(delta < 0 ? "resource-spend" : "resource-recover", resourceTarget);
+      return;
+    }
+    if ([
+      "roll-skill",
+      "roll-save",
+      "roll-perception",
+      "roll-initiative",
+      "roll-strike",
+      "roll-strike-damage",
+      "roll-strike-critical",
+      "use-action",
+      "cast-spell",
+      "use-item",
+      "use-rune",
+      "use-ether-talent",
+      "unique-action",
+    ].includes(action)) {
+      this.#feedback.play(root, "roll", this.#motion.mode, target);
+    }
   }
 
   async #chooseEtherAttribute(talent: string): Promise<void> {

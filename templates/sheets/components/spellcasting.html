@@ -1,5 +1,7 @@
 <section id="ecs-panel-spellcasting"
-         class="ecs-tab-panel"
+         class="ecs-tab-panel ecs-interface-panel"
+         data-ui-role="tab-panel"
+         data-panel-id="spellcasting"
          data-tab="spellcasting"
          data-scroll-region="spellcasting"
          role="tabpanel"
@@ -8,14 +10,14 @@
   <div class="ecs-panel-heading">
     <div><span class="ecs-eyebrow">{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Eyebrow'}}</span><h2>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Title'}}</h2></div>
     {{#if spellcasting.focusPoints.max}}
-    <div class="ecs-focus-resource" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.FocusPoints'}}">
+    <div class="ecs-focus-resource ecs-resource" data-ui-role="resource" data-resource="focus" data-resource-kind="focus-points" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.FocusPoints'}}">
       <span>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.FocusPoints'}}</span>
       <div class="ecs-stepper">
         {{#if permissions.canUpdateActor}}<button type="button" data-action="adjust-focus-points" data-delta="-1" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.RemoveFocus'}}"><i class="fas fa-minus" aria-hidden="true"></i></button>{{/if}}
         <strong>{{spellcasting.focusPoints.current}}/{{spellcasting.focusPoints.max}}</strong>
         {{#if permissions.canUpdateActor}}<button type="button" data-action="adjust-focus-points" data-delta="1" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.AddFocus'}}"><i class="fas fa-plus" aria-hidden="true"></i></button>{{/if}}
       </div>
-      <div class="ecs-meter" role="meter" aria-valuemin="0" aria-valuemax="{{spellcasting.focusPoints.max}}" aria-valuenow="{{spellcasting.focusPoints.current}}"><span style="--ecs-meter-value: {{spellcasting.focusPoints.percentage}}%;"></span></div>
+      <div class="ecs-meter" data-ui-role="resource-meter" role="meter" aria-valuemin="0" aria-valuemax="{{spellcasting.focusPoints.max}}" aria-valuenow="{{spellcasting.focusPoints.current}}"><span style="--ecs-meter-value: {{spellcasting.focusPoints.percentage}}%;"></span></div>
     </div>
     {{/if}}
     {{#if permissions.canCreateItems}}
@@ -33,7 +35,7 @@
 
   <div class="ecs-spellcasting-list">
     {{#each spellcasting.entries}}
-    <section class="ecs-spell-entry" data-entry-id="{{this.id}}" aria-labelledby="ecs-spell-entry-{{this.id}}">
+    <section class="ecs-spell-entry ecs-panel" data-ui-role="panel" data-panel-kind="spell-entry" data-entry-id="{{this.id}}" aria-labelledby="ecs-spell-entry-{{this.id}}">
       <header class="ecs-spell-entry__header">
         <button type="button" class="ecs-spell-entry__toggle" data-action="toggle-spell-entry" data-entry-id="{{this.id}}" aria-expanded="{{#if this.collapsed}}false{{else}}true{{/if}}" aria-controls="ecs-spell-entry-body-{{this.id}}">
           <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -46,16 +48,16 @@
           {{#if this.attack}}<span><small>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Attack'}}</small><strong>{{this.attack}}</strong></span>{{/if}}
           {{#if this.dc}}<span><small>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.DC'}}</small><strong>{{this.dc}}</strong></span>{{/if}}
         </div>
-        <button type="button" class="ecs-icon-control" data-action="open-item" data-item-id="{{this.id}}" title="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.EditEntry'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>
-        <button type="button" class="ecs-icon-control" data-action="manage-spell-preparation" data-entry-id="{{this.id}}" title="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.ManagePreparation'}}"><i class="fas fa-list-check" aria-hidden="true"></i></button>
+        <button type="button" class="ecs-icon-control" data-action="open-item" data-item-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.EditEntry'}}" title="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.EditEntry'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>
+        <button type="button" class="ecs-icon-control" data-action="manage-spell-preparation" data-entry-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.ManagePreparation'}}" title="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.ManagePreparation'}}"><i class="fas fa-list-check" aria-hidden="true"></i></button>
       </header>
 
       <div id="ecs-spell-entry-body-{{this.id}}" class="ecs-spell-entry__body" {{#if this.collapsed}}hidden{{/if}}>
         {{#each this.groups}}
-        <section class="ecs-spell-rank" data-rank="{{this.rank}}" aria-labelledby="ecs-spell-rank-{{../id}}-{{this.rank}}">
+        <section class="ecs-spell-rank" data-ui-role="spell-rank" data-rank="{{this.rank}}" aria-labelledby="ecs-spell-rank-{{../id}}-{{this.rank}}">
           <header class="ecs-spell-rank__header">
             <h3 id="ecs-spell-rank-{{../id}}-{{this.rank}}">{{this.label}}</h3>
-            {{#if this.slots}}<span>{{this.slots.value}} / {{this.slots.max}}</span>{{/if}}
+            {{#if this.slots}}<span class="ecs-resource" data-ui-role="resource" data-resource-kind="spell-slots">{{this.slots.value}} / {{this.slots.max}}</span>{{/if}}
           </header>
           <div class="ecs-spell-list">
             {{#each this.spells}}
@@ -71,7 +73,7 @@
                 {{#if this.signature}}<span class="ecs-spell-state" title="{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Signature'}}"><i class="fas fa-star" aria-hidden="true"></i><span class="sr-only">{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Signature'}}</span></span>{{/if}}
                 {{#if this.expended}}<span class="ecs-spell-state ecs-spell-state--expended"><i class="fas fa-circle-xmark" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Expended'}}</span>{{/if}}
               </div>
-              <button type="button" class="ecs-primary-action" data-action="cast-spell" data-entry-id="{{../../id}}" data-item-id="{{this.id}}" data-rank="{{this.rank}}" data-cast-rank="{{this.castRank}}" data-slot-id="{{this.slotId}}" {{#if this.expended}}disabled{{/if}}><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Cast'}}</span></button>
+              <button type="button" class="ecs-primary-action ecs-interactive" data-ui-role="action" data-action="cast-spell" data-entry-id="{{../../id}}" data-item-id="{{this.id}}" data-rank="{{this.rank}}" data-cast-rank="{{this.castRank}}" data-slot-id="{{this.slotId}}" {{#if this.expended}}disabled{{/if}}><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Spellcasting.Cast'}}</span></button>
             </article>
             {{else}}
             <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Spellcasting.EmptyRank'}}</p>

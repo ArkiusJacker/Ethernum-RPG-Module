@@ -6,6 +6,7 @@ type ClientBooleanSettingKey =
   | "combatTrackerOnlyInCombat"
   | "combatTrackerDetailedStats";
 export type CombatAnimationMode = "full" | "reduced" | "off";
+export type CharacterSheetAnimationMode = CombatAnimationMode;
 export type PippingAnimationSpeed = "fast" | "normal" | "cinematic";
 export type PippingAbilityHoverMode = "full" | "reduced" | "off";
 export type PippingHoverCanvasPreviewMode = "off" | "card" | "token";
@@ -147,6 +148,13 @@ export function registerSettings(): void {
     const mode = value === "reduced" || value === "off" ? value : "full";
     document.documentElement.dataset.ethernumPippingHover = mode;
   };
+  const applyCharacterSheetMotionMode = (value: unknown) => {
+    const requested = value === "reduced" || value === "off" ? value : "full";
+    const mode = requested === "full" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      ? "reduced"
+      : requested;
+    document.documentElement.dataset.ethernumSheetMotion = mode;
+  };
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerEnabled", {
     name: "ETHERNUM.Settings.CombatTrackerEnabled.Name",
     hint: "ETHERNUM.Settings.CombatTrackerEnabled.Hint",
@@ -173,6 +181,23 @@ export function registerSettings(): void {
     type: Boolean,
     default: true,
     onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "characterSheetAnimations", {
+    name: "ETHERNUM.Settings.CharacterSheetAnimations.Name",
+    hint: "ETHERNUM.Settings.CharacterSheetAnimations.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      full: "ETHERNUM.Settings.CharacterSheetAnimations.Full",
+      reduced: "ETHERNUM.Settings.CharacterSheetAnimations.Reduced",
+      off: "ETHERNUM.Settings.CharacterSheetAnimations.Off",
+    },
+    default: "full",
+    onChange: value => {
+      applyCharacterSheetMotionMode(value);
+      refreshClientUI();
+    },
   });
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatAnimations", {
     name: "ETHERNUM.Settings.CombatAnimations.Name",
@@ -254,6 +279,7 @@ export function registerSettings(): void {
     default: 60,
   });
   applyPippingHoverMode(getPippingAbilityHoverMode());
+  applyCharacterSheetMotionMode(getCharacterSheetAnimationMode());
 
   console.log("Ethernum RPG Module | Settings registradas");
 }
@@ -325,6 +351,16 @@ export function shouldShowCombatTrackerStats(): boolean {
 export function getCombatAnimationMode(): CombatAnimationMode {
   try {
     const value = game.settings!.get(ETHERNUM.MODULE_NAME, "combatAnimations");
+    if (value === "reduced" || value === "off") return value;
+  } catch {
+    return "full";
+  }
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+}
+
+export function getCharacterSheetAnimationMode(): CharacterSheetAnimationMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "characterSheetAnimations");
     if (value === "reduced" || value === "off") return value;
   } catch {
     return "full";

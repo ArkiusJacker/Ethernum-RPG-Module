@@ -1534,6 +1534,13 @@
         "Name": "Show detailed statistics",
         "Hint": "Shows failures, successes, and natural results in the tracker."
       },
+      "CharacterSheetAnimations": {
+        "Name": "Character sheet animations",
+        "Hint": "Controls character sheet transitions and visual feedback locally for Ethernum and Concordia.",
+        "Full": "Full",
+        "Reduced": "Reduced",
+        "Off": "Disabled"
+      },
       "CombatAnimations": {
         "Name": "Fides and Fulgor animations",
         "Hint": "Controls local visual effects for the universal mechanics.",

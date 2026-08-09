@@ -1,24 +1,49 @@
 /* Ethernum Company shell: black iron, parchment gold and controlled ether light. */
 .ethernum-character-sheet.ethernum-company-sheet,
 .ethernum-character-sheet[data-shell-id="ethernum-company"] {
-  --ecs-bg: #0e1010;
-  --ecs-surface: #181a19;
-  --ecs-surface-raised: #262824;
-  --ecs-surface-soft: #20221f;
-  --ecs-text: #f4eedf;
-  --ecs-text-muted: #bab7ad;
-  --ecs-border: #4b4b43;
-  --ecs-border-strong: #787264;
-  --ecs-accent: #c8a451;
-  --ecs-accent-strong: #f1d783;
-  --ecs-accent-contrast: #171207;
-  --ecs-secondary: #58c4b2;
-  --ecs-danger: #dd6259;
-  --ecs-warning: #dea747;
-  --ecs-success: #66bf7f;
-  --ecs-focus: #7edbd0;
+  --eth-bg: #101315;
+  --eth-panel: #171b1e;
+  --eth-steel: #242a2e;
+  --eth-gold: #b99045;
+  --eth-gold-bright: #d4b56a;
+  --eth-aether: #48c7d9;
+  --eth-aether-bright: #7ce8f2;
+  --eth-text: #e7e2d5;
+  --eth-text-muted: #a8adb0;
+  --eth-danger: #b8463e;
+  --eth-success: #5fa978;
+  --eth-radius-sm: 4px;
+  --eth-radius-md: 8px;
+  --eth-speed-fast: 140ms;
+  --eth-speed-normal: 240ms;
+  --eth-speed-slow: 2800ms;
+  --eth-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ecs-bg: var(--eth-bg);
+  --ecs-surface: var(--eth-panel);
+  --ecs-surface-raised: var(--eth-steel);
+  --ecs-surface-soft: #1d2225;
+  --ecs-text: var(--eth-text);
+  --ecs-text-muted: var(--eth-text-muted);
+  --ecs-border: #353c40;
+  --ecs-border-strong: #586064;
+  --ecs-accent: var(--eth-gold);
+  --ecs-accent-strong: var(--eth-gold-bright);
+  --ecs-accent-contrast: #14110a;
+  --ecs-secondary: var(--eth-aether);
+  --ecs-danger: var(--eth-danger);
+  --ecs-warning: #d18b3b;
+  --ecs-success: var(--eth-success);
+  --ecs-focus: var(--eth-aether-bright);
   --ecs-hp: #bd4249;
+  --ecs-radius: var(--eth-radius-sm);
+  --ecs-shadow: 0 12px 28px rgb(0 0 0 / 38%);
   color-scheme: dark;
+  background-color: var(--eth-bg);
+  background-image:
+    linear-gradient(115deg, rgb(255 255 255 / 1.2%) 0 1px, transparent 1px 13px),
+    linear-gradient(180deg, rgb(255 255 255 / 1.5%), transparent 26%);
+  background-size: 14px 14px, 100% 100%;
+  animation: eth-sheet-enter var(--eth-speed-normal) var(--eth-ease) both;
 }
 
 .ethernum-character-sheet.ethernum-company-sheet .ecs-header,
@@ -106,5 +131,962 @@
   .ethernum-character-sheet.ethernum-company-sheet .ecs-header::after,
   .ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-header::after {
     display: none;
+  }
+}
+
+/* Industrial controls */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) button,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) input,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) select {
+  border-radius: var(--eth-radius-sm);
+  transition:
+    color var(--eth-speed-fast) ease,
+    background-color var(--eth-speed-fast) ease,
+    border-color var(--eth-speed-fast) ease,
+    box-shadow var(--eth-speed-fast) ease,
+    opacity var(--eth-speed-fast) ease,
+    transform var(--eth-speed-fast) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--eth-gold-bright) 76%, var(--eth-steel));
+  color: var(--eth-gold-bright);
+  background: #292e30;
+  box-shadow: inset 0 1px rgb(255 255 255 / 4%), 0 0 0 1px rgb(185 144 69 / 10%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--eth-aether-bright);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgb(72 199 217 / 14%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) button:disabled {
+  border-color: #30363a;
+  color: #747b7e;
+  background: #171b1d;
+  opacity: 0.62;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-tag, .ecs-navigation__badge, .ecs-section__count, .ecs-meter) {
+  border-radius: var(--eth-radius-sm);
+}
+
+/* Command header */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header {
+  isolation: isolate;
+  grid-template-columns: 100px minmax(250px, 1fr) minmax(310px, 0.8fr);
+  gap: 18px;
+  padding: 14px 18px;
+  border-bottom-color: color-mix(in srgb, var(--eth-gold) 65%, var(--eth-steel));
+  background-color: #15191b;
+  background-image:
+    linear-gradient(90deg, transparent 0 74%, rgb(185 144 69 / 6%) 74% 75%, transparent 75%),
+    linear-gradient(0deg, transparent 0 70%, rgb(72 199 217 / 4%) 70% 71%, transparent 71%),
+    linear-gradient(125deg, rgb(255 255 255 / 2%), transparent 40%);
+  background-size: 62px 62px, 62px 62px, 100% 100%;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 42%), inset 0 -1px rgb(212 181 106 / 8%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header::before {
+  width: 3px;
+  background: linear-gradient(180deg, var(--eth-gold-bright), var(--eth-gold) 55%, var(--eth-aether));
+  box-shadow: 2px 0 12px rgb(185 144 69 / 18%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header::after {
+  right: 64px;
+  bottom: 9px;
+  width: 88px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--eth-aether) 28%, var(--eth-gold-bright));
+  box-shadow: 0 0 8px rgb(72 199 217 / 28%);
+  opacity: 0.72;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait {
+  width: 94px;
+  min-width: 94px;
+  height: 102px;
+  padding: 3px;
+  border: 1px solid var(--eth-gold);
+  border-radius: var(--eth-radius-sm);
+  background: #090b0c;
+  box-shadow: inset 0 0 0 1px #30363a, 0 7px 18px rgb(0 0 0 / 42%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait:hover:not(:disabled) {
+  border-color: var(--eth-gold-bright);
+  box-shadow: inset 0 0 0 1px #3b4448, 0 0 14px rgb(185 144 69 / 18%);
+  transform: translateY(-1px);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-shell-title {
+  color: var(--eth-aether);
+  font-size: 10px;
+  text-shadow: 0 0 9px rgb(72 199 217 / 20%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-identity__title-row {
+  gap: 16px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-identity__name {
+  color: var(--eth-text);
+  font-size: 26px;
+  text-shadow: 0 1px 0 #000, 0 0 12px rgb(212 181 106 / 8%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) input.ecs-identity__name:hover,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) input.ecs-identity__name:focus {
+  border-bottom-color: var(--eth-gold-bright);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-level {
+  position: relative;
+  isolation: isolate;
+  flex-basis: 64px;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--eth-gold-bright);
+  color: var(--eth-gold-bright);
+  background: radial-gradient(circle, #29261e 0 42%, #15191b 44% 100%);
+  box-shadow: inset 0 0 0 3px #15191b, inset 0 0 0 4px #78663c, 0 0 14px rgb(185 144 69 / 13%);
+  font-family: "Modesto Condensed", "Palatino Linotype", serif;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-level::before {
+  position: absolute;
+  z-index: -1;
+  inset: -5px;
+  border: 1px dashed rgb(212 181 106 / 42%);
+  border-radius: 50%;
+  content: "";
+  animation: eth-rank-orbit 24s linear infinite;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-identity__line {
+  color: var(--eth-text-muted);
+  font-size: 12px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-tag {
+  min-height: 21px;
+  border-color: #41494d;
+  color: #c0c3c2;
+  background: rgb(36 42 46 / 34%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vitals {
+  align-self: end;
+  padding: 7px;
+  border: 1px solid #30373a;
+  border-radius: var(--eth-radius-md);
+  background: rgb(10 13 14 / 42%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vital {
+  padding: 5px 10px;
+  border-left-color: #475055;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vital__label {
+  color: var(--eth-gold-bright);
+  font-size: 10px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-vital__values, .ecs-vital__values strong, .ecs-vital__values input, .ecs-stepper strong) {
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vital--hp .ecs-meter {
+  height: 7px;
+  border: 1px solid #30363a;
+  background: #080a0b;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vital--hp .ecs-meter > span {
+  position: relative;
+  background: linear-gradient(90deg, #92393e, var(--ecs-hp) 70%, #df6a69);
+  box-shadow: 0 0 8px rgb(189 66 73 / 28%);
+  transition: width 360ms var(--eth-ease), transform var(--eth-speed-fast) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-vital--hp {
+  position: relative;
+  padding-right: 44px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-hp-trace {
+  position: absolute;
+  right: 9px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 28px;
+  color: var(--eth-danger);
+  font-size: 22px;
+  opacity: 0.72;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgb(184 70 62 / 30%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header-actions button {
+  border-color: #3c4448;
+  background: #1c2124;
+}
+
+/* Top navigation */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation {
+  border-bottom-color: #3f474b;
+  background: #14181a;
+  box-shadow: inset 0 -1px #0a0c0d;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab {
+  border-right-color: #30373a;
+  color: var(--eth-text-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 transparent;
+  transition:
+    color var(--eth-speed-fast) ease,
+    background-color var(--eth-speed-fast) ease,
+    box-shadow var(--eth-speed-fast) ease,
+    transform var(--eth-speed-fast) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab:hover:not(:disabled),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab:focus-visible {
+  border-color: transparent;
+  border-right-color: #3b4448;
+  color: var(--eth-gold-bright);
+  background: #1b2022;
+  box-shadow: inset 0 -8px 14px rgb(185 144 69 / 4%);
+  transform: translateY(-1px);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab::after {
+  right: 14px;
+  left: 14px;
+  height: 2px;
+  background: var(--eth-aether);
+  box-shadow: 0 0 9px rgb(72 199 217 / 50%);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transform-origin: center;
+  transition: opacity var(--eth-speed-normal) ease, transform var(--eth-speed-normal) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab.is-active {
+  color: var(--eth-text);
+  background: #1a1f21;
+  box-shadow: inset 0 -12px 18px rgb(72 199 217 / 6%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab.is-active::after {
+  background: var(--eth-aether);
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__tab.is-active i {
+  color: var(--eth-aether-bright);
+  text-shadow: 0 0 8px rgb(72 199 217 / 32%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-navigation__badge {
+  color: #101315;
+  background: var(--eth-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Workspace panels */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-workspace, .ecs-legacy-unique-host) {
+  background-color: var(--eth-bg);
+  background-image:
+    linear-gradient(90deg, rgb(255 255 255 / 1%) 1px, transparent 1px),
+    linear-gradient(rgb(255 255 255 / 0.8%) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-tab-panel:not([hidden]) {
+  animation: eth-panel-enter var(--eth-speed-normal) var(--eth-ease) both;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-panel-heading {
+  position: relative;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 14px 16px 13px;
+  border: 1px solid #333b3f;
+  border-left: 3px solid var(--eth-gold);
+  border-radius: var(--eth-radius-sm);
+  background: linear-gradient(110deg, #1a1f21, #15191b 72%);
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%), 0 8px 18px rgb(0 0 0 / 18%);
+  overflow: hidden;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-panel-heading::after {
+  position: absolute;
+  right: 18px;
+  bottom: 0;
+  width: 92px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--eth-aether));
+  content: "";
+  opacity: 0.5;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-panel-heading h2 {
+  color: var(--eth-text);
+  font-size: 22px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-eyebrow {
+  color: var(--eth-aether);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section {
+  position: relative;
+  padding: 12px;
+  border: 1px solid #30373b;
+  border-radius: var(--eth-radius-sm);
+  background: linear-gradient(145deg, rgb(27 32 35 / 96%), rgb(20 24 26 / 96%));
+  box-shadow: inset 0 1px rgb(255 255 255 / 2.5%), 0 8px 16px rgb(0 0 0 / 12%);
+  overflow: hidden;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section::after {
+  position: absolute;
+  z-index: 0;
+  right: 10px;
+  bottom: 6px;
+  color: var(--eth-aether);
+  content: "V  N  F";
+  font-family: "Palatino Linotype", serif;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.035;
+  pointer-events: none;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section__header {
+  min-height: 30px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom-color: #3d4549;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section__header::before {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 2px;
+  background: var(--eth-gold);
+  content: "";
+  box-shadow: 0 0 6px rgb(185 144 69 / 22%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section__header :is(h2, h3) {
+  margin-right: auto;
+  color: #d9d5ca;
+  font-size: 13px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-character-ledger, .ecs-ledger-group__header) {
+  border-color: #3d4549;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ledger-group__header {
+  padding-inline: 8px;
+  background: linear-gradient(90deg, rgb(185 144 69 / 5%), transparent 45%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ability, .ecs-defense, .ecs-condition-strip span, .ecs-stat-ledger > div, .ecs-crafting-summary > span, .ecs-detail-tags > span) {
+  border: 1px solid #343c40;
+  border-radius: var(--eth-radius-sm);
+  background: #171c1e;
+  box-shadow: inset 0 1px rgb(255 255 255 / 2%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ability {
+  grid-template-columns: minmax(30px, 1fr) minmax(30px, 1fr);
+  grid-template-rows: 16px 30px;
+  gap: 2px 6px;
+  align-items: center;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ability > i {
+  display: grid;
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid color-mix(in srgb, var(--eth-gold) 68%, #343c40);
+  border-radius: 50%;
+  color: var(--eth-gold-bright);
+  background: #111517;
+  font-size: 11px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ability > span {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ability > strong {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ability strong, .ecs-defense strong, .ecs-resource-row strong, .ecs-stat-ledger strong, .ecs-crafting-summary strong) {
+  color: var(--eth-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rollable rows and actions */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(
+  button.ecs-skill-row,
+  button.ecs-defense,
+  button[data-action^="roll-"],
+  button[data-action="use-action"],
+  .ecs-strike,
+  .ecs-action-row,
+  .ecs-feat-row,
+  .ecs-effect-row,
+  .ecs-spell-row,
+  .ecs-inventory-item,
+  .ecs-rune-row
+) {
+  transition:
+    transform var(--eth-speed-fast) var(--eth-ease),
+    border-color var(--eth-speed-fast) ease,
+    background-color var(--eth-speed-fast) ease,
+    box-shadow var(--eth-speed-fast) ease,
+    opacity var(--eth-speed-fast) ease;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(
+  button.ecs-skill-row,
+  button.ecs-defense,
+  button[data-action^="roll-"],
+  button[data-action="use-action"]
+):hover:not(:disabled),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(
+  button.ecs-skill-row,
+  button.ecs-defense,
+  button[data-action^="roll-"],
+  button[data-action="use-action"]
+):focus-visible {
+  border-color: color-mix(in srgb, var(--eth-aether) 68%, #30373b);
+  color: var(--eth-text);
+  background: #1c2427;
+  box-shadow: inset 3px 0 var(--eth-aether), 0 0 12px rgb(72 199 217 / 14%);
+  transform: translateX(3px);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(
+  button.ecs-skill-row,
+  button.ecs-defense,
+  button[data-action^="roll-"],
+  button[data-action="use-action"]
+):active:not(:disabled) {
+  transform: translateX(3px) scale(0.985);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-skill-row {
+  min-height: 36px;
+  border-bottom-color: #343c40;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-strike, .ecs-action-row, .ecs-feat-row, .ecs-effect-row, .ecs-spell-row, .ecs-rune-row) {
+  border-color: #343c40;
+  background: linear-gradient(100deg, #191e20, #15191b);
+  box-shadow: inset 0 1px rgb(255 255 255 / 2%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-strike, .ecs-action-row, .ecs-feat-row, .ecs-effect-row, .ecs-spell-row, .ecs-rune-row):hover {
+  border-color: #485257;
+  background: linear-gradient(100deg, #1d2426, #171c1e);
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%), 0 5px 12px rgb(0 0 0 / 16%);
+  transform: translateY(-1px);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-item-image, .ecs-thumbnail) {
+  border-radius: var(--eth-radius-sm);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.is-roll-success, .is-restored, .is-healed) {
+  animation: eth-success-pulse 360ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.is-roll-critical, .is-rank-up) {
+  animation: eth-critical-pulse 760ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.is-roll-critical-failure, .is-damaged) {
+  animation: eth-danger-pulse 300ms var(--eth-ease);
+}
+
+/* Resource instruments */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-meter {
+  border: 1px solid #30373a;
+  background: #080a0b;
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 60%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-meter > span {
+  background: linear-gradient(90deg, var(--eth-gold), var(--eth-gold-bright));
+  box-shadow: 0 0 8px rgb(185 144 69 / 20%);
+  transition: width 300ms var(--eth-ease), opacity var(--eth-speed-fast) ease, transform var(--eth-speed-fast) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ether-reserve, .ecs-focus-resource) .ecs-meter > span {
+  background: linear-gradient(90deg, #238f9e, var(--eth-aether), var(--eth-aether-bright));
+  box-shadow: 0 0 10px rgb(72 199 217 / 34%);
+  animation: eth-aether-breathe var(--eth-speed-slow) ease-in-out infinite alternate;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(34px, auto) auto;
+  gap: 8px;
+  padding-inline: 5px;
+  border-bottom-color: #343c40;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-row > div {
+  overflow: hidden;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-row > div > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-row > strong {
+  min-width: 34px;
+  text-align: right;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-markers {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-markers > i {
+  display: block;
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #4a5256;
+  border-radius: 3px;
+  background: #171b1d;
+  box-shadow: inset 0 0 0 2px #101315;
+  transform: rotate(45deg);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-markers > i.is-active {
+  border-color: var(--eth-aether-bright);
+  background: var(--eth-aether);
+  box-shadow: inset 0 0 0 2px #153b40, 0 0 8px rgb(72 199 217 / 34%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-markers--diamond > i {
+  border-radius: 0;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-resource-markers--diamond > i.is-active {
+  border-color: var(--eth-gold-bright);
+  background: var(--eth-gold);
+  box-shadow: inset 0 0 0 2px #3c321d, 0 0 7px rgb(185 144 69 / 24%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-spell-row.is-expended, .is-resource-spent) {
+  filter: none;
+  opacity: 0.58;
+  transform: scale(0.995);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-system-resource {
+  border-color: color-mix(in srgb, var(--eth-gold) 72%, #343c40);
+  background: #14191b;
+  box-shadow: inset 0 0 14px rgb(185 144 69 / 5%);
+}
+
+/* Ether terminal */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ether-core {
+  position: relative;
+  border-color: #3d484c;
+  border-left-color: var(--eth-aether);
+  border-radius: var(--eth-radius-sm);
+  background:
+    linear-gradient(115deg, rgb(72 199 217 / 7%), transparent 34%),
+    #151b1d;
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%), 0 10px 24px rgb(0 0 0 / 20%);
+  overflow: hidden;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ether-core::after {
+  position: absolute;
+  right: 18px;
+  bottom: 12px;
+  color: var(--eth-aether-bright);
+  content: "SOURCE  /  RESERVE";
+  font-family: monospace;
+  font-size: 9px;
+  opacity: 0.045;
+  pointer-events: none;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-ether-reserve__heading strong {
+  color: var(--eth-aether-bright);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px rgb(72 199 217 / 20%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-key-stat {
+  border-left-color: #3f494d;
+  background: rgb(10 13 14 / 24%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-key-stat strong {
+  color: var(--eth-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ether-attribute, .ecs-ether-talent) {
+  padding-inline: 8px;
+  border-bottom-color: #374045;
+  transition: background-color var(--eth-speed-fast) ease, transform var(--eth-speed-fast) var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ether-attribute, .ecs-ether-talent):hover {
+  background: rgb(72 199 217 / 4%);
+  transform: translateX(2px);
+}
+
+/* Runemaker surface: classification remains readable, sigils stay secondary. */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-formula {
+  border-color: #3c474b;
+  border-left-color: var(--eth-aether);
+  border-radius: var(--eth-radius-sm);
+  background:
+    linear-gradient(90deg, rgb(72 199 217 / 5%), transparent 30%),
+    #151a1c;
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-formula::after {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  color: var(--eth-aether);
+  content: "V + N + F";
+  font-family: "Palatino Linotype", serif;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.055;
+  pointer-events: none;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-formula__parts button {
+  border-color: #3b4549;
+  background: #1b2123;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-formula__parts button:hover:not(:disabled),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-formula__parts button:focus-visible {
+  border-color: var(--eth-aether);
+  color: var(--eth-aether-bright);
+  box-shadow: 0 0 12px rgb(72 199 217 / 12%);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-class {
+  background: #181d1f;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-class.is-active {
+  background: color-mix(in srgb, var(--rune-color, var(--eth-aether)) 8%, #181d1f);
+  box-shadow: inset 0 -2px var(--rune-color, var(--eth-aether));
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-sigil {
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--rune-row-color, var(--eth-aether)) 10%, transparent);
+  opacity: 0.82;
+  transition: opacity var(--eth-speed-fast) ease, transform var(--eth-speed-normal) var(--eth-ease), box-shadow var(--eth-speed-normal) ease;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-row:hover .ecs-rune-sigil,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-rune-row:focus-within .ecs-rune-sigil {
+  box-shadow: inset 0 0 12px color-mix(in srgb, var(--rune-row-color, var(--eth-aether)) 18%, transparent), 0 0 10px color-mix(in srgb, var(--rune-row-color, var(--eth-aether)) 14%, transparent);
+  opacity: 1;
+  transform: rotate(3deg) scale(1.03);
+}
+
+/* Scrollbars and menus */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-navigation, .ecs-tab-panel) {
+  scrollbar-color: #596267 #101315;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-sheet-menu__panel {
+  border-color: #4a5357;
+  border-radius: var(--eth-radius-sm);
+  background: #202629;
+  box-shadow: 0 12px 24px rgb(0 0 0 / 46%);
+}
+
+/* Short-lived feedback supplied by the sheet interaction service. */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-feedback-roll {
+  animation: eth-feedback-roll 240ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]).ecs-feedback-roll .ecs-navigation__tab.is-active::after {
+  animation: eth-feedback-line 240ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]).ecs-feedback-damage .ecs-vital--hp,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-feedback-damage {
+  animation: eth-feedback-damage 300ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]).ecs-feedback-healing .ecs-vital--hp,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-feedback-healing {
+  animation: eth-feedback-healing 360ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]).ecs-feedback-resource-spend :is(.ecs-vital--hero, .ecs-system-resource, .ecs-ether-reserve .ecs-meter),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-feedback-resource-spend {
+  animation: eth-feedback-resource-spend 300ms var(--eth-ease);
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]).ecs-feedback-resource-recover :is(.ecs-vital--hero, .ecs-system-resource, .ecs-ether-reserve .ecs-meter),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-feedback-resource-recover {
+  animation: eth-feedback-resource-recover 300ms var(--eth-ease);
+}
+
+@keyframes eth-sheet-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes eth-panel-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes eth-rank-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes eth-aether-breathe {
+  from { opacity: 0.82; transform: scaleX(0.998); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes eth-success-pulse {
+  0% { box-shadow: 0 0 0 rgb(95 169 120 / 0%); transform: scale(1); }
+  45% { box-shadow: 0 0 14px rgb(95 169 120 / 28%); transform: scale(1.012); }
+  100% { box-shadow: 0 0 0 rgb(95 169 120 / 0%); transform: scale(1); }
+}
+
+@keyframes eth-critical-pulse {
+  0% { box-shadow: 0 0 0 rgb(212 181 106 / 0%); transform: scale(1); }
+  45% { box-shadow: 0 0 18px rgb(212 181 106 / 32%), inset 0 0 10px rgb(72 199 217 / 12%); transform: scale(1.018); }
+  100% { box-shadow: 0 0 0 rgb(212 181 106 / 0%); transform: scale(1); }
+}
+
+@keyframes eth-danger-pulse {
+  0% { box-shadow: 0 0 0 rgb(184 70 62 / 0%); transform: scale(1); }
+  45% { box-shadow: 0 0 14px rgb(184 70 62 / 34%); transform: scale(0.988); }
+  100% { box-shadow: 0 0 0 rgb(184 70 62 / 0%); transform: scale(1); }
+}
+
+@keyframes eth-feedback-roll {
+  0%, 100% { border-color: currentColor; box-shadow: none; }
+  45% { border-color: var(--eth-aether); box-shadow: 0 0 11px rgb(72 199 217 / 20%); }
+}
+
+@keyframes eth-feedback-line {
+  0%, 100% { opacity: 1; transform: scaleX(1); }
+  45% { opacity: 0.78; transform: scaleX(1.08); }
+}
+
+@keyframes eth-feedback-damage {
+  0%, 100% { box-shadow: none; transform: scale(1); }
+  45% { box-shadow: inset 0 0 12px rgb(184 70 62 / 24%); transform: scale(0.985); }
+}
+
+@keyframes eth-feedback-healing {
+  0%, 100% { box-shadow: none; transform: scale(1); }
+  45% { box-shadow: inset 0 0 12px rgb(95 169 120 / 22%), 0 0 9px rgb(72 199 217 / 12%); transform: scale(1.01); }
+}
+
+@keyframes eth-feedback-resource-spend {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  48% { opacity: 0.68; transform: scale(0.97); }
+}
+
+@keyframes eth-feedback-resource-recover {
+  0%, 100% { box-shadow: none; opacity: 1; transform: scale(1); }
+  45% { box-shadow: 0 0 10px rgb(72 199 217 / 18%); opacity: 1; transform: scale(1.018); }
+}
+
+/* Sheet and global preferences complement the operating-system preference. */
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) .ecs-level::before,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) :is(.ecs-ether-reserve, .ecs-focus-resource) .ecs-meter > span,
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-level::before,
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(.ecs-ether-reserve, .ecs-focus-resource) .ecs-meter > span {
+  animation: none;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) :is(
+  .ecs-feedback-roll,
+  .ecs-feedback-damage,
+  .ecs-feedback-healing,
+  .ecs-feedback-resource-spend,
+  .ecs-feedback-resource-recover
+),
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) :is(
+  .ecs-feedback-roll,
+  .ecs-feedback-damage,
+  .ecs-feedback-healing,
+  .ecs-feedback-resource-spend,
+  .ecs-feedback-resource-recover
+) {
+  animation-duration: 140ms;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) *,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) *::before,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="reduced"], .ecs-motion-reduced) *::after,
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]),
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *,
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::before,
+html[data-ethernum-sheet-motion="reduced"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::after {
+  animation-duration: 140ms;
+  animation-iteration-count: 1;
+  transition-duration: 100ms;
+}
+
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="off"], .ecs-motion-off),
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="off"], .ecs-motion-off) *,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="off"], .ecs-motion-off) *::before,
+:is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]):is([data-motion="off"], .ecs-motion-off) *::after,
+html[data-ethernum-sheet-motion="off"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]),
+html[data-ethernum-sheet-motion="off"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *,
+html[data-ethernum-sheet-motion="off"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::before,
+html[data-ethernum-sheet-motion="off"] :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::after {
+  scroll-behavior: auto !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (max-width: 1200px) {
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header {
+    grid-template-columns: 86px minmax(220px, 1fr) minmax(270px, 0.8fr) auto;
+    gap: 12px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait {
+    width: 82px;
+    min-width: 82px;
+  }
+}
+
+@media (max-width: 1000px) {
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header {
+    grid-template-columns: 82px minmax(0, 1fr) auto;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait {
+    width: 78px;
+    min-width: 78px;
+    height: 116px;
+  }
+}
+
+@media (max-width: 800px) {
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header {
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait {
+    width: 68px;
+    min-width: 68px;
+    height: 132px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-identity__name {
+    font-size: 22px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-section {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 650px) {
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-header {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-portrait {
+    width: 60px;
+    min-width: 60px;
+    height: 84px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-identity__name {
+    font-size: 18px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-level {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) .ecs-level::before {
+    inset: -3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]),
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *,
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::before,
+  :is(.ethernum-character-sheet.ethernum-company-sheet, .ethernum-character-sheet[data-shell-id="ethernum-company"]) *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

@@ -1,4 +1,4 @@
-<header class="ecs-header">
+<header class="ecs-header ecs-interface-header" data-ui-role="identity-header">
   <button type="button"
           class="ecs-portrait ecs-thumbnail"
           data-action="open-actor-image"
@@ -19,7 +19,10 @@
       {{else}}
       <h1 class="ecs-identity__name">{{identity.name}}</h1>
       {{/if}}
-      <span class="ecs-level" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Level'}}">{{identity.level}}</span>
+      <span class="ecs-level ecs-rank-seal"
+            data-ui-role="rank-seal"
+            data-rank="{{identity.level}}"
+            aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Level'}}">{{identity.level}}</span>
     </div>
 
     <p class="ecs-identity__line">
@@ -38,8 +41,8 @@
     </div>
   </div>
 
-  <section class="ecs-vitals" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Vitals'}}">
-    <div class="ecs-vital ecs-vital--hp">
+  <section class="ecs-vitals ecs-vitals-cluster" data-ui-role="vitals" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Vitals'}}">
+    <div class="ecs-vital ecs-vital--hp ecs-resource" data-ui-role="vital" data-resource="hp" data-resource-kind="hp">
       <span class="ecs-vital__label">{{localize 'ETHERNUM.CharacterSheet.Header.HP'}}</span>
       <div class="ecs-vital__values">
         {{#if permissions.canUpdateActor}}
@@ -56,13 +59,14 @@
         <span aria-hidden="true">/</span>
         <span>{{vitals.hp.max}}</span>
       </div>
-      <div class="ecs-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.CurrentHP'}}" aria-valuemin="0" aria-valuemax="{{vitals.hp.max}}" aria-valuenow="{{vitals.hp.value}}">
+      <div class="ecs-meter" data-ui-role="resource-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.CurrentHP'}}" aria-valuemin="0" aria-valuemax="{{vitals.hp.max}}" aria-valuenow="{{vitals.hp.value}}">
         <span style="--ecs-meter-value: {{vitals.hp.percentage}}%;"></span>
       </div>
+      <span class="ecs-hp-trace" aria-hidden="true"><i class="fas fa-wave-pulse"></i></span>
       {{#if vitals.hp.temp}}<small>+{{localize 'ETHERNUM.CharacterSheet.Header.TemporaryHP' value=vitals.hp.temp}}</small>{{/if}}
     </div>
 
-    <div class="ecs-vital ecs-vital--hero">
+    <div class="ecs-vital ecs-vital--hero ecs-resource" data-ui-role="vital" data-resource="hero-points" data-resource-kind="hero-points">
       <span class="ecs-vital__label">{{localize 'ETHERNUM.CharacterSheet.Header.Hero'}}</span>
       <div class="ecs-stepper">
         {{#if permissions.canUpdateActor}}
@@ -79,9 +83,9 @@
     {{#if (ethernum-eq shell.id "concordia")}}
     <div class="ecs-concordia-defenses" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.Defenses'}}">
       <span><small>{{localize 'ETHERNUM.CharacterSheet.Overview.ArmorClass'}}</small><strong>{{defenses.ac.value}}</strong></span>
-      <button type="button" data-action="roll-perception" title="{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}"><small>{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}</small><strong>{{defenses.perception.modifier}}</strong></button>
+      <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="perception" data-action="roll-perception" title="{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}"><small>{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}</small><strong>{{defenses.perception.modifier}}</strong></button>
       {{#each defenses.saves}}
-      <button type="button" data-action="roll-save" data-save="{{this.slug}}" title="{{this.label}}"><small>{{this.label}}</small><strong>{{this.modifier}}</strong></button>
+      <button type="button" class="ecs-rollable" data-ui-role="rollable" data-roll-kind="save" data-action="roll-save" data-save="{{this.slug}}" title="{{this.label}}"><small>{{this.label}}</small><strong>{{this.modifier}}</strong></button>
       {{/each}}
     </div>
     {{/if}}

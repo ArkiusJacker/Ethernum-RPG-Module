@@ -1537,6 +1537,13 @@
         "Name": "Exibir estatísticas detalhadas",
         "Hint": "Mostra falhas, sucessos e resultados naturais no rastreador."
       },
+      "CharacterSheetAnimations": {
+        "Name": "Animações da ficha de personagem",
+        "Hint": "Controla localmente as transições e respostas visuais das fichas Ethernum e Concórdia.",
+        "Full": "Completas",
+        "Reduced": "Reduzidas",
+        "Off": "Desativadas"
+      },
       "CombatAnimations": {
         "Name": "Animações de Fides e Fulgor",
         "Hint": "Controla os efeitos visuais locais das mecânicas universais.",

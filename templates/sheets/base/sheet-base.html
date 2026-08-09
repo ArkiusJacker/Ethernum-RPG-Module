@@ -1,8 +1,8 @@
-<div class="ecs-shell">
+<div class="ecs-shell ecs-interface-shell" data-ui-role="sheet-shell">
   {{> "modules/ethernum-rpg-module/templates/sheets/base/header.html"}}
   {{> "modules/ethernum-rpg-module/templates/sheets/base/navigation.html"}}
 
-  <main class="ecs-workspace" data-viewport-workspace aria-label="{{shell.title}}">
+  <main class="ecs-workspace ecs-panel-stack" data-ui-role="workspace" data-viewport-workspace aria-label="{{shell.title}}">
     {{> "modules/ethernum-rpg-module/templates/sheets/components/overview.html"}}
     {{> "modules/ethernum-rpg-module/templates/sheets/components/combat.html"}}
     {{> "modules/ethernum-rpg-module/templates/sheets/components/inventory.html"}}

@@ -70,24 +70,51 @@ function viewDefenses(value: unknown): Data {
 function viewResources(value: unknown): Data[] {
   const resources = record(value);
   const result: Data[] = [];
-  const add = (label: string, resourceValue: unknown) => {
+  const add = (label: string, resourceValue: unknown, slug: string) => {
     const resource = record(resourceValue);
     if (Object.keys(resource).length === 0) return;
-    result.push({ label, value: number(resource.current), max: number(resource.max) });
+    const value = number(resource.current);
+    const max = Math.max(0, number(resource.max));
+    const markerCount = Math.min(max, 10);
+    const markerKind = slug === "investiture" ? "diamond" : "gem";
+    const preparedLabel = typeof resource.label === "string"
+      ? localize(resource.label, resource.label)
+      : label;
+    result.push({
+      label: preparedLabel,
+      slug,
+      value,
+      max,
+      markerKind,
+      markers: Array.from({ length: markerCount }, (_entry, index) => ({ active: index < value })),
+    });
   };
-  add(localize("ETHERNUM.CharacterSheet.Overview.HeroPoints", "Hero Points"), resources.heroPoints);
-  add(localize("ETHERNUM.CharacterSheet.Overview.FocusPoints", "Focus Points"), resources.focusPoints);
-  add(localize("ETHERNUM.CharacterSheet.Overview.MythicPoints", "Mythic Points"), resources.mythicPoints);
-  Object.entries(record(resources.classResources)).forEach(([slug, resource]) => add(slug, resource));
+  add(localize("ETHERNUM.CharacterSheet.Overview.HeroPoints", "Hero Points"), resources.heroPoints, "hero-points");
+  add(localize("ETHERNUM.CharacterSheet.Overview.FocusPoints", "Focus Points"), resources.focusPoints, "focus-points");
+  add(localize("ETHERNUM.CharacterSheet.Overview.MythicPoints", "Mythic Points"), resources.mythicPoints, "mythic-points");
+  Object.entries(record(resources.classResources)).forEach(([slug, resource]) => add(slug, resource, slug));
   return result;
 }
+
+const ABILITY_ICONS: Record<string, string> = {
+  str: "fas fa-hand-fist",
+  dex: "fas fa-person-running",
+  con: "fas fa-shield-heart",
+  int: "fas fa-book-open",
+  wis: "fas fa-eye",
+  cha: "fas fa-gem",
+};
 
 function viewAbilities(value: unknown): Data[] {
   return list(value).map(abilityValue => {
     const ability = record(abilityValue);
     const slug = String(ability.slug ?? "").toLowerCase();
     const key = slug ? `ETHERNUM.CharacterSheet.Abilities.${slug}` : "";
-    return { ...ability, label: key ? localize(key, String(ability.label ?? slug.toUpperCase())) : ability.label };
+    return {
+      ...ability,
+      icon: ABILITY_ICONS[slug] ?? "fas fa-circle-dot",
+      label: key ? localize(key, String(ability.label ?? slug.toUpperCase())) : ability.label,
+    };
   });
 }
 
