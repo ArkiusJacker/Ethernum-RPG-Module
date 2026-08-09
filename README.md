@@ -6,15 +6,16 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.5
+## Versão 3.7.6
 
-- A ficha Concórdia recebe identidade própria de grimório mecânico em cobre, latão, couro escuro e energia arcana ciano.
-- Cabeçalho reorganiza retrato circular, identidade, selo de nível, tubo de PV, Pontos Heroicos e defesas sem sobreposições.
-- Personagem, Combate, Arsenal, Magia, Talentos, Mecânica Única e Efeitos usam materiais e hierarquias visuais adequados a cada conteúdo.
-- O tubo de PV deriva preenchimento e estado do Actor PF2e, sem duplicar dados nem criar flags de apresentação.
-- Perfis de Arkius, Charles, Atlas e Yu preservam seus acentos próprios dentro da linguagem visual compartilhada de Concórdia.
-- Estados completo, reduzido e desligado continuam disponíveis para animações, com respeito a `prefers-reduced-motion`.
-- O isolamento de tema impede que o acabamento de Concórdia altere a ficha Ethernum Company.
+- Novo Comunicador de Campo da Ethernum Company disponível fora das fichas para jogadores e mestres.
+- Ficha, Conversas, Grupo, Esquadrão, Mapa, Manual, Dossiês, Contratos, Arquivos, Loja e Ajustes usam documentos e mensagens nativas do Foundry.
+- Carcaça diegética em aço negro e latão, logotipo oficial, autenticação por Éter, grade rolável e navegação persistente.
+- Inicialização completa, abreviada, pulável ou desativada, com opções de movimento, brilho, texto, contraste, sons e notificações.
+- O mestre pode adicionar, editar, duplicar, reordenar, restringir, importar, exportar, desativar e remover atalhos sem apagar os documentos originais.
+- Permissões do Foundry, Rank, agente, esquadrão e desbloqueios declarativos são validados antes da exibição e da abertura.
+- Links externos exigem confirmação, destinos quebrados falham com segurança e aplicativos personalizados não executam JavaScript.
+- A API `game.ethernum.ui` permite abrir, fechar, alternar e atualizar o comunicador por macro ou integração.
 - O contrato automatizado cobre semântica, materiais, PV, diagnóstico e oito instâncias independentes de ficha.
 
 ### Paridade da ficha PF2e

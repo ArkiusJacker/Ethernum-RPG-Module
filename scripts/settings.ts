@@ -10,6 +10,11 @@ export type CharacterSheetAnimationMode = CombatAnimationMode;
 export type PippingAnimationSpeed = "fast" | "normal" | "cinematic";
 export type PippingAbilityHoverMode = "full" | "reduced" | "off";
 export type PippingHoverCanvasPreviewMode = "off" | "card" | "token";
+export type FieldCommunicatorBootMode = "always" | "session" | "off";
+export type FieldCommunicatorMotionMode = "full" | "reduced" | "off";
+export type FieldCommunicatorTextScale = "normal" | "large";
+export type FieldCommunicatorBrightness = "low" | "normal" | "high";
+export type FieldCommunicatorNotificationMode = "all" | "priority" | "off";
 
 function getBooleanSetting(key: BooleanSettingKey, fallback: boolean): boolean {
   try {
@@ -142,6 +147,20 @@ export function registerSettings(): void {
     choices: { ethernum: "Ethernum", concordia: "Concórdia" },
     default: "ethernum",
   });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorApps", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { version: 1, apps: [] },
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorGroupHistoryLimit", {
+    name: "ETHERNUM.Settings.FieldCommunicatorGroupHistoryLimit.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorGroupHistoryLimit.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 100,
+  });
 
   const refreshClientUI = () => window.dispatchEvent(new CustomEvent("ethernum-client-settings-changed"));
   const applyPippingHoverMode = (value: unknown) => {
@@ -162,6 +181,93 @@ export function registerSettings(): void {
     config: true,
     type: Boolean,
     default: true,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorBoot", {
+    name: "ETHERNUM.Settings.FieldCommunicatorBoot.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorBoot.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      always: "ETHERNUM.Settings.FieldCommunicatorBoot.Always",
+      session: "ETHERNUM.Settings.FieldCommunicatorBoot.Session",
+      off: "ETHERNUM.Settings.FieldCommunicatorBoot.Off",
+    },
+    default: "session",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorMotion", {
+    name: "ETHERNUM.Settings.FieldCommunicatorMotion.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorMotion.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      full: "ETHERNUM.Settings.FieldCommunicatorMotion.Full",
+      reduced: "ETHERNUM.Settings.FieldCommunicatorMotion.Reduced",
+      off: "ETHERNUM.Settings.FieldCommunicatorMotion.Off",
+    },
+    default: "full",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorSounds", {
+    name: "ETHERNUM.Settings.FieldCommunicatorSounds.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorSounds.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorTextScale", {
+    name: "ETHERNUM.Settings.FieldCommunicatorTextScale.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorTextScale.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      normal: "ETHERNUM.Settings.FieldCommunicatorTextScale.Normal",
+      large: "ETHERNUM.Settings.FieldCommunicatorTextScale.Large",
+    },
+    default: "normal",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorBrightness", {
+    name: "ETHERNUM.Settings.FieldCommunicatorBrightness.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorBrightness.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      low: "ETHERNUM.Settings.FieldCommunicatorBrightness.Low",
+      normal: "ETHERNUM.Settings.FieldCommunicatorBrightness.Normal",
+      high: "ETHERNUM.Settings.FieldCommunicatorBrightness.High",
+    },
+    default: "normal",
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorHighContrast", {
+    name: "ETHERNUM.Settings.FieldCommunicatorHighContrast.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorHighContrast.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: refreshClientUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "fieldCommunicatorNotifications", {
+    name: "ETHERNUM.Settings.FieldCommunicatorNotifications.Name",
+    hint: "ETHERNUM.Settings.FieldCommunicatorNotifications.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      all: "ETHERNUM.Settings.FieldCommunicatorNotifications.All",
+      priority: "ETHERNUM.Settings.FieldCommunicatorNotifications.Priority",
+      off: "ETHERNUM.Settings.FieldCommunicatorNotifications.Off",
+    },
+    default: "all",
     onChange: refreshClientUI,
   });
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatTrackerOnlyInCombat", {
@@ -406,4 +512,68 @@ export function getPippingHoverCanvasPreviewMode(): PippingHoverCanvasPreviewMod
     return "card";
   }
   return "card";
+}
+
+export function getFieldCommunicatorBootMode(): FieldCommunicatorBootMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorBoot");
+    if (value === "always" || value === "off") return value;
+  } catch {
+    return "session";
+  }
+  return "session";
+}
+
+export function getFieldCommunicatorMotionMode(): FieldCommunicatorMotionMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorMotion");
+    if (value === "reduced" || value === "off") return value;
+  } catch {
+    return "full";
+  }
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "reduced" : "full";
+}
+
+export function getFieldCommunicatorSoundsEnabled(): boolean {
+  try {
+    return game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorSounds") === true;
+  } catch {
+    return false;
+  }
+}
+
+export function getFieldCommunicatorTextScale(): FieldCommunicatorTextScale {
+  try {
+    return game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorTextScale") === "large" ? "large" : "normal";
+  } catch {
+    return "normal";
+  }
+}
+
+export function getFieldCommunicatorBrightness(): FieldCommunicatorBrightness {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorBrightness");
+    if (value === "low" || value === "high") return value;
+  } catch {
+    return "normal";
+  }
+  return "normal";
+}
+
+export function getFieldCommunicatorHighContrast(): boolean {
+  try {
+    return game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorHighContrast") === true;
+  } catch {
+    return false;
+  }
+}
+
+export function getFieldCommunicatorNotificationMode(): FieldCommunicatorNotificationMode {
+  try {
+    const value = game.settings!.get(ETHERNUM.MODULE_NAME, "fieldCommunicatorNotifications");
+    if (value === "priority" || value === "off") return value;
+  } catch {
+    return "all";
+  }
+  return "all";
 }

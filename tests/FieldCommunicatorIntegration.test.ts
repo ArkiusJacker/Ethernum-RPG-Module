@@ -1,0 +1,67 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  clampFieldCommunicatorPosition,
+  clampFieldCommunicatorSize,
+} from "../scripts/ui/FieldCommunicatorOverlay.js";
+
+const root = process.cwd();
+const read = (path: string) => readFileSync(resolve(root, path), "utf8");
+
+describe("Field Communicator v3.7.6 integration", () => {
+  it("is registered outside character sheets with a public API and persistent launcher", () => {
+    const main = read("scripts/main.ts");
+    const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
+    const manifest = JSON.parse(read("module.json")) as { styles: string[] };
+
+    expect(main).toContain("FieldCommunicatorOverlay.initialize()");
+    expect(main).toContain("openFieldCommunicator");
+    expect(main).toContain("toggleFieldCommunicator");
+    expect(overlay).toContain("document.body.appendChild(root)");
+    expect(overlay).toContain("if (!this.layout.minimized) void this.mount()");
+    expect(overlay).toContain('if (typeof document === "undefined" || !game.user) return null;');
+    expect(overlay).not.toContain('if (typeof document === "undefined" || !game.user?.isGM) return null;');
+    expect(manifest.styles).toContain("styles/ethernum-field-communicator.css");
+  });
+
+  it("keeps the device shell scrollable, closable and declarative", () => {
+    const template = read("templates/ethernum-field-communicator.html");
+    const styles = read("styles/ethernum-field-communicator.css");
+
+    expect(template).toContain("data-field-communicator");
+    expect(template).toContain("data-communicator-scroll");
+    expect(template).toContain('data-communicator-action="close"');
+    expect(template).toContain("data-communicator-private-message");
+    expect(template).toContain("data-communicator-group-message");
+    expect(template).not.toMatch(/<script\b/i);
+    expect(styles).toContain(".ethernum-field-communicator-overlay");
+    expect(styles).toContain(".ethc-launcher");
+    expect(styles).toContain("@container");
+    expect(styles).toContain("prefers-reduced-motion");
+    expect(read("scripts/ui/FieldCommunicatorOverlay.ts")).toContain("AudioContext");
+  });
+
+  it("uses Foundry documents and chat permissions without arbitrary script execution", () => {
+    const service = read("scripts/communicator/FieldCommunicatorService.ts");
+    const registry = read("scripts/communicator/FieldCommunicatorRegistry.ts");
+
+    expect(service).toContain("testUserPermission(user, \"OBSERVER\")");
+    expect(service).toContain("canObserve(document, viewer)");
+    expect(service).toContain("canAccessTarget(app, subjectUser)");
+    expect(service).toContain("ChatMessage.create");
+    expect(service).toContain("fromUuid");
+    expect(service).toContain("whisper");
+    expect(registry).toContain("sanitizeFieldCommunicatorExternalUrl");
+    expect(`${service}\n${registry}`).not.toMatch(/\beval\s*\(|new\s+Function\s*\(/);
+  });
+
+  it("clamps the communicator to desktop and compact viewports", () => {
+    expect(clampFieldCommunicatorSize(900, 1_000, { width: 800, height: 700 }))
+      .toEqual({ width: 784, height: 684 });
+    expect(clampFieldCommunicatorSize(100, 100, { width: 360, height: 520 }))
+      .toEqual({ width: 344, height: 504 });
+    expect(clampFieldCommunicatorPosition(-100, 900, { width: 344, height: 504 }, { width: 360, height: 520 }))
+      .toEqual({ left: 8, top: 8 });
+  });
+});

@@ -5,6 +5,31 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.6] - 2026-08-09
+
+### Adicionado
+- Comunicador de Campo Ethernum persistente fora das fichas, acessível a jogadores e mestres.
+- Onze aplicativos oficiais: Ficha, Conversas, Grupo, Esquadrão, Mapa, Manual, Dossiês, Contratos, Arquivos, Loja e Ajustes.
+- Registro mundial versionado para aplicativos oficiais e personalizados, com migração, sanitização, importação, exportação e restauração segura.
+- Mensagens privadas e de grupo integradas ao ChatMessage nativo, além de solicitações de compra enviadas ao mestre.
+- Administração GM com criação, edição, duplicação, ativação, remoção, reordenação por arraste ou teclado e pré-visualização como jogador.
+- Sequências de inicialização completa, abreviada, pulável e desativada, com preferências locais de acessibilidade.
+- API pública em `game.ethernum.ui` para abrir, fechar, alternar e atualizar o comunicador.
+
+### Alterado
+- O logotipo oficial da Ethernum Company passa a ser usado no núcleo de autenticação, no cabeçalho e na tela inicial do aparelho.
+- Documentos, cenas, itens, compêndios, pastas e links externos usam adaptadores declarativos e as permissões originais do Foundry.
+- A grade aceita aplicativos adicionais e mantém cabeçalho, viewport rolável e navegação inferior estáveis em tamanhos compactos e largos.
+
+### Segurança
+- Aplicativos não podem executar JavaScript arbitrário; rótulos, descrições, ícones, IDs e destinos são normalizados antes do uso.
+- Links externos exigem confirmação e UUIDs inválidos não interrompem a interface.
+- Filtros narrativos de Rank, agente, esquadrão e desbloqueio nunca substituem a permissão do documento de destino.
+- Remover um atalho preserva o Actor, Item, Scene, JournalEntry, Folder ou Compendium correspondente.
+
+### Testes
+- 471 testes automatizados cobrem registro, migração, 8/16/30/60 aplicativos, navegação, boot, teclado, ciclo de vida, segurança e integração externa à ficha.
+
 ## [3.7.5] - 2026-08-09
 
 ### Adicionado

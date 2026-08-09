@@ -1494,6 +1494,38 @@
       },
       "Errors": { "ActionFailed": "Não foi possível concluir a ação do Controle do Mestre.", "PayloadSerialization": "Não foi possível serializar o payload." }
     },
+    "FieldCommunicator": {
+      "Title": "Comunicador de Campo Ethernum",
+      "Open": "Abrir Comunicador de Campo",
+      "Close": "Fechar comunicador",
+      "AgentFallback": "Agente não vinculado",
+      "Rank": "Rank",
+      "Signal": "Canal operacional",
+      "EtherReserve": "Reserva de Éter",
+      "Notifications": "Notificações",
+      "Navigation": { "Home": "Início", "Back": "Voltar", "Recents": "Recentes" },
+      "Boot": { "System": "ETHERNUM FIELD SYSTEM", "Sync": "SINCRONIZANDO RESERVA DE ÉTER...", "Identity": "IDENTIDADE CONFIRMADA", "Channel": "CANAL OPERACIONAL ESTABELECIDO", "Skip": "Pular inicialização" },
+      "Apps": {
+        "sheet": { "Label": "Ficha", "Description": "Dossiê do agente vinculado" },
+        "conversations": { "Label": "Conversas", "Description": "Mensagens privadas e corporativas" },
+        "group": { "Label": "Grupo", "Description": "Canal coletivo da equipe" },
+        "squad": { "Label": "Esquadrão", "Description": "Estado operacional dos agentes" },
+        "map": { "Label": "Mapa", "Description": "Cenas e mapas liberados" },
+        "manual": { "Label": "Manual", "Description": "Protocolos e procedimentos" },
+        "dossiers": { "Label": "Dossiês", "Description": "Inteligência e ameaças" },
+        "contracts": { "Label": "Contratos", "Description": "Histórico operacional" },
+        "files": { "Label": "Arquivos", "Description": "Documentos e evidências" },
+        "shop": { "Label": "Loja", "Description": "Catálogo e solicitações" },
+        "settings": { "Label": "Ajustes", "Description": "Preferências deste aparelho" }
+      },
+      "States": { "Unlinked": "IDENTIDADE NÃO VINCULADA", "Denied": "ACESSO NEGADO", "Unavailable": "ARQUIVO INDISPONÍVEL", "Maintenance": "EM MANUTENÇÃO", "Pending": "SINCRONIZAÇÃO PENDENTE", "Empty": "Nenhum registro disponível" },
+      "Actions": { "Open": "Abrir", "Send": "Enviar", "Request": "Solicitar", "Add": "Adicionar aplicativo", "Edit": "Editar", "Duplicate": "Duplicar", "Disable": "Desativar", "Enable": "Ativar", "Remove": "Remover", "MoveUp": "Mover para cima", "MoveDown": "Mover para baixo", "Reset": "Restaurar ordem oficial", "Import": "Importar JSON", "Export": "Exportar JSON", "ConfirmExternal": "Abrir link externo" },
+      "Panels": { "Conversations": "Conversas privadas", "Group": "Canal do grupo", "Squad": "Esquadrão", "Map": "Mapas liberados", "Manual": "Manual da companhia", "Dossiers": "Dossiês", "Contracts": "Contratos", "Files": "Arquivos", "Shop": "Loja", "Settings": "Ajustes", "Administration": "Aplicativos do mestre", "Recents": "Aplicativos recentes" },
+      "Admin": { "Title": "Configurar aplicativos", "Id": "Identificador", "Label": "Nome", "Description": "Descrição", "Icon": "Ícone", "Type": "Tipo", "Target": "UUID ou destino", "Order": "Ordem", "Accent": "Destaque", "MinimumRank": "Rank mínimo", "AllowedAgents": "Agentes autorizados", "AllowedSquads": "Esquadrões autorizados", "Enabled": "Ativo", "Json": "Configuração JSON" },
+      "SettingsPanel": { "Boot": "Inicialização", "Motion": "Movimento", "Sounds": "Sons", "TextScale": "Tamanho do texto", "Brightness": "Brilho", "HighContrast": "Alto contraste", "Notifications": "Notificações" },
+      "Messages": { "PrivatePlaceholder": "Mensagem confidencial...", "GroupPlaceholder": "Mensagem para o grupo...", "PurchaseRequested": "Solicitação de compra enviada ao mestre.", "AppSaved": "Aplicativo salvo.", "AppRemoved": "Atalho removido; o documento original foi preservado.", "ExternalConfirm": "Este endereço será aberto fora do Foundry: {url}" },
+      "Errors": { "NoActor": "Nenhum personagem foi vinculado a este usuário.", "NoPermission": "Você não possui permissão para acessar este registro.", "BrokenTarget": "O destino não existe mais ou não está disponível.", "InvalidImport": "A configuração importada é inválida.", "ActionFailed": "Não foi possível concluir a operação do comunicador." }
+    },
     "Settings": {
       "PlayersCanChooseCharacterSheet": {
         "Name": "Jogadores podem escolher a ficha personalizada",
@@ -1578,7 +1610,15 @@
         "Off": "Desativada",
         "Card": "Somente carta",
         "Token": "Carta e token"
+      },
+      "FieldCommunicatorGroupHistoryLimit": { "Name": "Histórico do Grupo no comunicador", "Hint": "Quantidade máxima de mensagens recentes mostradas no canal do Grupo." },
+      "FieldCommunicatorBoot": { "Name": "Inicialização do Comunicador", "Hint": "Define quando a autenticação diegética completa é exibida.", "Always": "Sempre", "Session": "Uma vez por sessão", "Off": "Desativada" },
+      "FieldCommunicatorMotion": { "Name": "Movimento do Comunicador", "Hint": "Controla animações e transições do aparelho.", "Full": "Completo", "Reduced": "Reduzido", "Off": "Desativado" },
+      "FieldCommunicatorSounds": { "Name": "Sons do Comunicador", "Hint": "Ativa respostas sonoras discretas do aparelho." },
+      "FieldCommunicatorTextScale": { "Name": "Texto do Comunicador", "Hint": "Ajusta a escala dos textos do aparelho.", "Normal": "Normal", "Large": "Ampliado" },
+      "FieldCommunicatorBrightness": { "Name": "Brilho do Comunicador", "Hint": "Ajusta a intensidade dos detalhes luminosos.", "Low": "Baixo", "Normal": "Normal", "High": "Alto" },
+      "FieldCommunicatorHighContrast": { "Name": "Alto contraste no Comunicador", "Hint": "Aumenta o contraste de texto, bordas e controles." },
+      "FieldCommunicatorNotifications": { "Name": "Notificações do Comunicador", "Hint": "Escolhe quais alertas locais o aparelho apresenta.", "All": "Todas", "Priority": "Somente prioritárias", "Off": "Desativadas" }
       }
     }
   }
-}

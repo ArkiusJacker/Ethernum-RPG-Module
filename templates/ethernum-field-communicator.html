@@ -1,0 +1,336 @@
+<section
+  class="ethernum-communicator ethernum-field-communicator"
+  data-field-communicator
+  data-motion="{{motionMode}}"
+  data-high-contrast="{{highContrast}}"
+  data-boot-state="{{bootState}}"
+  data-communicator-screen="{{screen}}"
+  style="{{#if textScale}}--ethc-text-scale: {{textScale}};{{/if}}{{#if glowIntensity}} --ethc-glow-strength: {{glowIntensity}};{{/if}}"
+  aria-label="Comunicador de Campo Ethernum"
+>
+  <span class="ethc-chassis-detail ethc-chassis-detail--top" aria-hidden="true"></span>
+  <span class="ethc-chassis-detail ethc-chassis-detail--bottom" aria-hidden="true"></span>
+  <span class="ethc-rune-rail ethc-rune-rail--left" aria-hidden="true"></span>
+  <span class="ethc-rune-rail ethc-rune-rail--right" aria-hidden="true"></span>
+  <span class="ethc-power-indicator" aria-hidden="true"></span>
+
+  {{#if showBoot}}
+  <section class="ethc-boot" aria-labelledby="ethc-boot-title" aria-describedby="ethc-boot-status" aria-live="polite">
+    <div class="ethc-boot__circuit" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="ethc-boot__core" aria-hidden="true">
+      <span class="ethc-boot__ring ethc-boot__ring--outer"></span>
+      <span class="ethc-boot__ring ethc-boot__ring--inner"></span>
+      <img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt="" aria-hidden="true">
+    </div>
+    <div class="ethc-boot__copy">
+      <p class="ethc-kicker">ETHERNUM FIELD SYSTEM</p>
+      <h1 id="ethc-boot-title">Comunicador de Campo</h1>
+      <p id="ethc-boot-status" class="ethc-boot__status">{{bootStatus}}</p>
+      <dl class="ethc-boot__identity">
+        <div><dt>Agente</dt><dd>{{agent.name}}</dd></div>
+        <div><dt>Autorização</dt><dd>Rank {{agent.rank}}</dd></div>
+        <div><dt>Esquadrão</dt><dd>{{agent.squad}}</dd></div>
+      </dl>
+    </div>
+    <ol class="ethc-boot__steps" aria-label="Progresso da inicialização">
+      {{#each bootSteps}}
+      <li class="{{#if this.complete}}is-complete{{/if}} {{#if this.current}}is-current{{/if}}">
+        <span aria-hidden="true"></span><span>{{this.label}}</span>
+      </li>
+      {{/each}}
+    </ol>
+    <button type="button" class="ethc-boot__skip" data-communicator-action="skip-boot">
+      <i class="fas fa-forward-step" aria-hidden="true"></i>
+      <span>Pular inicialização</span>
+    </button>
+  </section>
+  {{/if}}
+
+  <header class="ethc-header" data-communicator-drag>
+    <div class="ethc-header__brand" aria-label="Ethernum Company">
+      <span class="ethc-brand-mark" aria-hidden="true"><img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt=""></span>
+      <span><small>Ethernum Company</small><strong>Field Communicator</strong></span>
+    </div>
+
+    <div class="ethc-header__identity">
+      <span class="ethc-agent-status {{#if agent.online}}is-online{{/if}}" aria-hidden="true"></span>
+      <span><small>Agente autenticado</small><strong>{{agent.name}}</strong></span>
+      <b>R{{agent.rank}}</b>
+    </div>
+
+    <div class="ethc-header__telemetry" aria-label="Telemetria do comunicador">
+      <span class="ethc-signal" title="Sinal {{signal.label}}" aria-label="Sinal {{signal.label}}">
+        {{#each signal.bars}}<i class="{{#if this.active}}is-active{{/if}}" aria-hidden="true"></i>{{/each}}
+      </span>
+      <span class="ethc-aether-reserve" title="Reserva de Éter" aria-label="Reserva de Éter: {{aether.value}} de {{aether.max}}">
+        <i class="fas fa-bolt" aria-hidden="true"></i><b>{{aether.value}}</b><small>/{{aether.max}}</small>
+      </span>
+      <button
+        type="button"
+        class="ethc-icon-button ethc-notifications {{#if notificationCount}}has-notifications{{/if}}"
+        data-communicator-action="open-notifications"
+        aria-label="Abrir notificações: {{notificationCount}} pendentes"
+        title="Notificações"
+      >
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        {{#if notificationCount}}<span class="ethc-badge ethc-badge--danger">{{notificationCount}}</span>{{/if}}
+      </button>
+      <button type="button" class="ethc-icon-button" data-communicator-action="close" aria-label="Fechar comunicador" title="Fechar">
+        <i class="fas fa-power-off" aria-hidden="true"></i>
+      </button>
+      <time class="ethc-world-time" datetime="{{worldTime.iso}}">{{worldTime.label}}</time>
+    </div>
+  </header>
+
+  <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="Conteúdo do comunicador">
+    {{#if state.noActor}}
+    <section class="ethc-system-state ethc-system-state--warning" role="status" aria-labelledby="ethc-state-no-actor">
+      <i class="fas fa-id-card-clip" aria-hidden="true"></i>
+      <div><p class="ethc-kicker">Falha de autenticação</p><h2 id="ethc-state-no-actor">Identidade não vinculada</h2><p>Vincule um personagem ao usuário para habilitar os recursos de campo.</p></div>
+      {{#if isGM}}<button type="button" data-communicator-action="open-user-configuration"><i class="fas fa-user-gear" aria-hidden="true"></i><span>Configurar usuário</span></button>{{/if}}
+    </section>
+    {{/if}}
+
+    {{#if state.permissionDenied}}
+    <section class="ethc-system-state ethc-system-state--danger" role="alert" aria-labelledby="ethc-state-permission">
+      <i class="fas fa-shield-halved" aria-hidden="true"></i>
+      <div><p class="ethc-kicker">Protocolo de segurança</p><h2 id="ethc-state-permission">Acesso negado</h2><p>Seu perfil não possui autorização para consultar este recurso.</p></div>
+      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button>
+    </section>
+    {{/if}}
+
+    {{#if state.documentUnavailable}}
+    <section class="ethc-system-state ethc-system-state--danger" role="alert" aria-labelledby="ethc-state-document">
+      <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
+      <div><p class="ethc-kicker">Destino interrompido</p><h2 id="ethc-state-document">Arquivo indisponível</h2><p>O documento foi removido, movido ou não está acessível neste mundo.</p></div>
+      <button type="button" data-communicator-action="go-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Retornar</span></button>
+    </section>
+    {{/if}}
+
+    {{#if state.maintenance}}
+    <section class="ethc-system-state ethc-system-state--maintenance" role="status" aria-labelledby="ethc-state-maintenance">
+      <i class="fas fa-screwdriver-wrench" aria-hidden="true"></i>
+      <div><p class="ethc-kicker">Canal temporariamente isolado</p><h2 id="ethc-state-maintenance">Em manutenção</h2><p>Este aplicativo foi preservado, mas está desativado pelo comando.</p></div>
+      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button>
+    </section>
+    {{/if}}
+
+    {{#if isHome}}
+    <div class="ethc-home" data-communicator-view="home">
+      <section class="ethc-auth-core" aria-label="Núcleo de autenticação Ethernum">
+        <div class="ethc-auth-core__seal" aria-hidden="true">
+          <span class="ethc-auth-core__ring ethc-auth-core__ring--outer"></span>
+          <span class="ethc-auth-core__ring ethc-auth-core__ring--inner"></span>
+          <img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt="" aria-hidden="true">
+        </div>
+        <div class="ethc-auth-core__copy">
+          <p class="ethc-kicker">Sistema de campo autenticado</p>
+          <strong>Ethernum Company</strong>
+          <div><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Conexão segura</span><span><i class="fas fa-user" aria-hidden="true"></i> Agente online</span></div>
+        </div>
+      </section>
+
+      <section class="ethc-home-status" aria-labelledby="ethc-home-title">
+        <div>
+          <p class="ethc-kicker">Canal operacional estabelecido</p>
+          <h1 id="ethc-home-title">Central de Operações</h1>
+          <p>{{homeMessage}}</p>
+        </div>
+        <div class="ethc-home-status__sync {{#if sync.pending}}is-pending{{else}}is-ready{{/if}}" role="status">
+          <i class="fas {{#if sync.pending}}fa-arrows-rotate{{else}}fa-circle-check{{/if}}" aria-hidden="true"></i>
+          <span>{{sync.label}}</span>
+        </div>
+      </section>
+
+      {{#if priorityNotice}}
+      <button type="button" class="ethc-priority-notice" data-communicator-action="open-priority-notice">
+        <i class="fas fa-bullhorn" aria-hidden="true"></i>
+        <span><small>Comunicado prioritário</small><strong>{{priorityNotice.title}}</strong></span>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+      </button>
+      {{/if}}
+
+      <section class="ethc-app-directory" aria-labelledby="ethc-apps-title">
+        <header class="ethc-section-heading">
+          <div><p class="ethc-kicker">Diretório autenticado</p><h2 id="ethc-apps-title">Aplicativos</h2></div>
+          <span>{{apps.length}} disponíveis</span>
+        </header>
+        <div class="ethc-app-grid">
+          {{#each apps}}
+          <button
+            type="button"
+            class="ethc-app ethc-app--{{this.accent}} {{#if this.active}}is-active{{/if}} {{#if this.locked}}is-locked{{/if}} {{#if this.brokenTarget}}is-broken{{/if}} {{#unless this.enabled}}is-maintenance{{/unless}}"
+            style="{{#if this.accentColor}}--ethc-app-accent: {{this.accentColor}};{{/if}}"
+            data-communicator-action="open-app"
+            data-communicator-app-id="{{this.id}}"
+            aria-label="Abrir {{this.label}}{{#if this.badge}}, {{this.badge}} notificações{{/if}}"
+            {{#if this.active}}aria-current="page"{{/if}}
+            {{#unless this.enabled}}aria-disabled="true"{{/unless}}
+          >
+            <span class="ethc-app__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
+            <span class="ethc-app__copy"><strong>{{this.label}}</strong><small>{{this.description}}</small></span>
+            {{#if this.badge}}<span class="ethc-badge">{{this.badge}}</span>{{/if}}
+            {{#if this.locked}}<span class="ethc-app__state"><i class="fas fa-lock" aria-hidden="true"></i> Rank {{this.minimumRank}}</span>{{/if}}
+            {{#if this.brokenTarget}}<span class="ethc-app__state"><i class="fas fa-file-circle-xmark" aria-hidden="true"></i> Arquivo indisponível</span>{{/if}}
+            {{#unless this.enabled}}<span class="ethc-app__state"><i class="fas fa-screwdriver-wrench" aria-hidden="true"></i> Manutenção</span>{{/unless}}
+          </button>
+          {{else}}
+          <div class="ethc-empty-state">
+            <i class="fas fa-grid-2" aria-hidden="true"></i>
+            <h3>Nenhum aplicativo liberado</h3>
+            <p>Os canais disponíveis aparecerão aqui após a sincronização.</p>
+          </div>
+          {{/each}}
+        </div>
+      </section>
+    </div>
+    {{/if}}
+
+    {{#if isPanel}}
+    <article class="ethc-internal-panel" data-communicator-view="panel" data-communicator-app-id="{{activeApp.id}}" aria-labelledby="ethc-panel-title">
+      <header class="ethc-panel-header">
+        <span class="ethc-panel-header__icon" aria-hidden="true"><i class="{{activeApp.icon}}"></i></span>
+        <div><p class="ethc-kicker">Aplicativo autenticado</p><h1 id="ethc-panel-title">{{activeApp.label}}</h1><p>{{activeApp.description}}</p></div>
+        {{#if activeApp.badge}}<span class="ethc-badge">{{activeApp.badge}}</span>{{/if}}
+        <div class="ethc-panel-header__actions">
+          <button type="button" class="ethc-icon-button" data-communicator-action="refresh-panel" aria-label="Atualizar painel" title="Atualizar"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
+          <button type="button" class="ethc-icon-button" data-communicator-action="open-panel-document" aria-label="Abrir documento original" title="Abrir documento original"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
+        </div>
+      </header>
+
+      {{#if panel.loading}}
+      <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Sincronizando dados...</span></div>
+      {{else}}
+      <div class="ethc-panel-content" data-communicator-region="panel-content">
+        {{#if panel.isConversations}}
+        <section class="ethc-message-composer" aria-labelledby="ethc-private-message-title">
+          <header><h2 id="ethc-private-message-title"><i class="fas fa-lock" aria-hidden="true"></i> Nova conversa privada</h2></header>
+          <select data-communicator-private-recipient aria-label="Destinatário">
+            {{#each panel.users}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}
+          </select>
+          <textarea data-communicator-private-message maxlength="4000" rows="3" placeholder="Escreva uma transmissão privada..."></textarea>
+          <button type="button" class="ethc-primary-button" data-communicator-action="send-private"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>Transmitir</span></button>
+        </section>
+        {{/if}}
+        {{#if panel.isGroup}}
+        <section class="ethc-message-composer" aria-labelledby="ethc-group-message-title">
+          <header><h2 id="ethc-group-message-title"><i class="fas fa-tower-broadcast" aria-hidden="true"></i> Canal do grupo</h2></header>
+          <textarea data-communicator-group-message maxlength="4000" rows="3" placeholder="Escreva uma transmissão para o grupo..."></textarea>
+          <button type="button" class="ethc-primary-button" data-communicator-action="send-group"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>Transmitir</span></button>
+        </section>
+        {{/if}}
+        {{#each panel.sections}}
+        <section class="ethc-panel-section" aria-labelledby="ethc-panel-section-{{this.id}}">
+          <header><h2 id="ethc-panel-section-{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i>{{this.title}}</h2>{{#if this.meta}}<span>{{this.meta}}</span>{{/if}}</header>
+          {{#if this.description}}<p>{{this.description}}</p>{{/if}}
+          <div class="ethc-panel-list">
+            {{#each this.items}}
+            <button type="button" class="ethc-panel-row" data-communicator-action="{{this.action}}" data-communicator-target-id="{{this.targetId}}" data-communicator-item-id="{{this.id}}" {{#unless this.available}}aria-disabled="true"{{/unless}}>
+              <span class="ethc-panel-row__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
+              <span><strong>{{this.label}}</strong><small>{{this.description}}</small></span>
+              {{#if this.badge}}<span class="ethc-badge">{{this.badge}}</span>{{/if}}
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
+            {{else}}
+            <div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-inbox" aria-hidden="true"></i><p>Nenhum registro disponível.</p></div>
+            {{/each}}
+          </div>
+        </section>
+        {{else}}
+        <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>Canal aguardando dados</h3><p>O conteúdo deste aplicativo aparecerá aqui quando estiver disponível.</p></div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </article>
+    {{/if}}
+
+    {{#if isRecents}}
+    <section class="ethc-recents" data-communicator-view="recents" aria-labelledby="ethc-recents-title">
+      <header class="ethc-section-heading">
+        <div><p class="ethc-kicker">Histórico local da sessão</p><h1 id="ethc-recents-title">Recentes</h1></div>
+        {{#if recentApps}}<button type="button" data-communicator-action="clear-recents"><i class="fas fa-trash-can" aria-hidden="true"></i><span>Limpar</span></button>{{/if}}
+      </header>
+      <div class="ethc-recent-list">
+        {{#each recentApps}}
+        <button type="button" class="ethc-recent-row" data-communicator-action="open-recent" data-communicator-app-id="{{this.id}}">
+          <span class="ethc-recent-row__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
+          <span><strong>{{this.label}}</strong><small>{{this.lastOpenedLabel}}</small></span>
+          {{#if this.badge}}<span class="ethc-badge">{{this.badge}}</span>{{/if}}
+          <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </button>
+        {{else}}
+        <div class="ethc-empty-state"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><h3>Nenhum acesso recente</h3><p>Os aplicativos abertos nesta sessão serão listados aqui.</p></div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{#if isSettings}}
+    <form class="ethc-settings" data-communicator-view="settings" aria-labelledby="ethc-settings-title">
+      <header class="ethc-section-heading"><div><p class="ethc-kicker">Preferências pessoais</p><h1 id="ethc-settings-title">Ajustes</h1></div><span>Salvos neste cliente</span></header>
+
+      <fieldset class="ethc-setting-group">
+        <legend><i class="fas fa-gauge-high" aria-hidden="true"></i> Interface</legend>
+        <label class="ethc-setting-row" for="ethc-motion"><span><strong>Movimento</strong><small>Intensidade das respostas visuais.</small></span><select id="ethc-motion" name="fieldCommunicatorMotion"><option value="full" {{#if settings.motionFull}}selected{{/if}}>Completo</option><option value="reduced" {{#if settings.motionReduced}}selected{{/if}}>Reduzido</option><option value="off" {{#if settings.motionOff}}selected{{/if}}>Desativado</option></select></label>
+        <label class="ethc-setting-row" for="ethc-boot-frequency"><span><strong>Sequência de autenticação</strong><small>Define quando a inicialização será exibida.</small></span><select id="ethc-boot-frequency" name="fieldCommunicatorBoot"><option value="always" {{#if settings.bootAlways}}selected{{/if}}>Sempre</option><option value="session" {{#if settings.bootSession}}selected{{/if}}>Uma vez por sessão</option><option value="off" {{#if settings.bootOff}}selected{{/if}}>Desativada</option></select></label>
+      </fieldset>
+
+      <fieldset class="ethc-setting-group">
+        <legend><i class="fas fa-universal-access" aria-hidden="true"></i> Leitura e acesso</legend>
+        <label class="ethc-setting-row" for="ethc-text-scale"><span><strong>Tamanho do texto</strong><small>Escala local do aparelho.</small></span><select id="ethc-text-scale" name="fieldCommunicatorTextScale"><option value="normal" {{#if settings.textNormal}}selected{{/if}}>Normal</option><option value="large" {{#if settings.textLarge}}selected{{/if}}>Grande</option></select></label>
+        <label class="ethc-setting-row" for="ethc-brightness"><span><strong>Brilho</strong><small>Intensidade da energia ciano.</small></span><select id="ethc-brightness" name="fieldCommunicatorBrightness"><option value="low" {{#if settings.brightnessLow}}selected{{/if}}>Baixo</option><option value="normal" {{#if settings.brightnessNormal}}selected{{/if}}>Normal</option><option value="high" {{#if settings.brightnessHigh}}selected{{/if}}>Alto</option></select></label>
+        <label class="ethc-setting-row" for="ethc-notifications-mode"><span><strong>Notificações</strong><small>Filtragem de alertas recebidos.</small></span><select id="ethc-notifications-mode" name="fieldCommunicatorNotifications"><option value="all" {{#if settings.notificationsAll}}selected{{/if}}>Todas</option><option value="priority" {{#if settings.notificationsPriority}}selected{{/if}}>Prioritárias</option><option value="off" {{#if settings.notificationsOff}}selected{{/if}}>Desativadas</option></select></label>
+        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-high-contrast"><span><strong>Alto contraste</strong><small>Reforça contornos, foco e legibilidade.</small></span><input id="ethc-high-contrast" name="fieldCommunicatorHighContrast" type="checkbox" {{#if highContrast}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
+        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-interface-sound"><span><strong>Sons de interface</strong><small>Cliques e confirmações discretos.</small></span><input id="ethc-interface-sound" name="fieldCommunicatorSounds" type="checkbox" {{#if settings.sounds}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
+      </fieldset>
+
+      <div class="ethc-settings__actions"><button type="button" data-communicator-action="reset-settings"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>Restaurar padrões</span></button><button type="button" class="ethc-primary-button" data-communicator-action="save-settings"><i class="fas fa-check" aria-hidden="true"></i><span>Aplicar ajustes</span></button></div>
+    </form>
+    {{/if}}
+
+    {{#if isAdmin}}
+    {{#if isGM}}
+    <section class="ethc-admin" data-communicator-view="admin" aria-labelledby="ethc-admin-title">
+      <header class="ethc-section-heading"><div><p class="ethc-kicker">Acesso Gamemaster</p><h1 id="ethc-admin-title">Administração de aplicativos</h1></div><span>{{adminApps.length}} registros</span></header>
+      <div class="ethc-admin-toolbar" role="toolbar" aria-label="Ferramentas administrativas">
+        <button type="button" class="ethc-primary-button" data-communicator-action="admin-add-app"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar aplicativo</span></button>
+        <button type="button" data-communicator-action="admin-import-apps"><i class="fas fa-file-import" aria-hidden="true"></i><span>Importar</span></button>
+        <button type="button" data-communicator-action="admin-export-apps"><i class="fas fa-file-export" aria-hidden="true"></i><span>Exportar</span></button>
+        <button type="button" data-communicator-action="admin-reset-apps"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>Ordem padrão</span></button>
+      </div>
+      <label class="ethc-admin-preview" for="ethc-preview-user"><span><strong>Pré-visualizar como</strong><small>Teste a visibilidade sem alterar permissões.</small></span><select id="ethc-preview-user" data-communicator-action="admin-preview-user"><option value="">Gamemaster</option>{{#each previewUsers}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>
+      <div class="ethc-admin-list" role="list" aria-label="Aplicativos configurados">
+        {{#each adminApps}}
+        <article class="ethc-admin-row {{#unless this.enabled}}is-disabled{{/unless}}" role="listitem" draggable="true" data-communicator-admin-row data-communicator-app-id="{{this.id}}">
+          <span class="ethc-admin-row__order"><button type="button" data-communicator-action="admin-move-up" data-communicator-app-id="{{this.id}}" aria-label="Mover {{this.label}} para cima" title="Mover para cima"><i class="fas fa-chevron-up" aria-hidden="true"></i></button><button type="button" data-communicator-action="admin-move-down" data-communicator-app-id="{{this.id}}" aria-label="Mover {{this.label}} para baixo" title="Mover para baixo"><i class="fas fa-chevron-down" aria-hidden="true"></i></button></span>
+          <span class="ethc-admin-row__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
+          <span class="ethc-admin-row__copy"><strong>{{this.label}}</strong><small>{{this.type}} · {{this.targetLabel}}</small></span>
+          <span class="ethc-admin-row__status {{#if this.enabled}}is-enabled{{/if}}">{{#if this.enabled}}Ativo{{else}}Desativado{{/if}}</span>
+          <div class="ethc-admin-row__actions">
+            <button type="button" data-communicator-action="admin-edit-app" data-communicator-app-id="{{this.id}}" aria-label="Editar {{this.label}}" title="Editar"><i class="fas fa-pen" aria-hidden="true"></i></button>
+            <button type="button" data-communicator-action="admin-duplicate-app" data-communicator-app-id="{{this.id}}" aria-label="Duplicar {{this.label}}" title="Duplicar"><i class="fas fa-copy" aria-hidden="true"></i></button>
+            <button type="button" data-communicator-action="admin-toggle-app" data-communicator-app-id="{{this.id}}" aria-label="{{#if this.enabled}}Desativar{{else}}Ativar{{/if}} {{this.label}}" title="{{#if this.enabled}}Desativar{{else}}Ativar{{/if}}"><i class="fas {{#if this.enabled}}fa-toggle-on{{else}}fa-toggle-off{{/if}}" aria-hidden="true"></i></button>
+            {{#if this.canRemove}}<button type="button" class="ethc-danger-button" data-communicator-action="admin-remove-app" data-communicator-app-id="{{this.id}}" aria-label="Remover {{this.label}}" title="Remover"><i class="fas fa-trash-can" aria-hidden="true"></i></button>{{/if}}
+          </div>
+        </article>
+        {{else}}
+        <div class="ethc-empty-state"><i class="fas fa-toolbox" aria-hidden="true"></i><h3>Nenhum aplicativo personalizado</h3><p>Os aplicativos oficiais continuam disponíveis na ordem padrão.</p></div>
+        {{/each}}
+      </div>
+    </section>
+    {{else}}
+    <section class="ethc-system-state ethc-system-state--danger" role="alert"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><p class="ethc-kicker">Protocolo de segurança</p><h2>Acesso negado</h2><p>A administração do comunicador é exclusiva do Gamemaster.</p></div><button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button></section>
+    {{/if}}
+    {{/if}}
+  </main>
+
+  <nav class="ethc-footer" aria-label="Navegação do comunicador">
+    <button type="button" class="{{#if isHome}}is-active{{/if}}" data-communicator-action="go-home" aria-current="{{#if isHome}}page{{else}}false{{/if}}"><i class="fas fa-house" aria-hidden="true"></i><span>Início</span></button>
+    <button type="button" data-communicator-action="go-back" {{#unless canGoBack}}disabled{{/unless}}><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Voltar</span></button>
+    <button type="button" class="{{#if isRecents}}is-active{{/if}}" data-communicator-action="open-recents" aria-current="{{#if isRecents}}page{{else}}false{{/if}}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Recentes</span>{{#if recentCount}}<span class="ethc-badge">{{recentCount}}</span>{{/if}}</button>
+    <button type="button" class="{{#if isSettings}}is-active{{/if}}" data-communicator-action="open-settings" aria-current="{{#if isSettings}}page{{else}}false{{/if}}"><i class="fas fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>
+    {{#if isGM}}<button type="button" class="{{#if isAdmin}}is-active{{/if}}" data-communicator-action="open-admin" aria-current="{{#if isAdmin}}page{{else}}false{{/if}}"><i class="fas fa-user-shield" aria-hidden="true"></i><span>Admin</span></button>{{/if}}
+  </nav>
+</section>

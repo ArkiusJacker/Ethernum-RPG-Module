@@ -33,6 +33,15 @@ declare global {
     "ethernum-rpg-module.authorityApprovalTimeoutMinutes": "2" | "5" | "10";
     "ethernum-rpg-module.authorityAuditRetention": "100" | "250" | "500" | "1000" | "2000";
     "ethernum-rpg-module.gmControlTheme": "ethernum" | "concordia";
+    "ethernum-rpg-module.fieldCommunicatorApps": Record<string, unknown>;
+    "ethernum-rpg-module.fieldCommunicatorGroupHistoryLimit": number;
+    "ethernum-rpg-module.fieldCommunicatorBoot": "always" | "session" | "off";
+    "ethernum-rpg-module.fieldCommunicatorMotion": "full" | "reduced" | "off";
+    "ethernum-rpg-module.fieldCommunicatorSounds": boolean;
+    "ethernum-rpg-module.fieldCommunicatorTextScale": "normal" | "large";
+    "ethernum-rpg-module.fieldCommunicatorBrightness": "low" | "normal" | "high";
+    "ethernum-rpg-module.fieldCommunicatorHighContrast": boolean;
+    "ethernum-rpg-module.fieldCommunicatorNotifications": "all" | "priority" | "off";
   }
 
   // Registra as flags do módulo — necessário para actor.getFlag/setFlag

@@ -34,6 +34,7 @@ import { CharacterSheetController } from './sheets/core/CharacterSheetController
 import { openCharacterSheetDiagnostics } from './sheets/core/CharacterSheetDiagnosticsApp.js';
 import { injectPF2eSheetSwitcher } from './sheets/core/CharacterSheetSwitcher.js';
 import { initChatMessagePresentation } from './ui/ChatMessagePresentation.js';
+import { FieldCommunicatorOverlay } from './ui/FieldCommunicatorOverlay.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -63,6 +64,10 @@ declare global {
         restoreGMControlCenterPosition: () => boolean;
         restoreGMControlCenterSize: () => boolean;
         refreshGMControlCenter: () => Promise<boolean>;
+        openFieldCommunicator: () => Promise<boolean>;
+        closeFieldCommunicator: () => boolean;
+        toggleFieldCommunicator: () => Promise<boolean>;
+        refreshFieldCommunicator: () => Promise<boolean>;
         characterSheetDiagnostics: (actor: Actor) => ReturnType<typeof CharacterSheetController.diagnostics>;
         openCharacterSheetDiagnostics: (actor: Actor) => Promise<boolean>;
       };
@@ -628,6 +633,7 @@ Hooks.once("init", () => {
     `${ETHERNUM.TEMPLATE_PATH}ether-runes-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}unique-mechanics-tab.html`,
     `${ETHERNUM.TEMPLATE_PATH}ethernum-gm-control-tab.html`,
+    `${ETHERNUM.TEMPLATE_PATH}ethernum-field-communicator.html`,
     `${ETHERNUM.TEMPLATE_PATH}sheets/base/sheet-base.html`,
     `${ETHERNUM.TEMPLATE_PATH}sheets/base/header.html`,
     `${ETHERNUM.TEMPLATE_PATH}sheets/base/navigation.html`,
@@ -654,6 +660,10 @@ Hooks.once("init", () => {
       restoreGMControlCenterPosition: () => GMControlCenterOverlay.restorePosition(),
       restoreGMControlCenterSize: () => GMControlCenterOverlay.restoreSize(),
       refreshGMControlCenter: () => GMControlCenterOverlay.refresh(),
+      openFieldCommunicator: () => FieldCommunicatorOverlay.open(),
+      closeFieldCommunicator: () => FieldCommunicatorOverlay.close(),
+      toggleFieldCommunicator: () => FieldCommunicatorOverlay.toggle(),
+      refreshFieldCommunicator: () => FieldCommunicatorOverlay.refresh(),
       characterSheetDiagnostics: (actor: Actor) => CharacterSheetController.diagnostics(actor),
       openCharacterSheetDiagnostics,
     },
@@ -673,6 +683,7 @@ Hooks.once("ready", async () => {
   UniqueMechanicsHud.initialize();
   CombatMomentumTracker.initialize();
   GMControlCenterOverlay.initialize();
+  FieldCommunicatorOverlay.initialize();
   AnimationService.initialize();
   if (game.combat) await CombatTurnTimer.handleCombatUpdate(game.combat);
 
@@ -695,4 +706,14 @@ Hooks.once("ready", async () => {
   if (game.system?.id !== "pf2e") {
     ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Warnings.NotPF2E"));
   }
+});
+
+Hooks.on("createChatMessage", () => {
+  void FieldCommunicatorOverlay.refresh();
+});
+Hooks.on("updateChatMessage", () => {
+  void FieldCommunicatorOverlay.refresh();
+});
+Hooks.on("deleteChatMessage", () => {
+  void FieldCommunicatorOverlay.refresh();
 });

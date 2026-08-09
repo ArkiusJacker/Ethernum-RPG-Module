@@ -1491,6 +1491,38 @@
       },
       "Errors": { "ActionFailed": "The GM Control action could not be completed.", "PayloadSerialization": "The payload could not be serialized." }
     },
+    "FieldCommunicator": {
+      "Title": "Ethernum Field Communicator",
+      "Open": "Open Field Communicator",
+      "Close": "Close communicator",
+      "AgentFallback": "Unlinked agent",
+      "Rank": "Rank",
+      "Signal": "Operational channel",
+      "EtherReserve": "Ether reserve",
+      "Notifications": "Notifications",
+      "Navigation": { "Home": "Home", "Back": "Back", "Recents": "Recents" },
+      "Boot": { "System": "ETHERNUM FIELD SYSTEM", "Sync": "SYNCHRONIZING ETHER RESERVE...", "Identity": "IDENTITY CONFIRMED", "Channel": "OPERATIONAL CHANNEL ESTABLISHED", "Skip": "Skip initialization" },
+      "Apps": {
+        "sheet": { "Label": "Sheet", "Description": "Linked agent dossier" },
+        "conversations": { "Label": "Conversations", "Description": "Private and corporate messages" },
+        "group": { "Label": "Group", "Description": "Shared team channel" },
+        "squad": { "Label": "Squad", "Description": "Operational agent status" },
+        "map": { "Label": "Map", "Description": "Released scenes and maps" },
+        "manual": { "Label": "Manual", "Description": "Protocols and procedures" },
+        "dossiers": { "Label": "Dossiers", "Description": "Intelligence and threats" },
+        "contracts": { "Label": "Contracts", "Description": "Operational history" },
+        "files": { "Label": "Files", "Description": "Documents and evidence" },
+        "shop": { "Label": "Shop", "Description": "Catalog and requests" },
+        "settings": { "Label": "Settings", "Description": "This device preferences" }
+      },
+      "States": { "Unlinked": "IDENTITY NOT LINKED", "Denied": "ACCESS DENIED", "Unavailable": "FILE UNAVAILABLE", "Maintenance": "UNDER MAINTENANCE", "Pending": "SYNCHRONIZATION PENDING", "Empty": "No records available" },
+      "Actions": { "Open": "Open", "Send": "Send", "Request": "Request", "Add": "Add app", "Edit": "Edit", "Duplicate": "Duplicate", "Disable": "Disable", "Enable": "Enable", "Remove": "Remove", "MoveUp": "Move up", "MoveDown": "Move down", "Reset": "Restore official order", "Import": "Import JSON", "Export": "Export JSON", "ConfirmExternal": "Open external link" },
+      "Panels": { "Conversations": "Private conversations", "Group": "Group channel", "Squad": "Squad", "Map": "Released maps", "Manual": "Company manual", "Dossiers": "Dossiers", "Contracts": "Contracts", "Files": "Files", "Shop": "Shop", "Settings": "Settings", "Administration": "GM apps", "Recents": "Recent apps" },
+      "Admin": { "Title": "Configure apps", "Id": "Identifier", "Label": "Name", "Description": "Description", "Icon": "Icon", "Type": "Type", "Target": "UUID or target", "Order": "Order", "Accent": "Accent", "MinimumRank": "Minimum rank", "AllowedAgents": "Allowed agents", "AllowedSquads": "Allowed squads", "Enabled": "Enabled", "Json": "JSON configuration" },
+      "SettingsPanel": { "Boot": "Boot", "Motion": "Motion", "Sounds": "Sounds", "TextScale": "Text size", "Brightness": "Brightness", "HighContrast": "High contrast", "Notifications": "Notifications" },
+      "Messages": { "PrivatePlaceholder": "Confidential message...", "GroupPlaceholder": "Message to the group...", "PurchaseRequested": "Purchase request sent to the GM.", "AppSaved": "App saved.", "AppRemoved": "Shortcut removed; the original document was preserved.", "ExternalConfirm": "This address will open outside Foundry: {url}" },
+      "Errors": { "NoActor": "No character is linked to this user.", "NoPermission": "You do not have permission to access this record.", "BrokenTarget": "The target no longer exists or is unavailable.", "InvalidImport": "The imported configuration is invalid.", "ActionFailed": "The communicator operation could not be completed." }
+    },
     "Settings": {
       "PlayersCanChooseCharacterSheet": {
         "Name": "Players can choose the custom character sheet",
@@ -1575,7 +1607,15 @@
         "Off": "Off",
         "Card": "Card only",
         "Token": "Card and token"
+      },
+      "FieldCommunicatorGroupHistoryLimit": { "Name": "Communicator Group history", "Hint": "Maximum recent messages displayed in the Group channel." },
+      "FieldCommunicatorBoot": { "Name": "Communicator boot", "Hint": "Controls when the full diegetic authentication is shown.", "Always": "Always", "Session": "Once per session", "Off": "Disabled" },
+      "FieldCommunicatorMotion": { "Name": "Communicator motion", "Hint": "Controls device animations and transitions.", "Full": "Full", "Reduced": "Reduced", "Off": "Disabled" },
+      "FieldCommunicatorSounds": { "Name": "Communicator sounds", "Hint": "Enables subtle device audio feedback." },
+      "FieldCommunicatorTextScale": { "Name": "Communicator text", "Hint": "Adjusts the device text scale.", "Normal": "Normal", "Large": "Large" },
+      "FieldCommunicatorBrightness": { "Name": "Communicator brightness", "Hint": "Adjusts the intensity of illuminated details.", "Low": "Low", "Normal": "Normal", "High": "High" },
+      "FieldCommunicatorHighContrast": { "Name": "Communicator high contrast", "Hint": "Increases contrast for text, borders, and controls." },
+      "FieldCommunicatorNotifications": { "Name": "Communicator notifications", "Hint": "Chooses which local alerts the device presents.", "All": "All", "Priority": "Priority only", "Off": "Disabled" }
       }
     }
   }
-}
