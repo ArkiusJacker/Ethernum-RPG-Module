@@ -90,10 +90,19 @@ export interface CharacterDefenseStatisticSnapshot {
   rollable: boolean;
 }
 
+export interface CharacterDefenseTraitSnapshot {
+  type: string;
+  label: string;
+  value?: number;
+}
+
 export interface CharacterDefensesSnapshot {
   ac: number;
   perception: CharacterDefenseStatisticSnapshot;
   saves: Record<CharacterSaveSlug, CharacterDefenseStatisticSnapshot>;
+  immunities: CharacterDefenseTraitSnapshot[];
+  resistances: CharacterDefenseTraitSnapshot[];
+  weaknesses: CharacterDefenseTraitSnapshot[];
 }
 
 export type CharacterMovementType = "land" | "fly" | "swim" | "climb" | "burrow";
@@ -159,8 +168,22 @@ export interface CharacterInventoryItemSnapshot {
   quantity: number;
   equipped?: boolean;
   invested?: boolean;
+  carryType?: "held" | "worn" | "stowed" | "dropped" | string;
+  handsHeld?: number;
+  inSlot?: boolean;
+  hands?: "0" | "1" | "1+" | "2" | string;
+  isInvestable?: boolean;
   bulk?: string;
   price?: string;
+}
+
+export interface CharacterBulkSnapshot {
+  value: number | null;
+  max: number | null;
+  encumberedAt?: number;
+  percentage: number;
+  encumbered: boolean;
+  available: boolean;
 }
 
 export interface CharacterInventorySnapshot {
@@ -173,6 +196,7 @@ export interface CharacterInventorySnapshot {
   containers: CharacterInventoryItemSnapshot[];
   other: CharacterInventoryItemSnapshot[];
   all: CharacterInventoryItemSnapshot[];
+  bulk: CharacterBulkSnapshot;
 }
 
 export type CharacterFeatCategory =
@@ -204,6 +228,24 @@ export interface CharacterSpellSnapshot {
   locationId?: string;
   traditions: string[];
   focus: boolean;
+  castRank: number;
+  slotId?: number;
+  expended?: boolean;
+  prepared?: boolean;
+  signature?: boolean;
+  uses?: {
+    value: number;
+    max: number;
+  };
+}
+
+export interface CharacterSpellcastingGroupSnapshot {
+  rank: number;
+  slots?: {
+    value: number;
+    max: number;
+  };
+  spells: CharacterSpellSnapshot[];
 }
 
 export interface CharacterSpellcastingEntrySnapshot {
@@ -216,6 +258,7 @@ export interface CharacterSpellcastingEntrySnapshot {
   preparation: string;
   focus: boolean;
   spells: CharacterSpellSnapshot[];
+  groups: CharacterSpellcastingGroupSnapshot[];
 }
 
 export interface CharacterSpellcastingSnapshot {
@@ -298,6 +341,12 @@ function firstFinite(values: unknown[], fallback = 0): number {
     if (Number.isFinite(numeric)) return numeric;
   }
   return fallback;
+}
+
+function optionalFinite(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
 }
 
 function text(value: unknown, fallback = ""): string {
@@ -614,6 +663,19 @@ export function readCharacterDefenses(actorValue: Actor | unknown): CharacterDef
   const storedPerception = record(system.perception);
   const preparedAC = record(actor.armorClass);
   const storedAC = record(record(system.attributes).ac);
+  const attributes = record(system.attributes);
+  const defenseTraits = (value: unknown): CharacterDefenseTraitSnapshot[] => {
+    const source = collectionValues(value);
+    const entries = source.length > 0 ? source : Object.values(record(value));
+    return entries.flatMap(entryValue => {
+      const entry = record(entryValue);
+      const type = text(entry.type, text(entry.slug, text(entry.label, text(entry.name))));
+      if (!type) return [];
+      const label = text(entry.label, text(entry.name, type));
+      const value = optionalFinite(entry.value);
+      return [{ type, label, ...(value !== undefined ? { value } : {}) }];
+    });
+  };
 
   const saves = Object.fromEntries(SAVE_SLUGS.map(slug => {
     const prepared = preparedStatistic(actor, "saves", slug);
@@ -635,6 +697,9 @@ export function readCharacterDefenses(actorValue: Actor | unknown): CharacterDef
       rollable: hasRollMethod(preparedPerception),
     },
     saves,
+    immunities: defenseTraits(attributes.immunities),
+    resistances: defenseTraits(attributes.resistances),
+    weaknesses: defenseTraits(attributes.weaknesses),
   };
 }
 
@@ -846,6 +911,9 @@ function inventoryItem(item: UnknownRecord): CharacterInventoryItemSnapshot {
   const equipped = record(system.equipped);
   const invested = equipped.invested ?? system.invested;
   const carryType = text(equipped.carryType);
+  const hands = text(item.hands, text(record(system.usage).value));
+  const isInvestable = typeof item.isInvestable === "boolean" ? item.isInvestable : undefined;
+  const isInvested = typeof item.isInvested === "boolean" ? item.isInvested : invested;
   const bulk = formatStructuredValue(record(system.bulk).value ?? system.bulk);
   const price = formatStructuredValue(record(system.price).value ?? system.price);
   const equippedValue = typeof equipped.value === "boolean"
@@ -860,9 +928,83 @@ function inventoryItem(item: UnknownRecord): CharacterInventoryItemSnapshot {
     type: text(item.type),
     quantity: Math.max(0, integer(firstFinite([system.quantity, record(system.quantity).value], 1))),
     ...(Object.keys(equipped).length || typeof system.equipped === "boolean" ? { equipped: equippedValue } : {}),
-    ...(typeof invested === "boolean" ? { invested } : {}),
+    ...(typeof isInvested === "boolean" ? { invested: isInvested } : {}),
+    ...(carryType ? { carryType } : {}),
+    ...(Number.isFinite(Number(equipped.handsHeld)) ? { handsHeld: Math.max(0, integer(equipped.handsHeld)) } : {}),
+    ...(typeof equipped.inSlot === "boolean" ? { inSlot: equipped.inSlot } : {}),
+    ...(hands ? { hands } : {}),
+    ...(isInvestable !== undefined ? { isInvestable } : {}),
     ...(bulk ? { bulk } : {}),
     ...(price ? { price } : {}),
+  };
+}
+
+function preparedBulkData(actor: UnknownRecord): UnknownRecord {
+  const candidates = [
+    record(actor.inventory).bulk,
+    record(record(actor.system).inventory).bulk,
+    record(record(record(actor.system).attributes).bulk),
+  ];
+  return candidates.map(record).find(candidate => Object.keys(candidate).length > 0) ?? {};
+}
+
+function preparedBulkValue(bulk: UnknownRecord): number | undefined {
+  const value = bulk.value;
+  const valueData = record(value);
+  const toLightUnits = (value as { toLightUnits?: () => unknown } | null)?.toLightUnits;
+
+  if (typeof toLightUnits === "function") {
+    try {
+      const lightUnits = optionalFinite(toLightUnits.call(value));
+      if (lightUnits !== undefined) return Math.max(0, lightUnits / 10);
+    } catch {
+      // Continue with the prepared scalar fields exposed by other PF2e versions.
+    }
+  }
+
+  const normal = optionalFinite(valueData.normal);
+  const light = optionalFinite(valueData.light);
+  if (normal !== undefined || light !== undefined) {
+    return Math.max(0, (normal ?? 0) + (light ?? 0) / 10);
+  }
+
+  const scalar = optionalFinite(bulk.bulk) ?? optionalFinite(value);
+  return scalar === undefined ? undefined : Math.max(0, scalar);
+}
+
+export function readCharacterBulk(actorValue: Actor | unknown): CharacterBulkSnapshot {
+  const bulk = preparedBulkData(record(actorValue));
+  const value = preparedBulkValue(bulk);
+  const max = optionalFinite(bulk.max);
+
+  if (value === undefined || max === undefined || max <= 0) {
+    return {
+      value: null,
+      max: null,
+      percentage: 0,
+      encumbered: false,
+      available: false,
+    };
+  }
+
+  const encumberedAt = optionalFinite(bulk.encumberedAt) ?? optionalFinite(bulk.encumberedAfter);
+  const preparedPercentage = optionalFinite(bulk.maxPercentageInteger)
+    ?? optionalFinite(bulk.maxPercentage)
+    ?? optionalFinite(bulk.percentage);
+  const percentage = Math.max(0, Math.min(100, preparedPercentage ?? (value / max) * 100));
+  const preparedEncumbered = typeof bulk.isEncumbered === "boolean"
+    ? bulk.isEncumbered
+    : typeof bulk.encumbered === "boolean"
+      ? bulk.encumbered
+      : undefined;
+
+  return {
+    value,
+    max,
+    ...(encumberedAt !== undefined ? { encumberedAt } : {}),
+    percentage,
+    encumbered: preparedEncumbered ?? (encumberedAt !== undefined && value > encumberedAt),
+    available: true,
   };
 }
 
@@ -872,6 +1014,7 @@ export function readCharacterInventory(actorValue: Actor | unknown): CharacterIn
   const all = actorItems(actor).filter(item => !excluded.has(text(item.type))).map(inventoryItem);
   const result: CharacterInventorySnapshot = {
     weapons: [], armor: [], shields: [], consumables: [], equipment: [], treasure: [], containers: [], other: [], all,
+    bulk: readCharacterBulk(actor),
   };
   actorItems(actor).filter(item => !excluded.has(text(item.type))).forEach((item, index) => {
     result[inventoryCategory(item)].push(all[index]);
@@ -903,22 +1046,86 @@ export function readCharacterFeats(actorValue: Actor | unknown): CharacterFeatSn
   });
 }
 
-function spellSnapshot(item: UnknownRecord): CharacterSpellSnapshot {
+function spellSnapshot(
+  item: UnknownRecord,
+  overrides: Partial<CharacterSpellSnapshot> = {},
+): CharacterSpellSnapshot {
   const system = record(item.system);
   const location = record(system.location);
   const traits = record(system.traits);
   const category = text(system.category, text(system.spellType, "spell"));
+  const rank = Math.max(0, integer(firstFinite([item.rank, record(system.level).value, system.rank, system.level])));
+  const uses = record(record(system.location).uses ?? system.uses ?? item.uses);
+  const usesValue = optionalFinite(uses.value);
+  const usesMax = optionalFinite(uses.max);
   return {
     id: itemId(item),
     uuid: text(item.uuid),
     name: text(item.name),
     image: itemImage(item),
-    rank: Math.max(0, integer(firstFinite([record(system.level).value, system.rank, system.level]))),
+    rank,
     category,
     ...(text(location.value, text(system.location)) ? { locationId: text(location.value, text(system.location)) } : {}),
     traditions: stringArray(traits.traditions ?? system.traditions),
     focus: category === "focus" || system.focus === true,
+    castRank: rank,
+    ...(typeof location.signature === "boolean" ? { signature: location.signature } : {}),
+    ...(usesValue !== undefined && usesMax !== undefined ? { uses: { value: usesValue, max: usesMax } } : {}),
+    ...overrides,
   };
+}
+
+function slotRank(key: string): number | null {
+  const match = /^slot(\d+)$/.exec(key);
+  return match ? Math.max(0, integer(match[1])) : null;
+}
+
+function collectionSpellGroups(
+  entry: UnknownRecord,
+  spells: CharacterSpellSnapshot[],
+): CharacterSpellcastingGroupSnapshot[] {
+  const slots = record(record(entry.system).slots);
+  const preparation = text(record(record(entry.system).prepared).value).toLowerCase();
+  const groups = new Map<number, CharacterSpellcastingGroupSnapshot>();
+
+  for (const [key, slotValue] of Object.entries(slots)) {
+    const rank = slotRank(key);
+    if (rank === null) continue;
+    const slot = record(slotValue);
+    const preparedSlots = Array.isArray(slot.prepared) ? slot.prepared.map(record) : [];
+    const max = Math.max(0, integer(firstFinite([slot.max, preparedSlots.length])));
+    const preparedSpells = preparedSlots.flatMap((prepared, slotId) => {
+      const spellId = text(prepared.id);
+      const spell = spells.find(candidate => candidate.id === spellId);
+      return spell ? [spellSnapshot(record(spell), {
+        ...spell,
+        rank,
+        castRank: rank,
+        slotId,
+        prepared: true,
+        expended: prepared.expended === true,
+      })] : [];
+    });
+    const expended = preparedSlots.filter(prepared => prepared.expended === true).length;
+    const value = Math.max(0, integer(firstFinite([slot.value, max - expended])));
+    groups.set(rank, {
+      rank,
+      ...(max > 0 ? { slots: { value, max } } : {}),
+      spells: preparation === "prepared" && preparedSlots.length > 0
+        ? preparedSpells
+        : spells.filter(spell => spell.rank === rank).map(spell => ({ ...spell, castRank: rank })),
+    });
+  }
+
+  for (const spell of spells) {
+    if (groups.has(spell.rank)) continue;
+    groups.set(spell.rank, { rank: spell.rank, spells: [{ ...spell, castRank: spell.rank }] });
+  }
+  return [...groups.values()].sort((left, right) => left.rank - right.rank);
+}
+
+function preparedSpellcastingCollections(actor: UnknownRecord): UnknownRecord[] {
+  return collectionValues(record(actor.spellcasting).collections).map(record);
 }
 
 function spellcastingEntries(actor: UnknownRecord): UnknownRecord[] {
@@ -929,16 +1136,30 @@ function spellcastingEntries(actor: UnknownRecord): UnknownRecord[] {
 
 export function readCharacterSpellcasting(actorValue: Actor | unknown): CharacterSpellcastingSnapshot {
   const actor = record(actorValue);
-  const spells = itemsOfType(actor, "spell").map(spellSnapshot);
-  const entries = spellcastingEntries(actor).map(entry => {
+  const spells = itemsOfType(actor, "spell").map(item => spellSnapshot(item));
+  const collections = preparedSpellcastingCollections(actor);
+  const preparedEntries = collections.map(collection => {
+    const entry = record(collection.entry);
+    const collectionSpells = collectionValues(collection).map(value => spellSnapshot(record(value)));
+    return { entry, collectionSpells };
+  }).filter(candidate => itemId(candidate.entry));
+  const preparedEntryIds = new Set(preparedEntries.map(candidate => itemId(candidate.entry)));
+  const entrySources = [
+    ...preparedEntries,
+    ...spellcastingEntries(actor)
+      .filter(entry => !preparedEntryIds.has(itemId(entry)))
+      .map(entry => ({ entry, collectionSpells: [] as CharacterSpellSnapshot[] })),
+  ];
+  const entries = entrySources.map(({ entry, collectionSpells }) => {
     const system = record(entry.system);
     const statistic = record(entry.statistic);
     const systemStatistic = record(system.statistic);
     const preparation = record(system.prepared);
     const id = itemId(entry);
     const entrySpells = spells.filter(spell => spell.locationId === id);
-    const embeddedSpells = uniqueDocuments([entry.spells, record(entry.collection).spells]).map(spellSnapshot);
-    const combinedSpells = uniqueDocuments([entrySpells, embeddedSpells]).map(spell => {
+    const embeddedSpells = uniqueDocuments([entry.spells, record(entry.collection).spells])
+      .map(item => spellSnapshot(item));
+    const combinedSpells = uniqueDocuments([collectionSpells, entrySpells, embeddedSpells]).map(spell => {
       if ("rank" in spell) return spell as unknown as CharacterSpellSnapshot;
       return spellSnapshot(spell);
     });
@@ -954,7 +1175,8 @@ export function readCharacterSpellcasting(actorValue: Actor | unknown): Characte
       spellAttack: integer(firstFinite([statistic.mod, statistic.attack, systemStatistic.mod, system.attack])),
       preparation: category,
       focus: category === "focus" || system.focus === true,
-      spells: combinedSpells.sort((left, right) => left.rank - right.rank || left.name.localeCompare(right.name)),
+      spells: combinedSpells,
+      groups: collectionSpellGroups(entry, combinedSpells),
     };
   });
   const assigned = new Set(entries.flatMap(entry => entry.spells.map(spell => spell.id)));

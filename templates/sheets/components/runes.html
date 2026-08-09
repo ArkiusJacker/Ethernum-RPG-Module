@@ -5,38 +5,38 @@
          aria-labelledby="ecs-tab-runes"
          {{#unless (ethernum-eq ui.activeTab "runes")}}hidden{{/unless}}>
   <div class="ecs-panel-heading ecs-panel-heading--system">
-    <div><span class="ecs-eyebrow">Trindade e inscrições</span><h2>Runas</h2></div>
+    <div><span class="ecs-eyebrow">{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Terminal'}}</span><h2>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Title'}}</h2></div>
     {{#if permissions.canUpdateEthernum}}
-    <button type="button" data-action="create-rune"><i class="fas fa-plus" aria-hidden="true"></i><span>Criar runa</span></button>
+    <button type="button" data-action="create-rune"><i class="fas fa-plus" aria-hidden="true"></i><span>{{localize 'ETHERNUM.Buttons.AddRune'}}</span></button>
     {{/if}}
   </div>
 
   {{#if ethernumSystems.runeFormula.enabled}}
   <section class="ecs-rune-formula" aria-labelledby="ecs-rune-formula-title">
     <header>
-      <span id="ecs-rune-formula-title">Trindade ativa</span>
-      {{#if ethernumSystems.runeFormula.complete}}<strong>Completa</strong>{{else}}<strong>Incompleta</strong>{{/if}}
+      <span id="ecs-rune-formula-title">{{localize 'ETHERNUM.CharacterSheet.RunesPanel.ActiveTrinity'}}</span>
+      {{#if ethernumSystems.runeFormula.complete}}<strong>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Complete'}}</strong>{{else}}<strong>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Incomplete'}}</strong>{{/if}}
     </header>
     <div class="ecs-rune-formula__parts">
       <button type="button" data-action="select-rune-part" data-part="verb" aria-label="Selecionar Verbo">
-        <small>Verbo</small><strong>{{ethernumSystems.runeFormula.verb.label}}</strong>
+        <small>{{localize 'ETHERNUM.RuneTrinity.Verb'}}</small><strong>{{ethernumSystems.runeFormula.verb.label}}</strong>
       </button>
       <i class="fas fa-plus" aria-hidden="true"></i>
       <button type="button" data-action="select-rune-part" data-part="noun" aria-label="Selecionar Substantivo">
-        <small>Substantivo</small><strong>{{ethernumSystems.runeFormula.noun.label}}</strong>
+        <small>{{localize 'ETHERNUM.RuneTrinity.Noun'}}</small><strong>{{ethernumSystems.runeFormula.noun.label}}</strong>
       </button>
       <i class="fas fa-plus" aria-hidden="true"></i>
       <button type="button" data-action="select-rune-part" data-part="source" aria-label="Selecionar Fonte">
-        <small>Fonte</small><strong>{{ethernumSystems.runeFormula.source.label}}</strong>
+        <small>{{localize 'ETHERNUM.RuneTrinity.Source'}}</small><strong>{{ethernumSystems.runeFormula.source.label}}</strong>
       </button>
     </div>
     {{#if ethernumSystems.runeFormula.complete}}
-    <button type="button" class="ecs-primary-action ecs-rune-formula__invoke" data-action="invoke-rune-formula"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Invocar</span></button>
+    <button type="button" class="ecs-primary-action ecs-rune-formula__invoke" data-action="invoke-rune-formula"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Invoke'}}</span></button>
     {{/if}}
   </section>
   {{/if}}
 
-  <div class="ecs-rune-class-filter" role="tablist" aria-label="Classes de runa">
+  <div class="ecs-rune-class-filter" role="tablist" aria-label="{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Classes'}}">
     {{#each ethernumSystems.runeClasses}}
     <button type="button" class="ecs-rune-class ecs-rune-class--{{this.id}} {{#if this.active}}is-active{{/if}}" data-action="filter-runes" data-rune-class="{{this.id}}" role="tab" aria-selected="{{this.active}}">
       <i class="{{this.icon}}" aria-hidden="true"></i><span>{{this.label}}</span><small>{{this.count}}</small>
@@ -53,12 +53,12 @@
         <p>{{this.formula}}</p>
         <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
       </div>
-      <div class="ecs-rune-row__meta"><span>Custo</span><strong>{{this.cost}}</strong></div>
-      <button type="button" class="ecs-primary-action" data-action="use-rune" data-rune-id="{{this.id}}" {{#unless this.canUse}}disabled{{/unless}}><i class="fas fa-play" aria-hidden="true"></i><span>Usar</span></button>
-      {{#if ../permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="edit-rune" data-rune-id="{{this.id}}" aria-label="Editar {{this.name}}" title="Editar"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
+      <div class="ecs-rune-row__meta"><span>{{localize 'ETHERNUM.Rune.CostValue'}}</span><strong>{{this.cost}}</strong><small>{{this.statusLabel}}</small></div>
+      <button type="button" class="ecs-primary-action" data-action="use-rune" data-rune-id="{{this.id}}" {{#unless this.canUse}}disabled{{/unless}}><i class="fas fa-play" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}</span></button>
+      {{#if ../permissions.canUpdateEthernum}}<button type="button" class="ecs-icon-control" data-action="edit-rune" data-rune-id="{{this.id}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Edit'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>{{/if}}
     </article>
     {{else}}
-    <section class="ecs-empty-state"><i class="fas fa-compass-drafting" aria-hidden="true"></i><h3>Nenhuma runa disponível</h3></section>
+    <section class="ecs-empty-state"><i class="fas fa-compass-drafting" aria-hidden="true"></i><h3>{{localize 'ETHERNUM.CharacterSheet.RunesPanel.Empty'}}</h3></section>
     {{/each}}
   </div>
 </section>

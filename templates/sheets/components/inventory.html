@@ -5,23 +5,27 @@
          aria-labelledby="ecs-tab-inventory"
          {{#unless (ethernum-eq ui.activeTab "inventory")}}hidden{{/unless}}>
   <div class="ecs-panel-heading">
-    <div><span class="ecs-eyebrow">Equipamento</span><h2>Inventário</h2></div>
-    <div class="ecs-inventory-summary" aria-label="Resumo de carga">
-      <span>Carga</span>
+    <div><span class="ecs-eyebrow">{{localize 'ETHERNUM.CharacterSheet.Inventory.Eyebrow'}}</span><h2>{{localize 'ETHERNUM.CharacterSheet.Inventory.Title'}}</h2></div>
+    <div class="ecs-inventory-summary" aria-label="{{localize 'ETHERNUM.CharacterSheet.Inventory.BulkSummary'}}">
+      <span>{{localize 'ETHERNUM.CharacterSheet.Inventory.Bulk'}}</span>
+      {{#if inventory.bulk.available}}
       <strong>{{inventory.bulk.value}} / {{inventory.bulk.max}}</strong>
       <div class="ecs-meter" role="meter" aria-valuemin="0" aria-valuemax="{{inventory.bulk.max}}" aria-valuenow="{{inventory.bulk.value}}"><span style="--ecs-meter-value: {{inventory.bulk.percentage}}%;"></span></div>
+      {{else}}
+      <strong>{{inventory.bulk.label}}</strong>
+      {{/if}}
     </div>
   </div>
 
   <div class="ecs-toolbar" role="search">
     <label class="ecs-search">
       <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-      <span class="sr-only">Buscar no inventário</span>
-      <input type="search" value="{{ui.inventorySearch}}" data-action="filter-inventory" placeholder="Buscar equipamento" />
+      <span class="sr-only">{{localize 'ETHERNUM.CharacterSheet.Inventory.Search'}}</span>
+      <input type="search" value="{{ui.inventorySearch}}" data-action="filter-inventory" placeholder="{{localize 'ETHERNUM.CharacterSheet.Inventory.SearchPlaceholder'}}" />
     </label>
-    <button type="button" data-action="toggle-stowed-items" aria-pressed="{{ui.showStowed}}"><i class="fas fa-box" aria-hidden="true"></i><span>Guardados</span></button>
+    <button type="button" data-action="toggle-stowed-items" aria-pressed="{{ui.showStowed}}"><i class="fas fa-box" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Inventory.Stowed'}}</span></button>
     {{#if permissions.canCreateItems}}
-    <button type="button" data-action="create-item" data-item-type="equipment"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar</span></button>
+    <button type="button" data-action="create-item" data-item-type="equipment"><i class="fas fa-plus" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Add'}}</span></button>
     {{/if}}
   </div>
 
@@ -43,25 +47,33 @@
             <h3>{{this.name}}</h3>
             <div class="ecs-tags">{{#each this.traits}}<span class="ecs-tag">{{this}}</span>{{/each}}</div>
           </div>
-          <span class="ecs-item-stat" title="Carga">{{this.bulk}}</span>
-          <div class="ecs-quantity" role="group" aria-label="Quantidade de {{this.name}}">
+          <span class="ecs-item-stat" title="{{localize 'ETHERNUM.CharacterSheet.Inventory.Bulk'}}">{{this.bulk}}</span>
+          <div class="ecs-quantity" role="group" aria-label="{{localize 'ETHERNUM.CharacterSheet.Inventory.Quantity'}}">
             {{#if ../../permissions.canUpdateItems}}<button type="button" data-action="adjust-item-quantity" data-item-id="{{this.id}}" data-delta="-1" aria-label="Diminuir quantidade"><i class="fas fa-minus" aria-hidden="true"></i></button>{{/if}}
             <span>{{this.quantity}}</span>
             {{#if ../../permissions.canUpdateItems}}<button type="button" data-action="adjust-item-quantity" data-item-id="{{this.id}}" data-delta="1" aria-label="Aumentar quantidade"><i class="fas fa-plus" aria-hidden="true"></i></button>{{/if}}
           </div>
-          <div class="ecs-item-controls" role="group" aria-label="Estado de {{this.name}}">
-            {{#if this.canEquip}}<button type="button" class="{{#if this.equipped}}is-active{{/if}}" data-action="toggle-item-equipped" data-item-id="{{this.id}}" data-equipped="{{this.equipped}}" aria-pressed="{{this.equipped}}" aria-label="Alternar equipado" title="Equipado"><i class="fas fa-hand" aria-hidden="true"></i></button>{{/if}}
-            {{#if this.canInvest}}<button type="button" class="{{#if this.invested}}is-active{{/if}}" data-action="toggle-item-invested" data-item-id="{{this.id}}" data-invested="{{this.invested}}" aria-pressed="{{this.invested}}" aria-label="Alternar investido" title="Investido"><i class="fas fa-gem" aria-hidden="true"></i></button>{{/if}}
-            {{#if this.canUse}}<button type="button" data-action="use-item" data-item-id="{{this.id}}" aria-label="Usar {{this.name}}" title="Usar"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
+          <div class="ecs-item-controls" role="group" aria-label="{{localize 'ETHERNUM.CharacterSheet.Inventory.State'}}">
+            {{#if this.canEquip}}
+            <label class="ecs-carry-control">
+              <span class="sr-only">{{localize 'ETHERNUM.CharacterSheet.Inventory.State'}}</span>
+              <i class="fas fa-hand" aria-hidden="true"></i>
+              <select data-action="change-carry-type" data-item-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Inventory.State'}}">
+                {{#each this.carryOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+              </select>
+            </label>
+            {{/if}}
+            {{#if this.canInvest}}<button type="button" class="{{#if this.invested}}is-active{{/if}}" data-action="toggle-item-invested" data-item-id="{{this.id}}" data-invested="{{this.invested}}" aria-pressed="{{this.invested}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Inventory.Invested'}}" title="{{localize 'ETHERNUM.CharacterSheet.Inventory.Invested'}}"><i class="fas fa-gem" aria-hidden="true"></i></button>{{/if}}
+            {{#if this.canUse}}<button type="button" data-action="use-item" data-item-id="{{this.id}}" title="{{localize 'ETHERNUM.CharacterSheet.Common.Use'}}"><i class="fas fa-play" aria-hidden="true"></i></button>{{/if}}
           </div>
         </article>
         {{else}}
-        <p class="ecs-empty">Nenhum item nesta categoria.</p>
+        <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Inventory.EmptyCategory'}}</p>
         {{/each}}
       </div>
     </section>
     {{else}}
-    <p class="ecs-empty">Inventário vazio.</p>
+    <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Inventory.Empty'}}</p>
     {{/each}}
   </div>
 </section>

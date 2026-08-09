@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.1] - 2026-08-09
+
+### Adicionado
+- `PF2eCharacterBridge` com detecção centralizada de capabilities, operações preparadas e fallback explícito para a ficha PF2e.
+- Snapshot 2.1 de magia com collections, ranks, slots, usos, estado preparado, gasto e assinatura quando fornecidos pelo PF2e.
+- Leitura preparada de Bulk, imunidades, resistências e fraquezas, sem fabricar totais quando o PF2e não expõe o dado.
+- Traduções completas em português e inglês para a interface alterada da ficha Ethernum Company.
+
+### Alterado
+- Estados `held`, `worn`, `stowed` e `dropped`, mãos ocupadas, investimento, recursos e condições passam pelas APIs públicas do PF2e.
+- Conjuração e drop de magias delegam para `actor.spellcasting.collections`, incluindo rank e slot, sem consumo manual.
+- Cache da ficha passa a invalidar módulos conforme dependências estruturadas de Actor, Item e flags Ethernum.
+- O painel Ethernum reforça os terminais de combate, inventário, magia, Éter, Runas, Mecânica Única e efeitos sem duplicar o estado do Actor.
+
+### Corrigido
+- Textos longos de ancestralidade, herança, classe e antecedente não invadem mais a navegação.
+- Abas de Combate, Equipamento, Magia, Talentos e demais áreas voltam a responder ao clique do mouse em modos normal e compacto.
+- Comandos da ficha ficam em uma barra horizontal no topo, e a navegação permanece em uma faixa independente abaixo do cabeçalho.
+- “Gerenciar preparação” agora abre o fluxo PF2e em vez de funcionar como placeholder.
+- Rótulos internos como `PF2E.AbilityStr` deixam de aparecer na interface.
+
+### Testes
+- Cobertura de cache/lifecycle, Bulk, carry type, investment, resources, conditions, spell collections, slots preparados, fallback, i18n e sincronia sobre o mesmo Actor PF2e.
+
 ## [3.7.0.1] - 2026-08-09
 
 ### Adicionado

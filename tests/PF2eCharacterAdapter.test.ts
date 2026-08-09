@@ -212,6 +212,9 @@ describe("PF2eCharacterAdapter", () => {
         attributes: {
           ac: { value: 28 },
           speed: { value: 25, otherSpeeds: [{ type: "swim", value: 25 }] },
+          immunities: [{ type: "fear", label: "Fear" }],
+          resistances: [{ type: "mental", label: "Mental", value: 5 }],
+          weaknesses: [{ type: "cold-iron", label: "Cold Iron", value: 3 }],
         },
         perception: { mod: 16 },
         saves: {
@@ -228,6 +231,9 @@ describe("PF2eCharacterAdapter", () => {
         reflex: { slug: "reflex", label: "Reflex", modifier: 17, rollable: true },
         will: { slug: "will", label: "Will", modifier: 19, rollable: true },
       },
+      immunities: [{ type: "fear", label: "Fear" }],
+      resistances: [{ type: "mental", label: "Mental", value: 5 }],
+      weaknesses: [{ type: "cold-iron", label: "Cold Iron", value: 3 }],
     });
     expect(PF2eCharacterAdapter.movement(actor as never)).toEqual({
       land: 35,
@@ -393,6 +399,7 @@ describe("PF2eCharacterAdapter", () => {
       type: "weapon",
       quantity: 1,
       equipped: true,
+      carryType: "held",
       bulk: "1",
       price: "1 gp",
     });
@@ -472,6 +479,22 @@ describe("PF2eCharacterAdapter", () => {
           locationId: "entry-1",
           traditions: ["divine"],
           focus: false,
+          castRank: 3,
+        }],
+        groups: [{
+          rank: 3,
+          spells: [{
+            id: "heal",
+            uuid: "Actor.hero.Item.heal",
+            name: "Heal",
+            image: "heal.webp",
+            rank: 3,
+            category: "spell",
+            locationId: "entry-1",
+            traditions: ["divine"],
+            focus: false,
+            castRank: 3,
+          }],
         }],
       }],
       unassignedSpells: [{
@@ -483,6 +506,7 @@ describe("PF2eCharacterAdapter", () => {
         category: "cantrip",
         traditions: ["divine"],
         focus: false,
+        castRank: 0,
       }],
       focusPoints: { current: 2, max: 3 },
     });
@@ -492,6 +516,54 @@ describe("PF2eCharacterAdapter", () => {
       mythicPoints: { current: 1, max: 3 },
       classResources: { panache: { current: 1, max: 1 } },
     });
+  });
+
+  it("reads prepared spell collections with slot rank and expended state", () => {
+    const spell = {
+      id: "fear",
+      uuid: "Actor.hero.Item.fear",
+      type: "spell",
+      name: "Fear",
+      img: "fear.webp",
+      system: {
+        rank: 1,
+        category: "spell",
+        location: { value: "occult-entry" },
+        traits: { traditions: ["occult"] },
+      },
+    };
+    const entry = {
+      id: "occult-entry",
+      type: "spellcastingEntry",
+      name: "Occult Prepared Spells",
+      system: {
+        tradition: { value: "occult" },
+        prepared: { value: "prepared" },
+        slots: {
+          slot1: {
+            max: 2,
+            prepared: [
+              { id: "fear", expended: false },
+              { id: "fear", expended: true },
+            ],
+          },
+        },
+      },
+    };
+    const collection = Object.assign(new Map([[spell.id, spell]]), { entry });
+    const actor = {
+      items: [entry, spell],
+      spellcasting: { collections: new Map([[entry.id, collection]]) },
+    };
+
+    const snapshot = PF2eCharacterAdapter.spellcasting(actor as never);
+    const group = snapshot.entries[0]?.groups[0];
+
+    expect(group).toMatchObject({ rank: 1, slots: { value: 1, max: 2 } });
+    expect(group?.spells).toEqual([
+      expect.objectContaining({ id: "fear", castRank: 1, slotId: 0, prepared: true, expended: false }),
+      expect.objectContaining({ id: "fear", castRank: 1, slotId: 1, prepared: true, expended: true }),
+    ]);
   });
 
   it("uses robust actor.system and iterable itemTypes fallbacks", () => {

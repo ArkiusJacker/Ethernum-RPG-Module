@@ -53,7 +53,10 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       resizable: true,
       closeOnSubmit: false,
       submitOnChange: true,
-      dragDrop: [{ dragSelector: ".ecs-item-row, .ecs-action-row, .ecs-strike", dropSelector: null }],
+      dragDrop: [{
+        dragSelector: ".ecs-inventory-item, .ecs-action-row, .ecs-strike, .ecs-spell-row, .ecs-feat-row",
+        dropSelector: ".ecs-workspace",
+      }],
     });
   }
 
@@ -108,6 +111,18 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     html.find('[data-action="update-hp"]').on("change.ethernum-sheet", event => {
       void PF2eCharacterActions.updateHP(this.actor, numeric((event.currentTarget as HTMLInputElement).value));
     });
+    html.find<HTMLSelectElement>('select[data-action="change-carry-type"]').on("change.ethernum-sheet", event => {
+      const select = event.currentTarget;
+      const [carryType, hands] = select.value.split(":");
+      if (!["held", "worn", "stowed", "dropped"].includes(carryType)) return;
+      void PF2eCharacterActions.changeCarryType(this.actor, data(select, "itemId"), {
+        carryType: carryType as "held" | "worn" | "stowed" | "dropped",
+        ...(carryType === "held" ? { handsHeld: numeric(hands, 1) } : {}),
+      }).catch(error => {
+        console.error("Ethernum | Carry type change failed", error);
+        ui.notifications?.warn(error instanceof Error ? error.message : String(error));
+      });
+    });
     html.on("input.ethernum-sheet", '[data-action="filter-inventory"], [data-action="filter-feats"]', event => {
       const input = event.currentTarget as HTMLInputElement;
       const query = input.value.trim().toLocaleLowerCase();
@@ -146,7 +161,8 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     const action = data(element, "action");
     const itemId = data(element, "itemId");
     if (action === "open-pf2e-sheet" || action === "manage-actions" || action === "browse-effects"
-      || action === "create-item" || action === "create-spellcasting-entry") {
+      || action === "create-item" || action === "create-spellcasting-entry"
+      || action === "manage-spell-preparation") {
       openOriginalPF2eCharacterSheet(this.actor);
       return;
     }
@@ -187,7 +203,16 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       await PF2eCharacterActions.useAction(this.actor, data(element, "preparedActionId"), itemId);
       return;
     }
-    if (action === "use-item" || action === "cast-spell") {
+    if (action === "cast-spell") {
+      await PF2eCharacterActions.castSpell(this.actor, {
+        entryId: data(element, "entryId"),
+        spellId: itemId,
+        rank: numeric(data(element, "castRank") || data(element, "rank")),
+        ...(data(element, "slotId") ? { slotId: numeric(data(element, "slotId")) } : {}),
+      });
+      return;
+    }
+    if (action === "use-item") {
       await PF2eCharacterActions.useItem(this.actor, itemId);
       return;
     }
@@ -222,13 +247,9 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       return;
     }
     if (action === "adjust-condition") {
-      const condition = this.actor.items.get(itemId) as Item & {
-        increase?: () => Promise<unknown>;
-        decrease?: () => Promise<unknown>;
-      };
-      const method = numeric(data(element, "delta")) > 0 ? condition?.increase : condition?.decrease;
-      if (typeof method === "function") await method.call(condition);
-      else condition?.sheet?.render(true);
+      const slug = data(element, "conditionSlug");
+      if (numeric(data(element, "delta")) > 0) await PF2eCharacterActions.increaseCondition(this.actor, slug);
+      else await PF2eCharacterActions.decreaseCondition(this.actor, slug);
       return;
     }
     if (action === "delete-item") {
@@ -281,6 +302,41 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     if (action === "configure-unique-mechanic" || action.startsWith("manage-") || action.startsWith("edit-") || action.startsWith("create-")) {
       openOriginalPF2eCharacterSheet(this.actor);
     }
+  }
+
+  protected override async _onDrop(event: DragEvent): Promise<unknown> {
+    const target = event.target instanceof Element ? event.target : null;
+    const spellEntry = target?.closest<HTMLElement>(".ecs-spell-entry[data-entry-id]");
+    if (spellEntry) {
+      try {
+        const TextEditorApp = (foundry as unknown as {
+          applications?: { ux?: { TextEditor?: { implementation?: { getDragEventData?: (event: DragEvent) => Record<string, unknown> } } } };
+        }).applications?.ux?.TextEditor;
+        const dragData = TextEditorApp?.implementation?.getDragEventData?.(event);
+        if (dragData?.type === "Item") {
+          const ItemClass = Item as unknown as {
+            implementation?: { fromDropData?: (data: Record<string, unknown>) => Promise<Item | null> };
+          };
+          const spell = await ItemClass.implementation?.fromDropData?.(dragData) ?? null;
+          if (spell && String(spell.type) === "spell") {
+            const group = target?.closest<HTMLElement>("[data-rank]")?.dataset.rank;
+            return PF2eCharacterActions.addSpell(
+              this.actor,
+              data(spellEntry, "entryId"),
+              spell,
+              group === undefined ? undefined : numeric(group),
+            );
+          }
+        }
+      } catch (error) {
+        console.warn("Ethernum | PF2e spell drop fallback", error);
+        ui.notifications?.warn(game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.SpellDropUnavailable")
+          ?? "Abra a ficha PF2e para adicionar esta magia.");
+        openOriginalPF2eCharacterSheet(this.actor);
+        return null;
+      }
+    }
+    return super._onDrop(event);
   }
 
   #filterRows(element: HTMLElement): void {

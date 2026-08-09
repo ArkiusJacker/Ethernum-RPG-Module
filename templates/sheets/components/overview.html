@@ -7,7 +7,7 @@
   <div class="ecs-overview-grid">
     <section class="ecs-section ecs-section--abilities" aria-labelledby="ecs-abilities-title">
       <header class="ecs-section__header">
-        <h2 id="ecs-abilities-title"><i class="fas fa-dumbbell" aria-hidden="true"></i>Atributos</h2>
+        <h2 id="ecs-abilities-title"><i class="fas fa-dumbbell" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Abilities'}}</h2>
       </header>
       <div class="ecs-ability-grid">
         {{#each abilities}}
@@ -21,15 +21,15 @@
 
     <section class="ecs-section ecs-section--defenses" aria-labelledby="ecs-defenses-title">
       <header class="ecs-section__header">
-        <h2 id="ecs-defenses-title"><i class="fas fa-shield-halved" aria-hidden="true"></i>Defesas</h2>
+        <h2 id="ecs-defenses-title"><i class="fas fa-shield-halved" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Defenses'}}</h2>
       </header>
       <div class="ecs-defense-grid">
         <div class="ecs-defense ecs-defense--ac">
-          <span>CA</span>
+          <span>{{localize 'ETHERNUM.CharacterSheet.Overview.ArmorClass'}}</span>
           <strong>{{defenses.ac.value}}</strong>
         </div>
         <button type="button" class="ecs-defense" data-action="roll-perception" aria-label="Rolar Percepção com modificador {{defenses.perception.modifier}}">
-          <span>Percepção</span>
+          <span>{{localize 'ETHERNUM.CharacterSheet.Overview.Perception'}}</span>
           <strong>{{defenses.perception.modifier}}</strong>
         </button>
         {{#each defenses.saves}}
@@ -44,8 +44,8 @@
 
     <section class="ecs-section ecs-section--skills" aria-labelledby="ecs-skills-title">
       <header class="ecs-section__header">
-        <h2 id="ecs-skills-title"><i class="fas fa-list-check" aria-hidden="true"></i>Perícias</h2>
-        <button type="button" class="ecs-icon-control" data-action="toggle-skill-details" aria-label="Alternar detalhes das perícias" title="Detalhes"><i class="fas fa-sliders" aria-hidden="true"></i></button>
+        <h2 id="ecs-skills-title"><i class="fas fa-list-check" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Skills'}}</h2>
+        <button type="button" class="ecs-icon-control" data-action="toggle-skill-details" aria-label="{{localize 'ETHERNUM.CharacterSheet.Overview.SkillDetails'}}" title="{{localize 'ETHERNUM.CharacterSheet.Overview.SkillDetails'}}"><i class="fas fa-sliders" aria-hidden="true"></i></button>
       </header>
       <div class="ecs-skill-list">
         {{#each skills}}
@@ -65,16 +65,16 @@
 
     <div class="ecs-overview-side">
       <section class="ecs-section" aria-labelledby="ecs-movement-title">
-        <header class="ecs-section__header"><h2 id="ecs-movement-title"><i class="fas fa-person-running" aria-hidden="true"></i>Deslocamento</h2></header>
+        <header class="ecs-section__header"><h2 id="ecs-movement-title"><i class="fas fa-person-running" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Movement'}}</h2></header>
         <div class="ecs-movement-list">
           {{#each movement}}
           <div class="ecs-movement-row"><span>{{this.label}}</span><strong>{{this.value}} {{this.unit}}</strong></div>
-          {{else}}<p class="ecs-empty">Nenhum deslocamento preparado.</p>{{/each}}
+          {{else}}<p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Overview.NoMovement'}}</p>{{/each}}
         </div>
       </section>
 
       <section class="ecs-section" aria-labelledby="ecs-resources-title">
-        <header class="ecs-section__header"><h2 id="ecs-resources-title"><i class="fas fa-gauge-high" aria-hidden="true"></i>Recursos</h2></header>
+        <header class="ecs-section__header"><h2 id="ecs-resources-title"><i class="fas fa-gauge-high" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.Resources'}}</h2></header>
         <div class="ecs-resource-list">
           {{#each resources}}
           <div class="ecs-resource-row">
@@ -82,17 +82,17 @@
             <strong>{{this.value}}{{#if this.max}}/{{this.max}}{{/if}}</strong>
           </div>
           {{else}}
-          <p class="ecs-empty">Nenhum recurso adicional.</p>
+          <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.Overview.NoResources'}}</p>
           {{/each}}
         </div>
       </section>
 
       <section class="ecs-section" aria-labelledby="ecs-condition-title">
-        <header class="ecs-section__header"><h2 id="ecs-condition-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>Estado</h2></header>
+        <header class="ecs-section__header"><h2 id="ecs-condition-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.Overview.State'}}</h2></header>
         <div class="ecs-condition-strip">
-          <span>Ferido <strong>{{vitals.wounded}}</strong></span>
-          <span>Morrendo <strong>{{vitals.dying}}</strong></span>
-          <span>Condenado <strong>{{vitals.doomed}}</strong></span>
+          <span>{{localize 'PF2E.ConditionTypeWounded'}} <strong>{{vitals.wounded}}</strong></span>
+          <span>{{localize 'PF2E.ConditionTypeDying'}} <strong>{{vitals.dying}}</strong></span>
+          <span>{{localize 'PF2E.ConditionTypeDoomed'}} <strong>{{vitals.doomed}}</strong></span>
         </div>
       </section>
     </div>

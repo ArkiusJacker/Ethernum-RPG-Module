@@ -24,6 +24,14 @@ describe("Character Sheet v3.7.0.1 hotfix", () => {
     expect(gmCss).toContain("z-index: calc(var(--z-index-ui, 60) + 2);");
   });
 
+  it("keeps long identities and header controls from covering mouse navigation", () => {
+    const sheetCss = readFileSync(join(process.cwd(), "styles", "sheets", "character-sheet-base.css"), "utf8");
+    expect(sheetCss).toContain("grid-template-rows: max-content var(--ecs-nav-height) minmax(0, 1fr);");
+    expect(sheetCss).toMatch(/\.ecs-identity__line \{[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow-wrap: anywhere;/);
+    expect(sheetCss).toMatch(/\.ecs-header-actions \{[\s\S]*?flex-flow: row nowrap;/);
+    expect(sheetCss).toMatch(/\.ecs-navigation \{[\s\S]*?z-index: 4;[\s\S]*?pointer-events: auto;/);
+  });
+
   it("switches visible panels without racing full sheet renders", () => {
     const source = readFileSync(
       join(process.cwd(), "scripts", "sheets", "BaseEthernumCharacterSheet.ts"),
@@ -34,6 +42,7 @@ describe("Character Sheet v3.7.0.1 hotfix", () => {
     expect(source).toContain('tab.setAttribute("aria-selected", String(active));');
     expect(source).not.toMatch(/selectSheetTab[\s\S]*?this\.render\(true\)/);
     expect(source).toContain("foundry.applications.apps");
+    expect(source).toContain('action === "manage-spell-preparation"');
     expect(source).not.toContain("new ImagePopout(");
     const navigation = readFileSync(
       join(process.cwd(), "templates", "sheets", "base", "navigation.html"),

@@ -20,6 +20,35 @@ interface PreparedStrike {
   roll?: (options?: RollOptions) => Promise<unknown> | unknown;
 }
 
+export type CharacterCarryType = "held" | "worn" | "stowed" | "dropped";
+
+export interface CharacterCarryTypeOptions {
+  carryType: CharacterCarryType;
+  handsHeld?: number;
+  inSlot?: boolean;
+}
+
+export interface CharacterCastSpellOptions {
+  entryId: string;
+  spellId: string;
+  rank: number;
+  slotId?: number;
+}
+
+interface PF2eResource {
+  slug?: string;
+  value: number;
+  max: number;
+}
+
+interface PF2eSpellCollection {
+  get?: (id: string, options?: { strict?: boolean }) => unknown;
+  addSpell?: (spell: Item, options?: { groupId?: number | string }) => Promise<unknown> | unknown;
+  entry?: {
+    cast?: (spell: unknown, options: { rank: number; slotId?: number }) => Promise<unknown> | unknown;
+  };
+}
+
 type PF2eActorActions = Actor & {
   isOwner: boolean;
   skills?: Record<string, PreparedRoll>;
@@ -27,12 +56,24 @@ type PF2eActorActions = Actor & {
   perception?: PreparedRoll;
   system: Actor["system"] & { actions?: PreparedStrike[] };
   items: Actor["items"] & { get?: (id: string) => Item | undefined };
+  changeCarryType?: (item: Item, options: CharacterCarryTypeOptions) => Promise<unknown> | unknown;
+  getResource?: (slug: string) => PF2eResource | null | undefined;
+  updateResource?: (slug: string, value: number, options?: Record<string, unknown>) => Promise<unknown> | unknown;
+  increaseCondition?: (slug: string, options?: Record<string, unknown>) => Promise<unknown> | unknown;
+  decreaseCondition?: (slug: string, options?: Record<string, unknown>) => Promise<unknown> | unknown;
+  spellcasting?: {
+    collections?: {
+      get?: (id: string, options?: { strict?: boolean }) => PF2eSpellCollection | undefined;
+    };
+  };
 };
 
 type PF2eItemActions = Item & {
   consume?: () => Promise<unknown> | unknown;
   roll?: (options?: RollOptions) => Promise<unknown> | unknown;
   toMessage?: (options?: RollOptions) => Promise<unknown> | unknown;
+  isInvestable?: boolean;
+  isInvested?: boolean;
 };
 
 function updateDocument(document: Actor | Item, changed: Record<string, unknown>): Promise<unknown> {
@@ -96,6 +137,22 @@ function getPreparedAction(actor: Actor, actionId: string): PreparedStrike | und
     action.item?.id,
     action.item?.uuid,
   ].some(value => value === actionId));
+}
+
+function characterResource(actor: Actor, slug: string): PF2eResource | null {
+  const getter = (actor as PF2eActorActions).getResource;
+  if (typeof getter !== "function") return null;
+  return getter.call(actor, slug) ?? null;
+}
+
+function spellCollection(actor: Actor, entryId: string): PF2eSpellCollection | null {
+  const collections = (actor as PF2eActorActions).spellcasting?.collections;
+  if (typeof collections?.get !== "function") return null;
+  return collections.get(entryId) ?? null;
+}
+
+function unavailable(key: string, fallback: string): Error {
+  return new Error(localize(key, fallback));
 }
 
 export const PF2eCharacterActions = {
@@ -181,19 +238,116 @@ export const PF2eCharacterActions = {
     return updateDocument(getItem(actor, itemId), { "system.quantity": Math.max(0, Math.trunc(quantity)) });
   },
 
-  async toggleEquipped(actor: Actor, itemId: string, equipped: boolean): Promise<unknown> {
+  async changeCarryType(
+    actor: Actor,
+    itemId: string,
+    options: CharacterCarryTypeOptions,
+  ): Promise<unknown> {
     assertCanUse(actor);
+    const item = getItem(actor, itemId);
+    const operation = (actor as PF2eActorActions).changeCarryType;
+    if (typeof operation !== "function") {
+      throw unavailable(
+        "ETHERNUM.CharacterSheet.Errors.CarryTypeUnavailable",
+        "PF2e cannot change this item's carry state from the Ethernum sheet.",
+      );
+    }
+    const normalized: CharacterCarryTypeOptions = {
+      carryType: options.carryType,
+      ...(options.carryType === "held" && Number.isFinite(options.handsHeld)
+        ? { handsHeld: Math.max(1, Math.min(2, Math.trunc(options.handsHeld ?? 1))) }
+        : {}),
+      ...(options.carryType === "worn" && options.inSlot !== undefined ? { inSlot: options.inSlot } : {}),
+    };
+    return Promise.resolve(operation.call(actor, item, normalized));
+  },
+
+  async toggleEquipped(actor: Actor, itemId: string, equipped: boolean): Promise<unknown> {
     const item = getItem(actor, itemId) as PF2eItemActions & {
       system?: { equipped?: { carryType?: string } };
     };
     const current = item.system?.equipped?.carryType;
-    const carryType = equipped ? (current === "held" ? "held" : "worn") : "stowed";
-    return updateDocument(item, { "system.equipped.carryType": carryType });
+    const carryType: CharacterCarryType = equipped ? (current === "held" ? "held" : "worn") : "stowed";
+    return this.changeCarryType(actor, itemId, { carryType, ...(carryType === "held" ? { handsHeld: 1 } : {}) });
   },
 
   async toggleInvested(actor: Actor, itemId: string, invested: boolean): Promise<unknown> {
     assertCanUse(actor);
-    return updateDocument(getItem(actor, itemId), { "system.equipped.invested": invested });
+    const item = getItem(actor, itemId);
+    if (item.isInvestable !== true) {
+      throw unavailable(
+        "ETHERNUM.CharacterSheet.Errors.InvestmentUnavailable",
+        "PF2e does not consider this item investable.",
+      );
+    }
+    return updateDocument(item, { "system.equipped.invested": invested });
+  },
+
+  async castSpell(actor: Actor, options: CharacterCastSpellOptions): Promise<unknown> {
+    assertCanUse(actor);
+    const collection = spellCollection(actor, options.entryId);
+    const spell = collection?.get?.(options.spellId);
+    const cast = collection?.entry?.cast;
+    if (!collection || !spell || typeof cast !== "function") {
+      throw unavailable(
+        "ETHERNUM.CharacterSheet.Errors.SpellCastUnavailable",
+        "PF2e spell casting is unavailable. Open the original PF2e sheet to continue.",
+      );
+    }
+    const rank = Math.max(0, Math.min(10, Math.trunc(options.rank)));
+    return Promise.resolve(cast.call(collection.entry, spell, {
+      rank,
+      ...(Number.isInteger(options.slotId) ? { slotId: options.slotId } : {}),
+    }));
+  },
+
+  async addSpell(actor: Actor, entryId: string, spell: Item, groupId?: number | string): Promise<unknown> {
+    assertCanUse(actor);
+    const collection = spellCollection(actor, entryId);
+    if (typeof collection?.addSpell !== "function") {
+      throw unavailable(
+        "ETHERNUM.CharacterSheet.Errors.SpellDropUnavailable",
+        "PF2e cannot add this spell from the Ethernum sheet.",
+      );
+    }
+    return Promise.resolve(collection.addSpell(spell, groupId === undefined ? {} : { groupId }));
+  },
+
+  async increaseCondition(actor: Actor, slug: string, options: Record<string, unknown> = {}): Promise<unknown> {
+    assertCanUse(actor);
+    const operation = (actor as PF2eActorActions).increaseCondition;
+    if (typeof operation !== "function") {
+      throw unavailable("ETHERNUM.CharacterSheet.Errors.ConditionUnavailable", "PF2e condition controls are unavailable.");
+    }
+    return Promise.resolve(operation.call(actor, slug, options));
+  },
+
+  async decreaseCondition(actor: Actor, slug: string, options: Record<string, unknown> = {}): Promise<unknown> {
+    assertCanUse(actor);
+    const operation = (actor as PF2eActorActions).decreaseCondition;
+    if (typeof operation !== "function") {
+      throw unavailable("ETHERNUM.CharacterSheet.Errors.ConditionUnavailable", "PF2e condition controls are unavailable.");
+    }
+    return Promise.resolve(operation.call(actor, slug, options));
+  },
+
+  async setResource(actor: Actor, slug: string, value: number): Promise<unknown> {
+    assertCanUse(actor);
+    const operation = (actor as PF2eActorActions).updateResource;
+    const resource = characterResource(actor, slug);
+    if (typeof operation !== "function" || !resource) {
+      throw unavailable("ETHERNUM.CharacterSheet.Errors.ResourceUnavailable", "PF2e resource controls are unavailable.");
+    }
+    const next = Math.max(0, Math.min(Number.isFinite(resource.max) ? resource.max : value, Math.trunc(value)));
+    return Promise.resolve(operation.call(actor, slug, next));
+  },
+
+  async adjustResource(actor: Actor, slug: string, delta: number): Promise<unknown> {
+    const resource = characterResource(actor, slug);
+    if (!resource) {
+      throw unavailable("ETHERNUM.CharacterSheet.Errors.ResourceUnavailable", "PF2e resource controls are unavailable.");
+    }
+    return this.setResource(actor, slug, resource.value + Math.trunc(delta));
   },
 
   async updateHP(actor: Actor, value: number): Promise<unknown> {
@@ -202,7 +356,6 @@ export const PF2eCharacterActions = {
   },
 
   async updateHeroPoints(actor: Actor, value: number): Promise<unknown> {
-    assertCanUse(actor);
-    return updateDocument(actor, { "system.resources.heroPoints.value": Math.max(0, Math.min(3, Math.trunc(value))) });
+    return this.setResource(actor, "hero-points", value);
   },
 };

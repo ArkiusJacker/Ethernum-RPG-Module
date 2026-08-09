@@ -1,5 +1,8 @@
 import { ETHERNUM } from "../../config.js";
-import { CharacterSheetCache } from "./CharacterSheetCache.js";
+import {
+  CharacterSheetCache,
+  type CharacterSheetDirtyPath,
+} from "./CharacterSheetCache.js";
 
 type ActorSheetConstructor = new (actor: Actor, options?: Partial<ActorSheet.Options>) => ActorSheet;
 
@@ -73,22 +76,95 @@ function actorForItem(item: Item): Actor | null {
   return parent instanceof Actor ? parent : null;
 }
 
+type CacheDependencyRule = Readonly<{
+  path: string;
+  invalidates: readonly CharacterSheetDirtyPath[];
+}>;
+
+const MODULE_FLAGS_PATH = `flags.${ETHERNUM.MODULE_NAME}`;
+
+export const ACTOR_CACHE_DEPENDENCIES: readonly CacheDependencyRule[] = [
+  { path: "system.attributes.hp", invalidates: ["vitals", "overview"] },
+  { path: "system.attributes", invalidates: ["vitals", "overview", "combat"] },
+  { path: "system.resources", invalidates: ["vitals", "overview", "combat"] },
+  { path: "system.saves", invalidates: ["overview", "combat"] },
+  { path: "system.skills", invalidates: ["overview"] },
+  { path: "system.movement", invalidates: ["overview"] },
+  { path: `${MODULE_FLAGS_PATH}.uniqueMechanics`, invalidates: ["unique"] },
+  { path: `${MODULE_FLAGS_PATH}.combatMomentum`, invalidates: ["combat"] },
+  { path: `${MODULE_FLAGS_PATH}.etherSystem`, invalidates: ["ethernum"] },
+  { path: `${MODULE_FLAGS_PATH}.etherAttributes`, invalidates: ["ethernum"] },
+  { path: `${MODULE_FLAGS_PATH}.talents`, invalidates: ["ethernum"] },
+  { path: `${MODULE_FLAGS_PATH}.fe`, invalidates: ["ethernum"] },
+  { path: `${MODULE_FLAGS_PATH}.runes`, invalidates: ["ethernum"] },
+];
+
+export const ITEM_CACHE_DEPENDENCIES: Readonly<Record<string, readonly CharacterSheetDirtyPath[]>> = {
+  weapon: ["inventory", "combat"],
+  armor: ["inventory", "vitals", "overview", "combat"],
+  shield: ["inventory", "vitals", "overview", "combat"],
+  feat: ["feats", "combat"],
+  action: ["feats", "combat"],
+  spell: ["spellcasting"],
+  spellcastingentry: ["spellcasting"],
+  condition: ["effects", "vitals", "overview", "combat"],
+  effect: ["effects", "vitals", "overview", "combat"],
+  ancestry: ["identity", "overview"],
+  heritage: ["identity", "overview"],
+  background: ["identity", "overview"],
+  class: ["identity", "overview"],
+};
+
+function structuredUpdatePaths(value: unknown, prefix = ""): string[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return prefix ? [prefix] : [];
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) return prefix ? [prefix] : [];
+  return entries.flatMap(([rawKey, child]) => {
+    const normalizedKey = rawKey
+      .split(".")
+      .map(segment => segment.startsWith("-=") ? segment.slice(2) : segment)
+      .filter(Boolean)
+      .join(".");
+    const path = prefix && normalizedKey ? `${prefix}.${normalizedKey}` : prefix || normalizedKey;
+    return structuredUpdatePaths(child, path);
+  });
+}
+
+function matchesDependency(path: string, dependency: string): boolean {
+  return path === dependency || path.startsWith(`${dependency}.`);
+}
+
+function uniquePaths(paths: readonly CharacterSheetDirtyPath[]): CharacterSheetDirtyPath[] {
+  return [...new Set(paths)];
+}
+
+export function resolveActorUpdateDirtyPaths(changed: unknown): CharacterSheetDirtyPath[] {
+  const changedPaths = structuredUpdatePaths(changed);
+  if (changedPaths.length === 0) return ["all"];
+
+  const invalidates: CharacterSheetDirtyPath[] = [];
+  for (const changedPath of changedPaths) {
+    const dependency = ACTOR_CACHE_DEPENDENCIES.find(rule => matchesDependency(changedPath, rule.path));
+    if (!dependency) return ["all"];
+    invalidates.push(...dependency.invalidates);
+  }
+  return uniquePaths(invalidates);
+}
+
+export function resolveItemDirtyPaths(item: Pick<Item, "type">): CharacterSheetDirtyPath[] {
+  const itemType = String(item.type ?? "").toLowerCase();
+  return [...(ITEM_CACHE_DEPENDENCIES[itemType] ?? ["all"])] as CharacterSheetDirtyPath[];
+}
+
 export function initializeCharacterSheetLifecycle(): void {
   Hooks.on("updateActor", (actor: Actor, changed: Record<string, unknown>) => {
     const id = String(actor.id ?? "");
     if (!id) return;
-    const serialized = JSON.stringify(changed);
-    if (serialized.includes("attributes") || serialized.includes("resources")) {
-      CharacterSheetCache.invalidate(id, "vitals", "combat");
-    } else if (serialized.includes("uniqueMechanics")) {
-      CharacterSheetCache.invalidate(id, "unique");
-    } else {
-      CharacterSheetCache.invalidate(id, "identity", "overview", "ethernum");
-    }
+    CharacterSheetCache.invalidate(id, ...resolveActorUpdateDirtyPaths(changed));
   });
   const invalidateItem = (item: Item) => {
     const actor = actorForItem(item);
-    if (actor?.id) CharacterSheetCache.invalidate(actor.id, "combat", "inventory", "spellcasting", "effects");
+    if (actor?.id) CharacterSheetCache.invalidate(actor.id, ...resolveItemDirtyPaths(item));
   };
   Hooks.on("createItem", invalidateItem);
   Hooks.on("updateItem", invalidateItem);

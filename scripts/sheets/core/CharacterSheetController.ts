@@ -13,6 +13,10 @@ import { CharacterSheetCache } from "./CharacterSheetCache.js";
 import { CharacterSheetModuleRegistry, type CharacterSheetModuleMetric } from "./CharacterSheetModuleRegistry.js";
 import { buildCharacterSheetPresentation } from "./CharacterSheetPresentation.js";
 import {
+  detectPF2eCharacterCapabilities,
+  type PF2eCharacterCapabilities,
+} from "./PF2eCharacterBridge.js";
+import {
   CharacterSheetRegistry,
   normalizeCharacterSheetMode,
   type CharacterSheetMode,
@@ -52,6 +56,10 @@ export interface CharacterSheetDiagnostics {
   moduleMetrics: CharacterSheetModuleMetric[];
   dirtyPaths: string[];
   renderTimeMs: number;
+  foundryVersion: string;
+  pf2eVersion: string;
+  capabilities: PF2eCharacterCapabilities;
+  fallbacksUsed: string[];
 }
 
 const sheetRegistry = new CharacterSheetRegistry<CharacterSheetShellDefinition>()
@@ -186,6 +194,9 @@ export const CharacterSheetController = {
       ...presentedData,
     };
     const uniqueState = UniqueMechanicStateService.getState(actor);
+    const capabilities = detectPF2eCharacterCapabilities(actor);
+    const foundryVersion = String((game as Game & { version?: string }).version ?? "unknown");
+    const pf2eVersion = String(game.system?.version ?? "unknown");
     diagnostics.set(id, {
       actorId: id,
       actorName: actor.name ?? "",
@@ -198,6 +209,10 @@ export const CharacterSheetController = {
       moduleMetrics: report.metrics,
       dirtyPaths: CharacterSheetCache.getDirtyPaths(id),
       renderTimeMs,
+      foundryVersion,
+      pf2eVersion,
+      capabilities,
+      fallbacksUsed: failedModules.map(module => `module:${module.id}`),
     });
     return context;
   },

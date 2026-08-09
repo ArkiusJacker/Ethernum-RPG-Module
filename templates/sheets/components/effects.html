@@ -5,39 +5,39 @@
          aria-labelledby="ecs-tab-effects"
          {{#unless (ethernum-eq ui.activeTab "effects")}}hidden{{/unless}}>
   <div class="ecs-panel-heading">
-    <div><span class="ecs-eyebrow">Estado atual</span><h2>Efeitos e condições</h2></div>
+    <div><span class="ecs-eyebrow">{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Eyebrow'}}</span><h2>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Title'}}</h2></div>
     {{#if permissions.canCreateItems}}
-    <button type="button" data-action="browse-effects"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar</span></button>
+    <button type="button" data-action="browse-effects"><i class="fas fa-plus" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Common.Add'}}</span></button>
     {{/if}}
   </div>
 
   <div class="ecs-effects-layout">
     <section class="ecs-section" aria-labelledby="ecs-conditions-list-title">
-      <header class="ecs-section__header"><h3 id="ecs-conditions-list-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>Condições</h3></header>
+      <header class="ecs-section__header"><h3 id="ecs-conditions-list-title"><i class="fas fa-heart-pulse" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Conditions'}}</h3></header>
       <div class="ecs-effect-list">
         {{#each effects.conditions}}
         <article class="ecs-effect-row {{#if this.locked}}is-locked{{/if}}" data-item-id="{{this.id}}">
           <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
           <div class="ecs-effect-row__body"><h3>{{this.name}}{{#if this.value}} <span>{{this.value}}</span>{{/if}}</h3>{{#if this.summary}}<p>{{this.summary}}</p>{{/if}}</div>
-          {{#if ../permissions.gm}}
+          {{#if ../permissions.canUpdateActor}}
           {{#if this.hasValue}}
           <div class="ecs-stepper" role="group" aria-label="Valor de {{this.name}}">
-            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-delta="-1" aria-label="Diminuir"><i class="fas fa-minus" aria-hidden="true"></i></button>
+            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-condition-slug="{{this.slug}}" data-delta="-1" aria-label="Diminuir"><i class="fas fa-minus" aria-hidden="true"></i></button>
             <strong>{{this.value}}</strong>
-            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-delta="1" aria-label="Aumentar"><i class="fas fa-plus" aria-hidden="true"></i></button>
+            <button type="button" data-action="adjust-condition" data-item-id="{{this.id}}" data-condition-slug="{{this.slug}}" data-delta="1" aria-label="Aumentar"><i class="fas fa-plus" aria-hidden="true"></i></button>
           </div>
           {{/if}}
           <button type="button" class="ecs-icon-control ecs-danger-action" data-action="delete-item" data-item-id="{{this.id}}" aria-label="Remover {{this.name}}" title="Remover"><i class="fas fa-trash" aria-hidden="true"></i></button>
           {{/if}}
         </article>
         {{else}}
-        <p class="ecs-empty">Nenhuma condição ativa.</p>
+        <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.NoConditions'}}</p>
         {{/each}}
       </div>
     </section>
 
     <section class="ecs-section" aria-labelledby="ecs-effects-list-title">
-      <header class="ecs-section__header"><h3 id="ecs-effects-list-title"><i class="fas fa-sparkles" aria-hidden="true"></i>Efeitos</h3></header>
+      <header class="ecs-section__header"><h3 id="ecs-effects-list-title"><i class="fas fa-sparkles" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Effects'}}</h3></header>
       <div class="ecs-effect-list">
         {{#each effects.temporary}}
         <article class="ecs-effect-row {{#unless this.enabled}}is-disabled{{/unless}}" data-item-id="{{this.id}}">
@@ -52,17 +52,31 @@
           {{/if}}
         </article>
         {{else}}
-        <p class="ecs-empty">Nenhum efeito temporário.</p>
+        <p class="ecs-empty">{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.NoEffects'}}</p>
         {{/each}}
       </div>
     </section>
 
+    {{#if effects.persistent.length}}
+    <section class="ecs-section ecs-section--wide" aria-labelledby="ecs-persistent-list-title">
+      <header class="ecs-section__header"><h3 id="ecs-persistent-list-title"><i class="fas fa-fire" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.PersistentDamage'}}</h3></header>
+      <div class="ecs-effect-list ecs-effect-list--persistent">
+        {{#each effects.persistent}}
+        <article class="ecs-effect-row" data-item-id="{{this.id}}">
+          <button type="button" class="ecs-item-image" data-action="open-item" data-item-id="{{this.id}}" aria-label="Abrir {{this.name}}"><img src="{{this.img}}" alt="" /></button>
+          <div class="ecs-effect-row__body"><h3>{{this.name}}{{#if this.value}} <span>{{this.value}}</span>{{/if}}</h3>{{#if this.durationLabel}}<p>{{this.durationLabel}}</p>{{/if}}</div>
+        </article>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
     <section class="ecs-section ecs-section--wide" aria-labelledby="ecs-immunities-title">
-      <header class="ecs-section__header"><h3 id="ecs-immunities-title"><i class="fas fa-shield" aria-hidden="true"></i>Imunidades, resistências e fraquezas</h3></header>
+      <header class="ecs-section__header"><h3 id="ecs-immunities-title"><i class="fas fa-shield" aria-hidden="true"></i>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.IWR'}}</h3></header>
       <div class="ecs-defense-traits">
-        <div><span>Imunidades</span><div class="ecs-tags">{{#each defenses.immunities}}<span class="ecs-tag">{{this.label}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
-        <div><span>Resistências</span><div class="ecs-tags">{{#each defenses.resistances}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
-        <div><span>Fraquezas</span><div class="ecs-tags">{{#each defenses.weaknesses}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">Nenhuma</span>{{/each}}</div></div>
+        <div><span>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Immunities'}}</span><div class="ecs-tags">{{#each defenses.immunities}}<span class="ecs-tag">{{this.label}}</span>{{else}}<span class="ecs-muted">{{localize 'ETHERNUM.CharacterSheet.Common.None'}}</span>{{/each}}</div></div>
+        <div><span>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Resistances'}}</span><div class="ecs-tags">{{#each defenses.resistances}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">{{localize 'ETHERNUM.CharacterSheet.Common.None'}}</span>{{/each}}</div></div>
+        <div><span>{{localize 'ETHERNUM.CharacterSheet.EffectsPanel.Weaknesses'}}</span><div class="ecs-tags">{{#each defenses.weaknesses}}<span class="ecs-tag">{{this.label}} {{this.value}}</span>{{else}}<span class="ecs-muted">{{localize 'ETHERNUM.CharacterSheet.Common.None'}}</span>{{/each}}</div></div>
       </div>
     </section>
   </div>

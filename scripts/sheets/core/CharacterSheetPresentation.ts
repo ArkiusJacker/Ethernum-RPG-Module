@@ -68,11 +68,20 @@ function viewResources(value: unknown): Data[] {
     if (Object.keys(resource).length === 0) return;
     result.push({ label, value: number(resource.current), max: number(resource.max) });
   };
-  add(localize("PF2E.HeroPointsLabel", "Pontos Heroicos"), resources.heroPoints);
-  add(localize("PF2E.FocusPointsLabel", "Pontos de Foco"), resources.focusPoints);
-  add(localize("PF2E.MythicPointsLabel", "Pontos Míticos"), resources.mythicPoints);
+  add(localize("ETHERNUM.CharacterSheet.Overview.HeroPoints", "Hero Points"), resources.heroPoints);
+  add(localize("ETHERNUM.CharacterSheet.Overview.FocusPoints", "Focus Points"), resources.focusPoints);
+  add(localize("ETHERNUM.CharacterSheet.Overview.MythicPoints", "Mythic Points"), resources.mythicPoints);
   Object.entries(record(resources.classResources)).forEach(([slug, resource]) => add(slug, resource));
   return result;
+}
+
+function viewAbilities(value: unknown): Data[] {
+  return list(value).map(abilityValue => {
+    const ability = record(abilityValue);
+    const slug = String(ability.slug ?? "").toLowerCase();
+    const key = slug ? `ETHERNUM.CharacterSheet.Abilities.${slug}` : "";
+    return { ...ability, label: key ? localize(key, String(ability.label ?? slug.toUpperCase())) : ability.label };
+  });
 }
 
 function viewStrikes(value: unknown): Data[] {
@@ -110,15 +119,16 @@ function viewActions(value: unknown): Data[] {
 
 function viewInventory(value: unknown): Data {
   const inventory = record(value);
+  const bulk = record(inventory.bulk);
   const labels: Record<string, string> = {
-    weapons: "Armas",
-    armor: "Armaduras",
-    shields: "Escudos",
-    consumables: "Consumíveis",
-    equipment: "Equipamento",
-    treasure: "Tesouros",
-    containers: "Recipientes",
-    other: "Outros",
+    weapons: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Weapons", "Armas"),
+    armor: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Armor", "Armaduras"),
+    shields: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Shields", "Escudos"),
+    consumables: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Consumables", "Consumíveis"),
+    equipment: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Equipment", "Equipamento"),
+    treasure: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Treasure", "Tesouros"),
+    containers: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Containers", "Recipientes"),
+    other: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Other", "Outros"),
   };
   const categories = Object.entries(labels).map(([id, label]) => ({
     id,
@@ -126,39 +136,92 @@ function viewInventory(value: unknown): Data {
     collapsed: false,
     items: list(inventory[id]).map(itemValue => {
       const item = record(itemValue);
+      const type = String(item.type ?? "").toLowerCase();
+      const carryType = String(item.carryType ?? "");
+      const hands = String(item.hands ?? "");
+      const heldValue = `held:${number(item.handsHeld, hands === "2" ? 2 : 1)}`;
+      const carryOptions: Data[] = [];
+      const addCarryOption = (value: string, label: string) => carryOptions.push({
+        value,
+        label,
+        selected: value === (carryType === "held" ? heldValue : carryType),
+      });
+      if (type === "weapon") {
+        if (hands !== "2") addCarryOption("held:1", localize("ETHERNUM.CharacterSheet.Inventory.HoldOne", "Segurar - 1 mão"));
+        if (["1+", "2"].includes(hands)) addCarryOption("held:2", localize("ETHERNUM.CharacterSheet.Inventory.HoldTwo", "Segurar - 2 mãos"));
+        addCarryOption("stowed", localize("ETHERNUM.CharacterSheet.Inventory.Stow", "Guardar"));
+        addCarryOption("dropped", localize("ETHERNUM.CharacterSheet.Inventory.Drop", "Soltar"));
+      } else if (type === "shield" || id === "shields") {
+        addCarryOption("held:1", localize("ETHERNUM.CharacterSheet.Inventory.HoldOne", "Segurar - 1 mão"));
+        addCarryOption("stowed", localize("ETHERNUM.CharacterSheet.Inventory.Stow", "Guardar"));
+        addCarryOption("dropped", localize("ETHERNUM.CharacterSheet.Inventory.Drop", "Soltar"));
+      } else if (type === "armor") {
+        addCarryOption("worn", localize("ETHERNUM.CharacterSheet.Inventory.Wear", "Vestir"));
+        addCarryOption("stowed", localize("ETHERNUM.CharacterSheet.Inventory.Stow", "Guardar"));
+      } else if (carryType) {
+        addCarryOption("worn", localize("ETHERNUM.CharacterSheet.Inventory.Wear", "Vestir"));
+        addCarryOption("stowed", localize("ETHERNUM.CharacterSheet.Inventory.Stow", "Guardar"));
+        addCarryOption("dropped", localize("ETHERNUM.CharacterSheet.Inventory.Drop", "Soltar"));
+      }
       return {
         ...item,
         img: item.image,
-        canEquip: item.equipped !== undefined,
-        canInvest: item.invested !== undefined,
+        carryOptions,
+        canEquip: carryOptions.length > 0,
+        canInvest: item.isInvestable === true,
         canUse: item.type === "consumable",
       };
     }),
   }));
-  return { ...inventory, categories, bulk: { value: 0, max: 0, percentage: 0 } };
+  return {
+    ...inventory,
+    categories,
+    bulk: bulk.available === true
+      ? bulk
+      : { ...bulk, available: false, label: localize("ETHERNUM.CharacterSheet.Inventory.BulkUnavailable", "Bulk indisponível") },
+  };
 }
 
 function viewSpellcasting(value: unknown): Data {
   const spellcasting = record(value);
   const entries = list(spellcasting.entries).map(entryValue => {
     const entry = record(entryValue);
+    const preparedGroups = list(entry.groups).map(groupValue => {
+      const group = record(groupValue);
+      const rank = number(group.rank);
+      return {
+        ...group,
+        rank,
+        label: rank === 0
+          ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Truques")
+          : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Círculo {rank}").replace("{rank}", String(rank)),
+        spells: list(group.spells).map(spellValue => {
+          const spell = record(spellValue);
+          return { ...spell, img: spell.image, rank: number(spell.rank, rank), castRank: number(spell.castRank, rank) };
+        }),
+      };
+    });
     const grouped = new Map<number, Data[]>();
-    list(entry.spells).forEach(spellValue => {
+    if (preparedGroups.length === 0) list(entry.spells).forEach(spellValue => {
       const spell = record(spellValue);
       const rank = number(spell.rank);
       const spells = grouped.get(rank) ?? [];
-      spells.push({ ...spell, img: spell.image });
+      spells.push({ ...spell, img: spell.image, castRank: number(spell.castRank, rank) });
       grouped.set(rank, spells);
     });
     return {
       ...entry,
       attack: entry.spellAttack,
       category: entry.preparation,
-      groups: [...grouped.entries()].sort(([a], [b]) => a - b).map(([rank, spells]) => ({
-        rank,
-        label: rank === 0 ? "Truques" : `Círculo ${rank}`,
-        spells,
-      })),
+      groups: preparedGroups.length > 0
+        ? preparedGroups
+        : [...grouped.entries()].sort(([a], [b]) => a - b).map(([rank, spells]) => ({
+          rank,
+          label: rank === 0
+            ? localize("ETHERNUM.CharacterSheet.Spellcasting.Cantrips", "Truques")
+            : localize("ETHERNUM.CharacterSheet.Spellcasting.Rank", "Círculo {rank}").replace("{rank}", String(rank)),
+          spells,
+        })),
     };
   });
   return { ...spellcasting, entries };
@@ -192,7 +255,9 @@ function viewCombatMomentum(value: unknown): Data {
   return {
     ...state,
     enabled: true,
-    statusLabel: record(state.lastResult).label || (state.combatId ? "Combate ativo" : "Aguardando combate"),
+    statusLabel: record(state.lastResult).label || (state.combatId
+      ? localize("ETHERNUM.CharacterSheet.CombatMomentum.Active", "Combate ativo")
+      : localize("ETHERNUM.CharacterSheet.CombatMomentum.Waiting", "Aguardando combate")),
     fides: {
       ...fides,
       max: 3,
@@ -240,6 +305,9 @@ function viewEthernumSystems(value: unknown): Data {
       cost: rune.costValue,
       icon: "fas fa-gem",
       canUse: rune.active !== false,
+      statusLabel: rune.active === false
+        ? localize("ETHERNUM.Common.Inactive", "Inativo")
+        : localize("ETHERNUM.Common.Active", "Ativo"),
     };
   });
   const runeClasses = Object.entries(ETHERNUM.RUNE_CLASSES).map(([id, config]) => ({
@@ -255,7 +323,7 @@ function viewEthernumSystems(value: unknown): Data {
       value: current,
       max,
       percentage: percent(current, max),
-      stats: [{ label: "Poder de Éter", value: number(ether.etherPower) }],
+      stats: [{ label: localize("ETHERNUM.CharacterSheet.EtherPanel.Power", "Poder de Éter"), value: number(ether.etherPower) }],
     },
     fe: { ...fe, value: number(fe.current), total: number(fe.total) },
     attributes,
@@ -274,6 +342,7 @@ export function buildCharacterSheetPresentation(
     ...moduleData,
     identity: viewIdentity(moduleData.identity),
     vitals: viewVitals(moduleData.vitals),
+    abilities: viewAbilities(moduleData.abilities),
     defenses: viewDefenses(moduleData.defenses),
     movement: list(record(moduleData.movement).speeds).map(speed => ({ ...record(speed), unit: "ft" })),
     resources: viewResources(moduleData.resources),

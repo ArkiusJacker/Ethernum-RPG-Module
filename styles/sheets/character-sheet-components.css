@@ -752,12 +752,38 @@
 }
 
 .ecs-spell-row {
-  grid-template-columns: 44px minmax(0, 1fr) 34px 58px auto;
+  grid-template-columns: 44px minmax(0, 1fr) 34px 58px minmax(0, auto) auto;
 }
 
 .ecs-spell-uses {
   color: var(--ecs-secondary);
   text-align: center;
+}
+
+.ecs-spell-status {
+  display: inline-flex;
+  gap: var(--ecs-space-1);
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.ecs-spell-state {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--ecs-accent-strong);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ecs-spell-state--expended,
+.ecs-spell-row.is-expended .ecs-spell-row__name {
+  color: var(--ecs-text-muted);
+}
+
+.ecs-spell-row.is-expended .ecs-spell-row__name {
+  opacity: 0.7;
 }
 
 /* Feats and effects */
@@ -1228,7 +1254,7 @@
   }
 
   .ecs-spell-row {
-    grid-template-columns: 44px minmax(0, 1fr) 30px auto;
+    grid-template-columns: 44px minmax(0, 1fr) 30px minmax(0, auto) auto;
   }
 
   .ecs-spell-uses {
@@ -1412,6 +1438,11 @@
   .ecs-feat-row > .ecs-primary-action,
   .ecs-spell-row > .ecs-primary-action {
     grid-column: 1 / -1;
+  }
+
+  .ecs-spell-status {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
   }
 
   .ecs-effect-row .ecs-stepper {

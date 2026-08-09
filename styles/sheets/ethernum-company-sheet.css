@@ -62,10 +62,10 @@
   color: #f7df91;
 }
 
-.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-tab="ether"] i,
-.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-tab="runes"] i,
-.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-tab="ether"] i,
-.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-tab="runes"] i {
+.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-sheet-tab="ether"] i,
+.ethernum-character-sheet.ethernum-company-sheet .ecs-navigation__tab[data-sheet-tab="runes"] i,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-sheet-tab="ether"] i,
+.ethernum-character-sheet[data-shell-id="ethernum-company"] .ecs-navigation__tab[data-sheet-tab="runes"] i {
   color: var(--ecs-secondary);
 }
 

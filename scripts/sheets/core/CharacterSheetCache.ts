@@ -16,6 +16,8 @@ interface CacheEntry<T = unknown> {
   expiresAt: number;
 }
 
+export const CHARACTER_SHEET_CACHE_TTL_MS = 350;
+
 const cache = new Map<string, CacheEntry>();
 const dirty = new Map<string, Set<CharacterSheetDirtyPath>>();
 
@@ -24,7 +26,7 @@ function key(actorId: string, region: string): string {
 }
 
 export const CharacterSheetCache = {
-  getOrCreate<T>(actorId: string, region: string, factory: () => T, ttlMs = 350): T {
+  getOrCreate<T>(actorId: string, region: string, factory: () => T, ttlMs = CHARACTER_SHEET_CACHE_TTL_MS): T {
     const entry = cache.get(key(actorId, region));
     const paths = dirty.get(actorId);
     if (entry && entry.expiresAt > Date.now() && !paths?.has("all") && !paths?.has(region as CharacterSheetDirtyPath)) {
@@ -32,6 +34,7 @@ export const CharacterSheetCache = {
     }
     const value = factory();
     cache.set(key(actorId, region), { value, expiresAt: Date.now() + ttlMs });
+    paths?.delete("all");
     paths?.delete(region as CharacterSheetDirtyPath);
     if (paths?.size === 0) dirty.delete(actorId);
     return value;
@@ -39,16 +42,21 @@ export const CharacterSheetCache = {
 
   invalidate(actorId: string, ...paths: CharacterSheetDirtyPath[]): void {
     const regions = paths.length > 0 ? paths : ["all" as const];
-    const actorDirty = dirty.get(actorId) ?? new Set<CharacterSheetDirtyPath>();
-    regions.forEach(path => actorDirty.add(path));
-    dirty.set(actorId, actorDirty);
-    if (actorDirty.has("all")) {
+    if (regions.includes("all")) {
       for (const cacheKey of cache.keys()) {
         if (cacheKey.startsWith(`${actorId}:`)) cache.delete(cacheKey);
       }
-    } else {
-      regions.forEach(path => cache.delete(key(actorId, path)));
+      dirty.set(actorId, new Set<CharacterSheetDirtyPath>(["all"]));
+      return;
     }
+
+    const actorDirty = dirty.get(actorId) ?? new Set<CharacterSheetDirtyPath>();
+    if (actorDirty.has("all")) return;
+    regions.forEach(path => {
+      actorDirty.add(path);
+      cache.delete(key(actorId, path));
+    });
+    dirty.set(actorId, actorDirty);
   },
 
   getDirtyPaths(actorId: string): CharacterSheetDirtyPath[] {
