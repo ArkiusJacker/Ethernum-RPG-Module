@@ -9,7 +9,7 @@ import {
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
-describe("Field Communicator v3.7.6 integration", () => {
+describe("Field Communicator v3.7.8 integration", () => {
   it("is registered outside character sheets with a public API and persistent launcher", () => {
     const main = read("scripts/main.ts");
     const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
@@ -40,6 +40,24 @@ describe("Field Communicator v3.7.6 integration", () => {
     expect(styles).toContain("@container");
     expect(styles).toContain("prefers-reduced-motion");
     expect(read("scripts/ui/FieldCommunicatorOverlay.ts")).toContain("AudioContext");
+  });
+
+  it("lets each user move and lock the minimized launcher away from the chat controls", () => {
+    const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
+    const styles = read("styles/ethernum-field-communicator.css");
+
+    expect(overlay).toContain("launcherLeft?: number");
+    expect(overlay).toContain("launcherTop?: number");
+    expect(overlay).toContain("launcherLocked: boolean");
+    expect(overlay).toContain("beginLauncherDrag(event)");
+    expect(overlay).toContain("toggleLauncherLock()");
+    expect(overlay).toContain("this.suppressLauncherClick = true");
+    expect(overlay).toContain("storageKey(STORAGE_SUFFIX)");
+    expect(overlay).toContain("worldId");
+    expect(overlay).toContain("userId");
+    expect(styles).toContain(".ethc-launcher-lock");
+    expect(styles).toContain(".is-launcher-unlocked.is-dragging");
+    expect(styles).not.toMatch(/\.ethernum-field-communicator-overlay\s*\{[^}]*bottom\s*:/s);
   });
 
   it("uses Foundry documents and chat permissions without arbitrary script execution", () => {

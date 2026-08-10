@@ -1514,6 +1514,7 @@
       "Title": "Comunicador de Campo Ethernum",
       "Open": "Abrir Comunicador de Campo",
       "Close": "Fechar comunicador",
+      "Launcher": { "Lock": "Travar posição do Comunicador", "Unlock": "Destravar posição do Comunicador" },
       "AgentFallback": "Agente não vinculado",
       "Rank": "Rank",
       "Signal": "Canal operacional",

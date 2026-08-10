@@ -6,15 +6,17 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.7
+## Versão 3.7.8
 
-- A ficha Ethernum Company agora usa o pacote oficial de molduras, instrumentos, abas, runas, gemas e ornamentos fornecido para o Visual Fidelity Arc.
-- Retrato, Rank corporativo, monitor de PV, ECG, pontos heroicos e navegação formam um terminal operacional físico sem alterar os dados do Actor PF2e.
+- A composição Ethernum Company foi recalibrada a partir dos limites ópticos dos 14 assets oficiais, sem alterar dados ou mecânicas do Actor PF2e.
+- O cabeçalho possui uma linha exclusiva para ações; retrato, identidade, Rank corporativo, monitor de PV e pontos heroicos não disputam mais o mesmo espaço.
+- Retrato, Rank, PV, abas, runas, cantos, divisores e gemas usam dimensões responsivas próprias e preservam seus detalhes visuais.
+- O ícone minimizado do Comunicador pode ser arrastado para qualquer ponto válido da tela e travado; posição e trava são locais para cada usuário e mundo.
 - O Rank da Company é independente do nível PF2e e aparece como `—` quando nenhum Rank corporativo foi definido.
 - Os 14 assets públicos são WebP lossless, carregados por um registry central e protegidos por preload, fallback e diagnóstico GM.
 - A ficha mantém scroll, foco, atalhos, drag and drop, Mecânica Única, Éter, Runas e fallback para a ficha original.
 - Mestres podem ativar uma sobreposição de referência no menu da ficha; o modo de alto contraste fica disponível nas configurações do módulo.
-- Concórdia e o Comunicador preservam a composição da 3.7.6 e compartilham apenas serviços sem identidade visual Ethernum.
+- Concórdia preserva sua composição própria e compartilha apenas serviços sem identidade visual Ethernum.
 - A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
 
 ### Paridade da ficha PF2e

@@ -90,8 +90,8 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["ethernum-rpg-module", "ethernum-character-sheet-window"],
       template: `${ETHERNUM.TEMPLATE_PATH}sheets/character-sheet.html`,
-      width: 1000,
-      height: 760,
+      width: 1200,
+      height: 820,
       resizable: true,
       closeOnSubmit: false,
       submitOnChange: true,

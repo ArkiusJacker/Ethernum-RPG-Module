@@ -1511,6 +1511,7 @@
       "Title": "Ethernum Field Communicator",
       "Open": "Open Field Communicator",
       "Close": "Close communicator",
+      "Launcher": { "Lock": "Lock Communicator position", "Unlock": "Unlock Communicator position" },
       "AgentFallback": "Unlinked agent",
       "Rank": "Rank",
       "Signal": "Operational channel",

@@ -31,6 +31,7 @@ const MIN_WIDTH = 360;
 const MIN_HEIGHT = 560;
 const DEFAULT_WIDTH = 520;
 const DEFAULT_HEIGHT = 780;
+const LAUNCHER_SIZE = 66;
 const VIEWPORT_MARGIN = 8;
 const DRAG_EXCLUSION = "button, input, select, textarea, a, [data-no-drag]";
 
@@ -38,6 +39,9 @@ interface CommunicatorLayout {
   minimized: boolean;
   left?: number;
   top?: number;
+  launcherLeft?: number;
+  launcherTop?: number;
+  launcherLocked: boolean;
   width: number;
   height: number;
 }
@@ -96,7 +100,7 @@ function storageKey(suffix: string): string {
 
 function defaultLayout(): CommunicatorLayout {
   const size = clampFieldCommunicatorSize(DEFAULT_WIDTH, DEFAULT_HEIGHT, viewport());
-  return { minimized: true, ...size };
+  return { minimized: true, launcherLocked: false, ...size };
 }
 
 function readLayout(): CommunicatorLayout {
@@ -109,6 +113,9 @@ function readLayout(): CommunicatorLayout {
       minimized: stored.minimized !== false,
       left: Number.isFinite(stored.left) ? Number(stored.left) : undefined,
       top: Number.isFinite(stored.top) ? Number(stored.top) : undefined,
+      launcherLeft: Number.isFinite(stored.launcherLeft) ? Number(stored.launcherLeft) : undefined,
+      launcherTop: Number.isFinite(stored.launcherTop) ? Number(stored.launcherTop) : undefined,
+      launcherLocked: stored.launcherLocked === true,
       ...size,
     };
   } catch {
@@ -150,6 +157,7 @@ export class FieldCommunicatorOverlay {
   private layout = readLayout();
   private savingSettings = false;
   private previewUserId: string | null = null;
+  private suppressLauncherClick = false;
 
   static initialize(): FieldCommunicatorOverlay | null {
     if (typeof document === "undefined" || !game.user) return null;
@@ -257,13 +265,31 @@ export class FieldCommunicatorOverlay {
 
   private renderShell(): void {
     const root = this.ensureRoot();
-    root.className = `ethernum-field-communicator-overlay${this.layout.minimized ? " is-minimized" : " is-open"}`;
+    root.className = `ethernum-field-communicator-overlay${this.layout.minimized ? ` is-minimized is-launcher-${this.layout.launcherLocked ? "locked" : "unlocked"}` : " is-open"}`;
     this.applyLayout();
     if (this.layout.minimized) {
       this.unmount();
       const label = localize("ETHERNUM.FieldCommunicator.Open", "Abrir Comunicador de Campo");
-      root.innerHTML = `<button type="button" class="ethc-launcher" data-field-overlay-action="open" title="${label}" aria-label="${label}"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i><span class="ethc-launcher__signal" aria-hidden="true"></span></button>`;
-      root.querySelector<HTMLElement>("[data-field-overlay-action='open']")?.addEventListener("click", () => void this.setMinimized(false), { signal: this.lifecycle.signal });
+      const lockLabel = this.layout.launcherLocked
+        ? localize("ETHERNUM.FieldCommunicator.Launcher.Unlock", "Destravar posição do Comunicador")
+        : localize("ETHERNUM.FieldCommunicator.Launcher.Lock", "Travar posição do Comunicador");
+      root.innerHTML = `<div class="ethc-launcher-dock" data-field-launcher-drag>
+        <button type="button" class="ethc-launcher" data-field-overlay-action="open" title="${label}" aria-label="${label}"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i><span class="ethc-launcher__signal" aria-hidden="true"></span></button>
+        <button type="button" class="ethc-launcher-lock" data-field-overlay-action="toggle-launcher-lock" title="${lockLabel}" aria-label="${lockLabel}" aria-pressed="${this.layout.launcherLocked}"><i class="fas ${this.layout.launcherLocked ? "fa-lock" : "fa-lock-open"}" aria-hidden="true"></i></button>
+      </div>`;
+      root.querySelector<HTMLElement>("[data-field-overlay-action='open']")?.addEventListener("click", event => {
+        if (this.suppressLauncherClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+        void this.setMinimized(false);
+      }, { signal: this.lifecycle.signal });
+      root.querySelector<HTMLElement>("[data-field-overlay-action='toggle-launcher-lock']")?.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.toggleLauncherLock();
+      }, { signal: this.lifecycle.signal });
       return;
     }
     root.innerHTML = `<div class="ethernum-field-communicator-overlay__host" data-field-communicator-host></div><button type="button" class="ethc-overlay-resize" data-field-overlay-resize title="Redimensionar" aria-label="Redimensionar"></button>`;
@@ -310,6 +336,12 @@ export class FieldCommunicatorOverlay {
     this.persistLayout();
     this.renderShell();
     if (!minimized) await this.mount();
+  }
+
+  private toggleLauncherLock(): void {
+    this.layout.launcherLocked = !this.layout.launcherLocked;
+    this.persistLayout();
+    this.renderShell();
   }
 
   private async openApp(app: FieldCommunicatorApp, _context: FieldCommunicatorActionContext) {
@@ -570,6 +602,10 @@ export class FieldCommunicatorOverlay {
   }
 
   private beginDrag(event: PointerEvent): void {
+    if (this.layout.minimized) {
+      this.beginLauncherDrag(event);
+      return;
+    }
     const root = this.root;
     const target = event.target as Element | null;
     if (!root || this.layout.minimized || event.button !== 0 || !target?.closest("[data-communicator-drag]") || target.closest(DRAG_EXCLUSION)) return;
@@ -588,6 +624,46 @@ export class FieldCommunicatorOverlay {
       this.layout.left = current.left;
       this.layout.top = current.top;
       this.persistLayout();
+    };
+    globalThis.addEventListener("pointermove", move);
+    globalThis.addEventListener("pointerup", finish, { once: true });
+  }
+
+  private beginLauncherDrag(event: PointerEvent): void {
+    const root = this.root;
+    const target = event.target as Element | null;
+    if (!root || this.layout.launcherLocked || event.button !== 0 || !target?.closest("[data-field-launcher-drag]")
+      || target.closest("[data-field-overlay-action='toggle-launcher-lock']")) return;
+    const rect = root.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let moved = false;
+    const move = (next: PointerEvent) => {
+      const distance = Math.hypot(next.clientX - startX, next.clientY - startY);
+      if (!moved && distance < 5) return;
+      moved = true;
+      root.classList.add("is-dragging");
+      const position = clampFieldCommunicatorPosition(
+        rect.left + next.clientX - startX,
+        rect.top + next.clientY - startY,
+        { width: LAUNCHER_SIZE, height: LAUNCHER_SIZE },
+        viewport(),
+      );
+      root.style.left = `${position.left}px`;
+      root.style.top = `${position.top}px`;
+      root.style.right = "auto";
+      root.style.bottom = "auto";
+    };
+    const finish = () => {
+      globalThis.removeEventListener("pointermove", move);
+      root.classList.remove("is-dragging");
+      if (!moved) return;
+      const current = root.getBoundingClientRect();
+      this.layout.launcherLeft = current.left;
+      this.layout.launcherTop = current.top;
+      this.persistLayout();
+      this.suppressLauncherClick = true;
+      globalThis.setTimeout(() => { this.suppressLauncherClick = false; }, 0);
     };
     globalThis.addEventListener("pointermove", move);
     globalThis.addEventListener("pointerup", finish, { once: true });
@@ -620,7 +696,19 @@ export class FieldCommunicatorOverlay {
     const root = this.root;
     if (!root) return;
     if (this.layout.minimized) {
-      root.removeAttribute("style");
+      const view = viewport();
+      const position = clampFieldCommunicatorPosition(
+        this.layout.launcherLeft ?? view.width - LAUNCHER_SIZE - 24,
+        this.layout.launcherTop ?? Math.max(84, (view.height - LAUNCHER_SIZE) / 2),
+        { width: LAUNCHER_SIZE, height: LAUNCHER_SIZE },
+        view,
+      );
+      root.style.width = `${LAUNCHER_SIZE}px`;
+      root.style.height = `${LAUNCHER_SIZE}px`;
+      root.style.left = `${position.left}px`;
+      root.style.top = `${position.top}px`;
+      root.style.right = "auto";
+      root.style.bottom = "auto";
       return;
     }
     const size = clampFieldCommunicatorSize(this.layout.width, this.layout.height, viewport());
@@ -638,9 +726,22 @@ export class FieldCommunicatorOverlay {
   }
 
   private clampToViewport(): void {
-    if (this.layout.minimized) return;
     const root = this.root;
     if (!root) return;
+    if (this.layout.minimized) {
+      const rect = root.getBoundingClientRect();
+      const position = clampFieldCommunicatorPosition(
+        rect.left,
+        rect.top,
+        { width: LAUNCHER_SIZE, height: LAUNCHER_SIZE },
+        viewport(),
+      );
+      this.layout.launcherLeft = position.left;
+      this.layout.launcherTop = position.top;
+      this.applyLayout();
+      this.persistLayout();
+      return;
+    }
     const size = clampFieldCommunicatorSize(root.offsetWidth, root.offsetHeight, viewport());
     const rect = root.getBoundingClientRect();
     const position = clampFieldCommunicatorPosition(rect.left, rect.top, size, viewport());

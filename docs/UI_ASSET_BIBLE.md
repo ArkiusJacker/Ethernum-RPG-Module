@@ -2049,10 +2049,10 @@ A próxima expansão deste documento será:
 CONCORDIA UI ASSET PACK
 ```
 
-planejada para:
+planejada para uma versão posterior ao arco de calibração Ethernum:
 
 ```text
-v3.7.8
+versão futura
 ```
 
 Ela deverá adicionar IDs:
@@ -2098,3 +2098,38 @@ PRESERVE RESPONSIVENESS
 O código deve se adaptar à arte canônica.
 
 A arte canônica não deve ser descartada para simplificar o código.
+
+---
+
+# 55. Calibração óptica — v3.7.8
+
+A dimensão física do arquivo não representa necessariamente o tamanho visual do instrumento. Cada definição do registry passa a declarar `visual`, com:
+
+```text
+preferredWidth / preferredHeight
+minWidth / minHeight
+maxWidth / maxHeight
+opticalScale
+opacity
+fit
+contentInset
+```
+
+Esses valores são publicados pelo shell como variáveis CSS e formam uma única fonte de verdade para composição e responsividade.
+
+Alvos principais da ficha padrão:
+
+| Instrumento | Alvo |
+| --- | --- |
+| Retrato | 150 × 172 px |
+| Rank | 124 × 124 px |
+| Monitor de PV | 112 px de altura |
+| Gema do cabeçalho | 32 px |
+| Gema do Overview | 26 px |
+| Gema compacta | nunca menor que 20 px |
+
+O cabeçalho usa duas linhas explícitas. A primeira pertence somente às ações da ficha. A segunda contém retrato, identidade, Rank, PV e Hero, sem posicionamento absoluto entre esses instrumentos.
+
+Os frames de navegação são imagens completas sobre cada tab; os cantos e divisores usam os assets oficiais sem borda, fundo ou sombra herdados do Foundry. Overlays permanecem decorativos, não interceptam eventos e respeitam alto contraste e movimento reduzido.
+
+O launcher minimizado do Comunicador possui posição própria, independente da janela aberta. O jogador pode arrastá-lo dentro do viewport e travá-lo; posição e trava são persistidas localmente por mundo e usuário.

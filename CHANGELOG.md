@@ -5,6 +5,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.8] - 2026-08-10
+
+### Adicionado
+- Metadados ópticos para os 14 assets oficiais, incluindo tamanho preferencial, limites responsivos, escala, opacidade, encaixe e área interna.
+- Arraste livre do ícone minimizado do Comunicador, com trava explícita e posição persistente por mundo e usuário.
+
+### Alterado
+- Cabeçalho Ethernum passa a usar uma linha exclusiva para ações e uma composição independente para retrato, identidade, Rank, PV e pontos heroicos.
+- Retrato, Rank, monitor de PV, abas, cantos, divisores, fundos rúnicos, marcadores de recurso e acentos de perícia foram recalibrados pelos limites ópticos reais dos assets.
+- Tamanho padrão da ficha Ethernum foi ampliado para acomodar os instrumentos oficiais sem comprimir a identidade do personagem.
+
+### Corrigido
+- Ações do cabeçalho não ocupam mais o espaço do Rank ou do monitor de PV.
+- Retrato oficial deixa de herdar o limite antigo de 94 px e usa 150 × 172 px na composição padrão.
+- Gemas de recursos não desaparecem por redução excessiva e os frames completos das abas permanecem visíveis.
+- Imagens transparentes deixam de herdar borda, fundo ou sombra genéricos do Foundry.
+- Runas, cantos e divisores recuperam presença sem reduzir contraste ou interceptar interação.
+- O Comunicador minimizado deixa de ficar preso aos controles de mensagem do chat.
+
+### Testes
+- Contratos automatizados cobrem metadados ópticos, composição do cabeçalho, frames das abas, gemas e persistência do launcher.
+- Smoke test no Foundry confirmou dimensões-alvo do cabeçalho, nove abas funcionais e arraste/trava persistente do Comunicador.
+
 ## [3.7.7] - 2026-08-09
 
 ### Adicionado

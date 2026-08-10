@@ -1,10 +1,10 @@
-/* Ethernum Field Communicator v3.7.6 */
+/* Ethernum Field Communicator v3.7.8 */
 .ethernum-field-communicator-overlay {
   position: fixed;
   z-index: 95;
-  inset: auto 22px 22px auto;
-  inline-size: 58px;
-  block-size: 58px;
+  inset: auto;
+  inline-size: 66px;
+  block-size: 66px;
   pointer-events: auto;
 }
 
@@ -17,6 +17,14 @@
 .ethernum-field-communicator-overlay__host {
   inline-size: 100%;
   block-size: 100%;
+}
+
+.ethc-launcher-dock {
+  position: relative;
+  inline-size: 66px;
+  block-size: 66px;
+  touch-action: none;
+  user-select: none;
 }
 
 .ethc-launcher {
@@ -35,6 +43,9 @@
   cursor: pointer;
 }
 
+.ethernum-field-communicator-overlay.is-launcher-unlocked .ethc-launcher { cursor: grab; }
+.ethernum-field-communicator-overlay.is-launcher-unlocked.is-dragging .ethc-launcher { cursor: grabbing; }
+
 .ethc-launcher:is(:hover, :focus-visible) {
   color: #fff;
   border-color: #d4b56a;
@@ -49,6 +60,38 @@
   border-radius: 50%;
   background: #7ce8f2;
   box-shadow: 0 0 8px #48c7d9;
+}
+
+.ethc-launcher-lock {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  inline-size: 24px;
+  min-inline-size: 24px;
+  block-size: 24px;
+  min-block-size: 24px;
+  padding: 0;
+  color: #d4b56a;
+  border: 1px solid #8c713c;
+  border-radius: 50%;
+  background: #0a0d0f;
+  box-shadow: 0 3px 9px rgb(0 0 0 / 65%);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.ethc-launcher-lock:is(:hover, :focus-visible) {
+  color: #fff;
+  border-color: #7ce8f2;
+  box-shadow: 0 0 10px rgb(72 199 217 / 34%);
+}
+
+.ethernum-field-communicator-overlay.is-launcher-locked .ethc-launcher-lock {
+  color: #7ce8f2;
+  border-color: #48c7d9;
 }
 
 .ethc-overlay-resize {
