@@ -163,6 +163,16 @@ export function registerSettings(): void {
   });
 
   const refreshClientUI = () => window.dispatchEvent(new CustomEvent("ethernum-client-settings-changed"));
+  const refreshCharacterSheetUI = () => {
+    refreshClientUI();
+    const windows = (ui as unknown as {
+      windows?: Record<string, { options?: { classes?: string[] }; render?: (force?: boolean) => unknown }>;
+    }).windows ?? {};
+    for (const application of Object.values(windows)) {
+      if (!application.options?.classes?.includes("ethernum-character-sheet-window")) continue;
+      application.render?.(false);
+    }
+  };
   const applyPippingHoverMode = (value: unknown) => {
     const mode = value === "reduced" || value === "off" ? value : "full";
     document.documentElement.dataset.ethernumPippingHover = mode;
@@ -302,9 +312,45 @@ export function registerSettings(): void {
     default: "full",
     onChange: value => {
       applyCharacterSheetMotionMode(value);
-      refreshClientUI();
+      refreshCharacterSheetUI();
     },
   });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "characterSheetHighContrast", {
+    name: "ETHERNUM.Settings.CharacterSheetHighContrast.Name",
+    hint: "ETHERNUM.Settings.CharacterSheetHighContrast.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: refreshCharacterSheetUI,
+  });
+  game.settings!.register(ETHERNUM.MODULE_NAME, "characterSheetVisualReference", {
+    name: "ETHERNUM.Settings.CharacterSheetVisualReference.Name",
+    hint: "ETHERNUM.Settings.CharacterSheetVisualReference.Hint",
+    scope: "client",
+    config: false,
+    type: String,
+    choices: { off: "Off", ethernum: "Ethernum Reference" },
+    default: "off",
+    onChange: refreshCharacterSheetUI,
+  });
+  for (const [key, fallback] of [
+    ["characterSheetVisualReferencePath", ""],
+    ["characterSheetVisualReferenceOpacity", 0.35],
+    ["characterSheetVisualReferenceScale", 1],
+    ["characterSheetVisualReferenceX", 0],
+    ["characterSheetVisualReferenceY", 0],
+    ["characterSheetVisualReferenceFit", "width"],
+  ] as const) {
+    game.settings!.register(ETHERNUM.MODULE_NAME, key, {
+      name: key,
+      scope: "client",
+      config: false,
+      type: typeof fallback === "number" ? Number : String,
+      default: fallback,
+      onChange: refreshCharacterSheetUI,
+    });
+  }
   game.settings!.register(ETHERNUM.MODULE_NAME, "combatAnimations", {
     name: "ETHERNUM.Settings.CombatAnimations.Name",
     hint: "ETHERNUM.Settings.CombatAnimations.Hint",

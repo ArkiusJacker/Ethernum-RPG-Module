@@ -30,6 +30,8 @@ import {
   PF2ePreparedDataService,
   type PF2ePreparedDataSource,
 } from "./PF2ePreparedDataService.js";
+import { createEthernumUIAssetViewModel } from "../../ui/assets/EthernumUIAssetRegistry.js";
+import { getEthernumVisualReferenceSnapshot } from "../../ui/assets/EthernumVisualReferenceService.js";
 
 export interface CharacterSheetPermissions {
   owner: boolean;
@@ -54,7 +56,10 @@ export interface EthernumCharacterSheetContext extends Record<string, unknown> {
     overviewActivitiesCollapsed: boolean;
     overviewCraftingCollapsed: boolean;
     overviewBiographyCollapsed: boolean;
+    highContrast: boolean;
   };
+  uiAssets: ReturnType<typeof createEthernumUIAssetViewModel> | Record<string, never>;
+  visualReference: ReturnType<typeof getEthernumVisualReferenceSnapshot>;
   failedModules: Array<{ id: string; message: string }>;
   moduleFailures: Record<string, {
     id: string;
@@ -343,16 +348,24 @@ export const CharacterSheetController = {
         overviewActivitiesCollapsed: savedState.collapsed["overview:activities"] === true,
         overviewCraftingCollapsed: savedState.collapsed["overview:crafting"] === true,
         overviewBiographyCollapsed: savedState.collapsed["overview:biography"] === true,
+        highContrast: Boolean(game.settings?.get(ETHERNUM.MODULE_NAME, "characterSheetHighContrast")),
         tabs: tabs.map(tab => ({
           ...tab,
           active: tab.id === activeTab,
           label: game.i18n?.localize(tab.label) ?? tab.label,
         })),
       },
+      uiAssets: shell.id === "ethernum" ? createEthernumUIAssetViewModel() : {},
+      visualReference: getEthernumVisualReferenceSnapshot(sheetPermissions.gm && shell.id === "ethernum"),
       failedModules,
       moduleFailures,
       renderTimeMs,
       ...presentedData,
+    };
+    const companyIdentity = record(context.companyIdentity);
+    context.companyIdentity = {
+      ...companyIdentity,
+      rankLabel: companyIdentity.rank === undefined ? "—" : String(companyIdentity.rank),
     };
     const uniqueState = UniqueMechanicStateService.getState(actor);
     const itemDocument = (globalThis as unknown as {

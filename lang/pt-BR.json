@@ -65,6 +65,7 @@
       "Header": {
         "OpenPortrait": "Abrir retrato",
         "Portrait": "Retrato",
+        "Identity": "Identidade operacional",
         "CharacterName": "Nome do personagem",
         "Level": "Nível",
         "Traits": "Traços do personagem",
@@ -83,6 +84,21 @@
         "Diagnostics": "Diagnóstico da ficha",
         "GMControl": "Central do Mestre",
         "Navigation": "Seções da ficha"
+      },
+      "Company": {
+        "Rank": "Rank Company",
+        "Squad": "Esquadrão",
+        "Department": "Departamento",
+        "Status": "Status operacional"
+      },
+      "VisualReference": {
+        "Title": "Referência visual",
+        "Path": "Imagem local",
+        "Opacity": "Opacidade",
+        "Scale": "Escala",
+        "Fit": "Ajuste",
+        "FitWidth": "Largura",
+        "FitHeight": "Altura"
       },
       "Overview": {
         "Eyebrow": "Resumo operacional",
@@ -1575,6 +1591,14 @@
         "Full": "Completas",
         "Reduced": "Reduzidas",
         "Off": "Desativadas"
+      },
+      "CharacterSheetHighContrast": {
+        "Name": "Alto contraste da ficha",
+        "Hint": "Reduz texturas e runas decorativas, preservando instrumentos e dados."
+      },
+      "CharacterSheetVisualReference": {
+        "Name": "Referência visual da ficha",
+        "Hint": "Ferramenta local de comparação visual disponível ao mestre."
       },
       "CombatAnimations": {
         "Name": "Animações de Fides e Fulgor",

@@ -21,6 +21,11 @@
     <div><dt>Foundry</dt><dd>{{versions.foundry}}</dd></div>
     <div><dt>PF2e</dt><dd>{{versions.pf2e}}</dd></div>
     <div><dt>Ethernum</dt><dd>{{versions.ethernum}}</dd></div>
+    <div><dt>UI Asset Pack</dt><dd>{{#if visual.assetPackVersion}}{{visual.assetPackVersion}}{{else}}—{{/if}}</dd></div>
+    <div><dt>Loaded Assets</dt><dd>{{visual.loadedAssets.length}}</dd></div>
+    <div><dt>Missing Assets</dt><dd>{{visual.missingAssets.length}}{{#if visual.missingAssets.length}}: {{#each visual.missingAssets}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}</dd></div>
+    <div><dt>Reference Overlay</dt><dd>{{#if visual.referenceOverlay}}On{{else}}Off{{/if}}</dd></div>
+    <div><dt>High Contrast</dt><dd>{{#if visual.highContrast}}On{{else}}Off{{/if}}</dd></div>
   </dl>
 
   <div class="ethernum-sheet-diagnostics__columns">

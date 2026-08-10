@@ -6,17 +6,16 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.6
+## Versão 3.7.7
 
-- Novo Comunicador de Campo da Ethernum Company disponível fora das fichas para jogadores e mestres.
-- Ficha, Conversas, Grupo, Esquadrão, Mapa, Manual, Dossiês, Contratos, Arquivos, Loja e Ajustes usam documentos e mensagens nativas do Foundry.
-- Carcaça diegética em aço negro e latão, logotipo oficial, autenticação por Éter, grade rolável e navegação persistente.
-- Inicialização completa, abreviada, pulável ou desativada, com opções de movimento, brilho, texto, contraste, sons e notificações.
-- O mestre pode adicionar, editar, duplicar, reordenar, restringir, importar, exportar, desativar e remover atalhos sem apagar os documentos originais.
-- Permissões do Foundry, Rank, agente, esquadrão e desbloqueios declarativos são validados antes da exibição e da abertura.
-- Links externos exigem confirmação, destinos quebrados falham com segurança e aplicativos personalizados não executam JavaScript.
-- A API `game.ethernum.ui` permite abrir, fechar, alternar e atualizar o comunicador por macro ou integração.
-- O contrato automatizado cobre semântica, materiais, PV, diagnóstico e oito instâncias independentes de ficha.
+- A ficha Ethernum Company agora usa o pacote oficial de molduras, instrumentos, abas, runas, gemas e ornamentos fornecido para o Visual Fidelity Arc.
+- Retrato, Rank corporativo, monitor de PV, ECG, pontos heroicos e navegação formam um terminal operacional físico sem alterar os dados do Actor PF2e.
+- O Rank da Company é independente do nível PF2e e aparece como `—` quando nenhum Rank corporativo foi definido.
+- Os 14 assets públicos são WebP lossless, carregados por um registry central e protegidos por preload, fallback e diagnóstico GM.
+- A ficha mantém scroll, foco, atalhos, drag and drop, Mecânica Única, Éter, Runas e fallback para a ficha original.
+- Mestres podem ativar uma sobreposição de referência no menu da ficha; o modo de alto contraste fica disponível nas configurações do módulo.
+- Concórdia e o Comunicador preservam a composição da 3.7.6 e compartilham apenas serviços sem identidade visual Ethernum.
+- A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
 
 ### Paridade da ficha PF2e
 

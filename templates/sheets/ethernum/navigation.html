@@ -1,0 +1,23 @@
+<nav class="ecs-navigation ecs-interface-navigation eth-fidelity-navigation" data-ui-role="sheet-navigation" role="tablist" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Navigation'}}">
+  {{#each ui.tabs}}
+    {{#unless this.hidden}}
+    <button type="button"
+            id="ecs-tab-{{this.id}}"
+            class="ecs-navigation__tab ecs-interactive {{#if this.active}}is-active{{/if}}"
+            data-ui-role="navigation-tab"
+            data-sheet-tab="{{this.id}}"
+            data-asset-component="navigation-tab"
+            role="tab"
+            tabindex="{{#if this.active}}0{{else}}-1{{/if}}"
+            aria-controls="ecs-panel-{{this.id}}"
+            aria-selected="{{#if this.active}}true{{else}}false{{/if}}"
+            {{#if this.disabled}}disabled aria-disabled="true"{{/if}}>
+      <img class="eth-ui-asset eth-tab-frame eth-tab-frame--inactive" src="{{@root.uiAssets.tabInactive}}" data-ui-asset="ETH-UI-06" aria-hidden="true" />
+      <img class="eth-ui-asset eth-tab-frame eth-tab-frame--active" src="{{@root.uiAssets.tabActive}}" data-ui-asset="ETH-UI-07" aria-hidden="true" />
+      {{#if this.icon}}<i class="{{this.icon}}" aria-hidden="true"></i>{{/if}}
+      <span>{{this.label}}</span>
+      {{#if this.badge}}<span class="ecs-navigation__badge" aria-label="{{this.badgeLabel}}">{{this.badge}}</span>{{/if}}
+    </button>
+    {{/unless}}
+  {{/each}}
+</nav>

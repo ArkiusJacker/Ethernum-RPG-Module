@@ -1,0 +1,54 @@
+<div class="ecs-shell ecs-interface-shell eth-fidelity-shell"
+     data-ui-role="sheet-shell"
+     data-material="company-terminal"
+     data-ui-asset-pack="{{uiAssets.packVersion}}"
+     style="--eth-ui-corner: url('{{uiAssets.corner}}'); --eth-ui-panel-edge: url('{{uiAssets.panelEdge}}'); --eth-ui-tab-inactive: url('{{uiAssets.tabInactive}}'); --eth-ui-tab-active: url('{{uiAssets.tabActive}}'); --eth-ui-skill-accent: url('{{uiAssets.skillAccent}}'); --eth-ui-icon-frame: url('{{uiAssets.iconFrame}}'); --eth-ui-divider: url('{{uiAssets.divider}}');">
+  <img class="eth-shell-corner eth-shell-corner--tl" src="{{uiAssets.corner}}" data-ui-asset="ETH-UI-01" aria-hidden="true" />
+  <img class="eth-shell-corner eth-shell-corner--tr" src="{{uiAssets.corner}}" data-ui-asset="ETH-UI-01" aria-hidden="true" />
+  <img class="eth-shell-corner eth-shell-corner--bl" src="{{uiAssets.corner}}" data-ui-asset="ETH-UI-01" aria-hidden="true" />
+  <img class="eth-shell-corner eth-shell-corner--br" src="{{uiAssets.corner}}" data-ui-asset="ETH-UI-01" aria-hidden="true" />
+
+  {{> "modules/ethernum-rpg-module/templates/sheets/ethernum/header.html"}}
+  {{> "modules/ethernum-rpg-module/templates/sheets/ethernum/navigation.html"}}
+
+  <main class="ecs-workspace ecs-panel-stack eth-fidelity-workspace" data-ui-role="workspace" data-viewport-workspace aria-label="{{shell.title}}">
+    <img class="eth-rune-overlay eth-rune-overlay--a" src="{{uiAssets.runeOverlayA}}" data-ui-asset="ETH-UI-08-A" aria-hidden="true" />
+    <img class="eth-rune-overlay eth-rune-overlay--b" src="{{uiAssets.runeOverlayB}}" data-ui-asset="ETH-UI-08-B" aria-hidden="true" />
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/overview.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/combat.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/inventory.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/spellcasting.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/feats.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/effects.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/ether.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/runes.html"}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/components/unique.html"}}
+  </main>
+
+  {{#if visualReference.enabled}}
+  <div class="eth-reference-overlay eth-reference-overlay--{{visualReference.fit}}"
+       style="--reference-opacity: {{visualReference.opacity}}; --reference-scale: {{visualReference.scale}}; --reference-x: {{visualReference.x}}px; --reference-y: {{visualReference.y}}px;"
+       aria-hidden="true">
+    <img {{#if visualReference.path}}src="{{visualReference.path}}"{{else}}hidden{{/if}} data-reference-image alt="" />
+  </div>
+  <aside class="eth-reference-controls" aria-label="{{localize 'ETHERNUM.CharacterSheet.VisualReference.Title'}}">
+    <div class="eth-reference-controls__heading">
+      <strong>{{localize 'ETHERNUM.CharacterSheet.VisualReference.Title'}}</strong>
+      <button type="button" data-action="toggle-visual-reference" aria-label="{{localize 'ETHERNUM.Common.Close'}}" title="{{localize 'ETHERNUM.Common.Close'}}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <label><span>{{localize 'ETHERNUM.CharacterSheet.VisualReference.Path'}}</span><input type="text" value="{{visualReference.path}}" data-reference-setting="characterSheetVisualReferencePath" /></label>
+    <label><span>{{localize 'ETHERNUM.CharacterSheet.VisualReference.Opacity'}}</span><input type="range" min="0.05" max="1" step="0.05" value="{{visualReference.opacity}}" data-reference-setting="characterSheetVisualReferenceOpacity" /></label>
+    <label><span>{{localize 'ETHERNUM.CharacterSheet.VisualReference.Scale'}}</span><input type="range" min="0.25" max="3" step="0.05" value="{{visualReference.scale}}" data-reference-setting="characterSheetVisualReferenceScale" /></label>
+    <div class="eth-reference-controls__offsets">
+      <label><span>X</span><input type="number" value="{{visualReference.x}}" data-reference-setting="characterSheetVisualReferenceX" /></label>
+      <label><span>Y</span><input type="number" value="{{visualReference.y}}" data-reference-setting="characterSheetVisualReferenceY" /></label>
+    </div>
+    <div class="eth-reference-controls__fit" role="group" aria-label="{{localize 'ETHERNUM.CharacterSheet.VisualReference.Fit'}}">
+      <button type="button" data-action="set-visual-reference-fit" data-fit="width" aria-pressed="{{#if (ethernum-eq visualReference.fit 'width')}}true{{else}}false{{/if}}">{{localize 'ETHERNUM.CharacterSheet.VisualReference.FitWidth'}}</button>
+      <button type="button" data-action="set-visual-reference-fit" data-fit="height" aria-pressed="{{#if (ethernum-eq visualReference.fit 'height')}}true{{else}}false{{/if}}">{{localize 'ETHERNUM.CharacterSheet.VisualReference.FitHeight'}}</button>
+    </div>
+  </aside>
+  {{/if}}
+
+  <div class="ecs-announcer" role="status" aria-live="polite" aria-atomic="true">{{ui.statusMessage}}</div>
+</div>

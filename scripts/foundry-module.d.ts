@@ -21,6 +21,14 @@ declare global {
     "ethernum-rpg-module.combatTrackerOnlyInCombat": boolean;
     "ethernum-rpg-module.combatTrackerDetailedStats": boolean;
     "ethernum-rpg-module.characterSheetAnimations": "full" | "reduced" | "off";
+    "ethernum-rpg-module.characterSheetHighContrast": boolean;
+    "ethernum-rpg-module.characterSheetVisualReference": "off" | "ethernum";
+    "ethernum-rpg-module.characterSheetVisualReferencePath": string;
+    "ethernum-rpg-module.characterSheetVisualReferenceOpacity": number;
+    "ethernum-rpg-module.characterSheetVisualReferenceScale": number;
+    "ethernum-rpg-module.characterSheetVisualReferenceX": number;
+    "ethernum-rpg-module.characterSheetVisualReferenceY": number;
+    "ethernum-rpg-module.characterSheetVisualReferenceFit": "width" | "height";
     "ethernum-rpg-module.combatAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimations": "full" | "reduced" | "off";
     "ethernum-rpg-module.pippingAnimationSpeed": "fast" | "normal" | "cinematic";

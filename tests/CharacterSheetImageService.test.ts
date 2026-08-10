@@ -104,15 +104,19 @@ describe("CharacterSheetImageService", () => {
     expect(inferCharacterSheetImageRole(image as unknown as HTMLImageElement)).toBe("unique");
   });
 
-  it("keeps every sheet image on the semantic thumbnail contract", () => {
+  it("distinguishes content thumbnails from canonical UI assets", () => {
     const templatesDirectory = join(process.cwd(), "templates", "sheets");
     const templateFiles = [
       join(templatesDirectory, "base", "header.html"),
+      ...readdirSync(join(templatesDirectory, "ethernum")).map(file => join(templatesDirectory, "ethernum", file)),
       ...readdirSync(join(templatesDirectory, "components")).map(file => join(templatesDirectory, "components", file)),
     ];
     const images = templateFiles.flatMap(file => readFileSync(file, "utf8").match(/<img\b[^>]*>/g) ?? []);
     expect(images.length).toBeGreaterThan(0);
-    for (const image of images) expect(image).toContain("data-image-role=");
+    for (const image of images) {
+      expect(image.includes("data-image-role=") || image.includes("data-ui-asset=") || image.includes("data-reference-image")).toBe(true);
+      expect(image.includes("data-image-role=") && image.includes("data-ui-asset=")).toBe(false);
+    }
 
     const baseCss = readFileSync(join(process.cwd(), "styles", "sheets", "character-sheet-base.css"), "utf8");
     const componentCss = readFileSync(join(process.cwd(), "styles", "sheets", "character-sheet-components.css"), "utf8");

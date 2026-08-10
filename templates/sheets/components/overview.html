@@ -95,7 +95,11 @@
             <strong>{{this.value}}{{#if this.max}}/{{this.max}}{{/if}}</strong>
             {{#if this.markers.length}}
             <span class="ecs-resource-markers ecs-resource-markers--{{this.markerKind}}" aria-hidden="true">
-              {{#each this.markers}}<i class="{{#if this.active}}is-active{{/if}}"></i>{{/each}}
+              {{#if (ethernum-eq @root.shell.id "ethernum")}}
+                {{#each this.markers}}<img src="{{#if this.active}}{{@root.uiAssets.resourceFilled}}{{else}}{{@root.uiAssets.resourceEmpty}}{{/if}}" data-ui-asset="{{#if this.active}}ETH-UI-09{{else}}ETH-UI-10{{/if}}" alt="" />{{/each}}
+              {{else}}
+                {{#each this.markers}}<i class="{{#if this.active}}is-active{{/if}}"></i>{{/each}}
+              {{/if}}
             </span>
             {{/if}}
           </div>

@@ -1,0 +1,97 @@
+<header class="ecs-header ecs-interface-header eth-fidelity-header" data-ui-role="identity-header" data-material="blackened-steel">
+  <button type="button"
+          class="ecs-portrait ecs-thumbnail eth-portrait-instrument"
+          data-action="open-actor-image"
+          data-asset-component="portrait"
+          aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPortrait'}}"
+          title="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPortrait'}}">
+    <img class="eth-portrait-content" src="{{identity.img}}" data-image-role="portrait" alt="{{localize 'ETHERNUM.CharacterSheet.Header.Portrait'}}" />
+    <img class="eth-ui-asset eth-portrait-frame" src="{{uiAssets.portraitFrame}}" data-ui-asset="ETH-UI-05" aria-hidden="true" />
+  </button>
+
+  <section class="ecs-identity eth-operative-identity" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Identity'}}">
+    <span class="ecs-shell-title">{{shell.title}}</span>
+    {{#if companyIdentity.codename}}<small class="eth-operative-codename">{{companyIdentity.codename}}</small>{{/if}}
+    <div class="ecs-identity__title-row">
+      {{#if permissions.canUpdateActor}}
+      <input class="ecs-identity__name" type="text" name="name" value="{{identity.name}}" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.CharacterName'}}" />
+      {{else}}
+      <h1 class="ecs-identity__name">{{identity.name}}</h1>
+      {{/if}}
+    </div>
+    <p class="ecs-identity__line">
+      {{#if identity.ancestry}}<span>{{identity.ancestry}}</span>{{/if}}
+      {{#if identity.heritage}}<span>{{identity.heritage}}</span>{{/if}}
+      {{#if identity.className}}<span>{{identity.className}}</span>{{/if}}
+      {{#if identity.background}}<span>{{identity.background}}</span>{{/if}}
+    </p>
+    <div class="eth-operative-meta">
+      <span><small>{{localize 'ETHERNUM.CharacterSheet.Header.Level'}}</small><strong>{{identity.level}}</strong></span>
+      {{#if companyIdentity.squad}}<span><small>{{localize 'ETHERNUM.CharacterSheet.Company.Squad'}}</small><strong>{{companyIdentity.squad}}</strong></span>{{/if}}
+      {{#if companyIdentity.department}}<span><small>{{localize 'ETHERNUM.CharacterSheet.Company.Department'}}</small><strong>{{companyIdentity.department}}</strong></span>{{/if}}
+      {{#if companyIdentity.operationalStatus}}<span><small>{{localize 'ETHERNUM.CharacterSheet.Company.Status'}}</small><strong>{{companyIdentity.operationalStatus}}</strong></span>{{/if}}
+    </div>
+    {{#if identity.playerName}}<span class="ecs-player"><i class="fas fa-user" aria-hidden="true"></i>{{identity.playerName}}</span>{{/if}}
+  </section>
+
+  <section class="eth-rank-instrument" data-ui-role="company-rank" data-asset-component="rank" aria-label="{{localize 'ETHERNUM.CharacterSheet.Company.Rank'}} {{companyIdentity.rankLabel}}">
+    <img class="eth-ui-asset" src="{{uiAssets.rankRing}}" data-ui-asset="ETH-UI-03" aria-hidden="true" />
+    <span class="eth-rank-value">{{companyIdentity.rankLabel}}</span>
+    <small>{{localize 'ETHERNUM.CharacterSheet.Company.Rank'}}</small>
+  </section>
+
+  <section class="ecs-vitals eth-vitals-instrument" data-ui-role="vitals" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Vitals'}}">
+    <div class="ecs-vital ecs-vital--hp ecs-resource eth-hp-monitor" data-ui-role="vital" data-resource="hp" data-resource-kind="hp" data-hp-status="{{vitals.hp.status}}" data-asset-component="hp-monitor">
+      <img class="eth-ui-asset eth-hp-monitor__frame" src="{{uiAssets.hpMonitor}}" data-ui-asset="ETH-UI-04" aria-hidden="true" />
+      <div class="eth-hp-monitor__content">
+        <span class="ecs-vital__label">{{localize 'ETHERNUM.CharacterSheet.Header.HP'}}</span>
+        <div class="ecs-vital__values">
+          {{#if permissions.canUpdateActor}}
+          <input type="number" name="system.attributes.hp.value" value="{{vitals.hp.value}}" min="0" max="{{vitals.hp.max}}" data-action="update-hp" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.CurrentHP'}}" />
+          {{else}}<strong>{{vitals.hp.value}}</strong>{{/if}}
+          <span aria-hidden="true">/</span><span>{{vitals.hp.max}}</span>
+        </div>
+        <div class="ecs-meter" role="meter" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.CurrentHP'}}" aria-valuemin="0" aria-valuemax="{{vitals.hp.max}}" aria-valuenow="{{vitals.hp.value}}">
+          <span class="ecs-hp-fluid" style="--ecs-hp-ratio: {{vitals.hp.ratio}};"></span>
+        </div>
+        {{#if vitals.hp.temp}}<small>+{{localize 'ETHERNUM.CharacterSheet.Header.TemporaryHP' value=vitals.hp.temp}}</small>{{/if}}
+      </div>
+      <svg class="eth-hp-ecg" viewBox="0 0 160 48" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 27 H34 L43 25 L50 29 L60 27 L69 27 L76 6 L86 43 L96 20 L104 27 H160" pathLength="160" />
+      </svg>
+    </div>
+
+    <div class="ecs-vital ecs-vital--hero ecs-resource eth-hero-instrument" data-resource="hero-points" data-asset-component="hero-points">
+      <span class="ecs-vital__label">{{localize 'ETHERNUM.CharacterSheet.Header.Hero'}}</span>
+      <div class="ecs-stepper">
+        {{#if permissions.canUpdateActor}}<button type="button" data-action="adjust-hero-points" data-delta="-1" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.RemoveHero'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.RemoveHero'}}"><i class="fas fa-minus" aria-hidden="true"></i></button>{{/if}}
+        <strong>{{vitals.heroPoints.value}}</strong><span>/{{vitals.heroPoints.max}}</span>
+        {{#if permissions.canUpdateActor}}<button type="button" data-action="adjust-hero-points" data-delta="1" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.AddHero'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.AddHero'}}"><i class="fas fa-plus" aria-hidden="true"></i></button>{{/if}}
+      </div>
+      <div class="eth-resource-gems" aria-hidden="true">
+        {{#each vitals.heroPoints.markers}}
+        <img src="{{#if this.active}}{{@root.uiAssets.resourceFilled}}{{else}}{{@root.uiAssets.resourceEmpty}}{{/if}}" data-ui-asset="{{#if this.active}}ETH-UI-09{{else}}ETH-UI-10{{/if}}" alt="" />
+        {{/each}}
+      </div>
+    </div>
+  </section>
+
+  <div class="ecs-header-actions eth-header-actions" role="toolbar" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Actions'}}">
+    {{#if permissions.canConfigureSheet}}<button type="button" data-action="change-sheet-class" aria-label="{{localize 'ETHERNUM.CharacterSheet.Switch.Button'}}" title="{{localize 'ETHERNUM.CharacterSheet.Switch.Button'}}"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>{{/if}}
+    <button type="button" data-action="open-pf2e-sheet" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.OpenPF2e'}}"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
+    <button type="button" data-action="toggle-compact" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.Compact'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.Compact'}}"><i class="fas fa-compress" aria-hidden="true"></i></button>
+    {{#if permissions.canConfigureSheet}}
+    <div class="ecs-sheet-menu">
+      <button type="button" data-action="toggle-sheet-menu" aria-haspopup="menu" aria-expanded="false" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.More'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.More'}}"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
+      <div class="ecs-sheet-menu__panel" role="menu" hidden>
+        <button type="button" role="menuitem" data-action="configure-sheet"><i class="fas fa-gear" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.Configure'}}</span></button>
+        {{#if permissions.gm}}
+        <button type="button" role="menuitem" data-action="open-sheet-diagnostics"><i class="fas fa-stethoscope" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.Header.Diagnostics'}}</span></button>
+        <button type="button" role="menuitem" data-action="toggle-visual-reference"><i class="fas fa-layer-group" aria-hidden="true"></i><span>{{localize 'ETHERNUM.CharacterSheet.VisualReference.Title'}}</span></button>
+        {{/if}}
+      </div>
+    </div>
+    {{/if}}
+    {{#if permissions.gm}}<button type="button" data-action="open-gm-control" aria-label="{{localize 'ETHERNUM.CharacterSheet.Header.GMControl'}}" title="{{localize 'ETHERNUM.CharacterSheet.Header.GMControl'}}"><i class="fas fa-user-gear" aria-hidden="true"></i></button>{{/if}}
+  </div>
+</header>

@@ -1,4 +1,5 @@
 import { ETHERNUM } from "../config.js";
+import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { createPF2eCharacterSnapshot } from "../core/PF2eCharacterAdapter.js";
 import { getFieldCommunicatorMotionMode } from "../settings.js";
 import {
@@ -117,16 +118,6 @@ function escaped(value: unknown): string {
   }[character] ?? character));
 }
 
-function actorFlag(actor: Actor | null, key: string): unknown {
-  if (!actor) return undefined;
-  try {
-    const communicator = record(actor.getFlag(ETHERNUM.MODULE_NAME, "fieldCommunicator"));
-    return communicator[key];
-  } catch {
-    return undefined;
-  }
-}
-
 function appLabel(app: FieldCommunicatorApp): string {
   return app.source === "official"
     ? localize(`ETHERNUM.FieldCommunicator.Apps.${app.id}.Label`, app.label)
@@ -174,11 +165,12 @@ export class FieldCommunicatorService {
       : this.getAssignedActor();
     const subjectUser = previewUser ?? game.user as UserWithCharacter | null;
     const character = actor ? createPF2eCharacterSnapshot(actor) : null;
+    const companyIdentity = CompanyIdentityService.resolve(actor);
     const registry = this.getRegistry();
     const context = {
-      rank: this.agentRank(actor),
+      rank: companyIdentity.rank,
       agentId: actor?.id ?? undefined,
-      squadIds: this.agentSquads(actor),
+      squadIds: companyIdentity.squadIds,
     };
     const accessibleIds = new Set(filterFieldCommunicatorApps(
       registry.apps.map(app => ({ ...app, enabled: true })),
@@ -204,7 +196,7 @@ export class FieldCommunicatorService {
 
     const panels = await this.buildPanels(actor, registry, subjectUser);
     const preferences = this.clientSettings();
-    const squads = this.agentSquads(actor);
+    const squads = companyIdentity.squadIds;
     const ether = record(actor?.getFlag(ETHERNUM.MODULE_NAME, "etherSystem"));
     const now = new Date();
     const activeUsers = collection<UserWithCharacter>(game.users)
@@ -220,8 +212,8 @@ export class FieldCommunicatorService {
       character,
       agent: {
         name: actor?.name ?? localize("ETHERNUM.FieldCommunicator.AgentFallback", "Agente não vinculado"),
-        rank: this.agentRank(actor),
-        squad: squads.join(", ") || localize("ETHERNUM.FieldCommunicator.Signal", "Canal operacional"),
+        rank: companyIdentity.rank ?? "—",
+        squad: companyIdentity.squad || squads.join(", ") || localize("ETHERNUM.FieldCommunicator.Signal", "Canal operacional"),
         online: true,
       },
       signal: {
@@ -547,19 +539,6 @@ export class FieldCommunicatorService {
       highContrast: read("fieldCommunicatorHighContrast", false),
       notifications: read("fieldCommunicatorNotifications", "all"),
     };
-  }
-
-  private agentRank(actor: Actor | null): number {
-    const configured = number(actorFlag(actor, "rank"), NaN);
-    if (Number.isFinite(configured)) return Math.max(0, Math.floor(configured));
-    const system = record((actor as Actor & { system?: unknown } | null)?.system);
-    return Math.max(0, Math.floor(number(record(record(system.details).level).value, 0)));
-  }
-
-  private agentSquads(actor: Actor | null): string[] {
-    const value = actorFlag(actor, "squadIds") ?? actorFlag(actor, "squadId");
-    const list = Array.isArray(value) ? value : [value];
-    return Array.from(new Set(list.map(text).filter(Boolean)));
   }
 
   private canObserve(document: PermissionDocument | Actor, viewer: UserWithCharacter | null = game.user as UserWithCharacter | null): boolean {

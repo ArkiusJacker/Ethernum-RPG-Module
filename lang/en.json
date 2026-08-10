@@ -65,6 +65,7 @@
       "Header": {
         "OpenPortrait": "Open portrait",
         "Portrait": "Portrait",
+        "Identity": "Operational identity",
         "CharacterName": "Character name",
         "Level": "Level",
         "Traits": "Character traits",
@@ -83,6 +84,21 @@
         "Diagnostics": "Character sheet diagnostic",
         "GMControl": "GM Control Center",
         "Navigation": "Sheet sections"
+      },
+      "Company": {
+        "Rank": "Company Rank",
+        "Squad": "Squad",
+        "Department": "Department",
+        "Status": "Operational status"
+      },
+      "VisualReference": {
+        "Title": "Visual reference",
+        "Path": "Local image",
+        "Opacity": "Opacity",
+        "Scale": "Scale",
+        "Fit": "Fit",
+        "FitWidth": "Width",
+        "FitHeight": "Height"
       },
       "Overview": {
         "Eyebrow": "Operational summary",
@@ -1572,6 +1588,14 @@
         "Full": "Full",
         "Reduced": "Reduced",
         "Off": "Disabled"
+      },
+      "CharacterSheetHighContrast": {
+        "Name": "Character sheet high contrast",
+        "Hint": "Reduces decorative textures and runes while preserving instruments and data."
+      },
+      "CharacterSheetVisualReference": {
+        "Name": "Character sheet visual reference",
+        "Hint": "Local visual comparison tool available to the GM."
       },
       "CombatAnimations": {
         "Name": "Fides and Fulgor animations",

@@ -7,6 +7,9 @@ import {
   type CharacterSheetDiagnosticsSnapshot,
 } from "./CharacterSheetDiagnosticsService.js";
 import { PF2eBridgeTelemetry } from "./PF2eBridgeTelemetry.js";
+import { ETHERNUM_UI_ASSET_PACK_VERSION } from "../../ui/assets/EthernumUIAssetRegistry.js";
+import { EthernumUIAssetPreloader } from "../../ui/assets/EthernumUIAssetPreloader.js";
+import { EthernumVisualReferenceService } from "../../ui/assets/EthernumVisualReferenceService.js";
 
 function localize(key: string, fallback: string): string {
   const value = game.i18n?.localize(key);
@@ -44,6 +47,11 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
   }
   if (!controllerDiagnostics) return false;
 
+  const assetReport = controllerDiagnostics.resolvedSheet === "ethernum"
+    ? await EthernumUIAssetPreloader.preloadAll()
+    : { loaded: [], missing: [], pending: [] };
+  const reference = EthernumVisualReferenceService.snapshot(true);
+
   const moduleVersion = String(game.modules.get(ETHERNUM.MODULE_NAME)?.version ?? "unknown");
   const snapshot = createCharacterSheetDiagnosticsFromController({
     isGM: true,
@@ -52,6 +60,13 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
     animationMode: String(game.settings.get(ETHERNUM.MODULE_NAME, "characterSheetAnimations") ?? "full"),
     telemetry: PF2eBridgeTelemetry.list({ actorId: controllerDiagnostics.actorId }),
     capabilityStatus: controllerDiagnostics.capabilityStatus,
+    uiAssetPackVersion: controllerDiagnostics.resolvedSheet === "ethernum"
+      ? ETHERNUM_UI_ASSET_PACK_VERSION
+      : undefined,
+    loadedUIAssets: assetReport.loaded,
+    missingUIAssets: assetReport.missing,
+    referenceOverlay: reference.enabled,
+    highContrast: Boolean(game.settings.get(ETHERNUM.MODULE_NAME, "characterSheetHighContrast")),
   });
   if (!snapshot) return false;
 

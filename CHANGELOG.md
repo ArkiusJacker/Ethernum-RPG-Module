@@ -5,6 +5,31 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.7] - 2026-08-09
+
+### Adicionado
+- Pacote canônico com 14 assets oficiais da Ethernum Company, distribuídos em WebP lossless e registrados por ID, função e metadados de uso.
+- Templates próprios para shell, cabeçalho e navegação Ethernum, mantendo componentes funcionais compartilhados com a arquitetura PF2e existente.
+- Preloader dos assets críticos, fallback não bloqueante para arquivos ausentes e relatório visual no diagnóstico da ficha.
+- Ferramenta GM de sobreposição de referência com caminho configurável, opacidade, escala, deslocamento e ajuste por largura ou altura.
+- Modo local de alto contraste para reduzir texturas, runas e ornamentação secundária.
+- Serviço centralizado de identidade corporativa para codinome, Rank, esquadrão, departamento e estado operacional.
+
+### Alterado
+- Cabeçalho Ethernum passa a usar molduras oficiais no retrato, Rank, monitor de PV, pontos heroicos e navegação.
+- Painéis, perícias, divisores, fundos rúnicos e recursos usam a composição visual oficial sem substituir dados ou ações PF2e.
+- Assets originais permanecem intactos fora do módulo; as cópias públicas foram comprimidas sem perda visual para reduzir carregamento e memória.
+
+### Corrigido
+- Rank da Company não utiliza mais o nível PF2e como fallback na ficha ou no Comunicador; a ausência de Rank explícito agora aparece como `—`.
+- Ornamentos, frames e overlays não interceptam cliques nem recebem as regras de dimensionamento das thumbnails de conteúdo.
+- Atalhos da Mecânica Única permanecem legíveis dentro do novo terminal, sem fundo claro ou perda de área clicável.
+- A ferramenta de referência redesenha a ficha ao ser ligada, desligada ou reajustada.
+
+### Testes
+- Contratos automatizados cobrem registry, fallback, templates, identidade corporativa, acessibilidade, movimento, responsividade, referência e diagnóstico.
+- Smoke test em Foundry 13.351 com PF2e 7.8.0 confirmou 14/14 assets, nove abas, Pipping, PF2e fallback e isolamento do Comunicador.
+
 ## [3.7.6] - 2026-08-09
 
 ### Adicionado

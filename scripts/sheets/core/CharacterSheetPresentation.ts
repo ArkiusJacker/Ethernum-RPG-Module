@@ -51,10 +51,19 @@ function viewVitals(value: unknown): Data {
   const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
   const status = current <= 0 || ratio <= 0.25 ? "critical" : ratio >= 1 ? "full" : "stable";
   const heroPoints = record(vitals.heroPoints);
+  const heroValue = number(heroPoints.current);
+  const heroMax = number(heroPoints.max, 3);
   return {
     ...vitals,
     hp: { ...hp, value: current, max, percentage: percent(current, max), ratio, status },
-    heroPoints: { ...heroPoints, value: number(heroPoints.current), max: number(heroPoints.max, 3) },
+    heroPoints: {
+      ...heroPoints,
+      value: heroValue,
+      max: heroMax,
+      markers: Array.from({ length: Math.max(0, Math.min(10, heroMax)) }, (_entry, index) => ({
+        active: index < heroValue,
+      })),
+    },
   };
 }
 

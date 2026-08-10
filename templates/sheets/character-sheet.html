@@ -19,9 +19,14 @@
       data-shell-id="{{shell.id}}"
       data-actor-id="{{actor.id}}"
       data-unique-profile="{{uniqueMechanic.activeProfile}}"
+      data-high-contrast="{{#if ui.highContrast}}true{{else}}false{{/if}}"
       data-viewport-root
       aria-label="{{shell.title}}"
       autocomplete="off">
-  {{> "modules/ethernum-rpg-module/templates/sheets/base/sheet-base.html"}}
+  {{#if (ethernum-eq shell.id "ethernum")}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/ethernum/shell.html"}}
+  {{else}}
+    {{> "modules/ethernum-rpg-module/templates/sheets/base/sheet-base.html"}}
+  {{/if}}
 </form>
 {{/if}}

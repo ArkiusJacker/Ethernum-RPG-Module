@@ -58,6 +58,11 @@ export interface CharacterSheetDiagnosticsInput {
   telemetry?: PF2eBridgeTelemetryEntry[];
   renderTimeMs?: number;
   dirtyPaths?: string[];
+  uiAssetPackVersion?: number;
+  loadedUIAssets?: string[];
+  missingUIAssets?: string[];
+  referenceOverlay?: boolean;
+  highContrast?: boolean;
 }
 
 export interface CharacterSheetCapabilityDiagnostic {
@@ -98,6 +103,13 @@ export interface CharacterSheetDiagnosticsSnapshot {
     uniqueProfile: string;
   };
   versions: { foundry: string; pf2e: string; ethernum: string };
+  visual: {
+    assetPackVersion: number | null;
+    loadedAssets: string[];
+    missingAssets: string[];
+    referenceOverlay: boolean;
+    highContrast: boolean;
+  };
   capabilities: CharacterSheetCapabilityDiagnostic[];
   modules: CharacterSheetModuleDiagnostic[];
   operations: CharacterSheetOperationDiagnostic[];
@@ -134,6 +146,11 @@ export interface CharacterSheetControllerDiagnosticsInput {
   telemetry?: PF2eBridgeTelemetryEntry[];
   capabilityStatus?: CharacterSheetDiagnosticsInput["capabilityStatus"];
   moduleStatus?: CharacterSheetDiagnosticsInput["moduleStatus"];
+  uiAssetPackVersion?: number;
+  loadedUIAssets?: string[];
+  missingUIAssets?: string[];
+  referenceOverlay?: boolean;
+  highContrast?: boolean;
 }
 
 export interface CharacterSheetSafeErrorPresentation {
@@ -302,7 +319,7 @@ export function createCharacterSheetDiagnostics(
       shell: safeText(input.shell, "unknown"),
       configuredMode: safeText(input.configuredMode, "unknown"),
       activeCore: safeText(input.activeCore, "unknown"),
-      theme: safeText(input.theme, input.shell === "concordia" ? "Mechanical Grimoire" : "Operational Dossier"),
+      theme: safeText(input.theme, input.shell === "concordia" ? "Mechanical Grimoire" : "Ethernum Fidelity"),
       animationMode: safeText(input.animationMode, "unknown"),
       uniqueProfile: safeText(input.uniqueProfile, "none"),
     },
@@ -310,6 +327,15 @@ export function createCharacterSheetDiagnostics(
       foundry: safeText(input.foundryVersion, "unknown", 40),
       pf2e: safeText(input.pf2eVersion, "unknown", 40),
       ethernum: safeText(input.ethernumVersion, "unknown", 40),
+    },
+    visual: {
+      assetPackVersion: Number.isFinite(Number(input.uiAssetPackVersion))
+        ? Number(input.uiAssetPackVersion)
+        : null,
+      loadedAssets: (input.loadedUIAssets ?? []).map(id => safeText(id, "unknown", 40)),
+      missingAssets: (input.missingUIAssets ?? []).map(id => safeText(id, "unknown", 40)),
+      referenceOverlay: Boolean(input.referenceOverlay),
+      highContrast: Boolean(input.highContrast),
     },
     capabilities: capabilityDiagnostics(input),
     modules,
@@ -330,7 +356,7 @@ export function createCharacterSheetDiagnosticsFromController(
     shell: diagnostics.resolvedSheet,
     configuredMode: diagnostics.configuredMode,
     activeCore: diagnostics.activeCore,
-    theme: diagnostics.resolvedSheet === "concordia" ? "Mechanical Grimoire" : "Operational Dossier",
+    theme: diagnostics.resolvedSheet === "concordia" ? "Mechanical Grimoire" : "Ethernum Fidelity",
     animationMode: input.animationMode,
     uniqueProfile: diagnostics.profile,
     foundryVersion: diagnostics.foundryVersion,
@@ -343,6 +369,11 @@ export function createCharacterSheetDiagnosticsFromController(
     telemetry: input.telemetry,
     renderTimeMs: diagnostics.renderTimeMs,
     dirtyPaths: diagnostics.dirtyPaths,
+    uiAssetPackVersion: input.uiAssetPackVersion,
+    loadedUIAssets: input.loadedUIAssets,
+    missingUIAssets: input.missingUIAssets,
+    referenceOverlay: input.referenceOverlay,
+    highContrast: input.highContrast,
   });
 }
 
@@ -365,6 +396,11 @@ export function serializeCharacterSheetDiagnostics(snapshot: CharacterSheetDiagn
     `Foundry: ${snapshot.versions.foundry}`,
     `PF2e: ${snapshot.versions.pf2e}`,
     `Ethernum: ${snapshot.versions.ethernum}`,
+    `UI Asset Pack: ${snapshot.visual.assetPackVersion ?? "not applicable"}`,
+    `Loaded UI Assets: ${snapshot.visual.loadedAssets.join(", ") || "none"}`,
+    `Missing UI Assets: ${snapshot.visual.missingAssets.join(", ") || "none"}`,
+    `Reference Overlay: ${snapshot.visual.referenceOverlay ? "ON" : "OFF"}`,
+    `High Contrast: ${snapshot.visual.highContrast ? "ON" : "OFF"}`,
     "",
     "Capabilities",
     ...snapshot.capabilities.map(entry => `- ${entry.label}: ${lineStatus(entry.status)}`),

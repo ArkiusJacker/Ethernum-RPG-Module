@@ -17,6 +17,8 @@ import { CharacterSheetMotionService, type CharacterSheetMotionMode } from "./co
 import { openCharacterSheetSwitcher } from "./core/CharacterSheetSwitcher.js";
 import { CharacterSheetViewportService } from "./core/CharacterSheetViewportService.js";
 import { PF2eCharacterActions } from "./core/PF2eCharacterActions.js";
+import { EthernumUIAssetPreloader } from "../ui/assets/EthernumUIAssetPreloader.js";
+import { EthernumVisualReferenceService } from "../ui/assets/EthernumVisualReferenceService.js";
 
 function numeric(value: unknown, fallback = 0): number {
   const result = Number(value);
@@ -111,6 +113,9 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
 
   override async getData(options?: Partial<ActorSheet.Options>): Promise<Record<string, unknown>> {
     try {
+      if (CharacterSheetController.resolve(this.actor).resolvedSheet === "ethernum") {
+        void EthernumUIAssetPreloader.preloadCritical();
+      }
       const context = await CharacterSheetController.build(this.actor);
       return { ...(await super.getData(options)), ...context };
     } catch (error) {
@@ -141,6 +146,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     if (root) {
       viewport.bind(root);
       this.#imageService.bind(root);
+      EthernumUIAssetPreloader.bindFallbacks(root);
       this.#applyMotionMode(root);
       this.#feedback.restore(root, this.#motion.mode);
     }
@@ -203,6 +209,15 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
         row.hidden = Boolean(query && !row.textContent?.toLocaleLowerCase().includes(query));
       });
     });
+    html.on("input.ethernum-visual-reference", "[data-reference-setting]", event => {
+      this.#previewVisualReference(root, event.currentTarget as HTMLInputElement);
+    });
+    html.on("change.ethernum-visual-reference", "[data-reference-setting]", event => {
+      const input = event.currentTarget as HTMLInputElement;
+      const key = input.dataset.referenceSetting ?? "";
+      const value = input.type === "number" || input.type === "range" ? numeric(input.value) : input.value;
+      void EthernumVisualReferenceService.set(key, value);
+    });
     sheetTabs.on("keydown.ethernum-sheet", event => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
@@ -253,6 +268,22 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     }
     if (action === "open-sheet-diagnostics") {
       await openCharacterSheetDiagnostics(this.actor);
+      return;
+    }
+    if (action === "toggle-visual-reference") {
+      if (!game.user?.isGM) return;
+      const current = String(game.settings?.get(ETHERNUM.MODULE_NAME, "characterSheetVisualReference") ?? "off");
+      await EthernumVisualReferenceService.set(
+        "characterSheetVisualReference",
+        current === "ethernum" ? "off" : "ethernum",
+      );
+      return;
+    }
+    if (action === "set-visual-reference-fit") {
+      await EthernumVisualReferenceService.set(
+        "characterSheetVisualReferenceFit",
+        data(element, "fit") === "height" ? "height" : "width",
+      );
       return;
     }
     if (action === "open-actor-image") {
@@ -499,6 +530,24 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
     root.classList.toggle("ecs-motion-reduced", mode === "reduced");
     root.classList.toggle("ecs-motion-off", mode === "off");
     return mode;
+  }
+
+  #previewVisualReference(root: HTMLElement | null, input: HTMLInputElement): void {
+    const overlay = root?.querySelector<HTMLElement>(".eth-reference-overlay");
+    if (!overlay) return;
+    const key = input.dataset.referenceSetting;
+    if (key === "characterSheetVisualReferencePath") {
+      const image = overlay.querySelector<HTMLImageElement>("[data-reference-image]");
+      if (!image) return;
+      const path = input.value.trim();
+      image.hidden = !path;
+      if (path) image.src = path;
+      else image.removeAttribute("src");
+    }
+    if (key === "characterSheetVisualReferenceOpacity") overlay.style.setProperty("--reference-opacity", input.value);
+    if (key === "characterSheetVisualReferenceScale") overlay.style.setProperty("--reference-scale", input.value);
+    if (key === "characterSheetVisualReferenceX") overlay.style.setProperty("--reference-x", `${numeric(input.value)}px`);
+    if (key === "characterSheetVisualReferenceY") overlay.style.setProperty("--reference-y", `${numeric(input.value)}px`);
   }
 
   #playActionFeedback(root: HTMLElement | null, element: HTMLElement): void {
