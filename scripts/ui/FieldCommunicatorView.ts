@@ -810,7 +810,23 @@ export class FieldCommunicatorView {
   private async run(action: string, task: () => void | Promise<void>): Promise<void> {
     if (this.pendingActions.has(action)) return;
     this.pendingActions.add(action);
-    this.root()?.setAttribute("aria-busy", "true");
+    const root = this.root();
+    const controls = action === "store-purchase"
+      ? Array.from(root?.querySelectorAll<HTMLElement>("[data-communicator-action]") ?? [])
+        .filter(control => control.dataset.communicatorAction === action)
+      : [];
+    const controlStates = controls.map(control => ({
+      control,
+      supportsDisabled: "disabled" in control,
+      disabled: Boolean((control as HTMLElement & { disabled?: boolean }).disabled),
+      ariaDisabled: control.getAttribute("aria-disabled"),
+    }));
+    for (const { control, supportsDisabled } of controlStates) {
+      if (supportsDisabled) (control as HTMLElement & { disabled: boolean }).disabled = true;
+      control.setAttribute("aria-disabled", "true");
+      control.dataset.processing = "true";
+    }
+    root?.setAttribute("aria-busy", "true");
     try {
       await task();
       this.pulseConfirmation();
@@ -819,6 +835,13 @@ export class FieldCommunicatorView {
     } finally {
       this.pendingActions.delete(action);
       this.root()?.removeAttribute("aria-busy");
+      for (const { control, supportsDisabled, disabled, ariaDisabled } of controlStates) {
+        if (!control.isConnected) continue;
+        if (supportsDisabled) (control as HTMLElement & { disabled: boolean }).disabled = disabled;
+        if (ariaDisabled === null) control.removeAttribute("aria-disabled");
+        else control.setAttribute("aria-disabled", ariaDisabled);
+        delete control.dataset.processing;
+      }
     }
   }
 

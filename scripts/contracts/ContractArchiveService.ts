@@ -636,11 +636,16 @@ export class ContractArchiveService {
   }
 
   private async createJournal(data: Record<string, unknown>): Promise<ArchiveJournal | null> {
-    const creator = (globalThis as typeof globalThis & {
-      JournalEntry?: { create?: (data: Record<string, unknown>, options?: Record<string, unknown>) => Promise<ArchiveJournal | null> };
-    }).JournalEntry?.create;
-    if (!creator) return null;
-    return creator(data, { renderSheet: false });
+    type JournalDocumentClass = {
+      create?: (source: Record<string, unknown>, options?: Record<string, unknown>) => Promise<ArchiveJournal | null>;
+    };
+    const globals = globalThis as typeof globalThis & {
+      JournalEntry?: JournalDocumentClass;
+      CONFIG?: { JournalEntry?: { documentClass?: JournalDocumentClass } };
+    };
+    const documentClass = globals.CONFIG?.JournalEntry?.documentClass ?? globals.JournalEntry;
+    if (!documentClass?.create) return null;
+    return documentClass.create.call(documentClass, data, { renderSheet: false });
   }
 
   private async resolveUuid(value: string): Promise<ArchiveJournal | null> {

@@ -47,13 +47,16 @@ function installWorld(currentIsGM = true) {
   const journals: FakeJournal[] = [];
   let sequence = 0;
   vi.stubGlobal("game", { user: currentIsGM ? gm : player, users: [gm, player], journal: journals });
-  vi.stubGlobal("JournalEntry", {
-    create: vi.fn(async (data: Record<string, unknown>) => {
+  const documentClass = {
+    create: vi.fn(async function(this: unknown, data: Record<string, unknown>) {
+      expect(this).toBe(documentClass);
       const journal = new FakeJournal(`generated-${++sequence}`, data);
       journals.push(journal);
       return journal;
     }),
-  });
+  };
+  vi.stubGlobal("CONFIG", { JournalEntry: { documentClass } });
+  vi.stubGlobal("JournalEntry", documentClass);
   vi.stubGlobal("fromUuid", vi.fn(async (uuid: string) => journals.find(journal => journal.uuid === uuid) ?? null));
   return { gm, player, journals };
 }

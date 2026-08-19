@@ -91,7 +91,7 @@ export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSn
       actionName: entry.request.actionId ?? entry.request.handlerId,
       summary: entry.request.summary ?? entry.request.details,
       payload: entry.request.payload,
-      trustEligible: true,
+      trustEligible: entry.request.handlerId !== "company-store.purchase.approval",
       approvable: true,
     };
   });

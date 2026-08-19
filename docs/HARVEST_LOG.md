@@ -130,3 +130,65 @@ Rejected:
 - World settings or broadcast socket payloads containing the secret registry.
 - Arbitrary document URLs, unrestricted iframes and executable Journal HTML.
 - A second approval, audit or authority control plane.
+
+## HARVEST Session - Company Store and PF2e Transactions
+
+Version target: 3.8.2
+
+Mode: Full
+
+Execution: Multi-agent; Facilitator in the main implementation pass plus
+independent Specialist, Critic/Security and Dreamer/Experience reviews.
+
+### Seed
+
+Replace the purchase-request placeholder with a real PF2e store while preventing
+currency loss, Item duplication, secret catalog exposure and authority bypass.
+
+### Canonical Requirements
+
+- Catalog entries reference real PF2e Items and the real Actor currency source.
+- Automatic and approval transactions with stock, Rank, region and flags.
+- Idempotency, audit, rollback/recovery and double-click protection.
+- Catalog, detail, processing and result presentation inside the Communicator.
+
+### Harvest
+
+Canonical:
+
+- GM-only administrative Journal and per-user sanitized snapshot projections.
+- Foundry-authored ChatMessage attestation bound to requester, Actor and quote.
+- Persistent transaction stages, global serialization and deterministic recovery.
+- Existing Authority Bridge, Approval Queue, policy and audit services as the only
+  operational authority plane.
+- Permission revalidation for the PF2e Item and exact assigned character.
+- Foundry v14 document creation through the bound Journal document class rather
+  than an unbound static method.
+- Explicit support for zero-cost PF2e offers and content-sized catalog rows.
+
+Experiments harvested: None. All implementation choices are roadmap requirements
+or P0/P1 security and consistency safeguards needed to implement them safely.
+
+Backlog:
+
+- Diegetic store administration in the v3.8.3 Administrative Communicator.
+- Optional user-facing confirmation step before automatic debit, provided later
+  usability testing shows that detail-screen confirmation is insufficient.
+
+Rejected:
+
+- A separate wallet, approval queue, audit log or policy engine.
+- Client-trusted Actor flags for Rank/region authorization.
+- Raw Item UUIDs, restrictions or transaction records in player projections.
+- Automatic recovery from an ambiguous debit or interrupted compensation.
+
+Foundry harvest:
+
+- The first authenticated render exposed overlapping catalog metadata; the
+  corrected render is preserved beside the defect screenshot.
+- Primary-GM initialization exposed an unbound `JournalEntry.create` failure in
+  Foundry v14. Store and Contract storage now share the corrected invocation
+  pattern and a regression test.
+- Automatic and approval transactions were executed against a real assigned
+  PF2e Actor. Temporary Items, catalog records, transactions, messages and QA
+  macro data were removed after verification.

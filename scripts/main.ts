@@ -44,6 +44,15 @@ import type {
   ContractArchiveMutationOptions,
   EthernumContractPrincipal,
 } from './contracts/ContractArchiveTypes.js';
+import {
+  getCompanyStoreService,
+  initializeCompanyStoreService,
+} from './store/CompanyStoreService.js';
+import type {
+  CompanyStoreEntry,
+  CompanyStoreMutationOptions,
+  CompanyStorePrincipalAuthorization,
+} from './store/CompanyStoreTypes.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -90,6 +99,18 @@ declare global {
           complete: (contractId: string, options?: ContractArchiveCompleteOptions) => ReturnType<ReturnType<typeof getContractArchiveService>["complete"]>;
           grantAccess: (contractId: string, principal: EthernumContractPrincipal, options?: ContractArchiveMutationOptions & { attachmentId?: string }) => ReturnType<ReturnType<typeof getContractArchiveService>["grantAccess"]>;
           revokeAccess: (contractId: string, principal: EthernumContractPrincipal, options?: ContractArchiveMutationOptions & { attachmentId?: string }) => ReturnType<ReturnType<typeof getContractArchiveService>["revokeAccess"]>;
+        };
+      };
+      store: {
+        list: (previewUserId?: string | null, selectedEntryId?: string | null) => ReturnType<ReturnType<typeof getCompanyStoreService>["getSnapshot"]>;
+        purchase: (entryId: string) => ReturnType<ReturnType<typeof getCompanyStoreService>["requestPurchase"]>;
+        admin?: {
+          getStore: () => ReturnType<ReturnType<typeof getCompanyStoreService>["getStore"]>;
+          upsertEntry: (entry: Partial<CompanyStoreEntry>, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["upsertEntry"]>;
+          removeEntry: (entryId: string, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["removeEntry"]>;
+          setStock: (entryId: string, stock: number | null, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["setStock"]>;
+          setAuthorization: (actorUuid: string, authorization: Partial<CompanyStorePrincipalAuthorization>, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["setAuthorization"]>;
+          reconcileTransactions: () => ReturnType<ReturnType<typeof getCompanyStoreService>["reconcileTransactions"]>;
         };
       };
       macros: {
@@ -674,6 +695,7 @@ Hooks.once("init", () => {
   ]);
 
   const contractArchive = getContractArchiveService();
+  const companyStore = getCompanyStoreService();
   game.ethernum = {
     ETHERNUM,
     unique: UniqueMechanicsSystem,
@@ -706,6 +728,20 @@ Hooks.once("init", () => {
         },
       } : {}),
     },
+    store: {
+      list: (previewUserId, selectedEntryId) => companyStore.getSnapshot(previewUserId, selectedEntryId),
+      purchase: entryId => companyStore.requestPurchase(entryId),
+      ...(game.user?.isGM ? {
+        admin: {
+          getStore: () => companyStore.getStore(),
+          upsertEntry: (entry, options) => companyStore.upsertEntry(entry, options),
+          removeEntry: (entryId, options) => companyStore.removeEntry(entryId, options),
+          setStock: (entryId, stock, options) => companyStore.setStock(entryId, stock, options),
+          setAuthorization: (actorUuid, authorization, options) => companyStore.setAuthorization(actorUuid, authorization, options),
+          reconcileTransactions: () => companyStore.reconcileTransactions(),
+        },
+      } : {}),
+    },
     macros: buildMacroApi(),
   };
 });
@@ -716,6 +752,7 @@ Hooks.once("ready", async () => {
   initializeEthernumAuthorityBridge();
   await migrateWorld();
   await initializeContractArchiveService();
+  await initializeCompanyStoreService();
   initializePF2eAdapterSocket();
   initializeUniqueCanvasSocket();
   initializePippingCanvasSocket();
@@ -752,9 +789,10 @@ Hooks.on("createChatMessage", () => {
   void FieldCommunicatorOverlay.refresh();
 });
 
-for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
+for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
   Hooks.on(hook, () => {
     getContractArchiveService().scheduleProjectionSync();
+    getCompanyStoreService().scheduleProjectionSync();
     void FieldCommunicatorOverlay.refresh();
   });
 }

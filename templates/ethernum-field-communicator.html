@@ -204,6 +204,69 @@
       <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Sincronizando dados...</span></div>
       {{else}}
       <div class="ethc-panel-content" data-communicator-region="panel-content">
+        {{#if panel.isShop}}
+        <div class="ethc-store" aria-busy="false">
+          {{#if panel.storeReceipt}}
+          <section class="ethc-store-receipt ethc-store-receipt--{{panel.storeReceipt.tone}}" aria-live="polite" aria-labelledby="ethc-store-receipt-title">
+            <i class="{{panel.storeReceipt.icon}}" aria-hidden="true"></i>
+            <p class="ethc-kicker">Transação {{panel.storeReceipt.shortId}}</p>
+            <h2 id="ethc-store-receipt-title">{{panel.storeReceipt.statusLabel}}</h2>
+            <p>{{panel.storeReceipt.message}}</p>
+            <dl>
+              <div><dt>Item</dt><dd>{{panel.storeReceipt.itemName}}</dd></div>
+              {{#if panel.storeReceipt.actorName}}<div><dt>Agente</dt><dd>{{panel.storeReceipt.actorName}}</dd></div>{{/if}}
+              {{#if panel.storeReceipt.priceLabel}}<div><dt>Valor</dt><dd>{{panel.storeReceipt.priceLabel}}</dd></div>{{/if}}
+            </dl>
+            <button type="button" class="ethc-primary-button" data-communicator-action="store-receipt-close"><i class="fas fa-store" aria-hidden="true"></i><span>Voltar à loja</span></button>
+          </section>
+          {{else}}
+          {{#if panel.store.selectedItem}}
+          <section class="ethc-store-detail" aria-labelledby="ethc-store-detail-title">
+            <button type="button" class="ethc-store-back" data-communicator-action="store-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Catálogo da Companhia</span></button>
+            <header class="ethc-store-detail__hero">
+              {{#if panel.store.selectedItem.image}}<img src="{{panel.store.selectedItem.image}}" alt="">{{else}}<span aria-hidden="true"><i class="fas fa-box"></i></span>{{/if}}
+              <div>
+                <p class="ethc-kicker">{{#if panel.store.selectedItem.level}}Nível {{panel.store.selectedItem.level}}{{else}}Item PF2e{{/if}}</p>
+                <h2 id="ethc-store-detail-title" tabindex="-1">{{panel.store.selectedItem.name}}</h2>
+                {{#if panel.store.selectedItem.rarityLabel}}<small>{{panel.store.selectedItem.rarityLabel}}</small>{{/if}}
+              </div>
+            </header>
+            {{#if panel.store.selectedItem.description}}<p class="ethc-store-detail__description">{{panel.store.selectedItem.description}}</p>{{/if}}
+            <dl class="ethc-store-metadata">
+              <div><dt>Preço</dt><dd>{{panel.store.selectedItem.priceLabel}}</dd></div>
+              <div><dt>Saldo</dt><dd>{{panel.store.balance.label}}</dd></div>
+              <div><dt>Estoque</dt><dd>{{panel.store.selectedItem.stockLabel}}</dd></div>
+              <div><dt>Autorização</dt><dd>{{panel.store.selectedItem.authorizationLabel}}</dd></div>
+            </dl>
+            <button type="button" class="ethc-primary-button ethc-store-purchase" data-communicator-action="store-purchase" data-communicator-store-entry-id="{{panel.store.selectedItem.id}}" {{#unless panel.store.selectedItem.available}}disabled aria-disabled="true"{{/unless}}>
+              <i class="fas {{#if (ethernum-eq panel.store.selectedItem.transactionMode 'approval')}}fa-file-signature{{else}}fa-cart-shopping{{/if}}" aria-hidden="true"></i>
+              <span>{{panel.store.selectedItem.actionLabel}}</span>
+            </button>
+          </section>
+          {{else}}
+          <section class="ethc-store-catalog" aria-labelledby="ethc-store-catalog-title">
+            <header class="ethc-store-balance">
+              <div><p class="ethc-kicker">Conta do agente</p><h2 id="ethc-store-catalog-title" tabindex="-1">Catálogo da Companhia</h2></div>
+              <span><small>Saldo PF2e</small><strong>{{panel.store.balance.label}}</strong></span>
+            </header>
+            {{#if panel.store.state.noActor}}<div class="ethc-empty-state ethc-empty-state--compact" role="status"><i class="fas fa-user-lock" aria-hidden="true"></i><p>Vincule um personagem PF2e para consultar e comprar.</p></div>{{/if}}
+            <div class="ethc-store-list">
+              {{#each panel.store.items}}
+              <button type="button" class="ethc-store-row {{#if this.featured}}is-featured{{/if}}" data-communicator-action="open-store-item" data-communicator-store-entry-id="{{this.id}}">
+                {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<span class="ethc-store-row__image" aria-hidden="true"><i class="fas fa-box"></i></span>{{/if}}
+                <span class="ethc-store-row__body"><strong>{{this.name}}</strong><small>{{#if this.level}}Nível {{this.level}}{{/if}}{{#if this.rarityLabel}} · {{this.rarityLabel}}{{/if}}</small><em>{{this.authorizationLabel}}</em></span>
+                <span class="ethc-store-row__terms"><strong>{{this.priceLabel}}</strong><small>{{this.stockLabel}}</small></span>
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+              </button>
+              {{else}}
+              <div class="ethc-empty-state"><i class="fas fa-store-slash" aria-hidden="true"></i><h3>Catálogo indisponível</h3><p>Nenhuma oferta está liberada para este perfil.</p></div>
+              {{/each}}
+            </div>
+          </section>
+          {{/if}}
+          {{/if}}
+        </div>
+        {{else}}
         {{#if panel.isContracts}}
         {{#if panel.documentViewer.active}}
         <section class="ethc-document-viewer" data-document-viewer tabindex="0" aria-labelledby="ethc-document-title">
@@ -335,6 +398,7 @@
         {{else}}
         <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>Canal aguardando dados</h3><p>O conteúdo deste aplicativo aparecerá aqui quando estiver disponível.</p></div>
         {{/each}}
+        {{/if}}
         {{/if}}
       </div>
       {{/if}}

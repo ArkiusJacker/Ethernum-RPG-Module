@@ -1195,3 +1195,232 @@
   .ethc-admin-dialog label:has(textarea),
   .ethc-admin-dialog label:last-child { grid-column: 1; }
 }
+
+/* Company Store */
+.ethc-store {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  color: var(--ethc-text, #f2ead7);
+}
+
+.ethc-store-balance {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba(198, 157, 79, 0.42);
+}
+
+.ethc-store-balance h2,
+.ethc-store-detail h2,
+.ethc-store-receipt h2 {
+  margin: 2px 0 0;
+  font-size: 1.12rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.ethc-store-balance > span {
+  display: grid;
+  max-width: 52%;
+  gap: 2px;
+  text-align: right;
+}
+
+.ethc-store-balance small,
+.ethc-store-row small,
+.ethc-store-detail small,
+.ethc-store-receipt dt {
+  color: rgba(229, 234, 229, 0.7);
+}
+
+.ethc-store-balance strong,
+.ethc-store-row__terms strong,
+.ethc-store-metadata dd {
+  color: #e7c16d;
+}
+
+.ethc-store-list {
+  display: grid;
+  gap: 7px;
+}
+
+.ethc-store-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) minmax(82px, auto) 14px;
+  height: auto;
+  min-height: 70px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid rgba(198, 157, 79, 0.25);
+  border-radius: 4px;
+  background: rgba(9, 15, 16, 0.82);
+  color: inherit;
+  text-align: left;
+}
+
+.ethc-store-row:hover,
+.ethc-store-row:focus-visible {
+  border-color: rgba(94, 220, 219, 0.75);
+  background: rgba(16, 30, 31, 0.92);
+}
+
+.ethc-store-row.is-featured { border-left: 3px solid #e7c16d; }
+
+.ethc-store-row img,
+.ethc-store-row__image {
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(198, 157, 79, 0.5);
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.ethc-store-row__image {
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  color: #66d9d7;
+}
+
+.ethc-store-row__body,
+.ethc-store-row__terms {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.ethc-store-row__body strong,
+.ethc-store-row__body small,
+.ethc-store-row__body em,
+.ethc-store-row__terms strong,
+.ethc-store-row__terms small {
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+
+.ethc-store-row__body em {
+  color: #74d9cf;
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.ethc-store-row__terms {
+  justify-items: end;
+  text-align: right;
+}
+
+.ethc-store-back {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ethc-store-detail__hero {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid rgba(198, 157, 79, 0.34);
+}
+
+.ethc-store-detail__hero img,
+.ethc-store-detail__hero > span {
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(198, 157, 79, 0.55);
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.ethc-store-detail__hero > span {
+  display: grid;
+  place-items: center;
+  color: #66d9d7;
+  font-size: 1.5rem;
+}
+
+.ethc-store-detail__description {
+  margin: 12px 0;
+  color: rgba(242, 234, 215, 0.85);
+  line-height: 1.45;
+}
+
+.ethc-store-metadata,
+.ethc-store-receipt dl {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 14px;
+}
+
+.ethc-store-metadata > div,
+.ethc-store-receipt dl > div {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.7fr) minmax(0, 1.3fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(198, 157, 79, 0.18);
+}
+
+.ethc-store-metadata dt,
+.ethc-store-metadata dd,
+.ethc-store-receipt dt,
+.ethc-store-receipt dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ethc-store-metadata dd,
+.ethc-store-receipt dd { text-align: right; }
+
+.ethc-store-purchase,
+.ethc-store-receipt .ethc-primary-button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.ethc-store-receipt {
+  display: grid;
+  justify-items: center;
+  padding: 18px 2px 4px;
+  text-align: center;
+}
+
+.ethc-store-receipt > i {
+  margin-bottom: 10px;
+  color: #66d9d7;
+  font-size: 2rem;
+}
+
+.ethc-store-receipt--danger > i { color: #ed7777; }
+.ethc-store-receipt--warning > i { color: #e7c16d; }
+.ethc-store-receipt dl { width: 100%; }
+
+@media (max-width: 379px) {
+  .ethc-store-balance {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ethc-store-balance > span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .ethc-store-row {
+    grid-template-columns: 56px minmax(0, 1fr) 14px;
+  }
+
+  .ethc-store-row__terms {
+    grid-column: 2 / 4;
+    justify-items: start;
+    text-align: left;
+  }
+}

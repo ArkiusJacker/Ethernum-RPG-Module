@@ -6,7 +6,7 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.8.1
+## Versão 3.8.2
 
 - O aplicativo Contratos agora apresenta arquivo por estado, detalhe operacional, recompensas, anexos e dossiês.
 - O Contrato 01 inclui o relatório canônico de 13 páginas e sua capa oficial dentro da distribuição do módulo.

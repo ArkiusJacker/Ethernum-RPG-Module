@@ -5,6 +5,35 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.2] - 2026-08-19
+
+### Adicionado
+- `CompanyStoreService` com catálogo de Items PF2e reais, preço atual ou sobrescrito, estoque finito/ilimitado, Rank, região, autorizações e modos automático/aprovação.
+- Transações persistentes identificadas por ID, com estágios auditáveis, concessão de Item sem empilhamento e recuperação após troca do mestre primário.
+- Catálogo, detalhe e recibo próprios no Comunicador, exibindo imagem, nível, raridade, preço, saldo PF2e, estoque e motivo textual de autorização.
+- API `game.ethernum.store` para consulta e compra, com administração exclusiva do mestre para entradas, estoque, autorizações e reconciliação.
+
+### Alterado
+- O antigo fluxo de pedido por whisper foi substituído por compra PF2e funcional; ofertas antigas são importadas uma única vez em modo de aprovação.
+- O saldo vem diretamente de `Actor.inventory.coins`, e débito/estorno/concessão usam as APIs públicas do inventário PF2e.
+- Requisições especiais usam a fila, políticas, auditoria e autoridade já existentes, sem criar um segundo plano de controle.
+- Cada jogador recebe um Journal-projeção individual contendo somente DTOs públicos do próprio catálogo e saldo.
+- Preços gratuitos (`0 cp`) agora são aceitos como valores PF2e válidos.
+- Linhas do catálogo usam altura de conteúdo própria e não sobrepõem nome, autorização, preço ou estoque.
+- A criação de Journals preserva o contexto da classe de documento exigido pelo Foundry v14, tanto na Loja quanto no Arquivo de Contratos.
+
+### Segurança
+- A autoria de cada compra é atestada por ChatMessage criada pelo Foundry e revalidada pelo mestre junto a usuário, Actor, oferta, modo, revisão e preço.
+- Estoque e dinheiro são serializados sob lock; cotações antigas, UUIDs quebradas, modo adulterado, jogador sem ownership e Item sem permissão são rejeitados.
+- Falhas após débito removem Items concedidos e estornam moedas; estados ambíguos são bloqueados como `recoveryRequired` e alertados ao mestre.
+- Dados administrativos, UUIDs de Item, restrições, autorizações, migrações e transações nunca entram nas projeções dos jogadores.
+
+### Testes
+- Cobertura automatizada para moedas exatas/mistas/insuficientes, estoque 1/0, clique duplo, aprovação, UUID quebrada, permissão, cotação stale, spoof de autoria, rollback e falha de rollback.
+- Smoke test autenticado no Foundry valida catálogo, detalhe, compra automática, estoque esgotado, aprovação, entrega final e integração com o Centro de Controle GM.
+- Regressão dedicada reproduz o contrato de `this` usado por `CONFIG.JournalEntry.documentClass.create` no Foundry v14.
+- Evidências visuais e relatório estão em `docs/qa/v3.8.2/`.
+
 ## [3.8.1] - 2026-08-19
 
 ### Adicionado

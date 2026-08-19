@@ -18,6 +18,7 @@ import {
 } from "../contracts/CommunicatorDocumentViewer.js";
 import { CONTRACT_REPORT_ATTACHMENT_ID } from "../contracts/ContractArchiveTypes.js";
 import type { FieldCommunicatorApp } from "../communicator/FieldCommunicatorTypes.js";
+import type { CompanyStorePurchaseReceipt } from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorBootMode, getFieldCommunicatorMotionMode } from "../settings.js";
 import { resolveUIAssetPack } from "./assets/UIAssetPackRegistry.js";
 import {
@@ -178,6 +179,8 @@ export class FieldCommunicatorOverlay {
   private previewUserId: string | null = null;
   private selectedContractId: string | null = null;
   private selectedContractDocumentId: string | null = null;
+  private selectedStoreEntryId: string | null = null;
+  private storeReceipt: CompanyStorePurchaseReceipt | undefined;
   private suppressLauncherClick = false;
   private destroyed = false;
 
@@ -369,6 +372,8 @@ export class FieldCommunicatorOverlay {
         return this.service.buildSnapshot(this.previewUserId, {
           selectedContractId: this.selectedContractId,
           documentViewer: this.documentViewer.getData(),
+          selectedStoreEntryId: this.selectedStoreEntryId,
+          storeReceipt: this.storeReceipt,
         });
       },
       renderTemplate: resolveRenderer(),
@@ -380,8 +385,8 @@ export class FieldCommunicatorOverlay {
       maxRecents: 8,
       callbacks: {
         onOpenApp: (app, context) => this.openApp(app as FieldCommunicatorApp, context),
-        onHome: () => { this.clearContractNavigation(); },
-        onBack: () => this.handleContractBack(),
+        onHome: () => { this.clearInternalNavigation(); },
+        onBack: () => this.handleInternalBack(),
         onRendered: () => {
           this.attachDocumentViewerKeyboard();
           void this.documentViewer.render(this.host);
@@ -490,6 +495,7 @@ export class FieldCommunicatorOverlay {
   private async openApp(app: FieldCommunicatorApp, _context: FieldCommunicatorActionContext) {
     if (!app.enabled) return;
     if (app.id !== "contracts" && app.internalTarget !== "contracts") this.clearContractNavigation();
+    if (app.id !== "shop" && app.internalTarget !== "shop") this.clearStoreNavigation();
     if (app.type === "internal") {
       return { screen: "panel" as const, panelId: String(app.panelId ?? app.id) };
     }
@@ -520,6 +526,51 @@ export class FieldCommunicatorOverlay {
     if (action === "open-document" || action === "view-scene") {
       const uuid = data.communicatorTargetId ?? data.targetId ?? data.communicatorUuid ?? data.uuid;
       if (uuid) await this.service.openDocument(uuid);
+      return;
+    }
+    if (action === "open-store-item") {
+      const entryId = data.communicatorStoreEntryId ?? data.communicatorItemId ?? data.communicatorTargetId;
+      if (!entryId) return;
+      this.selectedStoreEntryId = entryId;
+      this.storeReceipt = undefined;
+      await context.controller.render();
+      return;
+    }
+    if (action === "store-back") {
+      if (this.handleStoreBack()) await context.controller.render();
+      return;
+    }
+    if (action === "store-purchase") {
+      if (this.previewUserId) throw new Error("A compra fica desativada durante a pré-visualização do mestre.");
+      const entryId = data.communicatorStoreEntryId ?? this.selectedStoreEntryId;
+      if (!entryId) return;
+      const submission = await this.service.requestPurchase(entryId);
+      this.storeReceipt = submission.receipt;
+      await context.controller.render();
+      if (submission.completion) {
+        void submission.completion.then(receipt => {
+          if (this.storeReceipt?.transactionId !== receipt.transactionId) return;
+          this.storeReceipt = receipt;
+          void this.controller?.render();
+        }).catch(error => {
+          if (this.storeReceipt?.transactionId !== submission.receipt.transactionId) return;
+          this.storeReceipt = {
+            ...submission.receipt,
+            status: "failed",
+            statusLabel: "Compra não concluída",
+            message: error instanceof Error ? error.message : "A autoridade da Loja não respondeu.",
+            tone: "danger",
+            icon: "fa-solid fa-circle-xmark",
+          };
+          void this.controller?.render();
+        });
+      }
+      return;
+    }
+    if (action === "store-receipt-close") {
+      this.storeReceipt = undefined;
+      this.selectedStoreEntryId = null;
+      await context.controller.render();
       return;
     }
     if (action === "open-contract") {
@@ -572,12 +623,6 @@ export class FieldCommunicatorOverlay {
       await context.controller.render();
       return;
     }
-    if (action === "request-purchase") {
-      const uuid = data.communicatorTargetId ?? data.targetId ?? data.communicatorUuid ?? data.uuid;
-      if (uuid) await this.service.requestPurchase(uuid);
-      ui.notifications?.info(localize("ETHERNUM.FieldCommunicator.Messages.PurchaseRequested", "Solicitação enviada ao mestre."));
-      return;
-    }
     if (action === "save-settings") {
       await this.saveSettings();
       await this.remount();
@@ -603,10 +648,36 @@ export class FieldCommunicatorOverlay {
     return false;
   }
 
+  private handleStoreBack(): boolean {
+    if (this.storeReceipt) {
+      this.storeReceipt = undefined;
+      return true;
+    }
+    if (this.selectedStoreEntryId) {
+      this.selectedStoreEntryId = null;
+      return true;
+    }
+    return false;
+  }
+
+  private handleInternalBack(): boolean {
+    return this.handleStoreBack() || this.handleContractBack();
+  }
+
   private clearContractNavigation(): void {
     this.selectedContractId = null;
     this.selectedContractDocumentId = null;
     this.documentViewer.clear();
+  }
+
+  private clearStoreNavigation(): void {
+    this.selectedStoreEntryId = null;
+    this.storeReceipt = undefined;
+  }
+
+  private clearInternalNavigation(): void {
+    this.clearContractNavigation();
+    this.clearStoreNavigation();
   }
 
   private attachDocumentViewerKeyboard(): void {

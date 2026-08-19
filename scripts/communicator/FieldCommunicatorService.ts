@@ -7,6 +7,12 @@ import type {
   EthernumContractDTO,
 } from "../contracts/ContractArchiveTypes.js";
 import type { CommunicatorDocumentViewerData } from "../contracts/CommunicatorDocumentViewer.js";
+import { getCompanyStoreService, type CompanyStoreService } from "../store/CompanyStoreService.js";
+import type {
+  CompanyStorePurchaseReceipt,
+  CompanyStorePurchaseSubmission,
+  CompanyStoreSnapshot,
+} from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorMotionMode } from "../settings.js";
 import {
   filterFieldCommunicatorApps,
@@ -50,12 +56,16 @@ export interface FieldCommunicatorPanelData extends FieldCommunicatorPanel {
   contractGroups?: Array<Record<string, unknown>>;
   selectedContract?: EthernumContractDTO;
   documentViewer?: CommunicatorDocumentViewerData;
+  store?: CompanyStoreSnapshot;
+  storeReceipt?: CompanyStorePurchaseReceipt;
   isGM?: boolean;
 }
 
 export interface FieldCommunicatorBuildOptions {
   selectedContractId?: string | null;
   documentViewer?: CommunicatorDocumentViewerData;
+  selectedStoreEntryId?: string | null;
+  storeReceipt?: CompanyStorePurchaseReceipt;
 }
 
 interface PermissionDocument {
@@ -146,7 +156,10 @@ function appDescription(app: FieldCommunicatorApp): string {
 }
 
 export class FieldCommunicatorService {
-  constructor(private readonly contractArchive: ContractArchiveService = getContractArchiveService()) {}
+  constructor(
+    private readonly contractArchive: ContractArchiveService = getContractArchiveService(),
+    private readonly companyStore: CompanyStoreService = getCompanyStoreService(),
+  ) {}
 
   getAssignedActor(user = game.user as UserWithCharacter | null): Actor | null {
     const assigned = user?.character;
@@ -226,9 +239,13 @@ export class FieldCommunicatorService {
     const contractArchive = allowedPanelIds.has("contracts")
       ? await this.contractArchive.getSnapshot(previewUserId)
       : undefined;
+    const store = allowedPanelIds.has("shop")
+      ? await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId)
+      : undefined;
     const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds, {
       ...options,
       contractArchive,
+      store,
     });
     const preferences = this.clientSettings();
     const squads = companyIdentity.squadIds;
@@ -420,17 +437,8 @@ export class FieldCommunicatorService {
     } as never);
   }
 
-  async requestPurchase(itemUuid: string): Promise<void> {
-    const item = await this.resolveUuid(itemUuid);
-    if (!item || !this.canObserve(item)) throw new Error("Item unavailable.");
-    const gmIds = collection<User>(game.users).filter(user => user.isGM).map(user => user.id);
-    const actor = this.getAssignedActor();
-    await ChatMessage.create({
-      content: `<p><strong>${escaped(actor?.name ?? game.user?.name)}</strong> solicita a compra de <strong>${escaped(item.name)}</strong>.</p>`,
-      speaker: ChatMessage.getSpeaker({ actor: actor ?? undefined }),
-      whisper: gmIds,
-      flags: { [ETHERNUM.MODULE_NAME]: { fieldCommunicator: { channel: "shop-request", itemUuid } } },
-    } as never);
+  requestPurchase(entryId: string): Promise<CompanyStorePurchaseSubmission> {
+    return this.companyStore.requestPurchase(entryId);
   }
 
   private async buildPanels(
@@ -438,12 +446,14 @@ export class FieldCommunicatorService {
     registry: FieldCommunicatorRegistryData,
     viewer: UserWithCharacter | null,
     allowedPanelIds: ReadonlySet<string>,
-    options: FieldCommunicatorBuildOptions & { contractArchive?: ContractArchiveSnapshot } = {},
+    options: FieldCommunicatorBuildOptions & {
+      contractArchive?: ContractArchiveSnapshot;
+      store?: CompanyStoreSnapshot;
+    } = {},
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
     const scenes = this.documentEntries(collection<PermissionDocument>(game.scenes), "view-scene", viewer);
     const journals = collection<PermissionDocument>((game as Game & { journal?: Iterable<PermissionDocument> }).journal)
       .filter(document => this.canObserve(document, viewer));
-    const items = this.documentEntries(collection<PermissionDocument>(game.items), "request-purchase", viewer);
     const journalEntries = (matcher?: RegExp) => this.documentEntries(
       matcher ? journals.filter(document => matcher.test(`${document.folder?.name ?? ""} ${document.name ?? ""}`)) : journals,
       "open-document",
@@ -482,7 +492,10 @@ export class FieldCommunicatorService {
       files: this.panel("files", localize("ETHERNUM.FieldCommunicator.Panels.Files", "Arquivos"), "documents", {
         entries: journalEntries(),
       }),
-      shop: this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", { entries: items }),
+      shop: this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", {
+        store: options.store,
+        storeReceipt: options.storeReceipt,
+      }),
       settings: this.panel("settings", localize("ETHERNUM.FieldCommunicator.Panels.Settings", "Ajustes"), "settings", {
         settings: this.clientSettings(),
       }),
@@ -517,6 +530,7 @@ export class FieldCommunicatorService {
       isGroup: kind === "group",
       isConversations: kind === "conversations",
       isContracts: kind === "contracts",
+      isShop: kind === "shop",
       isSettings: kind === "settings",
       isAdmin: kind === "admin",
       empty: entries.length === 0,
