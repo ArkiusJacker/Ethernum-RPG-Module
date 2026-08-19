@@ -49,7 +49,7 @@ function viewVitals(value: unknown): Data {
   const current = number(hp.current);
   const max = number(hp.max);
   const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
-  const status = current <= 0 || ratio <= 0.25 ? "critical" : ratio >= 1 ? "full" : "stable";
+  const status = current <= 0 ? "defeated" : ratio <= 0.25 ? "critical" : ratio >= 1 ? "full" : "stable";
   const heroPoints = record(vitals.heroPoints);
   const heroValue = number(heroPoints.current);
   const heroMax = number(heroPoints.max, 3);
@@ -133,6 +133,7 @@ function viewStrikes(value: unknown): Data[] {
   return list(value).map(strikeValue => {
     const strike = record(strikeValue);
     const map = record(strike.map);
+    const preparedVariants = list(strike.variants);
     return {
       ...strike,
       itemId: strike.itemId,
@@ -140,10 +141,18 @@ function viewStrikes(value: unknown): Data[] {
       img: strike.image ?? "icons/svg/sword.svg",
       modifier: number(strike.attackModifier),
       traits: list(strike.traits).map(PF2ePresentationLocalization.trait),
-      attackVariants: [map.first, map.second, map.third].map((modifier, index) => ({
-        index,
-        label: `${number(modifier) >= 0 ? "+" : ""}${number(modifier)}`,
-      })),
+      attackVariants: (preparedVariants.length > 0 ? preparedVariants : [map.first, map.second, map.third])
+        .map((variantValue, index) => {
+          const variant = record(variantValue);
+          const modifier = Object.keys(variant).length > 0 ? number(variant.modifier) : number(variantValue);
+          return {
+            ...variant,
+            index: number(variant.index, index),
+            mapStage: number(variant.mapStage, index),
+            label: String(variant.label ?? `${modifier >= 0 ? "+" : ""}${modifier}`),
+            modifier,
+          };
+        }),
     };
   });
 }
@@ -167,6 +176,7 @@ function viewActions(value: unknown): Data[] {
 function viewInventory(value: unknown): Data {
   const inventory = record(value);
   const bulk = record(inventory.bulk);
+  const currency = record(inventory.currency);
   const labels: Record<string, string> = {
     weapons: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Weapons", "Armas"),
     armor: localize("ETHERNUM.CharacterSheet.Inventory.Categories.Armor", "Armaduras"),
@@ -223,6 +233,14 @@ function viewInventory(value: unknown): Data {
   return {
     ...inventory,
     categories,
+    currency: {
+      ...currency,
+      denominations: ["pp", "gp", "sp", "cp"].map(denomination => ({
+        denomination,
+        label: localize(`ETHERNUM.CharacterSheet.Inventory.Currency.${denomination.toUpperCase()}`, denomination.toUpperCase()),
+        value: number(currency[denomination]),
+      })),
+    },
     bulk: bulk.available === true
       ? bulk
       : { ...bulk, available: false, label: localize("ETHERNUM.CharacterSheet.Inventory.BulkUnavailable", "Bulk indisponível") },

@@ -11,6 +11,7 @@ import {
   type CharacterSheetSafeErrorPresentation,
 } from "./core/CharacterSheetDiagnosticsService.js";
 import { CharacterSheetImageService } from "./core/CharacterSheetImageService.js";
+import { CharacterHitPointsService } from "./core/CharacterHitPointsService.js";
 import { CharacterSheetInteractionFeedback } from "./core/CharacterSheetInteractionFeedback.js";
 import { openOriginalPF2eCharacterSheet } from "./core/CharacterSheetLifecycle.js";
 import { CharacterSheetMotionService, type CharacterSheetMotionMode } from "./core/CharacterSheetMotionService.js";
@@ -114,7 +115,7 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
   override async getData(options?: Partial<ActorSheet.Options>): Promise<Record<string, unknown>> {
     try {
       if (CharacterSheetController.resolve(this.actor).resolvedSheet === "ethernum") {
-        void EthernumUIAssetPreloader.preloadCritical();
+        void EthernumUIAssetPreloader.preloadAll();
       }
       const context = await CharacterSheetController.build(this.actor);
       return { ...(await super.getData(options)), ...context };
@@ -180,12 +181,28 @@ export class BaseEthernumCharacterSheet extends ActorSheetBase {
       });
     });
 
-    html.find('[data-action="update-hp"]').on("change.ethernum-sheet", event => {
+    html.find<HTMLInputElement>('[data-action="update-hp"]').on("input.ethernum-sheet-hp", event => {
+      const input = event.currentTarget;
+      CharacterHitPointsService.apply(root, input.value, input.max);
+    });
+    html.find<HTMLInputElement>('[data-action="update-hp"]').on("change.ethernum-sheet", event => {
       viewport.capture(root);
-      const nextHP = numeric((event.currentTarget as HTMLInputElement).value);
+      const input = event.currentTarget;
+      const preview = CharacterHitPointsService.apply(root, input.value, input.max);
+      const nextHP = preview.value;
       const currentHP = numeric(foundry.utils.getProperty(this.actor, "system.attributes.hp.value"));
-      this.#feedback.queue(nextHP < currentHP ? "damage" : "healing", { resource: "hp" });
-      void PF2eCharacterActions.updateHP(this.actor, nextHP);
+      this.#feedback.play(root, nextHP < currentHP ? "damage" : "healing", this.#motion.mode, { resource: "hp" });
+      void PF2eCharacterActions.updateHP(this.actor, nextHP).then(() => {
+        const canonicalHP = numeric(foundry.utils.getProperty(this.actor, "system.attributes.hp.value"), currentHP);
+        input.value = String(canonicalHP);
+        CharacterHitPointsService.apply(root, canonicalHP, input.max);
+      }).catch(error => {
+        input.value = String(currentHP);
+        CharacterHitPointsService.apply(root, currentHP, input.max);
+        console.error("Ethernum | HP update failed", error);
+        ui.notifications?.error(game.i18n?.localize("ETHERNUM.CharacterSheet.Errors.ActionFailed")
+          ?? "The hit point update could not be completed.");
+      });
     });
     html.find<HTMLSelectElement>('select[data-action="change-carry-type"]').on("change.ethernum-sheet", event => {
       viewport.capture(root);

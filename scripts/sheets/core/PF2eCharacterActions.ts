@@ -210,7 +210,8 @@ export const PF2eCharacterActions = {
   async rollStrike(actor: Actor, strikeId: string, mapIndex = 0, options: RollOptions = {}): Promise<unknown> {
     assertCanUse(actor);
     const strike = getStrike(actor, strikeId);
-    const variant = strike.variants?.[Math.max(0, Math.min(2, Math.trunc(mapIndex)))];
+    const variants = strike.variants ?? [];
+    const variant = variants[Math.max(0, Math.min(Math.max(0, variants.length - 1), Math.trunc(mapIndex)))];
     if (typeof variant?.roll !== "function") {
       throw new Error(localize(
         "ETHERNUM.CharacterSheet.Errors.StrikeUnavailable",

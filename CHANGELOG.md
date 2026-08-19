@@ -5,6 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.7.9] - 2026-08-19
+
+### Adicionado
+- Leitura canônica de moedas PF2e com apresentação dedicada de platina, ouro, prata e cobre no inventário.
+- Modelo explícito para variantes preparadas de Strike, preservando índice, rótulo, modificador e estágio de MAP.
+- ECG animado por estado de PV e registro central de microanimações para os sete perfis existentes.
+- Protocolo de desenvolvimento HARVEST, registro de testes experimentais e roadmap integral de v3.7.9 a v3.8.6.
+
+### Alterado
+- Barra de PV passa a ser uma camada independente ancorada diretamente ao monitor e responde imediatamente à edição antes de reconciliar com o Actor PF2e.
+- Divisores `ETH-UI-02` e `ETH-UI-13` preservam a proporção original, e a ficha passa a verificar o carregamento dos 14 assets oficiais.
+- Ataques exibidos e executados usam a mesma variante preparada pelo PF2e, inclusive para armas ágeis, efeitos e modificadores personalizados.
+
+### Corrigido
+- Removida a largura artificial de `303%` que desalinhava o preenchimento de PV.
+- Moedas deixam de aparecer como linhas comuns de tesouro sem ocultar gemas, arte e outros tesouros reais.
+- Estado visual de PV zero passa a usar flatline; dano, cura e preferências Full/Reduced/Off continuam respeitados.
+
+### Testes
+- 504 testes automatizados cobrem PV otimista e reconciliado, moedas preparadas/fallback, filtro de tesouro, variantes MAP, assets proporcionais e movimento por perfil.
+- Build e distribuição validados antes do smoke test visual no Foundry.
+
 ## [3.7.8] - 2026-08-10
 
 ### Adicionado

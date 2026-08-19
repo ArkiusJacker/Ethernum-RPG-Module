@@ -1,0 +1,227 @@
+/* Profile micro-motion is isolated from shared sheet layout and interaction rules. */
+:where([data-unique-profile="pipping-night"], .ecs-profile-motion--pipping-night) {
+  --ecs-profile-motion-duration: 5.2s;
+  --ecs-profile-motion-distance: 1px;
+  --ecs-profile-motion-rotation: 0.15deg;
+  --ecs-profile-motion-scale: 1.008;
+  --ecs-profile-motion-opacity: 0.78;
+}
+
+:where([data-unique-profile="gyro-spin"], .ecs-profile-motion--gyro-spin) {
+  --ecs-profile-motion-duration: 18s;
+  --ecs-profile-motion-distance: 1px;
+  --ecs-profile-motion-rotation: 360deg;
+  --ecs-profile-motion-scale: 1;
+  --ecs-profile-motion-opacity: 0.82;
+}
+
+:where(
+  [data-unique-profile="bayle-rage"],
+  [data-unique-profile="bayle-dragon"],
+  .ecs-profile-motion--bayle-rage
+) {
+  --ecs-profile-motion-duration: 6.2s;
+  --ecs-profile-motion-distance: 2px;
+  --ecs-profile-motion-rotation: 0.2deg;
+  --ecs-profile-motion-scale: 1.01;
+  --ecs-profile-motion-opacity: 0.84;
+}
+
+:where([data-unique-profile="arkius-jacker"], .ecs-profile-motion--arkius-jacker) {
+  --ecs-profile-motion-duration: 6.8s;
+  --ecs-profile-motion-distance: 2px;
+  --ecs-profile-motion-rotation: 0.15deg;
+  --ecs-profile-motion-scale: 1.006;
+  --ecs-profile-motion-opacity: 0.8;
+}
+
+:where([data-unique-profile="yu-jiu-ji-tae"], .ecs-profile-motion--yu-jiu-ji-tae) {
+  --ecs-profile-motion-duration: 12s;
+  --ecs-profile-motion-distance: 1px;
+  --ecs-profile-motion-rotation: 360deg;
+  --ecs-profile-motion-scale: 1;
+  --ecs-profile-motion-opacity: 0.7;
+}
+
+:where([data-unique-profile="charles"], .ecs-profile-motion--charles) {
+  --ecs-profile-motion-duration: 7.2s;
+  --ecs-profile-motion-distance: 1px;
+  --ecs-profile-motion-rotation: 0.2deg;
+  --ecs-profile-motion-scale: 1.006;
+  --ecs-profile-motion-opacity: 0.68;
+}
+
+:where([data-unique-profile="atlas-sidarta"], .ecs-profile-motion--atlas-sidarta) {
+  --ecs-profile-motion-duration: 9s;
+  --ecs-profile-motion-distance: 1px;
+  --ecs-profile-motion-rotation: 0.35deg;
+  --ecs-profile-motion-scale: 1.004;
+  --ecs-profile-motion-opacity: 0.72;
+}
+
+:where(
+  [data-unique-profile]:is([data-motion="reduced"], .ecs-motion-reduced),
+  .ecs-profile-motion.ecs-profile-motion--reduced
+) {
+  --ecs-profile-motion-duration: 140ms;
+  --ecs-profile-motion-distance: 0px;
+  --ecs-profile-motion-rotation: 0deg;
+  --ecs-profile-motion-scale: 1;
+  --ecs-profile-motion-opacity: 1;
+}
+
+:where(
+  [data-unique-profile]:is([data-motion="off"], .ecs-motion-off),
+  .ecs-profile-motion.ecs-profile-motion--off
+) {
+  --ecs-profile-motion-duration: 0ms;
+  --ecs-profile-motion-distance: 0px;
+  --ecs-profile-motion-rotation: 0deg;
+  --ecs-profile-motion-scale: 1;
+  --ecs-profile-motion-opacity: 1;
+}
+
+:where(
+  [data-unique-profile="pipping-night"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--pipping-night.ecs-profile-motion--full
+) .ethernum-pipping-pulse > i {
+  transform-origin: left center;
+  animation: ecs-profile-pipping-night var(--ecs-profile-motion-duration) ease-in-out infinite;
+}
+
+:where(
+  [data-unique-profile="gyro-spin"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--gyro-spin.ecs-profile-motion--full
+) .ethernum-gyro-sp-ring::before {
+  animation: ecs-profile-gyro-spin var(--ecs-profile-motion-duration) linear infinite;
+}
+
+:where(
+  [data-unique-profile="bayle-rage"]:is([data-motion="full"], .ecs-motion-full),
+  [data-unique-profile="bayle-dragon"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--bayle-rage.ecs-profile-motion--full
+) .ethernum-bayle-status-card.active {
+  animation: ecs-profile-bayle-rage var(--ecs-profile-motion-duration) ease-in-out infinite;
+}
+
+:where(
+  [data-unique-profile="arkius-jacker"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--arkius-jacker.ecs-profile-motion--full
+) .ethernum-arkius-hero::before {
+  animation: ecs-profile-arkius-jacker var(--ecs-profile-motion-duration) ease-in-out infinite alternate;
+}
+
+:where(
+  [data-unique-profile="yu-jiu-ji-tae"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--yu-jiu-ji-tae.ecs-profile-motion--full
+) .ethernum-yu-hero::before {
+  animation: ecs-profile-yu-jiu-ji-tae var(--ecs-profile-motion-duration) linear infinite;
+}
+
+:where(
+  [data-unique-profile="charles"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--charles.ecs-profile-motion--full
+) .ethernum-charles-hero::before {
+  animation: ecs-profile-charles var(--ecs-profile-motion-duration) ease-in-out infinite alternate;
+}
+
+:where(
+  [data-unique-profile="atlas-sidarta"]:is([data-motion="full"], .ecs-motion-full),
+  .ecs-profile-motion--atlas-sidarta.ecs-profile-motion--full
+) .ethernum-atlas-hero::before {
+  animation: ecs-profile-atlas-sidarta var(--ecs-profile-motion-duration) ease-in-out infinite alternate;
+}
+
+@keyframes ecs-profile-pipping-night {
+  0%, 100% { opacity: var(--ecs-profile-motion-opacity); transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(var(--ecs-profile-motion-scale)); }
+}
+
+@keyframes ecs-profile-gyro-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--ecs-profile-motion-rotation)); }
+}
+
+@keyframes ecs-profile-bayle-rage {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(var(--ecs-profile-motion-scale)); }
+}
+
+@keyframes ecs-profile-arkius-jacker {
+  from { opacity: var(--ecs-profile-motion-opacity); transform: translateY(calc(var(--ecs-profile-motion-distance) * -1)); }
+  to { opacity: 1; transform: translateY(var(--ecs-profile-motion-distance)); }
+}
+
+@keyframes ecs-profile-yu-jiu-ji-tae {
+  from { opacity: var(--ecs-profile-motion-opacity); transform: rotate(0deg); }
+  to { opacity: 1; transform: rotate(var(--ecs-profile-motion-rotation)); }
+}
+
+@keyframes ecs-profile-charles {
+  from { opacity: var(--ecs-profile-motion-opacity); transform: translateX(calc(var(--ecs-profile-motion-distance) * -1)); }
+  to { opacity: 1; transform: translateX(var(--ecs-profile-motion-distance)); }
+}
+
+@keyframes ecs-profile-atlas-sidarta {
+  from { opacity: var(--ecs-profile-motion-opacity); transform: rotate(calc(var(--ecs-profile-motion-rotation) * -1)); }
+  to { opacity: 1; transform: rotate(var(--ecs-profile-motion-rotation)); }
+}
+
+:where(
+  [data-unique-profile]:is([data-motion="reduced"], .ecs-motion-reduced),
+  .ecs-profile-motion.ecs-profile-motion--reduced
+) .ethernum-pipping-pulse > i,
+:where(
+  [data-unique-profile]:is([data-motion="reduced"], .ecs-motion-reduced),
+  .ecs-profile-motion.ecs-profile-motion--reduced
+) .ethernum-bayle-status-card.active,
+:where(
+  [data-unique-profile]:is([data-motion="reduced"], .ecs-motion-reduced),
+  .ecs-profile-motion.ecs-profile-motion--reduced
+) :is(
+  .ethernum-gyro-sp-ring,
+  .ethernum-arkius-hero,
+  .ethernum-yu-hero,
+  .ethernum-charles-hero,
+  .ethernum-atlas-hero
+)::before {
+  animation: none !important;
+  transition-duration: var(--ecs-profile-motion-duration);
+}
+
+:where(
+  [data-unique-profile]:is([data-motion="off"], .ecs-motion-off),
+  .ecs-profile-motion.ecs-profile-motion--off
+) .ethernum-pipping-pulse > i,
+:where(
+  [data-unique-profile]:is([data-motion="off"], .ecs-motion-off),
+  .ecs-profile-motion.ecs-profile-motion--off
+) .ethernum-bayle-status-card.active,
+:where(
+  [data-unique-profile]:is([data-motion="off"], .ecs-motion-off),
+  .ecs-profile-motion.ecs-profile-motion--off
+) :is(
+  .ethernum-gyro-sp-ring,
+  .ethernum-arkius-hero,
+  .ethernum-yu-hero,
+  .ethernum-charles-hero,
+  .ethernum-atlas-hero
+)::before {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([data-unique-profile], .ecs-profile-motion) .ethernum-pipping-pulse > i,
+  :where([data-unique-profile], .ecs-profile-motion) .ethernum-bayle-status-card.active,
+  :where([data-unique-profile], .ecs-profile-motion) :is(
+    .ethernum-gyro-sp-ring,
+    .ethernum-arkius-hero,
+    .ethernum-yu-hero,
+    .ethernum-charles-hero,
+    .ethernum-atlas-hero
+  )::before {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

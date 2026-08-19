@@ -129,6 +129,7 @@ export interface CharacterStrikeSnapshot {
   image?: string;
   traits: string[];
   attackModifier: number;
+  variants: CharacterStrikeVariantSnapshot[];
   map: {
     first: number;
     second: number;
@@ -136,6 +137,13 @@ export interface CharacterStrikeSnapshot {
   };
   damage?: string;
   usable: boolean;
+}
+
+export interface CharacterStrikeVariantSnapshot {
+  index: number;
+  label: string;
+  modifier: number;
+  mapStage: 0 | 1 | 2;
 }
 
 export interface CharacterActionSnapshot {
@@ -186,6 +194,14 @@ export interface CharacterBulkSnapshot {
   available: boolean;
 }
 
+export interface CharacterCurrencySnapshot {
+  pp: number;
+  gp: number;
+  sp: number;
+  cp: number;
+  available: boolean;
+}
+
 export interface CharacterInventorySnapshot {
   weapons: CharacterInventoryItemSnapshot[];
   armor: CharacterInventoryItemSnapshot[];
@@ -197,6 +213,7 @@ export interface CharacterInventorySnapshot {
   other: CharacterInventoryItemSnapshot[];
   all: CharacterInventoryItemSnapshot[];
   bulk: CharacterBulkSnapshot;
+  currency: CharacterCurrencySnapshot;
 }
 
 export type CharacterFeatCategory =
@@ -944,6 +961,18 @@ export function readCharacterStrikes(actorValue: Actor | unknown): CharacterStri
     const first = integer(firstFinite([variants[0]?.modifier, action.attackModifier, action.modifier, action.mod]));
     const second = integer(firstFinite([variants[1]?.modifier, record(action.map).second], first));
     const third = integer(firstFinite([variants[2]?.modifier, record(action.map).third], second));
+    const preparedVariants: CharacterStrikeVariantSnapshot[] = (variants.length > 0
+      ? variants.slice(0, 3)
+      : [{ modifier: first }, { modifier: second }, { modifier: third }]
+    ).map((variant, index) => {
+      const modifier = integer(firstFinite([variant.modifier, index === 0 ? first : index === 1 ? second : third]));
+      return {
+        index,
+        label: text(variant.label, `${modifier >= 0 ? "+" : ""}${modifier}`),
+        modifier,
+        mapStage: Math.min(2, index) as 0 | 1 | 2,
+      };
+    });
     const damageData = record(action.damage);
     const itemDamage = record(record(item.system).damage);
     const damage = text(action.damage)
@@ -960,11 +989,94 @@ export function readCharacterStrikes(actorValue: Actor | unknown): CharacterStri
       ...(image ? { image } : {}),
       traits: strikeTraits(action, item),
       attackModifier: first,
+      variants: preparedVariants,
       map: { first, second, third },
       ...(damage ? { damage } : {}),
       usable: action.usable !== false && action.ready !== false && action.disabled !== true,
     };
   });
+}
+
+const COIN_SLUGS: Record<string, keyof Omit<CharacterCurrencySnapshot, "available">> = {
+  "platinum-piece": "pp",
+  "platinum-pieces": "pp",
+  platinum: "pp",
+  pp: "pp",
+  "gold-piece": "gp",
+  "gold-pieces": "gp",
+  gold: "gp",
+  gp: "gp",
+  "silver-piece": "sp",
+  "silver-pieces": "sp",
+  silver: "sp",
+  sp: "sp",
+  "copper-piece": "cp",
+  "copper-pieces": "cp",
+  copper: "cp",
+  cp: "cp",
+};
+
+function coinDenomination(item: UnknownRecord): keyof Omit<CharacterCurrencySnapshot, "available"> | null {
+  const system = record(item.system);
+  const stackGroup = text(system.stackGroup).toLowerCase();
+  const explicitDenomination = text(system.denomination).toLowerCase();
+  const slug = text(item.slug, text(system.slug, explicitDenomination)).toLowerCase();
+  const denomination = COIN_SLUGS[slug];
+  const explicitCoinSlug = /^(?:platinum|gold|silver|copper)-pieces?$/.test(slug)
+    || ["pp", "gp", "sp", "cp"].includes(slug);
+  if (denomination && (stackGroup === "coins" || item.isCoinage === true || explicitDenomination !== "" || explicitCoinSlug)) {
+    return denomination;
+  }
+  return null;
+}
+
+function isCoinItem(item: UnknownRecord): boolean {
+  return coinDenomination(item) !== null;
+}
+
+function preparedCurrencySource(actor: UnknownRecord): UnknownRecord | null {
+  const inventory = record(actor.inventory);
+  const system = record(actor.system);
+  const candidates = [
+    inventory.coins,
+    inventory.currency,
+    system.currency,
+    record(system.inventory).currency,
+  ];
+  for (const candidate of candidates) {
+    const source = record(candidate);
+    if (["pp", "gp", "sp", "cp"].some(key => key in source)) return source;
+  }
+  return null;
+}
+
+function denominationAmount(source: UnknownRecord, denomination: "pp" | "gp" | "sp" | "cp"): number {
+  const value = source[denomination];
+  return Math.max(0, integer(record(value).value ?? value));
+}
+
+export function readCharacterCurrency(actorValue: Actor | unknown): CharacterCurrencySnapshot {
+  const actor = record(actorValue);
+  const prepared = preparedCurrencySource(actor);
+  if (prepared) {
+    return {
+      pp: denominationAmount(prepared, "pp"),
+      gp: denominationAmount(prepared, "gp"),
+      sp: denominationAmount(prepared, "sp"),
+      cp: denominationAmount(prepared, "cp"),
+      available: true,
+    };
+  }
+
+  const currency: CharacterCurrencySnapshot = { pp: 0, gp: 0, sp: 0, cp: 0, available: false };
+  for (const item of actorItems(actor)) {
+    const denomination = coinDenomination(item);
+    if (!denomination) continue;
+    const system = record(item.system);
+    currency[denomination] += Math.max(0, integer(record(system.quantity).value ?? system.quantity, 1));
+    currency.available = true;
+  }
+  return currency;
 }
 
 export function readCharacterActions(actorValue: Actor | unknown): CharacterActionSnapshot[] {
@@ -1120,12 +1232,14 @@ export function readCharacterBulk(actorValue: Actor | unknown): CharacterBulkSna
 export function readCharacterInventory(actorValue: Actor | unknown): CharacterInventorySnapshot {
   const actor = record(actorValue);
   const excluded = new Set(["action", "ancestry", "background", "class", "condition", "effect", "feat", "heritage", "spell", "spellcastingEntry"]);
-  const all = actorItems(actor).filter(item => !excluded.has(text(item.type))).map(inventoryItem);
+  const inventoryItems = actorItems(actor).filter(item => !excluded.has(text(item.type)) && !isCoinItem(item));
+  const all = inventoryItems.map(inventoryItem);
   const result: CharacterInventorySnapshot = {
     weapons: [], armor: [], shields: [], consumables: [], equipment: [], treasure: [], containers: [], other: [], all,
     bulk: readCharacterBulk(actor),
+    currency: readCharacterCurrency(actor),
   };
-  actorItems(actor).filter(item => !excluded.has(text(item.type))).forEach((item, index) => {
+  inventoryItems.forEach((item, index) => {
     result[inventoryCategory(item)].push(all[index]);
   });
   return result;

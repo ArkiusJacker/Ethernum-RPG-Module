@@ -195,6 +195,14 @@
         "Wear": "Wear",
         "Stow": "Stow",
         "Drop": "Drop",
+        "Currency": {
+          "Title": "Currency",
+          "Unavailable": "PF2e currency is unavailable.",
+          "PP": "PP",
+          "GP": "GP",
+          "SP": "SP",
+          "CP": "CP"
+        },
         "Categories": {
           "Weapons": "Weapons",
           "Armor": "Armor",

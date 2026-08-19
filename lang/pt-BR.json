@@ -195,6 +195,14 @@
         "Wear": "Vestir",
         "Stow": "Guardar",
         "Drop": "Soltar",
+        "Currency": {
+          "Title": "Fundos",
+          "Unavailable": "Moedas do PF2e indisponíveis.",
+          "PP": "PL",
+          "GP": "PO",
+          "SP": "PP",
+          "CP": "PC"
+        },
         "Categories": {
           "Weapons": "Armas",
           "Armor": "Armaduras",

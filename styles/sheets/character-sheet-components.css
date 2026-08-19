@@ -632,6 +632,55 @@
   border-bottom: 1px solid var(--ecs-border);
 }
 
+.ecs-currency {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.4fr) minmax(260px, 1fr);
+  gap: var(--ecs-space-4);
+  align-items: center;
+  margin-bottom: var(--ecs-space-4);
+  padding: var(--ecs-space-3) var(--ecs-space-4);
+}
+
+.ecs-currency > header {
+  display: flex;
+  gap: var(--ecs-space-2);
+  align-items: center;
+}
+
+.ecs-currency > header h3 { margin: 0; }
+
+.ecs-currency__denominations {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(58px, 1fr));
+  gap: var(--ecs-space-2);
+}
+
+.ecs-currency__denominations > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ecs-space-2);
+  align-items: baseline;
+  min-width: 0;
+  padding: var(--ecs-space-2);
+  border: 1px solid var(--ecs-border);
+}
+
+.ecs-currency__denominations span {
+  color: var(--ecs-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ecs-currency__denominations strong {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 700px) {
+  .ecs-currency { grid-template-columns: 1fr; }
+}
+
 .ecs-search {
   position: relative;
   flex: 1 1 260px;

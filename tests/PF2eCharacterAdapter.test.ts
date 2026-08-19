@@ -365,6 +365,11 @@ describe("PF2eCharacterAdapter", () => {
       image: "fist.webp",
       traits: ["agile", "finesse"],
       attackModifier: 18,
+      variants: [
+        { index: 0, label: "+18", modifier: 18, mapStage: 0 },
+        { index: 1, label: "+14", modifier: 14, mapStage: 1 },
+        { index: 2, label: "+10", modifier: 10, mapStage: 2 },
+      ],
       map: { first: 18, second: 14, third: 10 },
       damage: "2d8+5",
       usable: true,
@@ -377,6 +382,35 @@ describe("PF2eCharacterAdapter", () => {
       traits: ["general"],
       usable: true,
     }]);
+  });
+
+  it("reads prepared PF2e currency and excludes only actual coinage from treasure", () => {
+    const actor = {
+      inventory: { coins: { pp: 1, gp: 37, sp: 6, cp: 2 } },
+      items: [
+        { id: "gold", slug: "gold-pieces", type: "treasure", system: { stackGroup: "coins", quantity: 37 } },
+        { id: "gem", slug: "ruby", type: "treasure", name: "Ruby", system: { quantity: 1 } },
+      ],
+    };
+
+    const inventory = PF2eCharacterAdapter.inventory(actor as never);
+    expect(inventory.currency).toEqual({ pp: 1, gp: 37, sp: 6, cp: 2, available: true });
+    expect(inventory.all.map(item => item.id)).toEqual(["gem"]);
+    expect(inventory.treasure.map(item => item.id)).toEqual(["gem"]);
+  });
+
+  it("falls back to PF2e coin documents without hiding non-currency treasure", () => {
+    const actor = {
+      items: [
+        { id: "silver", slug: "silver-pieces", type: "treasure", system: { stackGroup: "coins", quantity: 12 } },
+        { id: "gold-art", slug: "gold", type: "treasure", name: "Gold Artwork", system: { quantity: 1 } },
+        { id: "art", slug: "silver-statuette", type: "treasure", name: "Silver Statuette", system: { quantity: 1 } },
+      ],
+    };
+
+    const inventory = PF2eCharacterAdapter.inventory(actor as never);
+    expect(inventory.currency).toEqual({ pp: 0, gp: 0, sp: 12, cp: 0, available: true });
+    expect(inventory.treasure.map(item => item.id)).toEqual(["gold-art", "art"]);
   });
 
   it("categorizes iterable inventory and groups feats", () => {

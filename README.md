@@ -6,7 +6,7 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.8
+## Versão 3.7.9
 
 - A composição Ethernum Company foi recalibrada a partir dos limites ópticos dos 14 assets oficiais, sem alterar dados ou mecânicas do Actor PF2e.
 - O cabeçalho possui uma linha exclusiva para ações; retrato, identidade, Rank corporativo, monitor de PV e pontos heroicos não disputam mais o mesmo espaço.
@@ -18,6 +18,13 @@ Sistema de RPG com múltiplas funções, criado especificamente para integrar co
 - Mestres podem ativar uma sobreposição de referência no menu da ficha; o modo de alto contraste fica disponível nas configurações do módulo.
 - Concórdia preserva sua composição própria e compartilha apenas serviços sem identidade visual Ethernum.
 - A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
+
+### Protocolos de desenvolvimento
+
+- [HARVEST - Conselho da Colheita Experimental](docs/HARVEST_COUNCIL.md)
+- [Testes experimentais](docs/EXPERIMENTAL_TESTS.md)
+- [Registro de sessões HARVEST](docs/HARVEST_LOG.md)
+- [Roadmap v3.7.9 -> v3.8.6](docs/ROADMAP_3.7.9_3.8.6.md)
 
 ### Paridade da ficha PF2e
 
