@@ -221,6 +221,20 @@ export class FieldCommunicatorOverlay {
     return true;
   }
 
+  static async openPreview(userId: string): Promise<boolean> {
+    if (!game.user?.isGM) return false;
+    const user = Array.from(game.users ?? []).find(candidate => candidate.id === userId && !candidate.isGM);
+    if (!user) throw new Error("Jogador de pré-visualização inválido.");
+    const instance = this.initialize();
+    if (!instance) return false;
+    instance.previewUserId = userId;
+    instance.clearInternalNavigation();
+    await instance.setMinimized(false);
+    await instance.remount();
+    await instance.controller?.showHome();
+    return true;
+  }
+
   static destroy(): void {
     this.instance?.destroy();
     this.instance = null;
@@ -494,6 +508,9 @@ export class FieldCommunicatorOverlay {
 
   private async openApp(app: FieldCommunicatorApp, _context: FieldCommunicatorActionContext) {
     if (!app.enabled) return;
+    if (this.previewUserId && app.type !== "internal") {
+      throw new Error("Pre-visualizacao de jogador: aplicativos externos ficam bloqueados no modo somente leitura.");
+    }
     if (app.id !== "contracts" && app.internalTarget !== "contracts") this.clearContractNavigation();
     if (app.id !== "shop" && app.internalTarget !== "shop") this.clearStoreNavigation();
     if (app.type === "internal") {
@@ -511,6 +528,22 @@ export class FieldCommunicatorOverlay {
     data: Readonly<Record<string, string>>,
     context: FieldCommunicatorActionContext,
   ): Promise<void> {
+    if (this.previewUserId) {
+      const readOnlyActions = new Set([
+        "close", "power", "exit-preview", "open-store-item", "store-back", "store-receipt-close",
+        "open-contract", "contract-back", "open-contract-document",
+        "document-previous", "document-next", "document-zoom-in", "document-zoom-out", "document-fit-width", "document-fit-page",
+        "open-notifications", "open-priority-notice",
+      ]);
+      if (!readOnlyActions.has(action)) throw new Error("Pré-visualização de jogador: esta ação está bloqueada no modo somente leitura.");
+    }
+    if (action === "exit-preview") {
+      this.previewUserId = null;
+      this.clearInternalNavigation();
+      await this.remount();
+      await this.controller?.showHome();
+      return;
+    }
     if (action === "close" || action === "power") {
       await this.setMinimized(true, action === "power" ? "power" : "standard");
       return;
@@ -521,6 +554,10 @@ export class FieldCommunicatorOverlay {
     }
     if (action === "open-notifications") {
       await context.controller.openPanel("conversations");
+      return;
+    }
+    if (action === "open-priority-notice") {
+      await context.controller.openPanel("group");
       return;
     }
     if (action === "open-document" || action === "view-scene") {

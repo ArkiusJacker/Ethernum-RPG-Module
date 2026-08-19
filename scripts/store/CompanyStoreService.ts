@@ -346,9 +346,12 @@ export class CompanyStoreService {
   }
 
   async upsertEntry(input: unknown, options: CompanyStoreMutationOptions = {}): Promise<CompanyStoreData> {
+    const normalized = normalizeCompanyStoreEntry(input);
+    if (!normalized) throw new Error("Entrada da Loja inválida.");
+    const item = await this.adapter.resolveItem(normalized.itemUuid);
+    if (!item || !this.adapter.isPhysicalItem(item)) throw new Error("Selecione um Item físico PF2e válido.");
+    if (!this.adapter.resolvePrice(item, normalized.priceOverride)) throw new Error("O preço do Item não pôde ser validado.");
     return this.mutateStore(options, data => {
-      const normalized = normalizeCompanyStoreEntry(input);
-      if (!normalized) throw new Error("Entrada da Loja inválida.");
       const index = data.entries.findIndex(entry => entry.id === normalized.id);
       const previous = index >= 0 ? data.entries[index] : undefined;
       const next = { ...normalized, revision: (previous?.revision ?? -1) + 1 };
@@ -955,15 +958,17 @@ export class CompanyStoreService {
     updater: (data: CompanyStoreData) => void,
   ): Promise<CompanyStoreData> {
     this.assertPrimaryGM();
-    const data = await this.repository.readStore();
-    if (options.expectedRevision !== undefined && options.expectedRevision !== data.revision) {
-      throw new Error("A Loja foi atualizada por outro mestre. Recarregue antes de tentar novamente.");
-    }
-    updater(data);
-    data.revision += 1;
-    const written = await this.repository.writeStore(data);
-    await this.synchronizeProjections();
-    return written;
+    return this.withTransactionLock(async () => {
+      const data = await this.repository.readStore();
+      if (options.expectedRevision !== undefined && options.expectedRevision !== data.revision) {
+        throw new Error("A Loja foi atualizada por outro mestre. Recarregue antes de tentar novamente.");
+      }
+      updater(data);
+      data.revision += 1;
+      const written = await this.repository.writeStore(data);
+      await this.synchronizeProjections();
+      return written;
+    });
   }
 
   private async alertRecovery(transaction: CompanyStoreTransactionRecord): Promise<void> {

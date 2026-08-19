@@ -1,5 +1,5 @@
 {{#if isGM}}
-<section class="ethernum-gm-control theme-{{theme}}" data-ethernum-gm-control data-theme="{{theme}}" aria-label="{{localize 'ETHERNUM.GMControl.Title'}}">
+<section class="ethernum-gm-control ethernum-command-device theme-{{theme}}" data-ethernum-gm-control data-theme="{{theme}}" aria-label="{{localize 'ETHERNUM.GMControl.Title'}}">
   <header class="ethernum-gm-control__header">
     <div class="ethernum-gm-control__identity">
       <span class="ethernum-gm-control__mark" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
@@ -36,7 +36,7 @@
   </nav>
 
   <div class="ethernum-gm-control__body">
-    <section id="ethernum-gm-panel-summary" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.summary'}}" {{#unless panels.summary.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-operations" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.operations'}}" {{#unless panels.summary.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-chart-simple" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Summary.Title"}}</h3>
@@ -55,16 +55,111 @@
         </article>
         {{/each}}
       </div>
+      <div class="ethernum-command-device__overview">
+        <div><span>Arquivo</span><strong>r{{commandDevice.archiveRevision}}</strong></div>
+        <div><span>Loja</span><strong>r{{commandDevice.storeRevision}}</strong></div>
+        <div><span>Identidades</span><strong>r{{commandDevice.identityRevision}}</strong></div>
+        <div><span>Recompensas</span><strong>r{{commandDevice.rewardRevision}}</strong></div>
+      </div>
+      <div class="ethernum-command-device__preview">
+        <label><span>Visualizar como jogador</span><select data-gm-preview-user>{{#each previewUsers}}<option value="{{this.value}}">{{this.label}}</option>{{/each}}</select></label>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="preview-player" {{#unless previewUsers}}disabled{{/unless}}><i class="fas fa-eye"></i><span>Abrir previa segura</span></button>
+      </div>
     </section>
 
-    <section id="ethernum-gm-panel-queue" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.queue'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-contracts" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.contracts'}}" {{#unless panels.contracts.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-file-signature"></i> Contratos</h3><p>Publicacao, visibilidade e ciclo operacional.</p></div>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="contract-create"><i class="fas fa-plus"></i><span>Novo contrato</span></button>
+      </div>
+      {{#if contractsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-file-circle-plus"></i><strong>Nenhum contrato publicado</strong><span>Crie o primeiro registro operacional.</span></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each contracts}}
+        <article class="ethernum-command-device__row">
+          <div class="ethernum-command-device__row-main"><strong>#{{this.number}} &middot; {{this.title}}</strong><span>{{this.statusLabel}} &middot; {{this.visibility}}{{#if this.location}} &middot; {{this.location}}{{/if}}</span></div>
+          <div class="ethernum-command-device__row-actions">
+            <button type="button" data-gm-domain-action="contract-edit" data-contract-id="{{this.id}}" title="Editar"><i class="fas fa-pen"></i></button>
+            {{#if this.canActivate}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="active" title="Ativar"><i class="fas fa-play"></i></button>{{/if}}
+            {{#if this.canComplete}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="completed" title="Concluir"><i class="fas fa-check"></i></button>{{/if}}
+            {{#if this.canArchive}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="archived" title="Arquivar"><i class="fas fa-box-archive"></i></button>{{/if}}
+            <button type="button" data-gm-domain-action="contract-access" data-contract-id="{{this.id}}" title="Acesso"><i class="fas fa-key"></i></button>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-squads" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.squads'}}" {{#unless panels.squads.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading"><div><h3><i class="fas fa-people-group"></i> Equipes</h3><p>Identidade corporativa, patente e alocacao.</p></div></div>
+      {{#if squadsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-user-slash"></i><strong>Nenhum agente disponivel</strong></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each squads}}
+        <article class="ethernum-command-device__row">
+          <div class="ethernum-command-device__agent">{{#if this.image}}<img src="{{this.image}}" alt="">{{/if}}<div><strong>{{this.codename}}</strong><span>{{this.actorName}} &middot; {{this.userName}}</span></div></div>
+          <div class="ethernum-command-device__tags"><span>R{{this.rank}}</span><span>{{this.squad}}</span><span>{{this.department}}</span><span>{{this.operationalStatus}}</span></div>
+          <button type="button" data-gm-domain-action="squad-edit" data-actor-uuid="{{this.actorUuid}}" title="Editar identidade"><i class="fas fa-user-gear"></i></button>
+        </article>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-intelligence" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.intelligence'}}" {{#unless panels.intelligence.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading"><div><h3><i class="fas fa-user-secret"></i> Inteligencia</h3><p>Descobertas por contrato e desbloqueio de anexos.</p></div></div>
+      {{#if intelligenceEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-folder-open"></i><strong>Nenhuma operacao de inteligencia</strong></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each intelligence}}
+        <article class="ethernum-command-device__row">
+          <div class="ethernum-command-device__row-main"><strong>#{{this.number}} &middot; {{this.title}}</strong><span>{{this.informationFound}} / {{this.informationTotal}} informacoes</span><progress value="{{this.informationFound}}" max="{{this.informationTotal}}"></progress></div>
+          <div class="ethernum-command-device__counter">
+            <button type="button" data-gm-domain-action="intelligence-adjust" data-contract-id="{{this.id}}" data-delta="-1" title="Remover"><i class="fas fa-minus"></i></button>
+            <strong>{{this.informationFound}}</strong>
+            <button type="button" data-gm-domain-action="intelligence-adjust" data-contract-id="{{this.id}}" data-delta="1" title="Adicionar"><i class="fas fa-plus"></i></button>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-store" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.store'}}" {{#unless panels.store.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-store"></i> Loja</h3><p>Catalogo, estoque e disponibilidade.</p></div>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="store-add"><i class="fas fa-plus"></i><span>Adicionar item</span></button>
+      </div>
+      {{#if storeEntriesEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-store-slash"></i><strong>Catalogo vazio</strong></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each storeEntries}}
+        <article class="ethernum-command-device__row {{#unless this.enabled}}is-disabled{{/unless}}">
+          <div class="ethernum-command-device__agent">{{#if this.image}}<img src="{{this.image}}" alt="">{{/if}}<div><strong>{{this.name}}</strong><span>{{this.price}} &middot; estoque {{this.stock}} &middot; {{this.mode}}</span></div></div>
+          <div class="ethernum-command-device__row-actions">
+            <button type="button" data-gm-domain-action="store-edit" data-entry-id="{{this.id}}" title="Editar"><i class="fas fa-pen"></i></button>
+            <button type="button" data-gm-domain-action="store-toggle" data-entry-id="{{this.id}}" data-enabled="{{#if this.enabled}}false{{else}}true{{/if}}" title="Alternar"><i class="fas {{#if this.enabled}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></button>
+            <button type="button" data-gm-domain-action="store-remove" data-entry-id="{{this.id}}" title="Remover"><i class="fas fa-trash-can"></i></button>
+          </div>
+        </article>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-requisitions" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.requisitions'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-list-check" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Queue.Title"}}</h3>
           <p>{{localize "ETHERNUM.GMControl.Queue.Description"}}</p>
         </div>
       </div>
-      {{#if queueEmpty}}
+      {{#if requisitionsEmpty}}
       <div class="ethernum-gm-control__empty">
         <i class="fas fa-inbox" aria-hidden="true"></i>
         <strong>{{localize "ETHERNUM.GMControl.Queue.EmptyTitle"}}</strong>
@@ -84,7 +179,7 @@
             </tr>
           </thead>
           <tbody>
-            {{#each queueRows}}
+            {{#each requisitionRows}}
             <tr data-request-row="{{this.id}}">
               <td data-label="{{localize 'ETHERNUM.GMControl.Queue.Columns.Request'}}">
                 <code>{{this.requestId}}</code>
@@ -110,11 +205,51 @@
                   <i class="fas {{this.icon}}" aria-hidden="true"></i>
                 </button>
                 {{/each}}
+                {{#if this.actorUuid}}<button type="button" class="ethernum-gm-control__icon-button" data-gm-domain-action="open-document" data-uuid="{{this.actorUuid}}" title="Abrir personagem"><i class="fas fa-user"></i></button>{{/if}}
+                {{#if this.itemUuid}}<button type="button" class="ethernum-gm-control__icon-button" data-gm-domain-action="open-document" data-uuid="{{this.itemUuid}}" title="Abrir Item"><i class="fas fa-box"></i></button>{{/if}}
               </td>
             </tr>
             {{/each}}
           </tbody>
         </table>
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-rewards" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.rewards'}}" {{#unless panels.rewards.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-award"></i> Recompensas</h3><p>Entrega transacional de itens, moedas e registros de progressao.</p></div>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="reward-grant"><i class="fas fa-gift"></i><span>Conceder</span></button>
+      </div>
+      {{#if rewardsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-box-open"></i><strong>Nenhuma recompensa registrada</strong></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each rewards}}
+        <article class="ethernum-command-device__row">
+          <div class="ethernum-command-device__row-main"><strong>{{this.actorName}}</strong><span>{{this.rewardLabel}}</span><small>{{this.timestampLabel}} &middot; {{this.transactionId}}</small></div>
+          <span class="ethernum-gm-control__status status-{{this.state}}">{{this.state}}</span>
+        </article>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-broadcast" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.broadcast'}}" {{#unless panels.broadcast.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-tower-broadcast"></i> Broadcast</h3><p>Comunicados persistentes INFO, WARNING e CRITICAL.</p></div>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="broadcast-send"><i class="fas fa-paper-plane"></i><span>Transmitir</span></button>
+      </div>
+      {{#if broadcastsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-comment-slash"></i><strong>Nenhum comunicado enviado</strong></div>
+      {{else}}
+      <div class="ethernum-command-device__list">
+        {{#each broadcasts}}
+        <article class="ethernum-command-device__row tone-{{this.severity}}">
+          <div class="ethernum-command-device__row-main"><strong>{{this.title}}</strong><span>{{this.message}}</span><small>{{this.timestampLabel}} &middot; {{this.authorName}}</small></div>
+          <span class="ethernum-gm-control__status status-{{this.severity}}">{{this.severity}}</span>
+        </article>
+        {{/each}}
       </div>
       {{/if}}
     </section>
@@ -233,7 +368,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-policies" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.policies'}}" {{#unless panels.policies.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-system" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.system'}}" {{#unless panels.policies.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-shield-halved" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Policies.Title"}}</h3>

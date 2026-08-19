@@ -14,6 +14,7 @@ import type {
   CompanyStoreSnapshot,
 } from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorMotionMode } from "../settings.js";
+import { getEmergencyBroadcastService } from "./EmergencyBroadcastService.js";
 import {
   filterFieldCommunicatorApps,
   normalizeFieldCommunicatorRegistry,
@@ -190,9 +191,12 @@ export class FieldCommunicatorService {
     previewUserId?: string | null,
     options: FieldCommunicatorBuildOptions = {},
   ): Promise<FieldCommunicatorSnapshot> {
-    const previewUser = previewUserId && game.user?.isGM
-      ? collection<UserWithCharacter>(game.users).find(user => user.id === previewUserId) ?? null
-      : null;
+    let previewUser: UserWithCharacter | null = null;
+    if (previewUserId && game.user?.isGM) {
+      previewUser = collection<UserWithCharacter>(game.users)
+        .find(user => user.id === previewUserId && !user.isGM) ?? null;
+    }
+    if (previewUserId && game.user?.isGM && !previewUser) throw new Error("Jogador de pré-visualização inválido.");
     const actor = previewUser
       ? (previewUser.character && this.canObserve(previewUser.character, previewUser) ? previewUser.character : null)
       : this.getAssignedActor();
@@ -213,7 +217,7 @@ export class FieldCommunicatorService {
     const apps = (await Promise.all(accessible.map(async app => {
       if (!(await this.canAccessUnlock(app, actor, subjectUser))) return null;
       const targetAccessible = app.source !== "custom" || await this.canAccessTarget(app, subjectUser);
-      if (!targetAccessible && !game.user?.isGM) return null;
+      if (!targetAccessible && !subjectUser?.isGM) return null;
       return {
         id: app.id,
         source: app.source,
@@ -235,7 +239,7 @@ export class FieldCommunicatorService {
     }))).filter((app): app is NonNullable<typeof app> => Boolean(app));
 
     const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
-    if (game.user?.isGM) allowedPanelIds.add("administration");
+    if (game.user?.isGM && !previewUser) allowedPanelIds.add("administration");
     const contractArchive = allowedPanelIds.has("contracts")
       ? await this.contractArchive.getSnapshot(previewUserId)
       : undefined;
@@ -248,6 +252,7 @@ export class FieldCommunicatorService {
       store,
     });
     const preferences = this.clientSettings();
+    const broadcasts = getEmergencyBroadcastService().list(20, subjectUser?.id, Boolean(subjectUser?.isGM));
     const squads = companyIdentity.squadIds;
     const ether = record(actor?.getFlag(ETHERNUM.MODULE_NAME, "etherSystem"));
     const now = new Date();
@@ -276,12 +281,15 @@ export class FieldCommunicatorService {
         value: Math.max(0, number(ether.etherCurrent, 0)),
         max: Math.max(0, number(ether.etherMax, 0)),
       },
-      notificationCount: 0,
+      notificationCount: Math.min(99, broadcasts.length),
+      ...(broadcasts[0] ? { priorityNotice: broadcasts[0] } : {}),
       worldTime: {
         iso: now.toISOString(),
         label: now.toLocaleTimeString(game.i18n?.lang ?? "pt-BR", { hour: "2-digit", minute: "2-digit" }),
       },
-      isGM: Boolean(game.user?.isGM),
+      isGM: Boolean(game.user?.isGM && !previewUser),
+      previewMode: Boolean(previewUser),
+      previewUserName: previewUser?.character?.name ?? previewUser?.name ?? "",
       hasActor: Boolean(actor),
       state: {
         noActor: !actor,
@@ -318,7 +326,7 @@ export class FieldCommunicatorService {
         notificationsPriority: preferences.notifications === "priority",
         notificationsOff: preferences.notifications === "off",
       },
-      ...(game.user?.isGM ? {
+      ...(game.user?.isGM && !previewUser ? {
         adminApps: registry.apps.map(app => ({
           ...app,
           label: appLabel(app),
@@ -327,8 +335,8 @@ export class FieldCommunicatorService {
           canRemove: app.source === "custom",
         })),
         previewUsers: activeUsers,
-        previewUserId: previewUser?.id ?? "",
-        previewMode: Boolean(previewUser),
+        previewUserId: "",
+        previewMode: false,
         registryVersion: registry.schemaVersion,
       } : {}),
       preferences,
@@ -474,7 +482,16 @@ export class FieldCommunicatorService {
         messages: messages.private,
       }),
       group: this.panel("group", localize("ETHERNUM.FieldCommunicator.Panels.Group", "Canal do grupo"), "group", {
-        messages: messages.group,
+        messages: [
+          ...getEmergencyBroadcastService().list(20, viewer?.id, Boolean(viewer?.isGM)).map(broadcast => ({
+            id: broadcast.broadcastId,
+            name: `${broadcast.severity.toUpperCase()} · ${broadcast.title}`,
+            subtitle: new Date(broadcast.createdAt).toLocaleTimeString(game.i18n?.lang ?? "pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            status: broadcast.message,
+            icon: broadcast.severity === "critical" ? "fa-solid fa-triangle-exclamation" : "fa-solid fa-bullhorn",
+          })),
+          ...messages.group,
+        ],
       }),
       squad: this.panel("squad", localize("ETHERNUM.FieldCommunicator.Panels.Squad", "Esquadrão"), "squad", { entries: users }),
       map: this.panel("map", localize("ETHERNUM.FieldCommunicator.Panels.Map", "Mapas liberados"), "documents", { entries: scenes }),

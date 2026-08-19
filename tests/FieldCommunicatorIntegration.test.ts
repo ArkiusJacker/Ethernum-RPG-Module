@@ -19,6 +19,8 @@ describe("Field Communicator v3.8.0 integration", () => {
     expect(main).toContain("openFieldCommunicator");
     expect(main).toContain("toggleFieldCommunicator");
     expect(overlay).toContain("document.body.appendChild(root)");
+    expect(overlay).toContain("await instance.remount()");
+    expect(overlay).toContain("await this.remount()");
     expect(overlay).toContain("if (!this.layout.minimized) void this.mount()");
     expect(overlay).toContain('if (typeof document === "undefined" || !game.user) return null;');
     expect(overlay).not.toContain('if (typeof document === "undefined" || !game.user?.isGM) return null;');
@@ -74,7 +76,8 @@ describe("Field Communicator v3.8.0 integration", () => {
     expect(service).toContain("canAccessTarget(app, subjectUser)");
     expect(service).toContain("openRegisteredApp(appId");
     expect(service).toContain("allowedPanelIds");
-    expect(service).toContain("...(game.user?.isGM ? {");
+    expect(service).toContain("...(game.user?.isGM && !previewUser ? {");
+    expect(service).toContain("previewMode: Boolean(previewUser)");
     expect(service).toContain("ChatMessage.create");
     expect(service).toContain("fromUuid");
     expect(service).toContain("whisper");

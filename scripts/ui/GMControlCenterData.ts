@@ -1,12 +1,20 @@
+import type { AdministrativeContractRow, AdministrativeSquadRow, AdministrativeStoreRow } from "../administration/AdministrativeCommunicatorTypes.js";
+import type { CompanyRewardRecord } from "../rewards/CompanyRewardTypes.js";
+import type { EmergencyBroadcastDTO } from "../communicator/EmergencyBroadcastService.js";
+
 export const GM_CONTROL_I18N_ROOT = "ETHERNUM.GMControl";
 
 export const GM_CONTROL_SECTIONS = [
-  "summary",
-  "queue",
+  "operations",
+  "contracts",
+  "squads",
+  "intelligence",
+  "store",
+  "requisitions",
+  "rewards",
+  "broadcast",
   "audit",
-  "policies",
-  "diagnostics",
-  "admin",
+  "system",
 ] as const;
 
 export const GM_CONTROL_THEMES = ["ethernum", "concordia"] as const;
@@ -69,6 +77,8 @@ export interface GMControlQueueItem {
   userName?: string;
   actorId?: string;
   actorName?: string;
+  actorUuid?: string;
+  itemUuid?: string;
   profileId?: string;
   profileName?: string;
   actionType?: string;
@@ -148,6 +158,23 @@ export interface GMControlCenterSnapshot {
   actionTypeOptions?: GMControlFilterOption[];
   actorOptions?: GMControlFilterOption[];
   updatedAt?: number;
+  commandDevice?: {
+    archiveRevision: number;
+    storeRevision: number;
+    identityRevision: number;
+    rewardRevision: number;
+    primaryGM: string;
+    primaryReady: boolean;
+  };
+  contracts?: AdministrativeContractRow[];
+  storeEntries?: AdministrativeStoreRow[];
+  squads?: AdministrativeSquadRow[];
+  intelligence?: AdministrativeContractRow[];
+  rewards?: CompanyRewardRecord[];
+  broadcasts?: EmergencyBroadcastDTO[];
+  requisitions?: GMControlQueueItem[];
+  previewUsers?: GMControlFilterOption[];
+  worldItems?: GMControlFilterOption[];
 }
 
 export interface GMControlCenterDataSource {
@@ -179,12 +206,13 @@ export interface GMControlCenterCallbacks {
   onPolicyChange?(change: GMControlPolicyChange): void | Promise<void>;
   onDiagnosticsAction?(action: GMControlDiagnosticsAction): void | Promise<void>;
   onAdminAction?(action: GMControlAdminAction, payload: GMControlAdminPayload): void | Promise<void>;
+  onDomainAction?(action: string, payload: Readonly<Record<string, string>>): void | Promise<void>;
 }
 
 export interface GMControlCenterBuildOptions {
   isGM: boolean;
   theme?: GMControlTheme;
-  activeSection?: GMControlSection;
+  activeSection?: GMControlSection | "summary" | "queue" | "policies" | "diagnostics" | "admin";
   filters?: Partial<GMControlAuditFilters>;
   auditPage?: number;
   auditPageSize?: number;
@@ -257,12 +285,16 @@ const SUMMARY_DEFINITIONS: ReadonlyArray<{
 ];
 
 const SECTION_ICONS: Record<GMControlSection, string> = {
-  summary: "fa-chart-simple",
-  queue: "fa-list-check",
+  operations: "fa-satellite-dish",
+  contracts: "fa-file-signature",
+  squads: "fa-people-group",
+  intelligence: "fa-user-secret",
+  store: "fa-store",
+  requisitions: "fa-list-check",
+  rewards: "fa-award",
+  broadcast: "fa-tower-broadcast",
   audit: "fa-clock-rotate-left",
-  policies: "fa-shield-halved",
-  diagnostics: "fa-stethoscope",
-  admin: "fa-screwdriver-wrench",
+  system: "fa-screwdriver-wrench",
 };
 
 const QUEUE_ACTIONS: ReadonlyArray<{
@@ -358,8 +390,16 @@ function safeTheme(theme: GMControlTheme | undefined): GMControlTheme {
   return theme && GM_CONTROL_THEMES.includes(theme) ? theme : "ethernum";
 }
 
-function safeSection(section: GMControlSection | undefined): GMControlSection {
-  return section && GM_CONTROL_SECTIONS.includes(section) ? section : "summary";
+function safeSection(section: GMControlCenterBuildOptions["activeSection"]): GMControlSection {
+  const aliases: Record<string, GMControlSection> = {
+    summary: "operations",
+    queue: "requisitions",
+    policies: "system",
+    diagnostics: "system",
+    admin: "system",
+  };
+  const normalized = section ? aliases[section] ?? section : undefined;
+  return normalized && GM_CONTROL_SECTIONS.includes(normalized as GMControlSection) ? normalized as GMControlSection : "operations";
 }
 
 function safeJson(value: unknown): string {
@@ -403,6 +443,7 @@ export function buildGMControlCenterData(
     averageLatencyMs: snapshot.summary?.averageLatencyMs ?? 0,
   };
   const queue = [...(snapshot.queue ?? [])].sort((left, right) => left.createdAt - right.createdAt);
+  const requisitions = [...(snapshot.requisitions ?? queue)].sort((left, right) => left.createdAt - right.createdAt);
   const filteredAudit = filterGMControlAuditEntries(snapshot.audit ?? [], filters, now)
     .sort((left, right) => right.timestamp - left.timestamp);
   const paginatedAudit = paginateGMControlAuditEntries(
@@ -417,7 +458,12 @@ export function buildGMControlCenterData(
     labelKey: i18nKey(`Sections.${id}`),
     active: id === activeSection,
   }));
-  const panels = Object.fromEntries(sections.map(section => [section.id, { active: section.active }]));
+  const panels = Object.fromEntries(sections.map(section => [section.id, { active: section.active }])) as Record<string, { active: boolean }>;
+  panels.summary = panels.operations;
+  panels.queue = panels.requisitions;
+  panels.policies = panels.system;
+  panels.diagnostics = panels.system;
+  panels.admin = panels.system;
 
   return {
     isGM: options.isGM,
@@ -449,6 +495,19 @@ export function buildGMControlCenterData(
       }).map(action => ({ ...action, labelKey: i18nKey(`Queue.Actions.${action.id}`) })),
     })),
     queueEmpty: queue.length === 0,
+    requisitionRows: requisitions.map(item => ({
+      ...item,
+      createdLabel: timestamp(item.createdAt, locale),
+      expiresLabel: timestamp(item.expiresAt, locale),
+      statusLabelKey: i18nKey(`Statuses.${item.status}`),
+      actions: QUEUE_ACTIONS.filter(action => {
+        if (action.id === "approve" || action.id === "reject") return item.approvable !== false && item.status === "queued";
+        if (action.id === "approve-trust") return false;
+        if (action.id === "payload") return item.payload !== undefined;
+        return true;
+      }).map(action => ({ ...action, labelKey: i18nKey(`Queue.Actions.${action.id}`) })),
+    })),
+    requisitionsEmpty: requisitions.length === 0,
     auditRows: paginatedAudit.rows.map(entry => ({
       ...entry,
       timestampLabel: timestamp(entry.timestamp, locale),
@@ -504,6 +563,32 @@ export function buildGMControlCenterData(
     })),
     actors: (snapshot.actors ?? []).map(actor => ({ ...actor, selected: false })),
     actorsEmpty: (snapshot.actors?.length ?? 0) === 0,
+    commandDevice: snapshot.commandDevice ?? {
+      archiveRevision: 0,
+      storeRevision: 0,
+      identityRevision: 0,
+      rewardRevision: 0,
+      primaryGM: "-",
+      primaryReady: false,
+    },
+    contracts: (snapshot.contracts ?? []).map(contract => ({ ...contract, canActivate: contract.status !== "active", canComplete: contract.status !== "completed", canArchive: contract.status !== "archived" })),
+    contractsEmpty: (snapshot.contracts?.length ?? 0) === 0,
+    storeEntries: snapshot.storeEntries ?? [],
+    storeEntriesEmpty: (snapshot.storeEntries?.length ?? 0) === 0,
+    squads: snapshot.squads ?? [],
+    squadsEmpty: (snapshot.squads?.length ?? 0) === 0,
+    intelligence: snapshot.intelligence ?? [],
+    intelligenceEmpty: (snapshot.intelligence?.length ?? 0) === 0,
+    rewards: (snapshot.rewards ?? []).map(reward => ({
+      ...reward,
+      timestampLabel: timestamp(reward.completedAt ?? reward.updatedAt, locale),
+      rewardLabel: [reward.itemName, reward.currency, reward.xpMetadata ? `${reward.xpMetadata} XP (metadata)` : "", reward.epMetadata ? `${reward.epMetadata} EP` : "", reward.commendation].filter(Boolean).join(" · "),
+    })),
+    rewardsEmpty: (snapshot.rewards?.length ?? 0) === 0,
+    broadcasts: (snapshot.broadcasts ?? []).map(broadcast => ({ ...broadcast, timestampLabel: timestamp(broadcast.createdAt, locale) })),
+    broadcastsEmpty: (snapshot.broadcasts?.length ?? 0) === 0,
+    previewUsers: snapshot.previewUsers ?? [],
+    worldItems: snapshot.worldItems ?? [],
     updatedAtLabel: timestamp(snapshot.updatedAt ?? now, locale),
     i18nRoot: GM_CONTROL_I18N_ROOT,
   };

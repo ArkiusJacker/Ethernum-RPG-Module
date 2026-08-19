@@ -4,6 +4,13 @@ import { UNIQUE_MECHANIC_PROFILES } from "../mechanics/registry.js";
 import { reconcileUniqueExecutions } from "../unique/core/UniqueExecutionManager.js";
 import { UniqueMechanicsSystem } from "../unique/UniqueMechanics.js";
 import { CombatMomentumSystem } from "../table/CombatMomentumSystem.js";
+import { getAdministrativeCommunicatorService } from "../administration/AdministrativeCommunicatorService.js";
+import type { AdministrativeCommand } from "../administration/AdministrativeCommunicatorTypes.js";
+import { getContractArchiveService } from "../contracts/ContractArchiveService.js";
+import { getCompanyStoreService } from "../store/CompanyStoreService.js";
+import { storeEntryIdFromUuid } from "../store/CompanyStoreModel.js";
+import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
+import { FieldCommunicatorOverlay } from "./FieldCommunicatorOverlay.js";
 import { GMControlCenter, type GMControlCenterMountResult } from "./GMControlCenter.js";
 import {
   GM_CONTROL_POLICY_CATEGORIES,
@@ -25,6 +32,11 @@ function actors(): Actor[] {
 
 function users(): User[] {
   return Array.from(game.users ?? []) as User[];
+}
+
+function collection<T>(value: unknown): T[] {
+  if (!value || typeof (value as Iterable<T>)[Symbol.iterator] !== "function") return [];
+  return Array.from(value as Iterable<T>);
 }
 
 function actorByUuid(uuid: string | undefined): Actor | undefined {
@@ -63,6 +75,225 @@ function showJson(title: string, value: unknown): void {
     content: `<pre class="ethernum-gm-json">${escapeHtml(JSON.stringify(value, null, 2))}</pre>`,
     buttons: { close: { label: game.i18n!.localize("ETHERNUM.Buttons.Close") } },
   }).render(true);
+}
+
+function formDialog(title: string, body: string, confirmLabel = "Confirmar"): Promise<FormData | null> {
+  return new Promise(resolve => {
+    new Dialog({
+      title,
+      content: `<form class="ethernum-command-dialog">${body}</form>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-check"></i>',
+          label: confirmLabel,
+          callback: html => resolve(new FormData(html.find("form")[0] as HTMLFormElement)),
+        },
+        cancel: { icon: '<i class="fas fa-xmark"></i>', label: "Cancelar", callback: () => resolve(null) },
+      },
+      close: () => resolve(null),
+      default: "confirm",
+    }).render(true);
+  });
+}
+
+function field(data: FormData, name: string): string { return String(data.get(name) ?? "").trim(); }
+function csv(value: string): string[] { return value.split(",").map(item => item.trim()).filter(Boolean); }
+function informationUnlocks(value: string): Map<string, number> {
+  return new Map(csv(value).flatMap(entry => {
+    const [id, raw] = entry.split(":").map(part => part.trim());
+    const level = Math.max(0, Math.min(5, Math.floor(Number(raw))));
+    return id && Number.isFinite(level) ? [[id, level] as const] : [];
+  }));
+}
+function randomId(prefix: string): string { return `${prefix}-${foundry.utils.randomID(24)}`; }
+
+async function runCommand(command: AdministrativeCommand): Promise<void> {
+  const result = await getAdministrativeCommunicatorService().command(command);
+  ui.notifications?.info(result.message);
+}
+
+async function handleDomainAction(action: string, payload: Readonly<Record<string, string>>): Promise<void> {
+  const contracts = getContractArchiveService();
+  const store = getCompanyStoreService();
+  if (action === "preview-player") {
+    if (!payload.userId) throw new Error("Selecione um jogador para a pré-visualização.");
+    await FieldCommunicatorOverlay.openPreview(payload.userId);
+    return;
+  }
+  if (action === "open-document") {
+    const document = payload.uuid ? await fromUuid(payload.uuid as Parameters<typeof fromUuid>[0]) as { sheet?: { render?: (force?: boolean) => unknown } } | null : null;
+    if (!document?.sheet?.render) throw new Error("Documento indisponível.");
+    document.sheet.render(true);
+    return;
+  }
+  if (action === "contract-create" || action === "contract-edit") {
+    const archive = await contracts.getArchive();
+    const existing = archive.contracts.find(contract => contract.id === payload.contractId);
+    const data = await formDialog(existing ? "Editar contrato" : "Publicar contrato", `
+      <label>ID operacional<input name="id" value="${escapeHtml(existing?.id ?? randomId("contract"))}" required></label>
+      <label>Número<input type="number" min="0" name="number" value="${existing?.number ?? archive.contracts.length + 1}" required></label>
+      <label>Título<input name="title" value="${escapeHtml(existing?.title ?? "")}" required></label>
+      <label>Local<input name="location" value="${escapeHtml(existing?.location ?? "")}"></label>
+      <label>Região<input name="region" value="${escapeHtml(existing?.region ?? "")}"></label>
+      <label>Dificuldade<input name="difficulty" value="${escapeHtml(existing?.difficulty ?? "")}"></label>
+      <label>Supervisor<input name="supervisor" value="${escapeHtml(existing?.supervisor ?? "")}"></label>
+      <label>Status<select name="status">${["available", "accepted", "active", "completed", "failed", "archived"].map(status => `<option value="${status}"${existing?.status === status ? " selected" : ""}>${status}</option>`).join("")}</select></label>
+      <label>Journal UUID<input name="journalUuid" value="${escapeHtml(existing?.journalUuid ?? "")}"></label>
+      <label>PDF público do módulo<input name="pdfPath" value="${escapeHtml(existing?.pdfPath ?? "")}"></label>
+      <label>Visibilidade<select name="visibility"><option value="all"${existing?.visibility.mode === "all" ? " selected" : ""}>Todos</option><option value="restricted"${existing?.visibility.mode === "restricted" ? " selected" : ""}>Restrita</option><option value="gm"${existing?.visibility.mode === "gm" ? " selected" : ""}>Somente GM</option></select></label>
+      <label>Recompensas públicas<textarea name="rewards">${escapeHtml((existing?.rewards ?? []).join("\n"))}</textarea></label>
+      <label>Desbloqueios de anexos (id:nivel)<input name="informationUnlocks" value="${escapeHtml((existing?.attachments ?? []).filter(item => item.informationRequired !== undefined).map(item => `${item.id}:${item.informationRequired}`).join(", "))}"></label>
+      <p class="ethernum-command-dialog__revision">Revisão do arquivo: ${archive.revision}</p>
+    `, existing ? "Salvar contrato" : "Publicar");
+    if (!data) return;
+    await runCommand({
+      kind: "contract.publish",
+      expectedRevision: archive.revision,
+      data: {
+        ...existing,
+        id: field(data, "id"), number: Number(field(data, "number")), title: field(data, "title"),
+        location: field(data, "location"), region: field(data, "region"), difficulty: field(data, "difficulty"),
+        supervisor: field(data, "supervisor"), status: field(data, "status"), journalUuid: field(data, "journalUuid"),
+        pdfPath: field(data, "pdfPath"), publicAsset: Boolean(field(data, "pdfPath")),
+        rewards: field(data, "rewards").split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+        visibility: { ...existing?.visibility, mode: field(data, "visibility") },
+        attachments: (existing?.attachments ?? []).map(attachment => {
+          const required = informationUnlocks(field(data, "informationUnlocks")).get(attachment.id);
+          return required === undefined ? attachment : { ...attachment, informationRequired: required };
+        }),
+      },
+    });
+    return;
+  }
+  if (action === "contract-status") {
+    const archive = await contracts.getArchive();
+    const status = payload.status as "available" | "accepted" | "active" | "completed" | "failed" | "archived";
+    const data = status === "completed" ? await formDialog("Concluir contrato", '<label>Graduação final<input name="grade" maxlength="40"></label>', "Concluir") : new FormData();
+    if (!data) return;
+    await runCommand({ kind: "contract.status", contractId: payload.contractId, status, grade: field(data, "grade"), expectedRevision: archive.revision });
+    return;
+  }
+  if (action === "contract-access") {
+    const archive = await contracts.getArchive();
+    const playerOptions = users().filter(user => !user.isGM && user.id).map(user => `<option value="user:${user.id}">${escapeHtml(user.name)}</option>`).join("");
+    const data = await formDialog("Acesso ao contrato", `
+      <label>Principal<select name="principal"><option value="">Selecione</option>${playerOptions}</select></label>
+      <label>Operação<select name="grant"><option value="true">Conceder</option><option value="false">Revogar</option></select></label>
+      <label>ID de anexo (opcional)<input name="attachmentId"></label>
+    `);
+    if (!data) return;
+    const [kind, id] = field(data, "principal").split(":");
+    if (!kind || !id) throw new Error("Principal inválido.");
+    await runCommand({ kind: "contract.access", contractId: payload.contractId, principal: { kind: kind as "user", id }, grant: field(data, "grant") === "true", attachmentId: field(data, "attachmentId") || undefined, expectedRevision: archive.revision });
+    return;
+  }
+  if (action === "intelligence-adjust") {
+    const archive = await contracts.getArchive();
+    const contract = archive.contracts.find(candidate => candidate.id === payload.contractId);
+    if (!contract) throw new Error("Contrato não encontrado.");
+    const total = Math.max(0, Number(payload.total) || contract.informationTotal || 5);
+    const found = Math.max(0, Math.min(total, (contract.informationFound ?? 0) + Number(payload.amount || 0)));
+    await runCommand({ kind: "contract.intelligence", contractId: contract.id, found, total, expectedRevision: archive.revision });
+    return;
+  }
+  if (action === "store-add" || action === "store-edit") {
+    const repository = await store.getStore();
+    const existing = repository.entries.find(entry => entry.id === payload.entryId);
+    const worldItems = collection<{ uuid?: string | null; name?: string | null }>((game as Game & { items?: Iterable<{ uuid?: string | null; name?: string | null }> }).items);
+    const options = worldItems.filter(item => item.uuid && item.name).map(item => `<option value="${escapeHtml(item.uuid)}"${existing?.itemUuid === item.uuid ? " selected" : ""}>${escapeHtml(item.name)}</option>`).join("");
+    const data = await formDialog(existing ? "Editar oferta" : "Adicionar Item PF2e", `
+      <label>Item PF2e<select name="itemUuid" required><option value="">Selecione</option>${options}</select></label>
+      <label>Preço substituto<input name="priceOverride" placeholder="2 gp 5 sp" value="${escapeHtml(existing?.priceOverride ?? "")}"></label>
+      <label>Estoque<input type="number" min="0" name="stock" placeholder="Ilimitado" value="${existing?.stock ?? ""}"></label>
+      <label>Rank mínimo<input type="number" min="0" name="minimumRank" value="${existing?.minimumRank ?? ""}"></label>
+      <label>Regiões autorizadas<input name="allowedRegions" value="${escapeHtml((existing?.allowedRegions ?? []).join(", "))}"></label>
+      <label>Processamento<select name="transactionMode"><option value="approval"${existing?.transactionMode === "approval" ? " selected" : ""}>Aprovação</option><option value="automatic"${existing?.transactionMode === "automatic" ? " selected" : ""}>Automática</option></select></label>
+      <label><input type="checkbox" name="featured"${existing?.featured ? " checked" : ""}> Destaque</label>
+      <label><input type="checkbox" name="enabled"${existing?.enabled === false ? "" : " checked"}> Oferta ativa</label>
+      <p class="ethernum-command-dialog__revision">Revisão da Loja: ${repository.revision}</p>
+    `, existing ? "Salvar oferta" : "Adicionar");
+    if (!data) return;
+    const itemUuid = field(data, "itemUuid");
+    await runCommand({ kind: "store.upsert", expectedRevision: repository.revision, entry: {
+      ...existing,
+      id: existing?.id ?? storeEntryIdFromUuid(itemUuid), itemUuid,
+      priceOverride: field(data, "priceOverride") || undefined,
+      stock: field(data, "stock") === "" ? undefined : Number(field(data, "stock")),
+      minimumRank: field(data, "minimumRank") === "" ? undefined : Number(field(data, "minimumRank")),
+      allowedRegions: csv(field(data, "allowedRegions")), transactionMode: field(data, "transactionMode") as "automatic" | "approval",
+      featured: data.get("featured") === "on", enabled: data.get("enabled") === "on",
+    } });
+    return;
+  }
+  if (action === "store-toggle") {
+    const repository = await store.getStore();
+    await runCommand({ kind: "store.toggle", entryId: payload.entryId, enabled: payload.enabled !== "true", expectedRevision: repository.revision });
+    return;
+  }
+  if (action === "store-remove") {
+    const repository = await store.getStore();
+    const data = await formDialog("Remover oferta", '<p>O Item PF2e será preservado. Somente a oferta da Loja será removida.</p>', "Remover");
+    if (!data) return;
+    await runCommand({ kind: "store.remove", entryId: payload.entryId, expectedRevision: repository.revision });
+    return;
+  }
+  if (action === "squad-edit") {
+    const identities = await CompanyIdentityService.list();
+    const actor = actors().find(candidate => candidate.uuid === payload.actorUuid);
+    if (!actor) throw new Error("Personagem não encontrado.");
+    const existing = identities.identities[payload.actorUuid] ?? CompanyIdentityService.resolve(actor);
+    const data = await formDialog(`Identidade: ${escapeHtml(actor.name)}`, `
+      <label>Codinome<input name="codename" value="${escapeHtml(existing.codename ?? "")}"></label>
+      <label>Company Rank<input type="number" min="0" name="rank" value="${existing.rank ?? ""}"></label>
+      <label>Esquadrão<input name="squad" value="${escapeHtml(existing.squad ?? "")}"></label>
+      <label>IDs de esquadrão<input name="squadIds" value="${escapeHtml(existing.squadIds.join(", "))}"></label>
+      <label>Departamento<input name="department" value="${escapeHtml(existing.department ?? "")}"></label>
+      <label>Status operacional<input name="operationalStatus" value="${escapeHtml(existing.operationalStatus ?? "")}"></label>
+      <p class="ethernum-command-dialog__revision">Revisão do diretório: ${identities.revision}</p>
+    `, "Atualizar identidade");
+    if (!data) return;
+    await runCommand({ kind: "identity.update", actorUuid: payload.actorUuid, expectedRevision: identities.revision, identity: {
+      codename: field(data, "codename"), rank: field(data, "rank") === "" ? undefined : Number(field(data, "rank")), squad: field(data, "squad"), squadIds: csv(field(data, "squadIds")), department: field(data, "department"), operationalStatus: field(data, "operationalStatus"),
+    } });
+    return;
+  }
+  if (action === "reward-grant") {
+    const actorOptions = actors().filter(actor => actor.uuid).map(actor => `<option value="${escapeHtml(actor.uuid)}">${escapeHtml(actor.name)}</option>`).join("");
+    const itemOptions = collection<{ uuid?: string | null; name?: string | null }>((game as Game & { items?: Iterable<{ uuid?: string | null; name?: string | null }> }).items).filter(item => item.uuid && item.name).map(item => `<option value="${escapeHtml(item.uuid)}">${escapeHtml(item.name)}</option>`).join("");
+    const data = await formDialog("Distribuir recompensa", `
+      <label>Destinatário<select name="actorUuid" required><option value="">Selecione</option>${actorOptions}</select></label>
+      <label>Item PF2e (opcional)<select name="itemUuid"><option value="">Nenhum</option>${itemOptions}</select></label>
+      <label>Moeda (opcional)<input name="currency" placeholder="10 gp 5 sp"></label>
+      <label>XP (somente metadata)<input type="number" min="0" name="xpMetadata" value="0"></label>
+      <label>EP (metadata)<input type="number" min="0" name="epMetadata" value="0"></label>
+      <label>Comenda<input name="commendation"></label>
+      <label>Contrato de origem<input name="contractId"></label>
+      <label>Nota administrativa<textarea name="note"></textarea></label>
+      <p class="ethernum-command-dialog__notice"><i class="fas fa-circle-info"></i> O valor de XP será registrado, mas não altera o XP PF2e automaticamente.</p>
+    `, "Distribuir");
+    if (!data) return;
+    await runCommand({ kind: "reward.grant", reward: {
+      transactionId: randomId("reward"), actorUuid: field(data, "actorUuid"), itemUuid: field(data, "itemUuid") || undefined,
+      currency: field(data, "currency") || undefined, xpMetadata: Number(field(data, "xpMetadata")) || 0,
+      epMetadata: Number(field(data, "epMetadata")) || 0, commendation: field(data, "commendation") || undefined,
+      contractId: field(data, "contractId") || undefined, note: field(data, "note") || undefined,
+    } });
+    return;
+  }
+  if (action === "broadcast-send") {
+    const recipients = users().filter(user => !user.isGM && user.id).map(user => `<label><input type="checkbox" name="recipients" value="${escapeHtml(user.id)}"> ${escapeHtml(user.name)}</label>`).join("");
+    const data = await formDialog("Comunicado de emergência", `
+      <label>Severidade<select name="severity"><option value="info">INFO</option><option value="warning">WARNING</option><option value="critical">CRITICAL</option></select></label>
+      <label>Título<input name="title" maxlength="180" required></label>
+      <label>Mensagem<textarea name="message" maxlength="2000" required></textarea></label>
+      <fieldset><legend>Destinatários</legend><p>Nenhuma seleção envia para todos.</p>${recipients}</fieldset>
+    `, "Transmitir");
+    if (!data) return;
+    await runCommand({ kind: "broadcast.send", broadcast: {
+      broadcastId: randomId("broadcast"), severity: field(data, "severity") as "info" | "warning" | "critical",
+      title: field(data, "title"), message: field(data, "message"), recipientIds: data.getAll("recipients").map(String),
+    } });
+  }
 }
 
 export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSnapshot> {
@@ -126,7 +357,7 @@ export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSn
   const auditStatusCount = (status: GMControlAuditEntry["status"]): number =>
     auditRows.filter(entry => entry.status === status).length;
 
-  return {
+  const snapshot: GMControlCenterSnapshot = {
     summary: {
       pending: queueRows.length,
       approved: auditStatusCount("approved"),
@@ -164,6 +395,7 @@ export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSn
     actorOptions: actors().map(actor => ({ value: actor.id!, label: actor.name })),
     updatedAt: Date.now(),
   };
+  return getAdministrativeCommunicatorService().buildSnapshot(snapshot);
 }
 
 export function createAuthorityControlCallbacks(): GMControlCenterCallbacks {
@@ -173,6 +405,7 @@ export function createAuthorityControlCallbacks(): GMControlCenterCallbacks {
       if (action === "approve") await bridge.approve(item.id);
       else if (action === "reject") await bridge.reject(item.id);
       else if (action === "approve-trust") {
+        if (!item.trustEligible) throw new Error("Esta requisição não permite alterar a política de confiança.");
         const queued = (await bridge.getQueue()).find(entry => entry.id === item.id);
         if (queued) await setAuthorityPolicy(queued.request.category, "auto", queued.request.profileId);
         await bridge.approve(item.id);
@@ -216,6 +449,7 @@ export function createAuthorityControlCallbacks(): GMControlCenterCallbacks {
         }));
       }
     },
+    onDomainAction: handleDomainAction,
   };
 }
 

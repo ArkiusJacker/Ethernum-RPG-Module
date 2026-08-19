@@ -41,6 +41,7 @@ export interface EthernumContractAttachment {
   permissionUuid?: string;
   publicAsset?: boolean;
   visibility?: EthernumContractVisibility;
+  informationRequired?: number;
   [key: string]: unknown;
 }
 
@@ -146,4 +147,3 @@ export interface ContractArchiveMutationOptions {
 export interface ContractArchiveCompleteOptions extends ContractArchiveMutationOptions {
   grade?: string;
 }
-

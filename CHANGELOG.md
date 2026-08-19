@@ -5,6 +5,35 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.3] - 2026-08-19
+
+### Adicionado
+- `ETHERNUM COMMAND DEVICE`, terminal exclusivo do mestre com Operações, Contratos, Equipes, Inteligência, Loja, Requisições, Recompensas, Broadcast, Auditoria e Sistema.
+- Fachada administrativa única sobre os serviços existentes, com comandos auditados para publicar contratos, administrar ofertas, editar identidades, distribuir recompensas e transmitir comunicados.
+- Diretório seguro de identidades da Companhia em Journal de mestre, com migração idempotente dos aliases antigos e projeções individuais para jogadores.
+- Ledger transacional de recompensas com Items PF2e, moedas, metadados de XP/EP, comendas, idempotência, compensação e estados de recuperação.
+- Broadcasts INFO, WARNING e CRITICAL persistidos como ChatMessages do mestre e exibidos no Comunicador conforme destinatário.
+- Prévia de jogador identificada e somente leitura, com encerramento explícito e bloqueio de aplicativos externos, compras e mutações.
+
+### Alterado
+- A fila de requisições da Loja agora permite ao mestre inspecionar diretamente o Actor e o Item PF2e envolvidos.
+- Patente editada no diretório seguro passa a sincronizar a autorização da Loja, sem confiar em flags editáveis pelo jogador.
+- Inteligência de contratos aceita limiares de 0 a 5 por anexo e oculta o conteúdo até o desbloqueio correspondente.
+- Edições de contratos, Loja e identidades são serializadas e protegidas por revisão para evitar perda silenciosa entre mestres.
+- O Dispositivo Administrativo evita posições persistidas sobre o Comunicador de Campo e continua abaixo das janelas nativas do Foundry.
+- A prévia segura remonta o Comunicador ao entrar e sair, inclusive quando ele já estava aberto na tela inicial.
+- Criação, edição e exclusão de broadcasts atualizam automaticamente os dois dispositivos.
+
+### Segurança
+- Requisições remotas da Authority Bridge recebem atestação vinculada ao User do Foundry; autoria forjada, payload excessivo e identificadores inválidos são rejeitados e auditados.
+- Jogadores recebem apenas suas próprias entradas de fila/auditoria pelas APIs e não recebem controles administrativos no DOM.
+- Registros administrativos de identidades e recompensas usam Journals com permissão padrão `NONE`; apenas projeções sanitizadas são observáveis.
+- Inicializações de identidade e recompensa ficam restritas ao mestre primário para evitar disputa entre sessões GM.
+
+### Testes
+- 77 arquivos e 575 testes automatizados cobrem os novos modelos, idempotência de recompensas, broadcasts privados, navegação administrativa e barreiras de prévia.
+- Evidências do smoke test autenticado e da inspeção visual ficam em `docs/qa/v3.8.3/`.
+
 ## [3.8.2] - 2026-08-19
 
 ### Adicionado

@@ -125,6 +125,7 @@ function normalizeAttachment(value: unknown, index: number): EthernumContractAtt
     ...(integer(input.pageCount) > 0 ? { pageCount: integer(input.pageCount) } : {}),
     ...(uuid(input.permissionUuid) ? { permissionUuid: uuid(input.permissionUuid) } : {}),
     publicAsset: input.publicAsset === true,
+    ...(input.informationRequired === undefined ? {} : { informationRequired: integer(input.informationRequired) }),
     ...(input.visibility === undefined ? {} : { visibility: normalizeContractVisibility(input.visibility) }),
   };
 }
@@ -291,4 +292,3 @@ export function importLegacyJournalContracts(
     migration: { ...record(archive.migration), legacyJournalImport: 1 },
   };
 }
-

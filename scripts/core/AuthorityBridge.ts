@@ -55,6 +55,8 @@ export interface AuthorityUserLike {
 export interface AuthorityUserProvider {
   getCurrentUser(): AuthorityUserLike | null;
   getUsers(): Iterable<AuthorityUserLike>;
+  attestRequest?(request: AuthorityRequestEnvelope): Promise<string>;
+  verifyRequestAttestation?(request: AuthorityRequestEnvelope): Promise<boolean> | boolean;
 }
 
 export interface AuthoritySocket {
@@ -91,6 +93,7 @@ export interface AuthorityRequestEnvelope<TPayload = unknown> {
   payload: TPayload;
   createdAt: number;
   expiresAt: number;
+  attestation?: string;
 }
 
 export interface AuthorityResponse<TResult = unknown> {
@@ -412,6 +415,51 @@ export class FoundryAuthorityUserProvider implements AuthorityUserProvider {
     const users = game.users ? [...game.users] : [];
     return users.map(toAuthorityUser).filter((user): user is AuthorityUserLike => Boolean(user));
   }
+
+  async attestRequest(request: AuthorityRequestEnvelope): Promise<string> {
+    const user = game.user as User & {
+      getFlag?: (scope: string, key: string) => unknown;
+      setFlag?: (scope: string, key: string, value: unknown) => Promise<unknown>;
+    } | null;
+    if (!user?.id || user.id !== request.requesterId || !user.setFlag) {
+      throw new Error("The current Foundry user cannot attest this authority request.");
+    }
+    const nonce = foundry.utils.randomID(32);
+    const stored = user.getFlag?.(thisModuleId(), "authorityAttestations");
+    const entries = stored && typeof stored === "object" && !Array.isArray(stored)
+      ? stored as Record<string, unknown>
+      : {};
+    const now = Date.now();
+    const recent = Object.fromEntries(Object.entries(entries).filter(([, value]) => {
+      const timestamp = Number((value as { expiresAt?: unknown } | null)?.expiresAt);
+      return Number.isFinite(timestamp) && timestamp > now;
+    }).slice(-24));
+    await user.setFlag(thisModuleId(), "authorityAttestations", {
+      ...recent,
+      [request.requestId]: {
+        nonce,
+        signature: requestSignature(request),
+        expiresAt: request.expiresAt,
+      },
+    });
+    return nonce;
+  }
+
+  verifyRequestAttestation(request: AuthorityRequestEnvelope): boolean {
+    const user = [...(game.users ?? [])].find(candidate => candidate.id === request.requesterId) as User & {
+      getFlag?: (scope: string, key: string) => unknown;
+    } | undefined;
+    if (!user || !request.attestation) return false;
+    const entries = user.getFlag?.(thisModuleId(), "authorityAttestations");
+    const entry = entries && typeof entries === "object" && !Array.isArray(entries)
+      ? (entries as Record<string, unknown>)[request.requestId]
+      : undefined;
+    if (!entry || typeof entry !== "object") return false;
+    const token = entry as { nonce?: unknown; signature?: unknown; expiresAt?: unknown };
+    return token.nonce === request.attestation
+      && token.signature === requestSignature(request)
+      && Number(token.expiresAt) >= Date.now();
+  }
 }
 
 export class AuthorityBridgeError extends Error {
@@ -612,6 +660,10 @@ export class AuthorityBridge {
       expiresAt: createdAt + positive(input.approvalTtlMs, this.approvalTtlMs),
     };
 
+    if (!this.isPrimaryGM() && this.users.attestRequest) {
+      request.attestation = await this.users.attestRequest(request);
+    }
+
     let resolveResponse!: (response: AuthorityResponse) => void;
     let rejectResponse!: (error: Error) => void;
     const promise = new Promise<AuthorityResponse>((resolve, reject) => {
@@ -649,7 +701,7 @@ export class AuthorityBridge {
   async handleSocketMessage(message: AuthoritySocketMessage): Promise<void> {
     if (!message || typeof message !== "object") return;
     if (message.type === "authority-bridge-request") {
-      if (this.isPrimaryGM()) await this.handleRequest(message.request);
+      if (this.isPrimaryGM()) await this.handleRequest(message.request, false, true);
       return;
     }
     if (message.type === "authority-bridge-response") this.handleResponse(message.response);
@@ -671,12 +723,16 @@ export class AuthorityBridge {
 
   async getQueue(): Promise<AuthorityQueueEntry[]> {
     const queue = await this.storage.read<AuthorityQueueEntry[]>(this.settingKeys.queue, []);
-    return Array.isArray(queue) ? queue : [];
+    const entries = Array.isArray(queue) ? queue : [];
+    const current = this.users.getCurrentUser();
+    return current?.isGM ? entries : entries.filter(entry => entry.request.requesterId === current?.id);
   }
 
   async getAuditLog(): Promise<AuthorityAuditEntry[]> {
     const audit = await this.storage.read<AuthorityAuditEntry[]>(this.settingKeys.audit, []);
-    return Array.isArray(audit) ? audit : [];
+    const entries = Array.isArray(audit) ? audit : [];
+    const current = this.users.getCurrentUser();
+    return current?.isGM ? entries : entries.filter(entry => entry.requesterId === current?.id);
   }
 
   async approve(queueId: string): Promise<AuthorityResponse | null> {
@@ -869,15 +925,34 @@ export class AuthorityBridge {
   private async handleRequest(
     request: AuthorityRequestEnvelope,
     replayLocked = false,
+    receivedViaSocket = false,
   ): Promise<void> {
     if (!this.isPrimaryGM()) return;
     if (!isRequestEnvelope(request)) return;
+
+    if (!replayLocked && receivedViaSocket && this.users.verifyRequestAttestation) {
+      const verified = await this.users.verifyRequestAttestation(request);
+      if (!verified) {
+        this.metrics.failed += 1;
+        this.metrics.lastError = "Authority request attestation failed.";
+        await this.completeRequest(
+          request,
+          "deny",
+          [aliasFromRequest(request)],
+          requestSignature(request),
+          "failed",
+          undefined,
+          { error: "The authority request could not be attributed to its Foundry user.", errorCode: "INVALID_ATTESTATION" },
+        );
+        return;
+      }
+    }
 
     const replayKey = makeReplayKey(request);
     if (!replayLocked) {
       this.metrics.received += 1;
       this.metrics.lastRequestAt = this.now();
-      return this.withRequestLock(replayKey, () => this.handleRequest(request, true));
+      return this.withRequestLock(replayKey, () => this.handleRequest(request, true, receivedViaSocket));
     }
 
     if (request.expiresAt <= this.now()) {
@@ -1429,18 +1504,28 @@ function isPolicy(value: unknown): value is AuthorityPolicyMode {
 function isRequestEnvelope(value: unknown): value is AuthorityRequestEnvelope {
   if (!value || typeof value !== "object") return false;
   const request = value as Partial<AuthorityRequestEnvelope>;
+  let payloadSize = Number.POSITIVE_INFINITY;
+  try { payloadSize = stableStringify(request.payload).length; } catch { return false; }
   return request.protocolVersion === AUTHORITY_BRIDGE_PROTOCOL_VERSION
     && typeof request.requestId === "string"
-    && request.requestId.length > 0
+    && request.requestId.length > 0 && request.requestId.length <= 160
     && typeof request.idempotencyKey === "string"
-    && request.idempotencyKey.length > 0
+    && request.idempotencyKey.length > 0 && request.idempotencyKey.length <= 500
     && typeof request.requesterId === "string"
-    && request.requesterId.length > 0
+    && request.requesterId.length > 0 && request.requesterId.length <= 160
     && typeof request.handlerId === "string"
-    && request.handlerId.length > 0
-    && typeof request.category === "string"
+    && request.handlerId.length > 0 && request.handlerId.length <= 180
+    && typeof request.category === "string" && request.category.length <= 120
+    && (request.summary === undefined || request.summary.length <= 1_000)
+    && (request.details === undefined || request.details.length <= 5_000)
+    && (request.attestation === undefined || request.attestation.length <= 160)
+    && payloadSize <= 100_000
     && Number.isFinite(request.createdAt)
     && Number.isFinite(request.expiresAt);
+}
+
+function thisModuleId(): string {
+  return DEFAULT_MODULE_ID;
 }
 
 function makeReplayKey(request: AuthorityRequestEnvelope): string {

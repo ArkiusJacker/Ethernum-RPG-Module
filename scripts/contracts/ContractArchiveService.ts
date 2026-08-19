@@ -208,6 +208,7 @@ export class ContractArchiveService {
   private initialized = false;
   private initializedAsPrimary = false;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
+  private mutationTail: Promise<void> = Promise.resolve();
 
   async initialize(): Promise<void> {
     if (!this.initialized) this.initialized = true;
@@ -309,6 +310,33 @@ export class ContractArchiveService {
     return this.mutate(options, archive => {
       const contract = this.updateStatus(archive, contractId, "completed");
       if (text(options.grade)) contract.grade = text(options.grade).slice(0, 40);
+    });
+  }
+
+  async setStatus(
+    contractId: string,
+    status: EthernumContractStatus,
+    options: ContractArchiveMutationOptions = {},
+  ): Promise<ContractArchiveData> {
+    if (status === "active") return this.activate(contractId, options);
+    if (status === "completed") return this.complete(contractId, options);
+    return this.transition(contractId, status, options);
+  }
+
+  async setIntelligence(
+    contractId: string,
+    found: number,
+    total: number,
+    options: ContractArchiveMutationOptions = {},
+  ): Promise<ContractArchiveData> {
+    return this.mutate(options, archive => {
+      const contract = archive.contracts.find(candidate => candidate.id === contractId);
+      if (!contract) throw new Error("Contrato não encontrado.");
+      const normalizedTotal = Math.max(0, Math.floor(Number(total) || 0));
+      contract.informationTotal = normalizedTotal;
+      contract.informationFound = Math.min(normalizedTotal, Math.max(0, Math.floor(Number(found) || 0)));
+      contract.revision += 1;
+      contract.updatedAt = Date.now();
     });
   }
 
@@ -434,17 +462,19 @@ export class ContractArchiveService {
     updater: (archive: ContractArchiveData) => void,
   ): Promise<ContractArchiveData> {
     this.assertGM();
-    const store = this.findStore();
-    if (!store) throw new Error("Arquivo administrativo de contratos indisponível.");
-    const archive = await this.readArchive();
-    if (options.expectedRevision !== undefined && options.expectedRevision !== archive.revision) {
-      throw new Error("O arquivo de contratos foi atualizado por outro mestre. Recarregue antes de tentar novamente.");
-    }
-    updater(archive);
-    archive.revision += 1;
-    await this.writeArchive(store, archive);
-    await this.synchronizeProjections();
-    return archive;
+    return this.withMutationLock(async () => {
+      const store = this.findStore();
+      if (!store) throw new Error("Arquivo administrativo de contratos indisponível.");
+      const archive = await this.readArchive();
+      if (options.expectedRevision !== undefined && options.expectedRevision !== archive.revision) {
+        throw new Error("O arquivo de contratos foi atualizado por outro mestre. Recarregue antes de tentar novamente.");
+      }
+      updater(archive);
+      archive.revision += 1;
+      await this.writeArchive(store, archive);
+      await this.synchronizeProjections();
+      return archive;
+    });
   }
 
   private transition(
@@ -496,6 +526,8 @@ export class ContractArchiveService {
     const documents: ContractProjectionResult["documents"] = [];
     const sources = [reportSource(contract), ...contract.attachments].filter((source): source is EthernumContractAttachment => Boolean(source));
     for (const source of sources) {
+      if (!context.isGM && source.informationRequired !== undefined
+        && (contract.informationFound ?? 0) < source.informationRequired) continue;
       const attachmentVisibility = source.visibility ?? contract.visibility;
       if (!contractVisibilityAllows(attachmentVisibility, context)) continue;
       const target = await this.targetFor(contract, source, viewer, true);
@@ -592,6 +624,7 @@ export class ContractArchiveService {
       if (!user.id || user.isGM) continue;
       const context = this.viewerContext(user);
       if (!contractVisibilityAllows(contract.visibility, context)) continue;
+      if (source?.informationRequired !== undefined && (contract.informationFound ?? 0) < source.informationRequired) continue;
       if (source && !contractVisibilityAllows(source.visibility ?? contract.visibility, context)) continue;
       if (source && !(await this.targetFor(contract, source, user, true))) continue;
       ownership[user.id] = OBSERVER_PERMISSION;
@@ -633,6 +666,14 @@ export class ContractArchiveService {
     const normalized = normalizeContractArchive(archive);
     if (store.setFlag) await store.setFlag(ETHERNUM.MODULE_NAME, ARCHIVE_FLAG, normalized);
     else await store.update?.({ [`flags.${ETHERNUM.MODULE_NAME}.${ARCHIVE_FLAG}`]: normalized }, { render: false });
+  }
+
+  private async withMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.mutationTail;
+    let release!: () => void;
+    this.mutationTail = new Promise<void>(resolve => { release = resolve; });
+    await previous;
+    try { return await operation(); } finally { release(); }
   }
 
   private async createJournal(data: Record<string, unknown>): Promise<ArchiveJournal | null> {

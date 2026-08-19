@@ -125,7 +125,7 @@ export class GMControlCenter {
   constructor(host: HTMLElement, options: GMControlCenterMountOptions) {
     this.host = host;
     this.options = options;
-    this.activeSection = options.activeSection ?? "summary";
+    this.activeSection = options.activeSection ?? "operations";
     this.theme = options.theme ?? storedTheme() ?? "ethernum";
     this.filters = { ...DEFAULT_GM_CONTROL_FILTERS, ...options.filters };
   }
@@ -323,6 +323,20 @@ export class GMControlCenter {
       button.addEventListener("click", () => {
         const action = button.dataset.gmAdminAction as GMControlAdminAction | undefined;
         if (action) void this.handleAdminAction(action, root);
+      }, { signal });
+    });
+
+    root.querySelectorAll<HTMLButtonElement>("[data-gm-domain-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.gmDomainAction;
+        if (!action) return;
+        const payload: Record<string, string> = {};
+        for (const [key, value] of Object.entries(button.dataset)) if (typeof value === "string") payload[key] = value;
+        if (action === "preview-player") payload.userId = queryValue(root, "[data-gm-preview-user]");
+        void this.run(async () => {
+          await this.options.callbacks?.onDomainAction?.(action, payload);
+          if (action !== "preview-player" && action !== "open-document") await this.render();
+        });
       }, { signal });
     });
   }

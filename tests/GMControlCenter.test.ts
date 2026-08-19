@@ -49,12 +49,16 @@ const audit: GMControlAuditEntry[] = [
 describe("GM Control Center data", () => {
   it("defines every required operational section and authority category", () => {
     expect(GM_CONTROL_SECTIONS).toEqual([
-      "summary",
-      "queue",
+      "operations",
+      "contracts",
+      "squads",
+      "intelligence",
+      "store",
+      "requisitions",
+      "rewards",
+      "broadcast",
       "audit",
-      "policies",
-      "diagnostics",
-      "admin",
+      "system",
     ]);
     expect(GM_CONTROL_POLICY_CATEGORIES).toContain("canvas");
     expect(GM_CONTROL_POLICY_CATEGORIES).toContain("multi-target");
@@ -115,6 +119,7 @@ describe("GM Control Center data", () => {
 
     expect(view.isGM).toBe(true);
     expect(view.theme).toBe("concordia");
+    expect(view.panels.requisitions.active).toBe(true);
     expect(view.panels.queue.active).toBe(true);
     expect(view.queueRows[0]?.actions.map(action => action.id)).toEqual([
       "approve",

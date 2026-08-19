@@ -61,12 +61,17 @@ describe("standalone GM Control Center integration", () => {
 
   it("exposes the launcher, pointer drag, resize, persistence, and cleanup", () => {
     expect(overlay).toContain("document.body.appendChild(root)");
+    expect(overlay).toContain('root.addEventListener("click", event =>');
+    expect(overlay).toContain('closest<HTMLElement>("[data-gm-overlay-action]")');
     expect(overlay).toContain("pointerdown");
     expect(overlay).toContain("[data-gm-overlay-resize]");
     expect(overlay).toContain("button, input, select, textarea, a, summary, [data-no-drag]");
     expect(overlay).toContain("localStorage");
+    expect(overlay).toContain("const DEFAULT_RIGHT = 84");
     expect(overlay).toContain("this.lifecycle.abort()");
     expect(styles).toContain(".ethernum-gm-control-launcher");
+    expect(overlay).toContain("avoidFieldCommunicatorOverlap()");
+    expect(overlay).toContain('document.getElementById("ethernum-field-communicator-overlay")');
     expect(styles).toContain(".state-error");
   });
 

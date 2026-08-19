@@ -192,3 +192,68 @@ Foundry harvest:
 - Automatic and approval transactions were executed against a real assigned
   PF2e Actor. Temporary Items, catalog records, transactions, messages and QA
   macro data were removed after verification.
+
+## HARVEST Session - Administrative Communicator
+
+Version target: 3.8.3
+
+Mode: Full
+
+Execution: Multi-agent; Facilitator in the main implementation pass plus
+independent Specialist, Critic/Security and Experience reviews.
+
+### Seed
+
+Create a dedicated GM operational device without duplicating the existing
+authority, requisition and audit control plane.
+
+### Canonical Requirements
+
+- GM-only command terminal with operational domain navigation.
+- Contract, Store, squad, intelligence, reward and broadcast management.
+- Player preview that cannot execute actions as the selected player.
+- Important administrative operations in the existing Audit Log.
+
+### Harvest
+
+Canonical:
+
+- The existing GM Control Center evolved into `ETHERNUM COMMAND DEVICE`; the
+  player Communicator registry remains a separate application manager.
+- One audited administrative command facade delegates to the existing Contract,
+  Store, Authority Bridge and Company Identity ownership boundaries.
+- Company identities moved to a GM-only Journal with safe legacy migration and
+  per-user projections; player Actor flags are no longer an authorization source.
+- Reward ledger uses persistent idempotent stages and compensating rollback.
+- Broadcasts use Foundry-authored ChatMessages and native whisper recipients.
+- Player preview is visually explicit, fail-closed and globally read-only.
+
+Experiments harvested: None. Every implemented feature is an explicit v3.8.3
+requirement or a P0/P1 security and consistency safeguard required by it.
+
+Backlog:
+
+- Loot and Threat areas become functional in v3.8.4 rather than shipping as
+  inert v3.8.3 placeholders.
+- Move legacy Authority Bridge queue/audit storage from world settings to a
+  private GM Journal in a future compatible migration.
+
+Rejected:
+
+- A second GM approval queue, audit log or authority engine.
+- Trusting client-editable Company Rank flags.
+- Automatic PF2e XP mutation without an explicit confirmation workflow.
+- `[TESTE]` full-screen emergency broadcast effects in this release.
+
+Foundry harvest:
+
+- A persisted `8px/8px` position placed the Command Device behind the open Field
+  Communicator. The final implementation detects that collision and repositions
+  the administrative device without raising it above native Foundry windows.
+- Player preview initially retained the GM controller when the Field
+  Communicator was already open. Entering and leaving preview now remounts the
+  controller against the selected subject and restores the GM DOM afterward.
+- Deleting a broadcast removed its ChatMessage but left the administrative list
+  stale. Broadcast-tagged ChatMessage changes now refresh both communicators.
+- Two temporary INFO broadcasts were created and deleted. Existing Contracts,
+  Store, identity and Actor data were inspected without mutation.

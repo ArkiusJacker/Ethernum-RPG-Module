@@ -12,4 +12,4 @@ None.
 
 ## Rejected / Removed Experiments
 
-None.
+- `[TESTE]` Efeito dramático em tela cheia para broadcasts: não implementado na v3.8.3 para evitar interrupção de leitura e conflito com preferências de movimento.

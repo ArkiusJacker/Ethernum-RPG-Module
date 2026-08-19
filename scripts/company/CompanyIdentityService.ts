@@ -1,4 +1,11 @@
 import { ETHERNUM } from "../config.js";
+import { AutomationAuthority } from "../core/AutomationAuthority.js";
+import { CompanyIdentityRepository, normalizeCompanyIdentityRecord } from "./CompanyIdentityRepository.js";
+import type {
+  CompanyIdentityData,
+  CompanyIdentityMutationOptions,
+  CompanyIdentityRecord,
+} from "./CompanyIdentityTypes.js";
 
 export interface CompanyIdentitySnapshot {
   codename?: string;
@@ -7,6 +14,18 @@ export interface CompanyIdentitySnapshot {
   squadIds: string[];
   department?: string;
   operationalStatus?: string;
+}
+
+const repository = new CompanyIdentityRepository();
+const authoritative = new Map<string, CompanyIdentityRecord>();
+let mutationTail: Promise<void> = Promise.resolve();
+
+async function withIdentityMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+  const previous = mutationTail;
+  let release!: () => void;
+  mutationTail = new Promise<void>(resolve => { release = resolve; });
+  await previous;
+  try { return await operation(); } finally { release(); }
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -48,6 +67,19 @@ function stringList(...values: unknown[]): string[] {
 }
 
 export function resolveCompanyIdentity(actor: Actor | null): CompanyIdentitySnapshot {
+  const actorUuid = text(actor?.uuid);
+  const secure = actorUuid ? authoritative.get(actorUuid) ?? repository.readProjection(actorUuid) : null;
+  if (secure) {
+    return {
+      ...(secure.codename ? { codename: secure.codename } : {}),
+      ...(secure.rank === undefined ? {} : { rank: secure.rank }),
+      ...(secure.squad ? { squad: secure.squad } : {}),
+      squadIds: [...secure.squadIds],
+      ...(secure.department ? { department: secure.department } : {}),
+      ...(secure.operationalStatus ? { operationalStatus: secure.operationalStatus } : {}),
+    };
+  }
+  if (actorUuid && !game.user?.isGM) return { squadIds: [] };
   const identity = record(moduleFlag(actor, "companyIdentity"));
   const communicator = record(moduleFlag(actor, "fieldCommunicator"));
   const profile = record(moduleFlag(actor, "companyProfile"));
@@ -86,4 +118,84 @@ export function resolveCompanyIdentity(actor: Actor | null): CompanyIdentitySnap
   };
 }
 
-export const CompanyIdentityService = Object.freeze({ resolve: resolveCompanyIdentity });
+function cache(data: CompanyIdentityData): void {
+  authoritative.clear();
+  for (const identity of Object.values(data.identities)) authoritative.set(identity.actorUuid, identity);
+}
+
+async function initializeCompanyIdentityService(): Promise<void> {
+  if (!AutomationAuthority.isPrimaryGM()) return;
+  let data = await repository.initialize();
+  if (!data.migration?.actorFlagsImportedAt) {
+    const identities = { ...data.identities };
+    for (const actor of Array.from(game.actors ?? []) as Actor[]) {
+      if ((actor.type as string) !== "character" || !actor.uuid || identities[actor.uuid]) continue;
+      const legacy = resolveCompanyIdentity(actor);
+      const normalized = normalizeCompanyIdentityRecord({ ...legacy, actorUuid: actor.uuid, revision: 1, updatedAt: Date.now() });
+      if (normalized) identities[actor.uuid] = normalized;
+    }
+    data = await repository.write({
+      ...data,
+      revision: data.revision + 1,
+      identities,
+      migration: { ...data.migration, actorFlagsImportedAt: Date.now() },
+    });
+  }
+  cache(data);
+  await repository.synchronizeProjections(data);
+}
+
+async function updateCompanyIdentity(
+  actorUuid: string,
+  input: Partial<CompanyIdentitySnapshot>,
+  options: CompanyIdentityMutationOptions = {},
+): Promise<CompanyIdentityRecord> {
+  if (!game.user?.isGM) throw new Error("Somente o Gamemaster pode atualizar identidades da Companhia.");
+  return withIdentityMutationLock(async () => {
+    const data = await repository.read();
+    if (options.expectedRevision !== undefined && options.expectedRevision !== data.revision) {
+      throw new Error("As identidades foram atualizadas por outro mestre. Recarregue antes de tentar novamente.");
+    }
+    const previous = data.identities[actorUuid];
+    const normalized = normalizeCompanyIdentityRecord({
+      ...previous,
+      ...input,
+      actorUuid,
+      revision: (previous?.revision ?? 0) + 1,
+      updatedAt: Date.now(),
+    });
+    if (!normalized) throw new Error("Identidade da Companhia inválida.");
+    const next = await repository.write({
+      ...data,
+      revision: data.revision + 1,
+      identities: { ...data.identities, [actorUuid]: normalized },
+    });
+    cache(next);
+    await repository.synchronizeProjections(next);
+    const actor = await fromUuid(actorUuid as Parameters<typeof fromUuid>[0]) as Actor | null;
+    await actor?.setFlag?.(ETHERNUM.MODULE_NAME, "companyIdentity", {
+      schemaVersion: 1,
+      codename: normalized.codename,
+      rank: normalized.rank,
+      squad: normalized.squad,
+      squadIds: normalized.squadIds,
+      department: normalized.department,
+      operationalStatus: normalized.operationalStatus,
+    });
+    return normalized;
+  });
+}
+
+async function listCompanyIdentities(): Promise<CompanyIdentityData> {
+  if (!game.user?.isGM) throw new Error("Somente o Gamemaster pode consultar identidades administrativas.");
+  const data = await repository.read();
+  cache(data);
+  return data;
+}
+
+export const CompanyIdentityService = Object.freeze({
+  initialize: initializeCompanyIdentityService,
+  resolve: resolveCompanyIdentity,
+  update: updateCompanyIdentity,
+  list: listCompanyIdentities,
+});

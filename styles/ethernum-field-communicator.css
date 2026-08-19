@@ -857,6 +857,36 @@
   padding: 8px 4px;
   border-block-end: 1px solid rgb(57 65 71 / 55%);
 }
+
+.ethernum-communicator .ethc-preview-banner {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 48px;
+  padding: 8px 14px;
+  color: #fff3c4;
+  background: #4a3212;
+  border-block-end: 2px solid #e4b85c;
+}
+.ethernum-communicator .ethc-preview-banner > i { color: #ffd778; }
+.ethernum-communicator .ethc-preview-banner span { display: grid; letter-spacing: 0; }
+.ethernum-communicator .ethc-preview-banner small { color: #fff3c4; font-size: 0.76em; }
+.ethernum-communicator .ethc-preview-banner button {
+  display: inline-grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  margin-left: auto;
+  padding: 0;
+  place-items: center;
+  color: #fff3c4;
+  background: #241d13;
+  border: 1px solid #967638;
+  border-radius: 4px;
+}
 .ethernum-communicator :is(.ethc-setting-row, .ethc-admin-preview) > span:first-child { display: grid; }
 .ethernum-communicator :is(.ethc-setting-row, .ethc-admin-preview) small { color: var(--ethc-muted); font-size: 0.76em; }
 .ethernum-communicator :is(select, input[type="range"]) { inline-size: 100%; border: 1px solid var(--ethc-steel-light); border-radius: 3px; background: var(--ethc-black); }

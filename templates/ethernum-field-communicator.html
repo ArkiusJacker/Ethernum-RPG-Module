@@ -86,6 +86,13 @@
   </header>
 
   <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="Conteúdo do comunicador" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
+    {{#if previewMode}}
+    <aside class="ethc-preview-banner" role="status">
+      <i class="fas fa-eye" aria-hidden="true"></i>
+      <span><strong>PRÉVIA DE JOGADOR</strong><small>{{previewUserName}} · SOMENTE LEITURA</small></span>
+      <button type="button" data-communicator-action="exit-preview" title="Encerrar prévia" aria-label="Encerrar prévia"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+    </aside>
+    {{/if}}
     {{#if state.noActor}}
     <section class="ethc-system-state ethc-system-state--warning" role="status" aria-labelledby="ethc-state-no-actor">
       <i class="fas fa-id-card-clip" aria-hidden="true"></i>

@@ -53,6 +53,9 @@ import type {
   CompanyStoreMutationOptions,
   CompanyStorePrincipalAuthorization,
 } from './store/CompanyStoreTypes.js';
+import { CompanyIdentityService } from './company/CompanyIdentityService.js';
+import { getCompanyRewardService } from './rewards/CompanyRewardService.js';
+import { getAdministrativeCommunicatorService } from './administration/AdministrativeCommunicatorService.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -751,16 +754,19 @@ Hooks.once("ready", async () => {
 
   initializeEthernumAuthorityBridge();
   await migrateWorld();
+  await CompanyIdentityService.initialize();
   await initializeContractArchiveService();
   await initializeCompanyStoreService();
+  await getCompanyRewardService().initialize();
+  await getAdministrativeCommunicatorService().initialize();
   initializePF2eAdapterSocket();
   initializeUniqueCanvasSocket();
   initializePippingCanvasSocket();
   await ensureManagedMacros();
   UniqueMechanicsHud.initialize();
   CombatMomentumTracker.initialize();
-  GMControlCenterOverlay.initialize();
   FieldCommunicatorOverlay.initialize();
+  GMControlCenterOverlay.initialize();
   AnimationService.initialize();
   if (game.combat) await CombatTurnTimer.handleCombatUpdate(game.combat);
 
@@ -785,9 +791,16 @@ Hooks.once("ready", async () => {
   }
 });
 
-Hooks.on("createChatMessage", () => {
+function refreshCommunicatorScreens(message?: ChatMessage): void {
   void FieldCommunicatorOverlay.refresh();
-});
+  const moduleFlags = (message as ChatMessage & { flags?: Record<string, Record<string, unknown>> } | undefined)
+    ?.flags?.[ETHERNUM.MODULE_NAME];
+  if (game.user?.isGM && moduleFlags?.emergencyBroadcast) {
+    void GMControlCenterOverlay.refresh();
+  }
+}
+
+Hooks.on("createChatMessage", refreshCommunicatorScreens);
 
 for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
   Hooks.on(hook, () => {
@@ -796,9 +809,5 @@ for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "cr
     void FieldCommunicatorOverlay.refresh();
   });
 }
-Hooks.on("updateChatMessage", () => {
-  void FieldCommunicatorOverlay.refresh();
-});
-Hooks.on("deleteChatMessage", () => {
-  void FieldCommunicatorOverlay.refresh();
-});
+Hooks.on("updateChatMessage", refreshCommunicatorScreens);
+Hooks.on("deleteChatMessage", refreshCommunicatorScreens);

@@ -17,7 +17,7 @@ const MIN_WIDTH = 460;
 const MIN_HEIGHT = 380;
 const VIEWPORT_MARGIN = 8;
 const DEFAULT_TOP = 100;
-const DEFAULT_RIGHT = 24;
+const DEFAULT_RIGHT = 84;
 const DRAG_EXCLUSION = "button, input, select, textarea, a, summary, [data-no-drag]";
 
 export interface GMControlOverlayLayout {
@@ -225,6 +225,7 @@ export class GMControlCenterOverlay {
     GMControlCenter.ensureStylesheet();
     this.ensureRoot();
     this.renderShell();
+    this.avoidFieldCommunicatorOverlap();
     this.unsubscribe = this.bridge.subscribe(event => this.onAuthorityEvent(event));
     globalThis.addEventListener("resize", () => this.clampToViewport(), { signal: this.lifecycle.signal });
     globalThis.addEventListener("beforeunload", () => GMControlCenterOverlay.destroy(), { signal: this.lifecycle.signal });
@@ -317,16 +318,16 @@ export class GMControlCenterOverlay {
     const root = this.root;
     const signal = this.shellListeners?.signal;
     if (!root || !signal) return;
-    root.querySelectorAll<HTMLElement>("[data-gm-overlay-action]").forEach(button => {
-      button.addEventListener("click", () => {
-        const action = button.dataset.gmOverlayAction;
-        if (action === "open") void this.setMinimized(false);
-        else if (action === "minimize") void this.setMinimized(true);
-        else if (action === "refresh") void this.refresh(true);
-        else if (action === "restore-position") this.restoreDefaultPosition();
-        else if (action === "restore-size") this.restoreDefaultSize();
-      }, { signal });
-    });
+    root.addEventListener("click", event => {
+      const button = (event.target as Element | null)?.closest<HTMLElement>("[data-gm-overlay-action]");
+      if (!button || !root.contains(button)) return;
+      const action = button.dataset.gmOverlayAction;
+      if (action === "open") void this.setMinimized(false);
+      else if (action === "minimize") void this.setMinimized(true);
+      else if (action === "refresh") void this.refresh(true);
+      else if (action === "restore-position") this.restoreDefaultPosition();
+      else if (action === "restore-size") this.restoreDefaultSize();
+    }, { signal });
     this.activateDrag(root, signal);
     this.activateResize(root, signal);
   }
@@ -518,6 +519,25 @@ export class GMControlCenterOverlay {
     this.root.style.left = `${left}px`;
     this.root.style.top = `${top}px`;
     this.root.style.right = "auto";
+  }
+
+  private avoidFieldCommunicatorOverlap(): void {
+    const root = this.root;
+    const communicator = document.getElementById("ethernum-field-communicator-overlay");
+    if (!root || !communicator) return;
+    const own = root.getBoundingClientRect();
+    const other = communicator.getBoundingClientRect();
+    const overlaps = own.left < other.right && own.right > other.left && own.top < other.bottom && own.bottom > other.top;
+    if (!overlaps) return;
+    const view = viewport();
+    const rightCandidate = other.right + VIEWPORT_MARGIN;
+    const next = rightCandidate + own.width <= view.width - VIEWPORT_MARGIN
+      ? clampGMControlPosition(rightCandidate, other.top, { width: own.width, height: own.height }, view)
+      : clampGMControlPosition(view.width - own.width - DEFAULT_RIGHT, DEFAULT_TOP, { width: own.width, height: own.height }, view);
+    this.setRootPosition(next.left, next.top);
+    this.layout.left = next.left;
+    this.layout.top = next.top;
+    this.persistLayout();
   }
 
   private clampToViewport(): void {

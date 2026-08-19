@@ -1180,6 +1180,102 @@
   cursor: nwse-resize;
 }
 
+/* Ethernum Command Device */
+.ethernum-command-device .ethernum-gm-control__tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(104px, 1fr);
+  grid-template-columns: none;
+  overflow-x: auto;
+}
+
+.ethernum-command-device__overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+  border-block: 1px solid var(--gm-border-soft);
+}
+
+.ethernum-command-device__overview > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--gm-border-soft);
+}
+
+.ethernum-command-device__overview > div:last-child { border-right: 0; }
+.ethernum-command-device__overview span { color: var(--gm-text-muted); font-size: 11px; }
+.ethernum-command-device__overview strong { color: var(--gm-secondary); }
+
+.ethernum-command-device__preview {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ethernum-command-device__preview label { flex: 1 1 260px; }
+.ethernum-command-device__preview label span { display: block; margin-bottom: 4px; color: var(--gm-text-muted); font-size: 11px; }
+.ethernum-command-device__preview select { width: 100%; min-height: 38px; }
+
+.ethernum-command-device__list { display: flex; flex-direction: column; }
+.ethernum-command-device__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--gm-border-soft);
+}
+
+.ethernum-command-device__row.is-disabled { opacity: 0.58; }
+.ethernum-command-device__row-main,
+.ethernum-command-device__agent > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.ethernum-command-device__row-main span,
+.ethernum-command-device__row-main small,
+.ethernum-command-device__agent span { color: var(--gm-text-muted); overflow-wrap: anywhere; }
+.ethernum-command-device__row-main small { font-size: 10px; }
+.ethernum-command-device__row-main progress { width: min(320px, 100%); height: 6px; accent-color: var(--gm-info); }
+
+.ethernum-command-device__row-actions,
+.ethernum-command-device__counter,
+.ethernum-command-device__agent,
+.ethernum-command-device__tags { display: flex; align-items: center; gap: 6px; }
+.ethernum-command-device__agent img { width: 38px; height: 38px; border: 1px solid var(--gm-border); border-radius: 4px; object-fit: cover; }
+.ethernum-command-device__tags { flex-wrap: wrap; justify-content: flex-end; }
+.ethernum-command-device__tags span { padding: 3px 6px; color: var(--gm-text-muted); border: 1px solid var(--gm-border-soft); font-size: 10px; }
+.ethernum-command-device__row button,
+.ethernum-command-device__counter button { display: inline-grid; width: 36px; min-width: 36px; height: 36px; padding: 0; place-items: center; color: var(--gm-text-muted); background: var(--gm-surface); border: 1px solid var(--gm-border); border-radius: 4px; }
+.ethernum-command-device__row button:hover,
+.ethernum-command-device__counter button:hover { color: var(--gm-text); border-color: var(--gm-accent); }
+.ethernum-command-device__counter strong { min-width: 28px; text-align: center; }
+
+.ethernum-gm-control__status.status-completed,
+.ethernum-gm-control__status.status-info { color: var(--gm-info); }
+.ethernum-gm-control__status.status-warning,
+.ethernum-gm-control__status.status-recoveryRequired { color: var(--gm-warning); }
+.ethernum-gm-control__status.status-critical,
+.ethernum-gm-control__status.status-rolledBack { color: var(--gm-danger); }
+
+.ethernum-command-dialog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.ethernum-command-dialog label { display: flex; flex-direction: column; gap: 4px; }
+.ethernum-command-dialog textarea { min-height: 88px; resize: vertical; }
+.ethernum-command-dialog p { grid-column: 1 / -1; margin: 0; }
+.ethernum-command-dialog__notice { padding: 8px; border-left: 3px solid var(--gm-info); }
+.ethernum-command-dialog__revision { color: var(--gm-text-muted); font-size: 11px; }
+
+@media (max-width: 720px) {
+  .ethernum-command-device__overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ethernum-command-device__row { grid-template-columns: 1fr; }
+  .ethernum-command-device__row-actions,
+  .ethernum-command-device__tags { justify-content: flex-start; }
+  .ethernum-command-device__preview { align-items: stretch; flex-direction: column; }
+  .ethernum-command-dialog { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 720px), (max-height: 520px) {
   .ethernum-gm-control-overlay:not(.is-minimized) {
     min-width: min(460px, calc(100vw - 16px));
