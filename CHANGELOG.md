@@ -5,6 +5,34 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.1] - 2026-08-19
+
+### Adicionado
+- Serviço versionado de Arquivo de Contratos com publicação, arquivamento, ativação, conclusão, concessão e revogação de acesso exclusivas do mestre.
+- Aplicativo Contratos com grupos Ativo, Disponíveis, Concluídos e Arquivados, detalhe operacional, recompensas, anexos e dossiês.
+- Visualizador interno baseado em PDF.js com canvas, página anterior/seguinte, zoom de 50% a 200%, ajuste por largura e ajuste por página.
+- Suporte seguro no mesmo leitor para PDF, Journal, imagem, texto e dossiê, com fallback para abertura externa revalidada.
+- Relatório canônico do Contrato 01, Operação Manifesto 13, com 13 páginas e capa oficial.
+- Projeções Foundry separadas por contrato e documento para que cada jogador receba somente conteúdo observável.
+
+### Alterado
+- O botão Voltar do Comunicador agora desfaz primeiro leitor, detalhe e arquivo antes de retornar à tela inicial.
+- Estado de contrato e leitor sobrevive à minimização/reabertura e cada destino é revalidado antes de renderizar ou abrir externamente.
+- Journals antigos reconhecidos como contratos são importados de forma idempotente, preservando documentos e campos desconhecidos.
+- A troca de mestre primário durante a sessão inicializa o armazenamento administrativo e sincroniza as projeções sem exigir recarga do mundo.
+
+### Segurança
+- Registro administrativo e regras de visibilidade permanecem em Journal exclusivo de mestre, nunca em setting de mundo entregue aos jogadores.
+- Anexos possuem ACL independente; permissão do documento de origem é conferida novamente antes de projetar seu conteúdo.
+- Caminhos estáticos aceitam somente assets públicos dentro do diretório do módulo e rejeitam travessia, esquemas executáveis e caminhos arbitrários do mundo.
+- Mutações são exclusivas do mestre, usam revisão esperada para detectar edição concorrente e impedem múltiplos contratos ativos.
+- O leitor usa canvas sem `iframe`, `eval` ou HTML executável; conteúdo textual derivado de Journal é normalizado para texto simples.
+
+### Testes
+- Testes automatizados cobrem schema, migração, ACL, projeções, mutações, troca de autoridade primária, navegação do leitor, limites de zoom e fallback de PDF.
+- Smoke test autenticado no Foundry confirmou arquivo, detalhe, relatório de 13 páginas, canvas não vazio, navegação por botão/teclado e retorno local em três níveis.
+- Evidências visuais e relatório estão em `docs/qa/v3.8.1/`.
+
 ## [3.8.0] - 2026-08-19
 
 ### Adicionado

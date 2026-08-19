@@ -204,6 +204,100 @@
       <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Sincronizando dados...</span></div>
       {{else}}
       <div class="ethc-panel-content" data-communicator-region="panel-content">
+        {{#if panel.isContracts}}
+        {{#if panel.documentViewer.active}}
+        <section class="ethc-document-viewer" data-document-viewer tabindex="0" aria-labelledby="ethc-document-title">
+          <header class="ethc-document-viewer__header">
+            <button type="button" class="ethc-icon-button" data-communicator-action="contract-back" aria-label="Voltar aos detalhes" title="Voltar"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+            <span class="ethc-document-viewer__type" aria-hidden="true"><i class="fas fa-file-lines"></i></span>
+            <div><p class="ethc-kicker">Documento autenticado</p><h2 id="ethc-document-title">{{panel.documentViewer.title}}</h2></div>
+            {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-icon-button" data-communicator-action="document-open-external" aria-label="Abrir documento original" title="Abrir externamente"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>{{/if}}
+          </header>
+
+          {{#if panel.documentViewer.isPdf}}
+          <div class="ethc-document-toolbar" role="toolbar" aria-label="Controles do PDF">
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-previous" {{#unless panel.documentViewer.canPrevious}}disabled{{/unless}} aria-label="Página anterior" title="Página anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+            <span class="ethc-document-toolbar__page" aria-live="polite">{{panel.documentViewer.pageLabel}}</span>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-next" {{#unless panel.documentViewer.canNext}}disabled{{/unless}} aria-label="Próxima página" title="Próxima página"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            <span class="ethc-document-toolbar__separator" aria-hidden="true"></span>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-out" aria-label="Reduzir zoom" title="Reduzir zoom"><i class="fas fa-magnifying-glass-minus" aria-hidden="true"></i></button>
+            <span class="ethc-document-toolbar__zoom">{{panel.documentViewer.zoomLabel}}</span>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><i class="fas fa-magnifying-glass-plus" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'width')}}is-active{{/if}}" data-communicator-action="document-fit-width" aria-label="Ajustar à largura" title="Ajustar à largura"><i class="fas fa-arrows-left-right-to-line" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'page')}}is-active{{/if}}" data-communicator-action="document-fit-page" aria-label="Ajustar página" title="Ajustar página"><i class="fas fa-expand" aria-hidden="true"></i></button>
+          </div>
+          <div class="ethc-document-stage is-loading" data-document-viewer-stage aria-busy="true">
+            <span class="ethc-document-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Renderizando relatório...</span>
+            <canvas data-document-viewer-canvas aria-label="{{panel.documentViewer.title}}, página {{panel.documentViewer.page}} de {{panel.documentViewer.pageCount}}"></canvas>
+            <div class="ethc-document-fallback" data-document-viewer-fallback hidden role="alert">
+              <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
+              <strong>Document cannot be rendered internally.</strong>
+              {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-primary-button" data-communicator-action="document-open-external"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>Open document</span></button>{{/if}}
+            </div>
+          </div>
+          {{/if}}
+
+          {{#if panel.documentViewer.isImage}}
+          <figure class="ethc-document-image"><img src="{{panel.documentViewer.target.sourceUrl}}" alt="{{panel.documentViewer.title}}"></figure>
+          {{/if}}
+          {{#if panel.documentViewer.isJournal}}<article class="ethc-document-text"><pre>{{panel.documentViewer.target.content}}</pre></article>{{/if}}
+          {{#if panel.documentViewer.isText}}<article class="ethc-document-text"><pre>{{panel.documentViewer.target.content}}</pre></article>{{/if}}
+          {{#if panel.documentViewer.isDossier}}<article class="ethc-document-text ethc-document-text--dossier"><pre>{{panel.documentViewer.target.content}}</pre></article>{{/if}}
+        </section>
+        {{else}}
+        {{#if panel.selectedContract}}
+        <section class="ethc-contract-detail" aria-labelledby="ethc-contract-detail-title">
+          <button type="button" class="ethc-contract-back" data-communicator-action="contract-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Arquivo de contratos</span></button>
+          <header class="ethc-contract-detail__hero">
+            {{#if panel.selectedContract.coverImage}}<img src="{{panel.selectedContract.coverImage}}" alt="" aria-hidden="true">{{/if}}
+            <div><p class="ethc-kicker">Contrato {{panel.selectedContract.number}}</p><h2 id="ethc-contract-detail-title">{{panel.selectedContract.title}}</h2><span class="ethc-contract-status ethc-contract-status--{{panel.selectedContract.status}}">{{panel.selectedContract.statusLabel}}</span></div>
+            {{#if panel.selectedContract.grade}}<strong class="ethc-contract-grade" aria-label="Nota {{panel.selectedContract.grade}}">{{panel.selectedContract.grade}}</strong>{{/if}}
+          </header>
+          <dl class="ethc-contract-metadata">
+            <div><dt>Status</dt><dd>{{panel.selectedContract.statusLabel}}</dd></div>
+            {{#if panel.selectedContract.location}}<div><dt>Local</dt><dd>{{panel.selectedContract.location}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.region}}<div><dt>Região</dt><dd>{{panel.selectedContract.region}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.difficulty}}<div><dt>Dificuldade</dt><dd>{{panel.selectedContract.difficulty}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.grade}}<div><dt>Nota</dt><dd>{{panel.selectedContract.grade}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.supervisor}}<div><dt>Supervisão</dt><dd>{{panel.selectedContract.supervisor}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.informationLabel}}<div><dt>Informações encontradas</dt><dd>{{panel.selectedContract.informationLabel}}</dd></div>{{/if}}
+          </dl>
+          {{#if panel.selectedContract.report}}
+          <button type="button" class="ethc-contract-report ethc-primary-button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{panel.selectedContract.id}}" data-communicator-attachment-id="{{panel.selectedContract.report.id}}"><i class="{{panel.selectedContract.report.icon}}" aria-hidden="true"></i><span>Ler relatório</span></button>
+          {{/if}}
+          {{#if panel.selectedContract.attachments}}
+          <section class="ethc-contract-resources"><header><h3><i class="fas fa-paperclip" aria-hidden="true"></i>Anexos</h3></header>{{#each panel.selectedContract.attachments}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
+          {{/if}}
+          {{#if panel.selectedContract.dossiers}}
+          <section class="ethc-contract-resources"><header><h3><i class="fas fa-user-secret" aria-hidden="true"></i>Dossiês</h3></header>{{#each panel.selectedContract.dossiers}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
+          {{/if}}
+          {{#if panel.selectedContract.rewards}}
+          <section class="ethc-contract-rewards"><header><h3><i class="fas fa-award" aria-hidden="true"></i>Recompensas</h3></header><ul>{{#each panel.selectedContract.rewards}}<li>{{this}}</li>{{/each}}</ul></section>
+          {{/if}}
+        </section>
+        {{else}}
+        <div class="ethc-contract-archive">
+          {{#each panel.contractGroups}}
+          <section class="ethc-contract-group" aria-labelledby="ethc-contract-group-{{this.id}}">
+            <header><h2 id="ethc-contract-group-{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i>{{this.title}}</h2><span>{{this.count}}</span></header>
+            <div class="ethc-contract-list">
+              {{#each this.items}}
+              <button type="button" class="ethc-contract-row ethc-contract-row--{{this.status}}" data-communicator-action="open-contract" data-communicator-contract-id="{{this.id}}">
+                <span class="ethc-contract-row__number">{{this.numberLabel}}</span>
+                <span><strong>{{this.label}}</strong><small>{{this.description}}</small></span>
+                {{#if this.grade}}<span class="ethc-contract-row__grade">{{this.grade}}</span>{{/if}}
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+              </button>
+              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-hourglass-half" aria-hidden="true"></i><p>Nenhum contrato ativo.</p></div>{{/each}}
+            </div>
+          </section>
+          {{else}}
+          <div class="ethc-empty-state"><i class="fas fa-lock" aria-hidden="true"></i><h3>Nenhum contrato liberado</h3><p>Não há registros disponíveis para este perfil.</p></div>
+          {{/each}}
+        </div>
+        {{/if}}
+        {{/if}}
+        {{else}}
         {{#if panel.isConversations}}
         <section class="ethc-message-composer" aria-labelledby="ethc-private-message-title">
           <header><h2 id="ethc-private-message-title"><i class="fas fa-lock" aria-hidden="true"></i> Nova conversa privada</h2></header>
@@ -241,6 +335,7 @@
         {{else}}
         <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>Canal aguardando dados</h3><p>O conteúdo deste aplicativo aparecerá aqui quando estiver disponível.</p></div>
         {{/each}}
+        {{/if}}
       </div>
       {{/if}}
     </article>

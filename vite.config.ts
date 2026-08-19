@@ -23,6 +23,8 @@ export default defineConfig({
         { src: 'templates', dest: '.' },
         { src: 'styles', dest: '.' },
         { src: 'assets', dest: '.' },
+        { src: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs', dest: 'scripts' },
+        { src: 'node_modules/pdfjs-dist/LICENSE', dest: 'licenses', rename: 'pdfjs-dist-LICENSE' },
         { src: 'lang', dest: '.' },
         { src: 'module.json', dest: '.' },
         { src: 'LICENSE', dest: '.' },

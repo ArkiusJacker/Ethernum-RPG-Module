@@ -6,15 +6,15 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.8.0
+## Versão 3.8.1
 
-- O Comunicador abre como um aparelho físico, executa autenticação curta e restaura o aplicativo usado antes do desligamento.
-- O botão de energia aciona encerramento Z-Flip em CSS 3D; movimento Completo, Reduzido e Desligado permanecem respeitados.
-- Estados finitos impedem corridas entre abrir, fechar e minimizar, inclusive quando o usuário clica rapidamente.
-- Aplicativos recebem respostas de circuito, pressão, confirmação ciano, badge e navegação direcional discretas.
-- Jogadores recebem apenas aplicativos e painéis autorizados; metadados administrativos e destinos privados permanecem exclusivos do mestre.
-- O registry visual compartilhado está pronto para `ETH-UI`, `CON-UI` e `COM-UI`, sem criar assets canônicos provisórios.
-- O layout compacto mantém toda a navegação visível e se adapta a viewports menores.
+- O aplicativo Contratos agora apresenta arquivo por estado, detalhe operacional, recompensas, anexos e dossiês.
+- O Contrato 01 inclui o relatório canônico de 13 páginas e sua capa oficial dentro da distribuição do módulo.
+- Relatórios PDF abrem dentro do Comunicador com navegação de páginas, zoom e ajustes por largura ou página.
+- Journals, imagens, textos e dossiês usam o mesmo visualizador seguro, com fallback explícito quando a renderização interna não está disponível.
+- O arquivo administrativo usa revisões, transições validadas e apenas um contrato ativo por vez.
+- Jogadores recebem projeções autorizadas pelo Foundry; regras, concessões e anexos restritos permanecem fora de seus snapshots.
+- Importação idempotente preserva Journals de contratos antigos sem remover ou sobrescrever os documentos originais.
 - A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
 
 ### Protocolos de desenvolvimento

@@ -12,6 +12,11 @@ import {
 } from "../communicator/FieldCommunicatorRegistry.js";
 import { FieldCommunicatorService } from "../communicator/FieldCommunicatorService.js";
 import { CommunicatorLifecycleController } from "../communicator/CommunicatorLifecycleController.js";
+import {
+  CommunicatorDocumentViewer,
+  type CommunicatorDocumentViewerAction,
+} from "../contracts/CommunicatorDocumentViewer.js";
+import { CONTRACT_REPORT_ATTACHMENT_ID } from "../contracts/ContractArchiveTypes.js";
 import type { FieldCommunicatorApp } from "../communicator/FieldCommunicatorTypes.js";
 import { getFieldCommunicatorBootMode, getFieldCommunicatorMotionMode } from "../settings.js";
 import { resolveUIAssetPack } from "./assets/UIAssetPackRegistry.js";
@@ -152,6 +157,7 @@ export class FieldCommunicatorOverlay {
   private static instance: FieldCommunicatorOverlay | null = null;
 
   private readonly service = new FieldCommunicatorService();
+  private readonly documentViewer = new CommunicatorDocumentViewer();
   private readonly lifecycle = new AbortController();
   private root: HTMLElement | null = null;
   private host: HTMLElement | null = null;
@@ -170,6 +176,8 @@ export class FieldCommunicatorOverlay {
   } = { screen: "home", panelId: null, recentAppIds: [] };
   private savingSettings = false;
   private previewUserId: string | null = null;
+  private selectedContractId: string | null = null;
+  private selectedContractDocumentId: string | null = null;
   private suppressLauncherClick = false;
   private destroyed = false;
 
@@ -349,7 +357,20 @@ export class FieldCommunicatorOverlay {
     const sequence = ++this.mountSequence;
     const mountPromise = (async () => {
       const result = await FieldCommunicatorView.mount(host, {
-      dataSource: () => this.service.buildSnapshot(this.previewUserId),
+      dataSource: async () => {
+        const target = this.selectedContractId && this.selectedContractDocumentId
+          ? await this.service.resolveContractDocumentTarget(
+            this.selectedContractId,
+            this.selectedContractDocumentId,
+            this.previewUserId,
+          )
+          : null;
+        this.documentViewer.setTarget(target);
+        return this.service.buildSnapshot(this.previewUserId, {
+          selectedContractId: this.selectedContractId,
+          documentViewer: this.documentViewer.getData(),
+        });
+      },
       renderTemplate: resolveRenderer(),
       templatePath: TEMPLATE_PATH,
       bootMode: resolveBootMode(),
@@ -359,6 +380,12 @@ export class FieldCommunicatorOverlay {
       maxRecents: 8,
       callbacks: {
         onOpenApp: (app, context) => this.openApp(app as FieldCommunicatorApp, context),
+        onHome: () => { this.clearContractNavigation(); },
+        onBack: () => this.handleContractBack(),
+        onRendered: () => {
+          this.attachDocumentViewerKeyboard();
+          void this.documentViewer.render(this.host);
+        },
         onSettings: async context => { await context.controller.openPanel("settings"); },
         onBootComplete: () => {
           globalThis.sessionStorage?.setItem(storageKey(BOOT_SESSION_SUFFIX), "true");
@@ -394,6 +421,7 @@ export class FieldCommunicatorOverlay {
       };
     }
     this.controller?.destroy();
+    void this.documentViewer.render(null);
     this.controller = null;
     this.host = null;
   }
@@ -461,6 +489,7 @@ export class FieldCommunicatorOverlay {
 
   private async openApp(app: FieldCommunicatorApp, _context: FieldCommunicatorActionContext) {
     if (!app.enabled) return;
+    if (app.id !== "contracts" && app.internalTarget !== "contracts") this.clearContractNavigation();
     if (app.type === "internal") {
       return { screen: "panel" as const, panelId: String(app.panelId ?? app.id) };
     }
@@ -493,6 +522,43 @@ export class FieldCommunicatorOverlay {
       if (uuid) await this.service.openDocument(uuid);
       return;
     }
+    if (action === "open-contract") {
+      const contractId = data.communicatorContractId ?? data.communicatorTargetId ?? data.targetId;
+      if (!contractId) return;
+      this.selectedContractId = contractId;
+      this.selectedContractDocumentId = null;
+      this.documentViewer.clear();
+      await context.controller.render();
+      return;
+    }
+    if (action === "contract-back") {
+      if (this.handleContractBack()) await context.controller.render();
+      return;
+    }
+    if (action === "open-contract-document") {
+      const contractId = data.communicatorContractId ?? this.selectedContractId;
+      const attachmentId = data.communicatorAttachmentId ?? data.communicatorTargetId ?? CONTRACT_REPORT_ATTACHMENT_ID;
+      if (!contractId) return;
+      this.selectedContractId = contractId;
+      this.selectedContractDocumentId = attachmentId;
+      await context.controller.render();
+      return;
+    }
+    if (action.startsWith("document-")) {
+      const viewerAction = action.slice("document-".length) as CommunicatorDocumentViewerAction | "open-external";
+      if (viewerAction === "open-external") {
+        if (this.selectedContractId && this.selectedContractDocumentId) {
+          await this.service.openContractDocumentExternal(
+            this.selectedContractId,
+            this.selectedContractDocumentId,
+            this.previewUserId,
+          );
+        }
+        return;
+      }
+      if (this.documentViewer.apply(viewerAction)) await context.controller.render();
+      return;
+    }
     if (action === "send-group") {
       await this.service.sendGroupMessage(htmlValue(this.host, "[data-communicator-group-message]"));
       await context.controller.render();
@@ -522,6 +588,46 @@ export class FieldCommunicatorOverlay {
       await this.remount();
       return;
     }
+  }
+
+  private handleContractBack(): boolean {
+    if (this.selectedContractDocumentId) {
+      this.selectedContractDocumentId = null;
+      this.documentViewer.clear();
+      return true;
+    }
+    if (this.selectedContractId) {
+      this.selectedContractId = null;
+      return true;
+    }
+    return false;
+  }
+
+  private clearContractNavigation(): void {
+    this.selectedContractId = null;
+    this.selectedContractDocumentId = null;
+    this.documentViewer.clear();
+  }
+
+  private attachDocumentViewerKeyboard(): void {
+    const viewer = this.host?.querySelector<HTMLElement>("[data-document-viewer]");
+    if (!viewer) return;
+    viewer.addEventListener("keydown", event => {
+      const keyboard = event as KeyboardEvent;
+      const action = keyboard.key === "ArrowLeft"
+        ? "previous"
+        : keyboard.key === "ArrowRight"
+          ? "next"
+          : keyboard.key === "+" || keyboard.key === "="
+            ? "zoom-in"
+            : keyboard.key === "-"
+              ? "zoom-out"
+              : null;
+      if (!action || !this.documentViewer.apply(action)) return;
+      keyboard.preventDefault();
+      keyboard.stopPropagation();
+      void this.controller?.render();
+    }, { signal: this.lifecycle.signal });
   }
 
   private async handleAdminAction(
@@ -892,6 +998,7 @@ export class FieldCommunicatorOverlay {
   private destroy(): void {
     this.destroyed = true;
     this.controller?.destroy();
+    this.documentViewer.destroy();
     this.controller = null;
     this.lifecycle.abort();
     this.root?.remove();

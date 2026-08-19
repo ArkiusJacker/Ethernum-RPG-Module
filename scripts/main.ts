@@ -35,6 +35,15 @@ import { openCharacterSheetDiagnostics } from './sheets/core/CharacterSheetDiagn
 import { injectPF2eSheetSwitcher } from './sheets/core/CharacterSheetSwitcher.js';
 import { initChatMessagePresentation } from './ui/ChatMessagePresentation.js';
 import { FieldCommunicatorOverlay } from './ui/FieldCommunicatorOverlay.js';
+import {
+  getContractArchiveService,
+  initializeContractArchiveService,
+} from './contracts/ContractArchiveService.js';
+import type {
+  ContractArchiveCompleteOptions,
+  ContractArchiveMutationOptions,
+  EthernumContractPrincipal,
+} from './contracts/ContractArchiveTypes.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -70,6 +79,18 @@ declare global {
         refreshFieldCommunicator: () => Promise<boolean>;
         characterSheetDiagnostics: (actor: Actor) => ReturnType<typeof CharacterSheetController.diagnostics>;
         openCharacterSheetDiagnostics: (actor: Actor) => Promise<boolean>;
+      };
+      contracts: {
+        list: (previewUserId?: string | null) => ReturnType<ReturnType<typeof getContractArchiveService>["getSnapshot"]>;
+        admin?: {
+          getArchive: () => ReturnType<ReturnType<typeof getContractArchiveService>["getArchive"]>;
+          publish: (input: unknown, options?: ContractArchiveMutationOptions) => ReturnType<ReturnType<typeof getContractArchiveService>["publish"]>;
+          archive: (contractId: string, options?: ContractArchiveMutationOptions) => ReturnType<ReturnType<typeof getContractArchiveService>["archive"]>;
+          activate: (contractId: string, options?: ContractArchiveMutationOptions) => ReturnType<ReturnType<typeof getContractArchiveService>["activate"]>;
+          complete: (contractId: string, options?: ContractArchiveCompleteOptions) => ReturnType<ReturnType<typeof getContractArchiveService>["complete"]>;
+          grantAccess: (contractId: string, principal: EthernumContractPrincipal, options?: ContractArchiveMutationOptions & { attachmentId?: string }) => ReturnType<ReturnType<typeof getContractArchiveService>["grantAccess"]>;
+          revokeAccess: (contractId: string, principal: EthernumContractPrincipal, options?: ContractArchiveMutationOptions & { attachmentId?: string }) => ReturnType<ReturnType<typeof getContractArchiveService>["revokeAccess"]>;
+        };
       };
       macros: {
         getActor: () => Actor | null;
@@ -652,6 +673,7 @@ Hooks.once("init", () => {
     `${ETHERNUM.TEMPLATE_PATH}sheets/character-sheet-diagnostics.html`,
   ]);
 
+  const contractArchive = getContractArchiveService();
   game.ethernum = {
     ETHERNUM,
     unique: UniqueMechanicsSystem,
@@ -670,6 +692,20 @@ Hooks.once("init", () => {
       characterSheetDiagnostics: (actor: Actor) => CharacterSheetController.diagnostics(actor),
       openCharacterSheetDiagnostics,
     },
+    contracts: {
+      list: previewUserId => contractArchive.getSnapshot(previewUserId),
+      ...(game.user?.isGM ? {
+        admin: {
+          getArchive: () => contractArchive.getArchive(),
+          publish: (input, options) => contractArchive.publish(input, options),
+          archive: (contractId, options) => contractArchive.archive(contractId, options),
+          activate: (contractId, options) => contractArchive.activate(contractId, options),
+          complete: (contractId, options) => contractArchive.complete(contractId, options),
+          grantAccess: (contractId, principal, options) => contractArchive.grantAccess(contractId, principal, options),
+          revokeAccess: (contractId, principal, options) => contractArchive.revokeAccess(contractId, principal, options),
+        },
+      } : {}),
+    },
     macros: buildMacroApi(),
   };
 });
@@ -679,6 +715,7 @@ Hooks.once("ready", async () => {
 
   initializeEthernumAuthorityBridge();
   await migrateWorld();
+  await initializeContractArchiveService();
   initializePF2eAdapterSocket();
   initializeUniqueCanvasSocket();
   initializePippingCanvasSocket();
@@ -714,6 +751,13 @@ Hooks.once("ready", async () => {
 Hooks.on("createChatMessage", () => {
   void FieldCommunicatorOverlay.refresh();
 });
+
+for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
+  Hooks.on(hook, () => {
+    getContractArchiveService().scheduleProjectionSync();
+    void FieldCommunicatorOverlay.refresh();
+  });
+}
 Hooks.on("updateChatMessage", () => {
   void FieldCommunicatorOverlay.refresh();
 });

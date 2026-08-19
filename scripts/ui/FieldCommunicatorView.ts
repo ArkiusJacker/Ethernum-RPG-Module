@@ -92,7 +92,7 @@ export interface FieldCommunicatorCallbacks {
     from: FieldCommunicatorLocation,
     to: FieldCommunicatorLocation | null,
     context: FieldCommunicatorActionContext,
-  ): void | Promise<void>;
+  ): boolean | void | Promise<boolean | void>;
   onRecents?(context: FieldCommunicatorActionContext): void | Promise<void>;
   onAdminAction?(
     action: string,
@@ -107,6 +107,7 @@ export interface FieldCommunicatorCallbacks {
     reason: FieldCommunicatorBootCompletion,
     context: FieldCommunicatorActionContext,
   ): void | Promise<void>;
+  onRendered?(context: FieldCommunicatorActionContext): void | Promise<void>;
   onAction?(
     action: string,
     data: Readonly<Record<string, string>>,
@@ -314,6 +315,9 @@ export class FieldCommunicatorView {
     this.restoreScroll();
     this.activateListeners();
     this.navigationDirection = "none";
+    void Promise.resolve(this.options.callbacks?.onRendered?.(this.context())).catch(error => {
+      this.options.callbacks?.onError?.(error, "rendered");
+    });
   }
 
   async refresh(): Promise<void> {
@@ -369,7 +373,11 @@ export class FieldCommunicatorView {
     await this.run("back", async () => {
       const from = { ...this.location };
       const target = this.history.at(-1) ?? null;
-      await this.options.callbacks?.onBack?.(from, target ? { ...target } : null, this.context());
+      const handled = await this.options.callbacks?.onBack?.(from, target ? { ...target } : null, this.context());
+      if (handled === true) {
+        await this.render();
+        return;
+      }
       if (!target || intent !== this.navigationIntentSequence) return;
 
       this.captureScroll();
@@ -688,6 +696,7 @@ export class FieldCommunicatorView {
     if (!root) return;
     const target = event.target as Element | null;
     if (target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+    if (target?.closest?.("[data-document-viewer]")) return;
 
     if (event.key === "Escape") {
       event.preventDefault();

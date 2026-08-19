@@ -699,6 +699,104 @@
 .ethernum-communicator :is(.ethc-panel-row, .ethc-recent-row) small { overflow: hidden; color: var(--ethc-muted); font-size: 0.76em; text-overflow: ellipsis; white-space: nowrap; }
 .ethernum-communicator .ethc-panel-loading { display: grid; place-items: center; gap: 10px; min-block-size: 210px; color: var(--ethc-aether-bright); }
 
+.ethernum-communicator .ethc-contract-archive,
+.ethernum-communicator .ethc-contract-detail,
+.ethernum-communicator .ethc-document-viewer { display: grid; gap: 16px; min-inline-size: 0; }
+.ethernum-communicator .ethc-contract-group > header,
+.ethernum-communicator :is(.ethc-contract-resources, .ethc-contract-rewards) > header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: 38px;
+  padding-block-end: 7px;
+  color: var(--ethc-gold-bright);
+  border-block-end: 1px solid var(--ethc-steel-light);
+}
+.ethernum-communicator .ethc-contract-group > header h2,
+.ethernum-communicator :is(.ethc-contract-resources, .ethc-contract-rewards) > header h3 { display: flex; gap: 8px; align-items: center; font-family: var(--font-serif, Georgia, serif); font-size: 1em; text-transform: uppercase; }
+.ethernum-communicator .ethc-contract-group > header span { color: var(--ethc-muted); font-size: 0.8em; }
+.ethernum-communicator .ethc-contract-list { display: grid; gap: 8px; margin-block-start: 8px; }
+.ethernum-communicator .ethc-contract-row {
+  display: grid;
+  grid-template-columns: minmax(82px, auto) minmax(0, 1fr) 38px 16px;
+  gap: 10px;
+  align-items: center;
+  min-block-size: 66px;
+  padding: 9px 10px;
+  text-align: start;
+  border-inline-start: 3px solid var(--ethc-aether);
+  background: linear-gradient(90deg, rgb(101 229 244 / 8%), transparent 42%), var(--ethc-panel);
+}
+.ethernum-communicator .ethc-contract-row--completed { border-inline-start-color: var(--ethc-success); }
+.ethernum-communicator .ethc-contract-row--failed { border-inline-start-color: var(--ethc-danger); }
+.ethernum-communicator .ethc-contract-row--archived { border-inline-start-color: var(--ethc-steel-light); }
+.ethernum-communicator .ethc-contract-row > span:nth-child(2) { display: grid; min-inline-size: 0; }
+.ethernum-communicator .ethc-contract-row strong { overflow-wrap: anywhere; color: var(--ethc-text); font-family: var(--font-serif, Georgia, serif); }
+.ethernum-communicator .ethc-contract-row small { overflow: hidden; color: var(--ethc-muted); font-size: 0.75em; text-overflow: ellipsis; white-space: nowrap; }
+.ethernum-communicator .ethc-contract-row__number { color: var(--ethc-aether-bright); font-size: 0.72em; font-weight: 700; text-transform: uppercase; }
+.ethernum-communicator .ethc-contract-row__grade,
+.ethernum-communicator .ethc-contract-grade { display: grid; place-items: center; color: var(--ethc-black); border: 1px solid var(--ethc-gold-bright); background: var(--ethc-gold-bright); font-family: var(--font-serif, Georgia, serif); font-weight: 800; }
+.ethernum-communicator .ethc-contract-row__grade { inline-size: 34px; block-size: 34px; }
+.ethernum-communicator .ethc-contract-back { justify-self: start; display: inline-flex; gap: 8px; align-items: center; padding: 7px 10px; }
+.ethernum-communicator .ethc-contract-detail__hero {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 54px;
+  gap: 14px;
+  align-items: center;
+  min-block-size: 116px;
+  padding: 10px;
+  border: 1px solid var(--ethc-gold);
+  background: linear-gradient(110deg, rgb(225 187 98 / 10%), transparent 52%), var(--ethc-panel);
+}
+.ethernum-communicator .ethc-contract-detail__hero > img { inline-size: 84px; block-size: 112px; object-fit: cover; border: 1px solid var(--ethc-gold); }
+.ethernum-communicator .ethc-contract-detail__hero h2 { overflow-wrap: anywhere; color: var(--ethc-text); font-family: var(--font-serif, Georgia, serif); font-size: 1.25em; }
+.ethernum-communicator .ethc-contract-grade { inline-size: 50px; block-size: 50px; font-size: 1.5em; }
+.ethernum-communicator .ethc-contract-status { display: inline-flex; margin-block-start: 6px; padding: 3px 7px; color: var(--ethc-aether-bright); border: 1px solid currentcolor; font-size: 0.7em; font-weight: 700; text-transform: uppercase; }
+.ethernum-communicator .ethc-contract-status--completed { color: var(--ethc-success); }
+.ethernum-communicator .ethc-contract-status--failed { color: var(--ethc-danger); }
+.ethernum-communicator .ethc-contract-metadata { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; border: 1px solid var(--ethc-steel-light); background: var(--ethc-steel-light); }
+.ethernum-communicator .ethc-contract-metadata > div { display: grid; gap: 3px; min-block-size: 58px; padding: 9px 10px; background: var(--ethc-panel); }
+.ethernum-communicator .ethc-contract-metadata dt { color: var(--ethc-muted); font-size: 0.7em; text-transform: uppercase; }
+.ethernum-communicator .ethc-contract-metadata dd { margin: 0; overflow-wrap: anywhere; color: var(--ethc-text); }
+.ethernum-communicator .ethc-contract-report { justify-self: stretch; justify-content: center; min-block-size: 44px; }
+.ethernum-communicator .ethc-contract-resources { display: grid; gap: 7px; }
+.ethernum-communicator .ethc-contract-resources > button { display: grid; grid-template-columns: 30px minmax(0, 1fr) 14px; gap: 9px; align-items: center; min-block-size: 52px; padding: 8px 10px; text-align: start; }
+.ethernum-communicator .ethc-contract-resources > button > span { display: grid; min-inline-size: 0; }
+.ethernum-communicator .ethc-contract-resources small { color: var(--ethc-muted); font-size: 0.74em; }
+.ethernum-communicator .ethc-contract-rewards ul { display: grid; gap: 5px; margin: 8px 0 0; padding-inline-start: 22px; color: var(--ethc-text); }
+
+.ethernum-communicator .ethc-document-viewer__header {
+  display: grid;
+  grid-template-columns: 40px 34px minmax(0, 1fr) 40px;
+  gap: 8px;
+  align-items: center;
+  min-block-size: 54px;
+  padding-block-end: 10px;
+  border-block-end: 1px solid var(--ethc-gold);
+}
+.ethernum-communicator .ethc-document-viewer__header h2 { overflow-wrap: anywhere; color: var(--ethc-text); font-family: var(--font-serif, Georgia, serif); font-size: 1.05em; }
+.ethernum-communicator .ethc-document-viewer__type { display: grid; place-items: center; color: var(--ethc-aether-bright); }
+.ethernum-communicator .ethc-document-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; min-block-size: 44px; padding: 6px; border: 1px solid var(--ethc-steel-light); background: var(--ethc-panel); }
+.ethernum-communicator .ethc-document-toolbar .ethc-icon-button { inline-size: 36px; block-size: 36px; }
+.ethernum-communicator .ethc-document-toolbar .ethc-icon-button.is-active { color: var(--ethc-black); border-color: var(--ethc-aether-bright); background: var(--ethc-aether); }
+.ethernum-communicator .ethc-document-toolbar__page,
+.ethernum-communicator .ethc-document-toolbar__zoom { min-inline-size: 54px; color: var(--ethc-text); font-size: 0.8em; text-align: center; }
+.ethernum-communicator .ethc-document-toolbar__separator { inline-size: 1px; block-size: 24px; background: var(--ethc-steel-light); }
+.ethernum-communicator .ethc-document-stage { position: relative; display: grid; place-items: start center; min-block-size: 300px; max-block-size: min(62vh, 680px); overflow: auto; padding: 8px; border: 1px solid var(--ethc-steel-light); background: #07090a; scrollbar-gutter: stable; }
+.ethernum-communicator .ethc-document-stage canvas { display: block; max-inline-size: none; background: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / 48%); }
+.ethernum-communicator .ethc-document-loading { position: absolute; inset: 50% auto auto 50%; display: none; gap: 8px; align-items: center; color: var(--ethc-aether-bright); transform: translate(-50%, -50%); }
+.ethernum-communicator .ethc-document-stage.is-loading .ethc-document-loading { display: inline-flex; }
+.ethernum-communicator .ethc-document-stage.is-loading canvas { visibility: hidden; }
+.ethernum-communicator .ethc-document-fallback { align-self: center; display: grid; gap: 12px; place-items: center; max-inline-size: 310px; padding: 20px; color: var(--ethc-muted); text-align: center; }
+.ethernum-communicator .ethc-document-fallback[hidden] { display: none; }
+.ethernum-communicator .ethc-document-fallback > i { color: var(--ethc-danger); font-size: 1.7em; }
+.ethernum-communicator .ethc-document-image { display: grid; place-items: center; min-block-size: 280px; margin: 0; padding: 8px; overflow: auto; border: 1px solid var(--ethc-steel-light); background: #07090a; }
+.ethernum-communicator .ethc-document-image img { display: block; max-inline-size: 100%; max-block-size: 62vh; object-fit: contain; }
+.ethernum-communicator .ethc-document-text { min-block-size: 280px; padding: 16px; border: 1px solid var(--ethc-steel-light); border-inline-start: 3px solid var(--ethc-aether); background: var(--ethc-panel); }
+.ethernum-communicator .ethc-document-text--dossier { border-inline-start-color: var(--ethc-danger); }
+.ethernum-communicator .ethc-document-text pre { margin: 0; overflow-wrap: anywhere; color: var(--ethc-text); font: inherit; line-height: 1.55; white-space: pre-wrap; }
+
 .ethernum-communicator .ethc-empty-state {
   grid-column: 1 / -1;
   display: grid;
@@ -941,6 +1039,10 @@
   .ethernum-communicator .ethc-panel-header { grid-template-columns: 48px minmax(0, 1fr) auto; }
   .ethernum-communicator .ethc-panel-header > .ethc-badge { grid-column: 1; }
   .ethernum-communicator .ethc-panel-header__actions { grid-column: 3; grid-row: 1; }
+  .ethernum-communicator .ethc-contract-detail__hero { grid-template-columns: 68px minmax(0, 1fr) 44px; }
+  .ethernum-communicator .ethc-contract-detail__hero > img { inline-size: 68px; block-size: 92px; }
+  .ethernum-communicator .ethc-contract-grade { inline-size: 42px; block-size: 42px; font-size: 1.2em; }
+  .ethernum-communicator .ethc-document-stage { min-block-size: 250px; }
   .ethernum-communicator .ethc-setting-row,
   .ethernum-communicator .ethc-admin-preview { grid-template-columns: 1fr; gap: 7px; }
   .ethernum-communicator .ethc-setting-row--toggle { grid-template-columns: minmax(0, 1fr) 48px; }
@@ -959,6 +1061,18 @@
   .ethernum-communicator .ethc-boot { padding: 18px; }
   .ethernum-communicator .ethc-boot__steps li > span:last-child { display: none; }
   .ethernum-communicator .ethc-segmented-control { grid-template-columns: 1fr; }
+  .ethernum-communicator .ethc-contract-row { grid-template-columns: minmax(0, 1fr) 34px 14px; }
+  .ethernum-communicator .ethc-contract-row__number { grid-column: 1 / -1; }
+  .ethernum-communicator .ethc-contract-metadata { grid-template-columns: 1fr; }
+  .ethernum-communicator .ethc-contract-detail__hero { grid-template-columns: 56px minmax(0, 1fr) 38px; gap: 8px; padding: 8px; }
+  .ethernum-communicator .ethc-contract-detail__hero > img { inline-size: 56px; block-size: 76px; }
+  .ethernum-communicator .ethc-contract-grade { inline-size: 36px; block-size: 36px; font-size: 1em; }
+  .ethernum-communicator .ethc-document-viewer__header { grid-template-columns: 38px minmax(0, 1fr) 38px; }
+  .ethernum-communicator .ethc-document-viewer__type { display: none; }
+  .ethernum-communicator .ethc-document-toolbar { display: grid; grid-template-columns: repeat(5, minmax(36px, 1fr)); }
+  .ethernum-communicator .ethc-document-toolbar__separator { display: none; }
+  .ethernum-communicator .ethc-document-toolbar__page,
+  .ethernum-communicator .ethc-document-toolbar__zoom { min-inline-size: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

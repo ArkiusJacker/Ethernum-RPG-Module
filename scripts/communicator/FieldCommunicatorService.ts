@@ -1,6 +1,12 @@
 import { ETHERNUM } from "../config.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { createPF2eCharacterSnapshot } from "../core/PF2eCharacterAdapter.js";
+import { getContractArchiveService, type ContractArchiveService } from "../contracts/ContractArchiveService.js";
+import type {
+  ContractArchiveSnapshot,
+  EthernumContractDTO,
+} from "../contracts/ContractArchiveTypes.js";
+import type { CommunicatorDocumentViewerData } from "../contracts/CommunicatorDocumentViewer.js";
 import { getFieldCommunicatorMotionMode } from "../settings.js";
 import {
   filterFieldCommunicatorApps,
@@ -40,7 +46,16 @@ export interface FieldCommunicatorPanelData extends FieldCommunicatorPanel {
   messages?: FieldCommunicatorEntry[];
   settings?: Record<string, unknown>;
   registry?: FieldCommunicatorRegistryData;
+  contractArchive?: ContractArchiveSnapshot;
+  contractGroups?: Array<Record<string, unknown>>;
+  selectedContract?: EthernumContractDTO;
+  documentViewer?: CommunicatorDocumentViewerData;
   isGM?: boolean;
+}
+
+export interface FieldCommunicatorBuildOptions {
+  selectedContractId?: string | null;
+  documentViewer?: CommunicatorDocumentViewerData;
 }
 
 interface PermissionDocument {
@@ -131,6 +146,8 @@ function appDescription(app: FieldCommunicatorApp): string {
 }
 
 export class FieldCommunicatorService {
+  constructor(private readonly contractArchive: ContractArchiveService = getContractArchiveService()) {}
+
   getAssignedActor(user = game.user as UserWithCharacter | null): Actor | null {
     const assigned = user?.character;
     if (assigned && this.canObserve(assigned, user)) return assigned;
@@ -156,7 +173,10 @@ export class FieldCommunicatorService {
     return normalized;
   }
 
-  async buildSnapshot(previewUserId?: string | null): Promise<FieldCommunicatorSnapshot> {
+  async buildSnapshot(
+    previewUserId?: string | null,
+    options: FieldCommunicatorBuildOptions = {},
+  ): Promise<FieldCommunicatorSnapshot> {
     const previewUser = previewUserId && game.user?.isGM
       ? collection<UserWithCharacter>(game.users).find(user => user.id === previewUserId) ?? null
       : null;
@@ -203,7 +223,13 @@ export class FieldCommunicatorService {
 
     const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
     if (game.user?.isGM) allowedPanelIds.add("administration");
-    const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds);
+    const contractArchive = allowedPanelIds.has("contracts")
+      ? await this.contractArchive.getSnapshot(previewUserId)
+      : undefined;
+    const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds, {
+      ...options,
+      contractArchive,
+    });
     const preferences = this.clientSettings();
     const squads = companyIdentity.squadIds;
     const ether = record(actor?.getFlag(ETHERNUM.MODULE_NAME, "etherSystem"));
@@ -331,6 +357,34 @@ export class FieldCommunicatorService {
     return true;
   }
 
+  async resolveContractDocumentTarget(
+    contractId: string,
+    attachmentId?: string,
+    previewUserId?: string | null,
+  ) {
+    return this.contractArchive.resolveDocumentTarget(contractId, attachmentId, previewUserId);
+  }
+
+  async openContractDocumentExternal(
+    contractId: string,
+    attachmentId?: string,
+    previewUserId?: string | null,
+  ): Promise<boolean> {
+    const target = await this.resolveContractDocumentTarget(contractId, attachmentId, previewUserId);
+    if (!target) throw new Error(localize("ETHERNUM.FieldCommunicator.Errors.NoPermission", "Acesso negado."));
+    if (target.uuid) return this.openDocument(target.uuid);
+    const source = text(target.sourceUrl);
+    if (!source.startsWith(`modules/${ETHERNUM.MODULE_NAME}/assets/`)) {
+      throw new Error(localize("ETHERNUM.FieldCommunicator.Errors.BrokenTarget", "Arquivo indisponível."));
+    }
+    const url = new URL(source, globalThis.location?.href ?? "http://localhost/");
+    if (globalThis.location?.origin && url.origin !== globalThis.location.origin) {
+      throw new Error(localize("ETHERNUM.FieldCommunicator.Errors.NoPermission", "Acesso negado."));
+    }
+    globalThis.open?.(url.href, "_blank", "noopener,noreferrer");
+    return true;
+  }
+
   async openCustomApp(app: FieldCommunicatorApp): Promise<boolean> {
     if (app.type === "external") {
       const url = text(app.targetUrl);
@@ -384,6 +438,7 @@ export class FieldCommunicatorService {
     registry: FieldCommunicatorRegistryData,
     viewer: UserWithCharacter | null,
     allowedPanelIds: ReadonlySet<string>,
+    options: FieldCommunicatorBuildOptions & { contractArchive?: ContractArchiveSnapshot } = {},
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
     const scenes = this.documentEntries(collection<PermissionDocument>(game.scenes), "view-scene", viewer);
     const journals = collection<PermissionDocument>((game as Game & { journal?: Iterable<PermissionDocument> }).journal)
@@ -419,9 +474,11 @@ export class FieldCommunicatorService {
       dossiers: this.panel("dossiers", localize("ETHERNUM.FieldCommunicator.Panels.Dossiers", "Dossiês"), "documents", {
         entries: journalEntries(/dossi|ameaça|inteligência|intelligence/i),
       }),
-      contracts: this.panel("contracts", localize("ETHERNUM.FieldCommunicator.Panels.Contracts", "Contratos"), "documents", {
-        entries: journalEntries(/contrato|contract|missão|mission/i),
-      }),
+      contracts: this.contractPanel(
+        options.contractArchive ?? { schemaVersion: 1, revision: 0, contracts: [] },
+        options.selectedContractId,
+        options.documentViewer,
+      ),
       files: this.panel("files", localize("ETHERNUM.FieldCommunicator.Panels.Files", "Arquivos"), "documents", {
         entries: journalEntries(),
       }),
@@ -459,10 +516,60 @@ export class FieldCommunicatorService {
       sections,
       isGroup: kind === "group",
       isConversations: kind === "conversations",
+      isContracts: kind === "contracts",
       isSettings: kind === "settings",
       isAdmin: kind === "admin",
       empty: entries.length === 0,
     };
+  }
+
+  private contractPanel(
+    archive: ContractArchiveSnapshot,
+    selectedContractId?: string | null,
+    documentViewer?: CommunicatorDocumentViewerData,
+  ): FieldCommunicatorPanelData {
+    const selectedContract = selectedContractId
+      ? archive.contracts.find(contract => contract.id === selectedContractId)
+      : undefined;
+    const groupDefinitions: Array<{
+      id: string;
+      title: string;
+      icon: string;
+      statuses: EthernumContractDTO["status"][];
+    }> = [
+      { id: "active", title: "Ativo", icon: "fa-solid fa-satellite-dish", statuses: ["accepted", "active"] },
+      { id: "available", title: "Disponíveis", icon: "fa-solid fa-file-signature", statuses: ["available"] },
+      { id: "completed", title: "Concluídos", icon: "fa-solid fa-circle-check", statuses: ["completed", "failed"] },
+      { id: "archived", title: "Arquivados", icon: "fa-solid fa-box-archive", statuses: ["archived"] },
+    ];
+    const contractGroups = groupDefinitions.flatMap(group => {
+      const contracts = archive.contracts.filter(contract => group.statuses.includes(contract.status));
+      if (contracts.length === 0 && group.id !== "active") return [];
+      return [{
+        ...group,
+        count: contracts.length,
+        items: contracts.map(contract => ({
+          id: contract.id,
+          numberLabel: `Contrato ${String(contract.number).padStart(2, "0")}`,
+          label: contract.title,
+          description: [contract.location, contract.statusLabel].filter(Boolean).join(" · "),
+          grade: contract.grade,
+          status: contract.status,
+          action: "open-contract",
+        })),
+      }];
+    });
+    return this.panel(
+      "contracts",
+      localize("ETHERNUM.FieldCommunicator.Panels.Contracts", "Contratos"),
+      "contracts",
+      {
+        contractArchive: archive,
+        contractGroups,
+        selectedContract,
+        documentViewer,
+      },
+    );
   }
 
   private section(id: string, title: string, icon: string, entries: FieldCommunicatorEntry[]): Record<string, unknown> {
@@ -491,6 +598,7 @@ export class FieldCommunicatorService {
       group: "Transmissão compartilhada do grupo.",
       squad: "Situação atual dos agentes conectados.",
       documents: "Documentos liberados pelas permissões do mundo.",
+      contracts: "Arquivo operacional com contratos liberados para este perfil.",
       shop: "Catálogo com solicitação de compra ao mestre.",
       settings: "Preferências locais deste comunicador.",
       admin: "Registro de aplicativos administrado pelo mestre.",
