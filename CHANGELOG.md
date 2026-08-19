@@ -5,6 +5,35 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.0] - 2026-08-19
+
+### Adicionado
+- Ciclo de vida finito para o Comunicador com estados `idle`, `opening`, `open`, `closing` e `minimized`, tokens monotônicos e descarte de conclusões atrasadas.
+- Abertura física com expansão do aparelho, varredura curta de autenticação e restauração da tela atual.
+- Desligamento Z-Flip em CSS 3D pelo botão de energia, com escurecimento da tela, dobra superior/inferior e retorno ao launcher.
+- Registry compartilhado para os namespaces `ETH-UI`, `CON-UI` e `COM-UI`; os slots do Comunicador permanecem marcados como aguardando assets canônicos.
+- Microinterações de circuito, pressão, confirmação ciano, entrada de badges, navegação direcional e acesso negado controlado.
+
+### Alterado
+- Modos de movimento Completo, Reduzido e Desligado agora controlam também abertura e encerramento do aparelho.
+- O painel, os recentes e a tela atual sobrevivem à minimização e são revalidados ao reabrir.
+- Rodapé compacto mantém cinco ações visíveis sem rolagem horizontal, e o tamanho mínimo respeita viewports menores que 320 px.
+- Boot pulável aparece apenas quando realmente pode ser pulado e torna cabeçalho, conteúdo e rodapé inertes durante a autenticação.
+
+### Segurança
+- Snapshots de jogador não transportam URLs/UUIDs privados, regras de desbloqueio, listas de agentes/esquadrões, preview de usuários ou o registro administrativo.
+- Abertura de aplicativo personalizado resolve novamente o registro e repete as verificações de Rank, desbloqueio e permissão do documento.
+- Navegação direta para painéis ausentes do snapshot autorizado é rejeitada e produz o estado visual de acesso negado.
+
+### Corrigido
+- Montagens concluídas após o host ter sido removido não podem mais anexar controladores órfãos.
+- Cliques assíncronos duplicados são coalescidos e respostas antigas não substituem uma navegação mais recente.
+- Setas e Escape não são sequestrados dentro de campos de formulário; gestos de arraste/redimensionamento encerram também em cancelamento ou perda de foco.
+- Removida a ação sem implementação “Abrir documento original” do cabeçalho de painéis internos.
+
+### Testes
+- Suíte automatizada, typecheck, build, validação da distribuição e smoke test visual no Foundry cobrem ciclo de vida, permissões, Z-Flip, autenticação curta, restauração de painel e layout compacto.
+
 ## [3.7.9] - 2026-08-19
 
 ### Adicionado

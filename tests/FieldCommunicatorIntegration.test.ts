@@ -9,7 +9,7 @@ import {
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 
-describe("Field Communicator v3.7.8 integration", () => {
+describe("Field Communicator v3.8.0 integration", () => {
   it("is registered outside character sheets with a public API and persistent launcher", () => {
     const main = read("scripts/main.ts");
     const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
@@ -31,7 +31,8 @@ describe("Field Communicator v3.7.8 integration", () => {
 
     expect(template).toContain("data-field-communicator");
     expect(template).toContain("data-communicator-scroll");
-    expect(template).toContain('data-communicator-action="close"');
+    expect(template).toContain('data-communicator-action="power"');
+    expect(template).toContain('data-navigation-direction="{{navigationDirection}}"');
     expect(template).toContain("data-communicator-private-message");
     expect(template).toContain("data-communicator-group-message");
     expect(template).not.toMatch(/<script\b/i);
@@ -39,7 +40,11 @@ describe("Field Communicator v3.7.8 integration", () => {
     expect(styles).toContain(".ethc-launcher");
     expect(styles).toContain("@container");
     expect(styles).toContain("prefers-reduced-motion");
+    expect(styles).toContain("ethc-screen-power-down");
+    expect(styles).toContain("ethc-fold-top");
+    expect(styles).toContain("ethc-nav-forward");
     expect(read("scripts/ui/FieldCommunicatorOverlay.ts")).toContain("AudioContext");
+    expect(read("scripts/ui/FieldCommunicatorOverlay.ts")).toContain("CommunicatorLifecycleController");
   });
 
   it("lets each user move and lock the minimized launcher away from the chat controls", () => {
@@ -67,6 +72,9 @@ describe("Field Communicator v3.7.8 integration", () => {
     expect(service).toContain("testUserPermission(user, \"OBSERVER\")");
     expect(service).toContain("canObserve(document, viewer)");
     expect(service).toContain("canAccessTarget(app, subjectUser)");
+    expect(service).toContain("openRegisteredApp(appId");
+    expect(service).toContain("allowedPanelIds");
+    expect(service).toContain("...(game.user?.isGM ? {");
     expect(service).toContain("ChatMessage.create");
     expect(service).toContain("fromUuid");
     expect(service).toContain("whisper");
@@ -81,5 +89,7 @@ describe("Field Communicator v3.7.8 integration", () => {
       .toEqual({ width: 344, height: 504 });
     expect(clampFieldCommunicatorPosition(-100, 900, { width: 344, height: 504 }, { width: 360, height: 520 }))
       .toEqual({ left: 8, top: 8 });
+    expect(clampFieldCommunicatorSize(600, 800, { width: 320, height: 568 }))
+      .toEqual({ width: 304, height: 552 });
   });
 });

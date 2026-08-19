@@ -1,4 +1,4 @@
-/* Ethernum Field Communicator v3.7.8 */
+/* Ethernum Field Communicator v3.8.0 */
 .ethernum-field-communicator-overlay {
   position: fixed;
   z-index: 95;
@@ -9,14 +9,87 @@
 }
 
 .ethernum-field-communicator-overlay.is-open {
-  min-inline-size: 320px;
-  min-block-size: 480px;
+  min-inline-size: min(320px, calc(100vw - 16px));
+  min-block-size: min(480px, calc(100vh - 16px));
   filter: drop-shadow(0 22px 42px rgb(0 0 0 / 60%));
 }
 
-.ethernum-field-communicator-overlay__host {
+.ethc-device-stage {
+  position: relative;
   inline-size: 100%;
   block-size: 100%;
+  overflow: hidden;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.ethernum-field-communicator-overlay__host {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  block-size: 100%;
+  transform-origin: center;
+}
+
+.ethc-opening-sweep,
+.ethc-fold-half {
+  position: absolute;
+  z-index: 12;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.ethc-opening-sweep {
+  z-index: 14;
+  inset-block-start: 0;
+  block-size: 2px;
+  opacity: 0;
+  background: #9af3fb;
+  box-shadow: 0 0 6px #48c7d9, 0 0 22px rgb(72 199 217 / 72%);
+}
+
+.ethc-fold-half {
+  block-size: 50%;
+  opacity: 0;
+  border: 1px solid #8c713c;
+  background:
+    linear-gradient(90deg, rgb(185 144 69 / 16%), transparent 18% 82%, rgb(185 144 69 / 16%)),
+    #090c0e;
+  box-shadow: inset 0 0 0 3px #20262a, inset 0 0 24px rgb(0 0 0 / 86%);
+  backface-visibility: hidden;
+}
+
+.ethc-fold-half--top { inset-block-start: 0; transform-origin: 50% 100%; }
+.ethc-fold-half--bottom { inset-block-end: 0; transform-origin: 50% 0; }
+
+.ethernum-field-communicator-overlay.is-opening[data-motion-mode="full"] .ethc-device-stage {
+  animation: ethc-device-open 360ms cubic-bezier(0.2, 0.76, 0.16, 1) both;
+}
+.ethernum-field-communicator-overlay.is-opening[data-motion-mode="full"] .ethc-opening-sweep {
+  animation: ethc-auth-sweep 360ms 70ms ease-out both;
+}
+.ethernum-field-communicator-overlay.is-closing-standard[data-motion-mode="full"] .ethc-device-stage {
+  animation: ethc-device-close 220ms ease-in both;
+}
+.ethernum-field-communicator-overlay.is-closing-power[data-motion-mode="full"] .ethernum-field-communicator-overlay__host {
+  animation: ethc-screen-power-down 680ms cubic-bezier(0.42, 0, 0.58, 1) both;
+}
+.ethernum-field-communicator-overlay.is-closing-power[data-motion-mode="full"] .ethc-fold-half {
+  opacity: 1;
+}
+.ethernum-field-communicator-overlay.is-closing-power[data-motion-mode="full"] .ethc-fold-half--top {
+  animation: ethc-fold-top 680ms cubic-bezier(0.42, 0, 0.23, 1) both;
+}
+.ethernum-field-communicator-overlay.is-closing-power[data-motion-mode="full"] .ethc-fold-half--bottom {
+  animation: ethc-fold-bottom 680ms cubic-bezier(0.42, 0, 0.23, 1) both;
+}
+.ethernum-field-communicator-overlay:is(.is-opening, .is-closing)[data-motion-mode="reduced"] .ethc-device-stage {
+  animation: ethc-device-fade 170ms ease both;
+}
+.ethernum-field-communicator-overlay.is-opening[data-motion-mode="reduced"] .ethc-device-stage {
+  animation-direction: reverse;
+}
+.ethernum-field-communicator-overlay:is(.is-opening, .is-closing) .ethc-overlay-resize { pointer-events: none; opacity: 0; }
 }
 
 .ethc-launcher-dock {
@@ -176,6 +249,7 @@
   background: linear-gradient(90deg, transparent, var(--ethc-gold) 20%, var(--ethc-gold-bright) 50%, var(--ethc-gold) 80%, transparent);
   opacity: 0.55;
 }
+.ethernum-communicator[data-motion="full"].is-confirmed::after { animation: ethc-cyan-confirm 280ms ease-out both; }
 
 .ethernum-communicator :is(h1, h2, h3, p, dl, dd, ol) {
   margin: 0;
@@ -524,12 +598,28 @@
     linear-gradient(135deg, rgb(185 144 69 / 5%), transparent 34%),
     var(--ethc-panel);
 }
+.ethernum-communicator .ethc-app::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  opacity: 0;
+  border-block-start: 1px solid var(--ethc-app-accent);
+  border-inline-end: 1px solid var(--ethc-app-accent);
+  clip-path: polygon(0 0, 72% 0, 72% 1px, 100% 1px, 100% 100%, calc(100% - 1px) 100%, calc(100% - 1px) 28%, 0 28%);
+  transform: scaleX(0.35);
+  transform-origin: left top;
+  transition: opacity var(--ethc-fast) ease, transform var(--ethc-fast) var(--ethc-ease);
+  pointer-events: none;
+}
 .ethernum-communicator .ethc-app--gold { --ethc-app-accent: var(--ethc-gold-bright); }
 .ethernum-communicator .ethc-app--aether { --ethc-app-accent: var(--ethc-aether-bright); }
 .ethernum-communicator .ethc-app--danger { --ethc-app-accent: var(--ethc-danger); }
 .ethernum-communicator .ethc-app--success { --ethc-app-accent: var(--ethc-success); }
 .ethernum-communicator .ethc-app:is(:hover, :focus-visible):not([aria-disabled="true"]),
 .ethernum-communicator .ethc-app.is-active { --ethc-app-accent: var(--ethc-aether); color: var(--ethc-aether-bright); transform: translateY(-2px); border-color: var(--ethc-aether); box-shadow: inset 0 0 0 1px rgb(72 199 217 / 28%), 0 0 16px rgb(72 199 217 / 18%); }
+.ethernum-communicator .ethc-app:is(:hover, :focus-visible):not([aria-disabled="true"])::before,
+.ethernum-communicator .ethc-app.is-active::before { opacity: 0.72; transform: scaleX(1); }
+.ethernum-communicator .ethc-app:active:not([aria-disabled="true"]) { transform: translateY(1px) scale(0.985); }
 .ethernum-communicator .ethc-app:is(:hover, :focus-visible) .ethc-app__icon,
 .ethernum-communicator .ethc-app.is-active .ethc-app__icon { color: var(--ethc-aether-bright); border-color: var(--ethc-aether); }
 .ethernum-communicator .ethc-app.is-locked { --ethc-app-accent: var(--ethc-gold); }
@@ -788,6 +878,10 @@
 .ethernum-communicator[data-motion="full"] .ethc-home .ethc-app:nth-child(2n) { animation-delay: 40ms; }
 .ethernum-communicator[data-motion="full"] .ethc-home .ethc-app:nth-child(3n) { animation-delay: 80ms; }
 .ethernum-communicator[data-motion="full"] .ethc-auth-core__ring--outer { animation: ethc-ring-spin 16s linear infinite; }
+.ethernum-communicator[data-motion="full"][data-navigation-direction="forward"] .ethc-viewport { animation: ethc-nav-forward 180ms var(--ethc-ease) both; }
+.ethernum-communicator[data-motion="full"][data-navigation-direction="back"] .ethc-viewport { animation: ethc-nav-back 180ms var(--ethc-ease) both; }
+.ethernum-communicator[data-motion="full"] .ethc-badge { animation: ethc-badge-acquire 220ms var(--ethc-ease) both; }
+.ethernum-communicator[data-motion="full"] .ethc-system-state--danger { animation: ethc-access-denied 210ms ease-out both; }
 
 .ethernum-communicator[data-motion="reduced"] *,
 .ethernum-communicator[data-motion="reduced"] *::before,
@@ -853,7 +947,8 @@
   .ethernum-communicator .ethc-admin-row { grid-template-columns: 40px 40px minmax(0, 1fr); }
   .ethernum-communicator .ethc-admin-row__status { grid-column: 2 / 3; }
   .ethernum-communicator .ethc-admin-row__actions { grid-column: 3; flex-wrap: wrap; justify-content: flex-end; }
-  .ethernum-communicator .ethc-footer { overflow-x: auto; grid-auto-columns: minmax(66px, 1fr); }
+  .ethernum-communicator .ethc-footer { grid-auto-flow: initial; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
+  .ethernum-communicator .ethc-footer button > span:not(.ethc-badge) { font-size: 0.62em; }
 }
 
 @container (max-width: 390px) {
@@ -899,6 +994,73 @@
 @keyframes ethc-app-enter {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ethc-device-open {
+  from { opacity: 0; transform: scale(0.14, 0.08); filter: brightness(1.8); }
+  58% { opacity: 1; transform: scale(1.02, 0.96); filter: brightness(1.18); }
+  to { opacity: 1; transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes ethc-device-close {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes ethc-device-fade {
+  from { opacity: 1; transform: scaleY(1); }
+  to { opacity: 0; transform: scaleY(0.94); }
+}
+
+@keyframes ethc-auth-sweep {
+  0% { inset-block-start: 0; opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { inset-block-start: calc(100% - 2px); opacity: 0; }
+}
+
+@keyframes ethc-screen-power-down {
+  0% { opacity: 1; transform: scale(1); filter: brightness(1); }
+  42% { opacity: 0.86; transform: scaleY(0.985); filter: brightness(0.48) saturate(0.4); }
+  66% { opacity: 0.5; transform: scaleY(0.08); filter: brightness(1.8) saturate(0); }
+  100% { opacity: 0; transform: scale(0.12, 0.025); filter: brightness(0); }
+}
+
+@keyframes ethc-fold-top {
+  0%, 38% { transform: rotateX(0deg); }
+  100% { transform: translateY(50%) rotateX(-88deg); }
+}
+
+@keyframes ethc-fold-bottom {
+  0%, 38% { transform: rotateX(0deg); }
+  100% { transform: translateY(-50%) rotateX(88deg); }
+}
+
+@keyframes ethc-nav-forward {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ethc-nav-back {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ethc-badge-acquire {
+  from { opacity: 0; transform: scale(0.65); }
+  70% { opacity: 1; transform: scale(1.08); box-shadow: 0 0 10px rgb(72 199 217 / 58%); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ethc-cyan-confirm {
+  0% { opacity: 0.4; background: var(--ethc-gold); box-shadow: none; }
+  48% { opacity: 1; background: var(--ethc-aether-bright); box-shadow: 0 0 14px rgb(72 199 217 / 82%); }
+  100% { opacity: 0.55; background: var(--ethc-gold); box-shadow: none; }
+}
+
+@keyframes ethc-access-denied {
+  0%, 100% { transform: translateX(0); filter: none; }
+  28% { transform: translateX(-3px); filter: saturate(1.8); }
+  56% { transform: translateX(3px); filter: contrast(1.25); }
 }
 
 .ethc-admin-dialog {

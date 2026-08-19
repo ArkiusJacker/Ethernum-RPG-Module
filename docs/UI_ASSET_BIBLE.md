@@ -2069,6 +2069,12 @@ Posteriormente:
 COMMUNICATOR UI ASSET PACK
 ```
 
+Status:
+
+```text
+AWAITING CANONICAL ASSETS
+```
+
 utilizará:
 
 ```text
@@ -2078,6 +2084,11 @@ COM-UI-XX
 A infraestrutura pode ser compartilhada.
 
 A arte não.
+
+O registry compartilhado aceita os namespaces `ETH-UI`, `CON-UI` e `COM-UI`.
+Enquanto o pacote canônico do Comunicador não for fornecido, resoluções `COM-UI`
+retornam vazio e a apresentação CSS atual permanece como fallback oficial. Nenhum
+raster provisório deve ser tratado como arte canônica.
 
 ---
 

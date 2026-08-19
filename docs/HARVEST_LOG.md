@@ -38,3 +38,46 @@ Rejected:
 
 - Aggressive continuous transforms and whole-sheet flashes because they would
   reduce readability and increase animation fatigue.
+
+## HARVEST Session - Field Communicator Motion
+
+Version target: 3.8.0
+
+Mode: Full
+
+Execution: Multi-agent; Facilitator in the main implementation pass plus
+independent Specialist, Critic and Dreamer/Experience reviews.
+
+### Seed
+
+Give the Field Communicator a physical opening and shutdown language without
+weakening permissions, accessibility, responsiveness or multiplayer safety.
+
+### Canonical Requirements
+
+- Launcher-to-device opening with a short authentication sweep.
+- Z-Flip power shutdown with Full, Reduced and Off motion paths.
+- Race-free `idle`, `opening`, `open`, `closing` and `minimized` states.
+- Circuit hover, press, confirmation, badge and directional navigation feedback.
+- Shared `ETH-UI`, `CON-UI` and `COM-UI` asset infrastructure without invented art.
+
+### Harvest
+
+Canonical:
+
+- Tokenized lifecycle controller that ignores stale transition completions.
+- Current-screen restoration after a shutdown and permission revalidation on reopen.
+- Public player snapshots separated from GM registry metadata.
+- CSS 3D fold composition and compact footer without horizontal navigation.
+
+Experiments harvested: None. Every implemented interaction is an explicit v3.8.0
+roadmap requirement or a confirmed security, lifecycle or accessibility fix.
+
+Backlog:
+
+- Agent-specific synchronization latch.
+- Transmission seal after outgoing messages.
+
+Rejected:
+
+- Continuous device shake, bouncing badges and fictional `COM-UI` raster assets.

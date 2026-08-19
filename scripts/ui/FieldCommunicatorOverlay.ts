@@ -11,8 +11,10 @@ import {
   resetFieldCommunicatorRegistry,
 } from "../communicator/FieldCommunicatorRegistry.js";
 import { FieldCommunicatorService } from "../communicator/FieldCommunicatorService.js";
+import { CommunicatorLifecycleController } from "../communicator/CommunicatorLifecycleController.js";
 import type { FieldCommunicatorApp } from "../communicator/FieldCommunicatorTypes.js";
-import { getFieldCommunicatorBootMode } from "../settings.js";
+import { getFieldCommunicatorBootMode, getFieldCommunicatorMotionMode } from "../settings.js";
+import { resolveUIAssetPack } from "./assets/UIAssetPackRegistry.js";
 import {
   FieldCommunicatorView,
   type FieldCommunicatorActionContext,
@@ -72,8 +74,8 @@ export function clampFieldCommunicatorSize(
   height: number,
   view: ViewportSize,
 ): { width: number; height: number } {
-  const maxWidth = Math.max(320, view.width - VIEWPORT_MARGIN * 2);
-  const maxHeight = Math.max(480, view.height - VIEWPORT_MARGIN * 2);
+  const maxWidth = Math.max(1, view.width - VIEWPORT_MARGIN * 2);
+  const maxHeight = Math.max(1, view.height - VIEWPORT_MARGIN * 2);
   return {
     width: clamp(Math.round(width), Math.min(MIN_WIDTH, maxWidth), maxWidth),
     height: clamp(Math.round(height), Math.min(MIN_HEIGHT, maxHeight), maxHeight),
@@ -155,9 +157,21 @@ export class FieldCommunicatorOverlay {
   private host: HTMLElement | null = null;
   private controller: FieldCommunicatorView | null = null;
   private layout = readLayout();
+  private readonly communicatorLifecycle = new CommunicatorLifecycleController(
+    this.layout.minimized ? "minimized" : "open",
+  );
+  private mountSequence = 0;
+  private mountPromise: Promise<void> | null = null;
+  private closeMode: "standard" | "power" = "standard";
+  private resumeState: {
+    screen: "home" | "panel" | "recents";
+    panelId: string | null;
+    recentAppIds: readonly string[];
+  } = { screen: "home", panelId: null, recentAppIds: [] };
   private savingSettings = false;
   private previewUserId: string | null = null;
   private suppressLauncherClick = false;
+  private destroyed = false;
 
   static initialize(): FieldCommunicatorOverlay | null {
     if (typeof document === "undefined" || !game.user) return null;
@@ -177,14 +191,16 @@ export class FieldCommunicatorOverlay {
 
   static close(): boolean {
     if (!this.instance) return false;
-    void this.instance.setMinimized(true);
+    void this.instance.setMinimized(true, "standard");
     return true;
   }
 
   static async toggle(): Promise<boolean> {
     const instance = this.initialize();
     if (!instance) return false;
-    await instance.setMinimized(!instance.layout.minimized);
+    const lifecycle = instance.communicatorLifecycle.getState();
+    const visible = lifecycle.state === "open" || lifecycle.state === "opening" || lifecycle.targetState === "open";
+    await instance.setMinimized(visible, "standard");
     return true;
   }
 
@@ -225,6 +241,10 @@ export class FieldCommunicatorOverlay {
     const root = document.createElement("aside");
     root.id = ROOT_ID;
     root.className = "ethernum-field-communicator-overlay is-minimized";
+    const assetPack = resolveUIAssetPack("COM");
+    root.dataset.assetPack = assetPack?.namespace ?? "COM";
+    root.dataset.assetPackVersion = String(assetPack?.version ?? 0);
+    root.dataset.assetPackStatus = assetPack?.status ?? "awaiting-canonical-assets";
     root.setAttribute("aria-label", localize("ETHERNUM.FieldCommunicator.Title", "Comunicador de Campo Ethernum"));
     document.body.appendChild(root);
     this.root = root;
@@ -263,12 +283,32 @@ export class FieldCommunicatorOverlay {
     }
   }
 
-  private renderShell(): void {
+  private applyLifecycleClasses(): void {
+    if (this.destroyed) return;
     const root = this.ensureRoot();
-    root.className = `ethernum-field-communicator-overlay${this.layout.minimized ? ` is-minimized is-launcher-${this.layout.launcherLocked ? "locked" : "unlocked"}` : " is-open"}`;
+    const state = this.communicatorLifecycle.getState().state;
+    const hidden = state === "minimized" || state === "idle";
+    root.className = [
+      "ethernum-field-communicator-overlay",
+      hidden ? "is-minimized" : "is-open",
+      state === "opening" || state === "closing" ? `is-${state}` : "",
+      hidden ? `is-launcher-${this.layout.launcherLocked ? "locked" : "unlocked"}` : "",
+      state === "closing" ? `is-closing-${this.closeMode}` : "",
+    ].filter(Boolean).join(" ");
+    root.dataset.lifecycleState = state;
+    root.dataset.motionMode = getFieldCommunicatorMotionMode();
+    root.dataset.closeMode = this.closeMode;
+  }
+
+  private renderShell(): void {
+    if (this.destroyed) return;
+    const root = this.ensureRoot();
+    const state = this.communicatorLifecycle.getState().state;
+    const hidden = this.layout.minimized && (state === "minimized" || state === "idle");
+    this.unmount();
+    this.applyLifecycleClasses();
     this.applyLayout();
-    if (this.layout.minimized) {
-      this.unmount();
+    if (hidden) {
       const label = localize("ETHERNUM.FieldCommunicator.Open", "Abrir Comunicador de Campo");
       const lockLabel = this.layout.launcherLocked
         ? localize("ETHERNUM.FieldCommunicator.Launcher.Unlock", "Destravar posição do Comunicador")
@@ -292,22 +332,34 @@ export class FieldCommunicatorOverlay {
       }, { signal: this.lifecycle.signal });
       return;
     }
-    root.innerHTML = `<div class="ethernum-field-communicator-overlay__host" data-field-communicator-host></div><button type="button" class="ethc-overlay-resize" data-field-overlay-resize title="Redimensionar" aria-label="Redimensionar"></button>`;
+    root.innerHTML = `<div class="ethc-device-stage">
+      <span class="ethc-opening-sweep" aria-hidden="true"></span>
+      <span class="ethc-fold-half ethc-fold-half--top" aria-hidden="true"></span>
+      <div class="ethernum-field-communicator-overlay__host" data-field-communicator-host></div>
+      <span class="ethc-fold-half ethc-fold-half--bottom" aria-hidden="true"></span>
+    </div><button type="button" class="ethc-overlay-resize" data-field-overlay-resize title="Redimensionar" aria-label="Redimensionar"></button>`;
     this.host = root.querySelector<HTMLElement>("[data-field-communicator-host]");
     root.querySelector<HTMLElement>("[data-field-overlay-resize]")?.addEventListener("pointerdown", event => this.beginResize(event), { signal: this.lifecycle.signal });
   }
 
   private async mount(): Promise<void> {
-    if (this.layout.minimized || !this.host?.isConnected || this.controller) return;
-    const result = await FieldCommunicatorView.mount(this.host, {
+    if (this.destroyed || this.layout.minimized || !this.host?.isConnected || this.controller) return;
+    if (this.mountPromise) return this.mountPromise;
+    const host = this.host;
+    const sequence = ++this.mountSequence;
+    const mountPromise = (async () => {
+      const result = await FieldCommunicatorView.mount(host, {
       dataSource: () => this.service.buildSnapshot(this.previewUserId),
       renderTemplate: resolveRenderer(),
       templatePath: TEMPLATE_PATH,
       bootMode: resolveBootMode(),
+      initialScreen: this.resumeState.screen,
+      initialPanelId: this.resumeState.panelId,
+      initialRecents: this.resumeState.recentAppIds,
       maxRecents: 8,
       callbacks: {
         onOpenApp: (app, context) => this.openApp(app as FieldCommunicatorApp, context),
-        onSettings: context => context.controller.openPanel("settings"),
+        onSettings: async context => { await context.controller.openPanel("settings"); },
         onBootComplete: () => {
           globalThis.sessionStorage?.setItem(storageKey(BOOT_SESSION_SUFFIX), "true");
         },
@@ -315,11 +367,32 @@ export class FieldCommunicatorOverlay {
         onAdminAction: (action, payload, context) => this.handleAdminAction(action, payload, context),
         onError: (error, action) => this.handleError(error, action),
       },
-    });
-    this.controller = result.controller;
+      });
+      const state = this.communicatorLifecycle.getState().state;
+      if (this.destroyed || sequence !== this.mountSequence || host !== this.host || !host.isConnected || state === "minimized" || state === "idle") {
+        result.controller.destroy();
+        return;
+      }
+      this.controller = result.controller;
+    })();
+    this.mountPromise = mountPromise;
+    try {
+      await mountPromise;
+    } finally {
+      if (this.mountPromise === mountPromise) this.mountPromise = null;
+    }
   }
 
   private unmount(): void {
+    this.mountSequence += 1;
+    const state = this.controller?.getState();
+    if (state) {
+      this.resumeState = {
+        screen: state.screen,
+        panelId: state.panelId,
+        recentAppIds: state.recentAppIds,
+      };
+    }
     this.controller?.destroy();
     this.controller = null;
     this.host = null;
@@ -331,11 +404,53 @@ export class FieldCommunicatorOverlay {
     if (this.host?.isConnected) await this.mount();
   }
 
-  private async setMinimized(minimized: boolean): Promise<void> {
+  private async setMinimized(minimized: boolean, closeMode: "standard" | "power" = "standard"): Promise<void> {
+    if (this.destroyed) return;
+    this.closeMode = closeMode;
+    const operation = minimized
+      ? this.communicatorLifecycle.minimize()
+      : this.communicatorLifecycle.open();
+    if (operation.status === "unchanged" || operation.status === "coalesced") {
+      await operation.completion;
+      return;
+    }
+    if (!operation.transition || operation.token === null) {
+      this.layout.minimized = minimized;
+      this.persistLayout();
+      this.renderShell();
+      return;
+    }
+
+    if (!minimized) {
+      this.layout.minimized = false;
+      this.persistLayout();
+      this.renderShell();
+      await this.mount();
+    } else {
+      this.applyLifecycleClasses();
+    }
+
+    await this.waitForTransition(minimized ? closeMode : "opening");
+    const completion = this.communicatorLifecycle.complete(operation.token);
+    if (this.destroyed || completion.status !== "completed") return;
     this.layout.minimized = minimized;
     this.persistLayout();
-    this.renderShell();
-    if (!minimized) await this.mount();
+    if (minimized) {
+      this.renderShell();
+      this.root?.querySelector<HTMLElement>("[data-field-overlay-action='open']")?.focus();
+    } else {
+      this.applyLifecycleClasses();
+    }
+  }
+
+  private waitForTransition(mode: "opening" | "standard" | "power"): Promise<void> {
+    const motion = getFieldCommunicatorMotionMode();
+    const duration = motion === "off"
+      ? 0
+      : motion === "reduced"
+        ? mode === "opening" ? 140 : 170
+        : mode === "power" ? 680 : mode === "opening" ? 360 : 220;
+    return new Promise(resolve => globalThis.setTimeout(resolve, duration));
   }
 
   private toggleLauncherLock(): void {
@@ -346,8 +461,11 @@ export class FieldCommunicatorOverlay {
 
   private async openApp(app: FieldCommunicatorApp, _context: FieldCommunicatorActionContext) {
     if (!app.enabled) return;
+    if (app.type === "internal") {
+      return { screen: "panel" as const, panelId: String(app.panelId ?? app.id) };
+    }
     if (app.source === "custom") {
-      await this.service.openCustomApp(app);
+      await this.service.openRegisteredApp(app.id, this.previewUserId);
       return;
     }
     return { screen: "panel" as const, panelId: app.internalTarget ?? app.id };
@@ -359,7 +477,7 @@ export class FieldCommunicatorOverlay {
     context: FieldCommunicatorActionContext,
   ): Promise<void> {
     if (action === "close" || action === "power") {
-      await this.setMinimized(true);
+      await this.setMinimized(true, action === "power" ? "power" : "standard");
       return;
     }
     if (action === "open-administration") {
@@ -619,14 +737,12 @@ export class FieldCommunicatorOverlay {
       root.style.right = "auto";
     };
     const finish = () => {
-      globalThis.removeEventListener("pointermove", move);
       const current = root.getBoundingClientRect();
       this.layout.left = current.left;
       this.layout.top = current.top;
       this.persistLayout();
     };
-    globalThis.addEventListener("pointermove", move);
-    globalThis.addEventListener("pointerup", finish, { once: true });
+    this.bindPointerGesture(move, finish);
   }
 
   private beginLauncherDrag(event: PointerEvent): void {
@@ -655,7 +771,6 @@ export class FieldCommunicatorOverlay {
       root.style.bottom = "auto";
     };
     const finish = () => {
-      globalThis.removeEventListener("pointermove", move);
       root.classList.remove("is-dragging");
       if (!moved) return;
       const current = root.getBoundingClientRect();
@@ -665,8 +780,7 @@ export class FieldCommunicatorOverlay {
       this.suppressLauncherClick = true;
       globalThis.setTimeout(() => { this.suppressLauncherClick = false; }, 0);
     };
-    globalThis.addEventListener("pointermove", move);
-    globalThis.addEventListener("pointerup", finish, { once: true });
+    this.bindPointerGesture(move, finish);
   }
 
   private beginResize(event: PointerEvent): void {
@@ -683,13 +797,30 @@ export class FieldCommunicatorOverlay {
       root.style.height = `${size.height}px`;
     };
     const finish = () => {
-      globalThis.removeEventListener("pointermove", move);
       this.layout = { ...this.layout, ...clampFieldCommunicatorSize(root.offsetWidth, root.offsetHeight, viewport()) };
       this.persistLayout();
       this.clampToViewport();
     };
-    globalThis.addEventListener("pointermove", move);
-    globalThis.addEventListener("pointerup", finish, { once: true });
+    this.bindPointerGesture(move, finish);
+  }
+
+  private bindPointerGesture(move: (event: PointerEvent) => void, finish: () => void): void {
+    let active = true;
+    const onMove = (event: Event) => move(event as PointerEvent);
+    const end = () => {
+      if (!active) return;
+      active = false;
+      globalThis.removeEventListener("pointermove", onMove);
+      globalThis.removeEventListener("pointerup", end);
+      globalThis.removeEventListener("pointercancel", end);
+      globalThis.removeEventListener("blur", end);
+      finish();
+    };
+    const options = { signal: this.lifecycle.signal };
+    globalThis.addEventListener("pointermove", onMove, options);
+    globalThis.addEventListener("pointerup", end, options);
+    globalThis.addEventListener("pointercancel", end, options);
+    globalThis.addEventListener("blur", end, options);
   }
 
   private applyLayout(): void {
@@ -759,6 +890,7 @@ export class FieldCommunicatorOverlay {
   }
 
   private destroy(): void {
+    this.destroyed = true;
     this.controller?.destroy();
     this.controller = null;
     this.lifecycle.abort();

@@ -6,17 +6,15 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.7.9
+## Versão 3.8.0
 
-- A composição Ethernum Company foi recalibrada a partir dos limites ópticos dos 14 assets oficiais, sem alterar dados ou mecânicas do Actor PF2e.
-- O cabeçalho possui uma linha exclusiva para ações; retrato, identidade, Rank corporativo, monitor de PV e pontos heroicos não disputam mais o mesmo espaço.
-- Retrato, Rank, PV, abas, runas, cantos, divisores e gemas usam dimensões responsivas próprias e preservam seus detalhes visuais.
-- O ícone minimizado do Comunicador pode ser arrastado para qualquer ponto válido da tela e travado; posição e trava são locais para cada usuário e mundo.
-- O Rank da Company é independente do nível PF2e e aparece como `—` quando nenhum Rank corporativo foi definido.
-- Os 14 assets públicos são WebP lossless, carregados por um registry central e protegidos por preload, fallback e diagnóstico GM.
-- A ficha mantém scroll, foco, atalhos, drag and drop, Mecânica Única, Éter, Runas e fallback para a ficha original.
-- Mestres podem ativar uma sobreposição de referência no menu da ficha; o modo de alto contraste fica disponível nas configurações do módulo.
-- Concórdia preserva sua composição própria e compartilha apenas serviços sem identidade visual Ethernum.
+- O Comunicador abre como um aparelho físico, executa autenticação curta e restaura o aplicativo usado antes do desligamento.
+- O botão de energia aciona encerramento Z-Flip em CSS 3D; movimento Completo, Reduzido e Desligado permanecem respeitados.
+- Estados finitos impedem corridas entre abrir, fechar e minimizar, inclusive quando o usuário clica rapidamente.
+- Aplicativos recebem respostas de circuito, pressão, confirmação ciano, badge e navegação direcional discretas.
+- Jogadores recebem apenas aplicativos e painéis autorizados; metadados administrativos e destinos privados permanecem exclusivos do mestre.
+- O registry visual compartilhado está pronto para `ETH-UI`, `CON-UI` e `COM-UI`, sem criar assets canônicos provisórios.
+- O layout compacto mantém toda a navegação visível e se adapta a viewports menores.
 - A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
 
 ### Protocolos de desenvolvimento

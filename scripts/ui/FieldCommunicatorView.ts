@@ -1,8 +1,10 @@
 export const FIELD_COMMUNICATOR_SCREENS = ["home", "panel", "recents"] as const;
 export const FIELD_COMMUNICATOR_BOOT_MODES = ["full", "short", "skippable", "off"] as const;
+export const FIELD_COMMUNICATOR_NAVIGATION_DIRECTIONS = ["none", "forward", "back"] as const;
 
 export type FieldCommunicatorScreen = (typeof FIELD_COMMUNICATOR_SCREENS)[number];
 export type FieldCommunicatorBootMode = (typeof FIELD_COMMUNICATOR_BOOT_MODES)[number];
+export type FieldCommunicatorNavigationDirection = (typeof FIELD_COMMUNICATOR_NAVIGATION_DIRECTIONS)[number];
 export type FieldCommunicatorBootCompletion = "timeout" | "skip" | "disabled";
 
 export interface FieldCommunicatorApp {
@@ -133,6 +135,7 @@ export interface FieldCommunicatorMountOptions {
 }
 
 export interface FieldCommunicatorViewData extends FieldCommunicatorSnapshot {
+  navigationDirection: FieldCommunicatorNavigationDirection;
   communicator: {
     screen: FieldCommunicatorScreen;
     panelId: string | null;
@@ -144,6 +147,7 @@ export interface FieldCommunicatorViewData extends FieldCommunicatorSnapshot {
     recentApps: readonly FieldCommunicatorApp[];
     activePanel: FieldCommunicatorPanel | unknown | null;
     scrollTop: number;
+    navigationDirection: FieldCommunicatorNavigationDirection;
     boot: {
       mode: FieldCommunicatorBootMode;
       active: boolean;
@@ -231,6 +235,11 @@ export class FieldCommunicatorView {
   private renderSequence = 0;
   private destroyed = false;
   private draggedAdminAppId: string | null = null;
+  private navigationDirection: FieldCommunicatorNavigationDirection = "none";
+  private permissionDenied = false;
+  private navigationIntentSequence = 0;
+  private readonly pendingActions = new Set<string>();
+  private confirmationTimer: unknown = null;
 
   constructor(host: HTMLElement, options: FieldCommunicatorMountOptions) {
     this.host = host;
@@ -284,6 +293,11 @@ export class FieldCommunicatorView {
 
     if (options.reload !== false) this.setSnapshot(await this.loadSnapshot());
     if (this.destroyed || sequence !== this.renderSequence) return;
+    if (this.location.screen === "panel" && (!this.location.panelId || !this.hasPanel(this.location.panelId))) {
+      this.location = { screen: "home", panelId: null };
+      this.history = [];
+      this.permissionDenied = true;
+    }
 
     await this.initializeBoot();
     if (this.destroyed || sequence !== this.renderSequence) return;
@@ -299,6 +313,7 @@ export class FieldCommunicatorView {
     this.host.dataset.fieldCommunicatorHost = "true";
     this.restoreScroll();
     this.activateListeners();
+    this.navigationDirection = "none";
   }
 
   async refresh(): Promise<void> {
@@ -309,15 +324,21 @@ export class FieldCommunicatorView {
   }
 
   async showHome(): Promise<void> {
+    const intent = ++this.navigationIntentSequence;
     await this.run("home", async () => {
       await this.options.callbacks?.onHome?.(this.context());
+      if (intent !== this.navigationIntentSequence) return;
+      this.permissionDenied = false;
       await this.navigate({ screen: "home", panelId: null });
     });
   }
 
   async showRecents(): Promise<void> {
+    const intent = ++this.navigationIntentSequence;
     await this.run("recents", async () => {
       await this.options.callbacks?.onRecents?.(this.context());
+      if (intent !== this.navigationIntentSequence) return;
+      this.permissionDenied = false;
       await this.navigate({ screen: "recents", panelId: null });
     });
   }
@@ -327,21 +348,35 @@ export class FieldCommunicatorView {
     await this.render({ reload: false });
   }
 
-  async openPanel(panelId: string): Promise<void> {
-    if (!panelId) return;
-    await this.run("open-panel", () => this.navigate({ screen: "panel", panelId }));
+  async openPanel(panelId: string): Promise<boolean> {
+    if (!panelId) return false;
+    const intent = ++this.navigationIntentSequence;
+    if (!this.hasPanel(panelId)) {
+      this.permissionDenied = true;
+      await this.render({ reload: false });
+      return false;
+    }
+    await this.run(`open-panel:${panelId}`, async () => {
+      if (intent !== this.navigationIntentSequence) return;
+      this.permissionDenied = false;
+      await this.navigate({ screen: "panel", panelId });
+    });
+    return true;
   }
 
   async back(): Promise<void> {
+    const intent = ++this.navigationIntentSequence;
     await this.run("back", async () => {
       const from = { ...this.location };
       const target = this.history.at(-1) ?? null;
       await this.options.callbacks?.onBack?.(from, target ? { ...target } : null, this.context());
-      if (!target) return;
+      if (!target || intent !== this.navigationIntentSequence) return;
 
       this.captureScroll();
       this.history.pop();
       this.location = target;
+      this.permissionDenied = false;
+      this.navigationDirection = "back";
       await this.notifyScreenChange();
       await this.render({ reload: false, captureScroll: false });
     });
@@ -354,20 +389,34 @@ export class FieldCommunicatorView {
   async openApp(appId: string, requestedPanelId?: string): Promise<boolean> {
     const app = this.snapshot.apps?.find(candidate => candidate.id === appId);
     if (!app || app.disabled) return false;
+    const intent = ++this.navigationIntentSequence;
 
-    await this.run("open-app", async () => {
-      this.recordRecent(app.id);
+    await this.run(`open-app:${app.id}`, async () => {
       const result = await this.options.callbacks?.onOpenApp?.(app, this.context());
+      if (intent !== this.navigationIntentSequence) return;
       const destination = result?.screen;
       const panelId = requestedPanelId ?? result?.panelId ?? app.panelId;
 
       if (destination === "home") {
+        this.permissionDenied = false;
+        this.recordRecent(app.id);
         await this.navigate({ screen: "home", panelId: null });
       } else if (destination === "recents") {
+        this.permissionDenied = false;
+        this.recordRecent(app.id);
         await this.navigate({ screen: "recents", panelId: null });
       } else if (destination === "panel" || (destination === undefined && panelId)) {
+        if (!panelId || !this.hasPanel(panelId)) {
+          this.permissionDenied = true;
+          await this.render({ reload: false });
+          return;
+        }
+        this.permissionDenied = false;
+        this.recordRecent(app.id);
         await this.navigate({ screen: "panel", panelId: panelId ?? app.id });
       } else {
+        this.permissionDenied = false;
+        this.recordRecent(app.id);
         await this.render({ reload: false });
       }
     });
@@ -410,6 +459,10 @@ export class FieldCommunicatorView {
     this.listeners?.abort();
     this.listeners = null;
     this.clearBootTimer();
+    if (this.confirmationTimer !== null) {
+      (this.options.timers ?? defaultTimers).clearTimeout(this.confirmationTimer);
+      this.confirmationTimer = null;
+    }
     this.host.removeAttribute("data-field-communicator-host");
     this.root()?.remove();
   }
@@ -476,8 +529,15 @@ export class FieldCommunicatorView {
         description: "Aplicativos e permissões do comunicador",
         icon: "fa-solid fa-user-shield",
       } : null);
+    const snapshotState = this.snapshot.state && typeof this.snapshot.state === "object"
+      ? this.snapshot.state as Record<string, unknown>
+      : {};
     return {
       ...this.snapshot,
+      state: {
+        ...snapshotState,
+        permissionDenied: this.permissionDenied || snapshotState.permissionDenied === true,
+      },
       apps,
       screen: this.location.screen,
       isHome,
@@ -488,6 +548,7 @@ export class FieldCommunicatorView {
       canGoBack: this.history.length > 0,
       recentApps,
       recentCount: recentApps.length,
+      navigationDirection: this.navigationDirection,
       activeApp,
       panel: activePanel,
       showBoot: this.bootActive,
@@ -503,6 +564,7 @@ export class FieldCommunicatorView {
         recentApps,
         activePanel,
         scrollTop: this.currentScrollTop(),
+        navigationDirection: this.navigationDirection,
         boot: {
           mode: this.bootMode,
           active: this.bootActive,
@@ -544,6 +606,10 @@ export class FieldCommunicatorView {
     );
   }
 
+  private hasPanel(panelId: string): boolean {
+    return Boolean(this.snapshot.panels && Object.prototype.hasOwnProperty.call(this.snapshot.panels, panelId));
+  }
+
   private async navigate(location: FieldCommunicatorLocation): Promise<void> {
     if (sameLocation(this.location, location)) {
       await this.render({ reload: false });
@@ -552,6 +618,7 @@ export class FieldCommunicatorView {
     this.captureScroll();
     this.history.push({ ...this.location });
     this.location = { ...location };
+    this.navigationDirection = "forward";
     await this.notifyScreenChange();
     await this.render({ reload: false, captureScroll: false });
   }
@@ -569,6 +636,8 @@ export class FieldCommunicatorView {
     root.addEventListener("click", event => {
       const element = actionElement(event.target);
       if (!element || !root.contains(element) || isDisabled(element)) return;
+      const tagName = element.tagName?.toLowerCase();
+      if (tagName === "select" || (tagName === "input" && (element as HTMLInputElement).type !== "button")) return;
       event.preventDefault();
       void this.handleAction(element);
     }, { signal });
@@ -617,6 +686,8 @@ export class FieldCommunicatorView {
   private handleKeydown(event: KeyboardEvent): void {
     const root = this.root();
     if (!root) return;
+    const target = event.target as Element | null;
+    if (target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
 
     if (event.key === "Escape") {
       event.preventDefault();
@@ -728,13 +799,32 @@ export class FieldCommunicatorView {
   }
 
   private async run(action: string, task: () => void | Promise<void>): Promise<void> {
+    if (this.pendingActions.has(action)) return;
+    this.pendingActions.add(action);
     this.root()?.setAttribute("aria-busy", "true");
     try {
       await task();
+      this.pulseConfirmation();
     } catch (error) {
       this.options.callbacks?.onError?.(error, action);
     } finally {
+      this.pendingActions.delete(action);
       this.root()?.removeAttribute("aria-busy");
     }
+  }
+
+  private pulseConfirmation(): void {
+    const root = this.root();
+    if (!root?.classList) return;
+    root.classList.remove("is-confirmed");
+    void root.offsetWidth;
+    root.classList.add("is-confirmed");
+    if (this.confirmationTimer !== null) {
+      (this.options.timers ?? defaultTimers).clearTimeout(this.confirmationTimer);
+    }
+    this.confirmationTimer = (this.options.timers ?? defaultTimers).setTimeout(() => {
+      this.root()?.classList?.remove("is-confirmed");
+      this.confirmationTimer = null;
+    }, 280);
   }
 }

@@ -40,6 +40,9 @@ class TestElement {
   focused = false;
   removed = false;
   scroll: TestElement | null = null;
+  tagName = "BUTTON";
+  type = "button";
+  formControl = false;
 
   constructor(dataset: Record<string, string> = {}) {
     Object.assign(this.dataset, dataset);
@@ -72,6 +75,7 @@ class TestElement {
   }
 
   closest(selector: string): TestElement | null {
+    if (this.formControl && selector.includes("input")) return this;
     return selector === "[data-communicator-action]" && this.dataset.communicatorAction ? this : null;
   }
 
@@ -194,6 +198,7 @@ describe("FieldCommunicatorView navigation", () => {
       isHome: true,
       isPanel: false,
       showBoot: false,
+      navigationDirection: "none",
       recentCount: 0,
     });
 
@@ -206,6 +211,7 @@ describe("FieldCommunicatorView navigation", () => {
     expect(renders.at(-1)?.communicator.activePanel).toMatchObject({ id: "sheet-panel" });
     expect(renders.at(-1)).toMatchObject({
       isPanel: true,
+      navigationDirection: "forward",
       activeApp: { id: "sheet" },
       panel: { id: "sheet-panel" },
     });
@@ -218,6 +224,7 @@ describe("FieldCommunicatorView navigation", () => {
 
     await controller.back();
     expect(controller.getState()).toMatchObject({ screen: "panel", panelId: "sheet-panel" });
+    expect(renders.at(-1)?.navigationDirection).toBe("back");
     await controller.showHome();
     expect(controller.getState().screen).toBe("home");
     expect(await controller.openApp("disabled")).toBe(false);
@@ -282,6 +289,40 @@ describe("FieldCommunicatorView navigation", () => {
 
     await controller.openPanel("sheet-panel");
     expect(scroll.scrollTop).toBe(61);
+  });
+
+  it("rejects panels that were not included in the authorized snapshot", async () => {
+    const { host, renders, options } = setup();
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+
+    await expect(controller.openPanel("administration")).resolves.toBe(false);
+    expect(controller.getState()).toMatchObject({ screen: "home", panelId: null });
+    expect(renders.at(-1)?.state).toMatchObject({ permissionDenied: true });
+
+    await controller.showHome();
+    expect(renders.at(-1)?.state).toMatchObject({ permissionDenied: false });
+  });
+
+  it("does not let a slower application response replace a newer navigation intent", async () => {
+    let release!: () => void;
+    const deferred = new Promise<void>(resolve => { release = resolve; });
+    const { host, options } = setup({
+      callbacks: {
+        onOpenApp: async app => {
+          if (app.id === "sheet") await deferred;
+          return { screen: "panel", panelId: "sheet-panel" };
+        },
+      },
+    });
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+
+    const opening = controller.openApp("sheet");
+    await flush();
+    await controller.showHome();
+    release();
+    await opening;
+
+    expect(controller.getState()).toMatchObject({ screen: "home", panelId: null, recentAppIds: [] });
   });
 });
 
@@ -348,6 +389,21 @@ describe("FieldCommunicatorView boot and keyboard", () => {
     expect(calls).toEqual(expect.arrayContaining(["settings", "files", "boot:skip"]));
     expect(controller.getState().boot.active).toBe(false);
   });
+
+  it("leaves arrow keys and Escape untouched inside form controls", async () => {
+    const { host, actions, options } = setup();
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+    actions.settings.formControl = true;
+    actions.settings.tagName = "INPUT";
+    actions.settings.type = "text";
+
+    const arrow = host.root.emit("keydown", actions.settings, "ArrowRight");
+    const escape = host.root.emit("keydown", actions.settings, "Escape");
+
+    expect(arrow.defaultPrevented).toBe(false);
+    expect(escape.defaultPrevented).toBe(false);
+    expect(controller.getState().screen).toBe("home");
+  });
 });
 
 describe("FieldCommunicatorView lifecycle", () => {
@@ -399,5 +455,28 @@ describe("FieldCommunicatorView lifecycle", () => {
 
     await expect(controller.openSettings()).resolves.toBeUndefined();
     expect(errors).toEqual([{ error: failure, action: "settings" }]);
+  });
+
+  it("coalesces duplicate asynchronous actions", async () => {
+    let release!: () => void;
+    const deferred = new Promise<void>(resolve => { release = resolve; });
+    let calls = 0;
+    const { host, actions, options } = setup({
+      callbacks: {
+        onAction: async () => {
+          calls += 1;
+          await deferred;
+        },
+      },
+    });
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+
+    host.root.emit("click", actions.custom);
+    host.root.emit("click", actions.custom);
+    await flush();
+    expect(calls).toBe(1);
+    release();
+    await flush();
+    controller.destroy();
   });
 });

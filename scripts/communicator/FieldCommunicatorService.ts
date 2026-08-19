@@ -182,7 +182,14 @@ export class FieldCommunicatorService {
       const targetAccessible = app.source !== "custom" || await this.canAccessTarget(app, subjectUser);
       if (!targetAccessible && !game.user?.isGM) return null;
       return {
-        ...app,
+        id: app.id,
+        source: app.source,
+        type: app.type,
+        order: app.order,
+        enabled: app.enabled,
+        icon: app.icon,
+        minimumRank: app.minimumRank,
+        badge: app.badge,
         label: appLabel(app),
         description: appDescription(app),
         accent: text(app.accent).startsWith("#") ? "custom" : text(app.accent) || "gold",
@@ -194,7 +201,9 @@ export class FieldCommunicatorService {
       };
     }))).filter((app): app is NonNullable<typeof app> => Boolean(app));
 
-    const panels = await this.buildPanels(actor, registry, subjectUser);
+    const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
+    if (game.user?.isGM) allowedPanelIds.add("administration");
+    const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds);
     const preferences = this.clientSettings();
     const squads = companyIdentity.squadIds;
     const ether = record(actor?.getFlag(ETHERNUM.MODULE_NAME, "etherSystem"));
@@ -266,19 +275,43 @@ export class FieldCommunicatorService {
         notificationsPriority: preferences.notifications === "priority",
         notificationsOff: preferences.notifications === "off",
       },
-      adminApps: registry.apps.map(app => ({
-        ...app,
-        label: appLabel(app),
-        description: appDescription(app),
-        targetLabel: app.internalTarget ?? app.targetUuid ?? app.targetUrl ?? "Interno",
-        canRemove: app.source === "custom",
-      })),
-      previewUsers: activeUsers,
-      previewUserId: previewUser?.id ?? "",
-      previewMode: Boolean(previewUser),
-      registryVersion: registry.schemaVersion,
+      ...(game.user?.isGM ? {
+        adminApps: registry.apps.map(app => ({
+          ...app,
+          label: appLabel(app),
+          description: appDescription(app),
+          targetLabel: app.internalTarget ?? app.targetUuid ?? app.targetUrl ?? "Interno",
+          canRemove: app.source === "custom",
+        })),
+        previewUsers: activeUsers,
+        previewUserId: previewUser?.id ?? "",
+        previewMode: Boolean(previewUser),
+        registryVersion: registry.schemaVersion,
+      } : {}),
       preferences,
     };
+  }
+
+  async openRegisteredApp(appId: string, previewUserId?: string | null): Promise<boolean> {
+    const app = this.getRegistry().apps.find(candidate => candidate.id === appId);
+    if (!app?.enabled) {
+      throw new Error(localize("ETHERNUM.FieldCommunicator.Errors.NoPermission", "Acesso negado."));
+    }
+    const previewUser = previewUserId && game.user?.isGM
+      ? collection<UserWithCharacter>(game.users).find(user => user.id === previewUserId) ?? null
+      : null;
+    const subjectUser = previewUser ?? game.user as UserWithCharacter | null;
+    const actor = this.getAssignedActor(subjectUser);
+    const identity = CompanyIdentityService.resolve(actor);
+    const allowed = filterFieldCommunicatorApps([app], {
+      rank: identity.rank,
+      agentId: actor?.id ?? undefined,
+      squadIds: identity.squadIds,
+    }).length === 1;
+    if (!allowed || !(await this.canAccessUnlock(app, actor, subjectUser)) || !(await this.canAccessTarget(app, subjectUser))) {
+      throw new Error(localize("ETHERNUM.FieldCommunicator.Errors.NoPermission", "Acesso negado."));
+    }
+    return this.openCustomApp(app);
   }
 
   async openDocument(uuid: string): Promise<boolean> {
@@ -350,6 +383,7 @@ export class FieldCommunicatorService {
     actor: Actor | null,
     registry: FieldCommunicatorRegistryData,
     viewer: UserWithCharacter | null,
+    allowedPanelIds: ReadonlySet<string>,
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
     const scenes = this.documentEntries(collection<PermissionDocument>(game.scenes), "view-scene", viewer);
     const journals = collection<PermissionDocument>((game as Game & { journal?: Iterable<PermissionDocument> }).journal)
@@ -365,7 +399,7 @@ export class FieldCommunicatorService {
       .map(user => this.userEntry(user, viewer));
     const messages = this.communicatorMessages();
 
-    return {
+    const panels = {
       sheet: this.panel("sheet", localize("ETHERNUM.FieldCommunicator.Apps.sheet.Label", "Ficha"), "sheet", {
         actor: actor ? createPF2eCharacterSnapshot(actor) : undefined,
         entries: actor ? [this.documentEntry(actor as unknown as PermissionDocument, "open-document")] : [],
@@ -400,6 +434,9 @@ export class FieldCommunicatorService {
         isGM: Boolean(game.user?.isGM),
       }),
     };
+    return Object.fromEntries(
+      Object.entries(panels).filter(([panelId]) => allowedPanelIds.has(panelId)),
+    );
   }
 
   private panel(

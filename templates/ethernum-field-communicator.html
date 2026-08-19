@@ -5,6 +5,7 @@
   data-high-contrast="{{highContrast}}"
   data-boot-state="{{bootState}}"
   data-communicator-screen="{{screen}}"
+  data-navigation-direction="{{navigationDirection}}"
   style="{{#if textScale}}--ethc-text-scale: {{textScale}};{{/if}}{{#if glowIntensity}} --ethc-glow-strength: {{glowIntensity}};{{/if}}"
   aria-label="Comunicador de Campo Ethernum"
 >
@@ -41,14 +42,14 @@
       </li>
       {{/each}}
     </ol>
-    <button type="button" class="ethc-boot__skip" data-communicator-action="skip-boot">
+    {{#if communicator.boot.canSkip}}<button type="button" class="ethc-boot__skip" data-communicator-action="skip-boot">
       <i class="fas fa-forward-step" aria-hidden="true"></i>
       <span>Pular inicialização</span>
-    </button>
+    </button>{{/if}}
   </section>
   {{/if}}
 
-  <header class="ethc-header" data-communicator-drag>
+  <header class="ethc-header" data-communicator-drag {{#if showBoot}}inert aria-hidden="true"{{/if}}>
     <div class="ethc-header__brand" aria-label="Ethernum Company">
       <span class="ethc-brand-mark" aria-hidden="true"><img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt=""></span>
       <span><small>Ethernum Company</small><strong>Field Communicator</strong></span>
@@ -77,14 +78,14 @@
         <i class="fas fa-bell" aria-hidden="true"></i>
         {{#if notificationCount}}<span class="ethc-badge ethc-badge--danger">{{notificationCount}}</span>{{/if}}
       </button>
-      <button type="button" class="ethc-icon-button" data-communicator-action="close" aria-label="Fechar comunicador" title="Fechar">
+      <button type="button" class="ethc-icon-button" data-communicator-action="power" aria-label="Desligar comunicador" title="Desligar">
         <i class="fas fa-power-off" aria-hidden="true"></i>
       </button>
       <time class="ethc-world-time" datetime="{{worldTime.iso}}">{{worldTime.label}}</time>
     </div>
   </header>
 
-  <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="Conteúdo do comunicador">
+  <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="Conteúdo do comunicador" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
     {{#if state.noActor}}
     <section class="ethc-system-state ethc-system-state--warning" role="status" aria-labelledby="ethc-state-no-actor">
       <i class="fas fa-id-card-clip" aria-hidden="true"></i>
@@ -196,7 +197,6 @@
         {{#if activeApp.badge}}<span class="ethc-badge">{{activeApp.badge}}</span>{{/if}}
         <div class="ethc-panel-header__actions">
           <button type="button" class="ethc-icon-button" data-communicator-action="refresh-panel" aria-label="Atualizar painel" title="Atualizar"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
-          <button type="button" class="ethc-icon-button" data-communicator-action="open-panel-document" aria-label="Abrir documento original" title="Abrir documento original"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>
         </div>
       </header>
 
@@ -326,7 +326,7 @@
     {{/if}}
   </main>
 
-  <nav class="ethc-footer" aria-label="Navegação do comunicador">
+  <nav class="ethc-footer" aria-label="Navegação do comunicador" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
     <button type="button" class="{{#if isHome}}is-active{{/if}}" data-communicator-action="go-home" aria-current="{{#if isHome}}page{{else}}false{{/if}}"><i class="fas fa-house" aria-hidden="true"></i><span>Início</span></button>
     <button type="button" data-communicator-action="go-back" {{#unless canGoBack}}disabled{{/unless}}><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Voltar</span></button>
     <button type="button" class="{{#if isRecents}}is-active{{/if}}" data-communicator-action="open-recents" aria-current="{{#if isRecents}}page{{else}}false{{/if}}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Recentes</span>{{#if recentCount}}<span class="ethc-badge">{{recentCount}}</span>{{/if}}</button>
