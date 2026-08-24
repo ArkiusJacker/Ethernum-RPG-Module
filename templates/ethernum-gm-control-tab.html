@@ -215,6 +215,55 @@
       {{/if}}
     </section>
 
+    <section id="ethernum-gm-panel-mechanics" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.mechanics'}}" {{#unless panels.mechanics.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-wand-magic-sparkles"></i> Gerador de Mecânica Única NPC</h3><p>Análise PF2e offline, templates declarativos e aplicação reversível.</p></div>
+        <div class="ethernum-gm-control__toolbar">
+          <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-generate" {{#if npcActorsEmpty}}disabled{{/if}}><i class="fas fa-dice-d20"></i><span>Gerar</span></button>
+          <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-regenerate" {{#if mechanicPreviewEmpty}}disabled{{/if}}><i class="fas fa-arrows-rotate"></i><span>Nova semente</span></button>
+        </div>
+      </div>
+      {{#if npcActorsEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-user-slash"></i><strong>Nenhum NPC PF2e disponível</strong><span>Crie ou importe um Actor do tipo NPC para iniciar a análise.</span></div>
+      {{else}}
+      {{#if mechanicPreviewEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-wand-magic-sparkles"></i><strong>Nenhuma mecânica em prévia</strong><span>Escolha um NPC, uma complexidade e uma semente. A geração não altera o Actor.</span></div>
+      {{else}}
+      <div class="ethernum-mechanic-generator__header">
+        <div><span>Mecânica experimental</span><h4>{{mechanicPreview.name}}</h4><p>{{mechanicPreview.description}}</p></div>
+        <div class="ethernum-mechanic-generator__budget"><span>Orçamento</span><strong>{{mechanicPreview.metadata.powerSpent}} / {{mechanicPreview.metadata.powerBudget}}</strong></div>
+      </div>
+      <div class="ethernum-generator__metrics">
+        <div><span>NPC</span><strong>{{mechanicAnalysis.actorName}}</strong></div>
+        <div><span>Nível</span><strong>{{mechanicAnalysis.level}}</strong></div>
+        <div><span>Complexidade</span><strong>{{mechanicPreview.complexity}}</strong></div>
+        <div><span>Semente</span><strong>{{mechanicPreview.metadata.seed}}</strong></div>
+      </div>
+      <p class="ethernum-mechanic-generator__roles"><i class="fas fa-diagram-project"></i>{{mechanicPreview.roleLabel}}</p>
+      <div class="ethernum-mechanic-generator__grid">
+        {{#each mechanicComponents}}
+        <article class="ethernum-mechanic-generator__component kind-{{this.kind}}">
+          <header><span>{{this.kindLabel}} · {{this.actionLabel}}</span><strong>{{this.name}}</strong></header>
+          <p>{{this.summary}}</p>
+          {{#if this.trigger}}<dl><dt>Gatilho</dt><dd>{{this.trigger}}</dd></dl>{{/if}}
+          {{#if this.requirements}}<dl><dt>Requisitos</dt><dd>{{this.requirements}}</dd></dl>{{/if}}
+          <dl><dt>Efeito</dt><dd>{{this.effect}}</dd></dl>
+          <footer><span>{{this.templateId}}</span><span>Poder {{this.powerCost}}{{#if this.constraintsLabel}} · {{this.constraintsLabel}}{{/if}}</span></footer>
+        </article>
+        {{/each}}
+      </div>
+      {{#each mechanicPreview.warnings}}<p class="ethernum-generator__warning"><i class="fas fa-triangle-exclamation"></i>{{this}}</p>{{/each}}
+      {{#if mechanicManualProtected}}<p class="ethernum-generator__warning"><i class="fas fa-shield-halved"></i>Este NPC possui conteúdo manual protegido. A aplicação exigirá confirmação específica e manterá um snapshot reversível.</p>{{/if}}
+      <div class="ethernum-generator__actions">
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-edit"><i class="fas fa-pen"></i><span>Editar textos</span></button>
+        <button type="button" class="ethernum-gm-control__command tone-success" data-gm-domain-action="mechanic-apply"><i class="fas fa-floppy-disk"></i><span>Aplicar ao NPC</span></button>
+        <button type="button" class="ethernum-gm-control__command tone-warning" data-gm-domain-action="mechanic-revert" data-actor-uuid="{{mechanicPreview.metadata.actorUuid}}" data-application-id="{{mechanicCurrentApplicationId}}" {{#unless mechanicCanRevert}}disabled{{/unless}}><i class="fas fa-clock-rotate-left"></i><span>Reverter última</span></button>
+      </div>
+      <small class="ethernum-generator__timestamp">Gerado em {{mechanicPreview.generatedLabel}}. Nenhum JavaScript, macro arbitrária ou perfil estático foi criado.</small>
+      {{/if}}
+      {{/if}}
+    </section>
+
     <section id="ethernum-gm-panel-requisitions" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.requisitions'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>

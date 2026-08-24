@@ -13,6 +13,7 @@ export const GM_CONTROL_SECTIONS = [
   "store",
   "loot",
   "encounter",
+  "mechanics",
   "requisitions",
   "rewards",
   "broadcast",
@@ -296,6 +297,7 @@ const SECTION_ICONS: Record<GMControlSection, string> = {
   store: "fa-store",
   loot: "fa-box-open",
   encounter: "fa-people-arrows",
+  mechanics: "fa-wand-magic-sparkles",
   requisitions: "fa-list-check",
   rewards: "fa-award",
   broadcast: "fa-tower-broadcast",
@@ -433,6 +435,13 @@ function copperLabel(value: number): string {
     .flatMap(([amount, unit]) => Number(amount) > 0 ? [`${amount} ${unit}`] : []).join(" · ") || "0 cp";
 }
 
+function mechanicActionLabel(value: unknown): string {
+  if (value === "passive") return "Passivo";
+  if (value === "reaction") return "Reação";
+  if (value === "free") return "Ação livre";
+  return `${value} ação(ões)`;
+}
+
 function optionRows(
   values: readonly GMControlFilterOption[] | undefined,
   selected: string,
@@ -479,6 +488,22 @@ export function buildGMControlCenterData(
   panels.policies = panels.system;
   panels.diagnostics = panels.system;
   panels.admin = panels.system;
+
+  const mechanicPreview = snapshot.generators?.mechanicPreview;
+  const mechanicComponents = mechanicPreview
+    ? [mechanicPreview.passive, mechanicPreview.active, mechanicPreview.reaction, mechanicPreview.phase].filter(Boolean).map(component => ({
+        ...component,
+        kindLabel: ({ passive: "Passivo", active: "Ativo", reaction: "Reação", phase: "Fase / escalada" } as Record<string, string>)[component!.kind],
+        actionLabel: mechanicActionLabel(component!.actionCost),
+        constraintsLabel: [
+          component!.cooldownRounds ? `recarga ${component!.cooldownRounds} rodada(s)` : "",
+          component!.limitedUses ? `${component!.limitedUses} uso(s)` : "",
+        ].filter(Boolean).join(" · "),
+      }))
+    : [];
+  const mechanicActor = mechanicPreview
+    ? snapshot.generators?.npcActors.find(actor => actor.value === mechanicPreview.metadata.actorUuid)
+    : undefined;
 
   return {
     isGM: options.isGM,
@@ -631,6 +656,19 @@ export function buildGMControlCenterData(
       })),
     } : undefined,
     encounterAnalysisEmpty: !snapshot.generators?.encounterAnalysis,
+    mechanicPreview: mechanicPreview ? {
+      ...mechanicPreview,
+      generatedLabel: timestamp(mechanicPreview.metadata.generatedAt, locale),
+      roleLabel: mechanicPreview.roles.slice(0, 3).map(role => `${role.role} ${Math.round(role.weight * 100)}%`).join(" · "),
+    } : undefined,
+    mechanicComponents,
+    mechanicPreviewEmpty: !mechanicPreview,
+    mechanicAnalysis: snapshot.generators?.mechanicAnalysis,
+    npcActors: snapshot.generators?.npcActors ?? [],
+    npcActorsEmpty: (snapshot.generators?.npcActors.length ?? 0) === 0,
+    mechanicCanRevert: mechanicActor?.canRevert === true,
+    mechanicCurrentApplicationId: mechanicActor?.currentApplicationId,
+    mechanicManualProtected: mechanicActor?.manualProtected === true,
     updatedAtLabel: timestamp(snapshot.updatedAt ?? now, locale),
     i18nRoot: GM_CONTROL_I18N_ROOT,
   };

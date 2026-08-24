@@ -4,6 +4,10 @@ import type { CompanyIdentitySnapshot } from "../company/CompanyIdentityService.
 import type { CompanyRewardGrantInput } from "../rewards/CompanyRewardTypes.js";
 import type { EmergencyBroadcastInput } from "../communicator/EmergencyBroadcastService.js";
 import type { LootApplicationInput, LootManifest } from "../generators/loot/LootGeneratorTypes.js";
+import type {
+  GeneratedNPCMechanicApplicationInput,
+  GeneratedNPCMechanicRevertInput,
+} from "../generators/mechanics/GeneratedNPCMechanicTypes.js";
 
 export const ADMINISTRATIVE_COMMAND_HANDLER = "administrative-communicator.command";
 export const ADMINISTRATIVE_COMMAND_CATEGORY = "administration";
@@ -20,7 +24,9 @@ export type AdministrativeCommand =
   | { kind: "reward.grant"; reward: CompanyRewardGrantInput }
   | { kind: "broadcast.send"; broadcast: EmergencyBroadcastInput }
   | { kind: "loot.apply"; application: LootApplicationInput }
-  | { kind: "loot.chat"; manifest: LootManifest };
+  | { kind: "loot.chat"; manifest: LootManifest }
+  | { kind: "npc-mechanic.apply"; application: GeneratedNPCMechanicApplicationInput }
+  | { kind: "npc-mechanic.revert"; revert: GeneratedNPCMechanicRevertInput };
 
 export interface AdministrativeCommandResult {
   kind: AdministrativeCommand["kind"];

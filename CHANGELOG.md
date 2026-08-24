@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.5] - 2026-08-24
+
+### Adicionado
+- Gerador offline e determinístico de Mecânica Única para NPCs PF2e, com análise de nível, traits, tamanho, deslocamentos, Strikes, dano, conjuração, defesas, resistências, ações e reações.
+- Classificação ponderada nos papéis Brute, Skirmisher, Controller, Artillery, Defender, Support, Caster, Boss e Hybrid.
+- Treze famílias declarativas experimentais: Aura, Charge, Reaction, Counter, Mark, Resource, Phase, Finisher, Summon, Hazard, Movement, Zone e Escalation.
+- Área `NPC Mechanics` no Command Device com geração reproduzível, prévia, edição restrita a textos, orçamento de poder, aplicação explícita e reversão da última aplicação.
+- Serviço versionado em flag própria que materializa somente Items PF2e nativos do tipo Action e preserva perfis autorais e Items manuais.
+
+### Alterado
+- A análise de deslocamento usa `system.movement.speeds` do PF2e atual, com fallback compatível somente pela fonte persistida e sem acionar o getter obsoleto.
+- Aplicar e reverter passam pela fachada administrativa e pela Authority Bridge existentes, com idempotência e auditoria.
+- O estado gerado registra origem, versão, horário, semente, fingerprint do Actor, templates e orçamento consumido.
+
+### Segurança
+- Definições geradas são dados declarativos validados; JavaScript arbitrário, `eval`, `new Function`, texto de macro e expansão dinâmica de `UniqueMechanicProfileId` não são aceitos.
+- O Actor é reanalisado imediatamente antes da aplicação; prévias antigas são recusadas quando as estatísticas mudam.
+- Conteúdo manual exige confirmação explícita, e falhas restauram flag e Items anteriores por compensação.
+
+### Testes
+- 83 arquivos e 601 testes automatizados cobrem determinismo, papéis, 13 templates, orçamento, schema, movimento PF2e atual, separação arquitetural, aplicação idempotente, rollback e proteção manual.
+- Smoke test autenticado no Foundry gerou uma mecânica Boss 9/9 para o Adamantine Dragon sem avisos do módulo ou da API obsoleta de deslocamento.
+- Evidências e relatório ficam em `docs/qa/v3.8.5/`.
+
 ## [3.8.4] - 2026-08-24
 
 ### Adicionado

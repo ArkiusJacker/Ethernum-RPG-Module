@@ -1,6 +1,7 @@
 import type { EtherAttribute, CampaignCoreId } from './config.js';
 import type { CombatMomentumState } from './table/CombatMomentumSystem.js';
 import type { CombatTurnTimerState } from './combat/CombatTurnTimer.js';
+import type { GeneratedNPCMechanicActorState } from './generators/mechanics/GeneratedNPCMechanicTypes.js';
 
 /**
  * Augmenta as interfaces globais do foundry-vtt-types com as flags e settings
@@ -67,6 +68,7 @@ declare global {
           activeProfile: string;
           profiles: Record<string, unknown>;
         };
+        generatedNPCMechanic?: GeneratedNPCMechanicActorState;
         combatMomentum?: CombatMomentumState;
         characterSheetMode?: "auto" | "ethernum" | "concordia" | "pf2e";
         schemaVersion?: number;

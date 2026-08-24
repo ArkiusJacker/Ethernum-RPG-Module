@@ -326,3 +326,75 @@ Foundry harvest:
   verified transactionally in tests and the live world was left unchanged.
 - The current combat (one level-3 character against a level-13 Adamantine Dragon)
   was diagnosed as beyond extreme with the expected out-of-range warning.
+
+## HARVEST Session - Deterministic NPC Unique Mechanics
+
+Version target: 3.8.5
+
+Mode: Full
+
+Execution: Facilitator, architecture, PF2e integration, security and experience
+passes were performed in the main implementation and verified independently by
+focused architecture and transaction tests.
+
+### Seed
+
+Create useful enemy mechanics from existing PF2e NPC data without AI, runtime
+profile registration, arbitrary code or preview-time world mutation.
+
+### Canonical Requirements
+
+- Analyze the complete combat-facing NPC shape and classify weighted roles.
+- Generate deterministic Standard, Elite and Boss compositions from constrained
+  experimental templates.
+- Enforce a visible power budget and meaningful action, trigger, cooldown,
+  telegraph, resource, positioning or HP-threshold tradeoffs.
+- Preview and text-edit before an explicit audited application.
+- Preserve authored profile mechanics and support one-step generated rollback.
+
+### Harvest
+
+Canonical:
+
+- A standalone declarative schema and strict validator remain outside the static
+  `UniqueMechanicProfileId` union and the legacy/kernel implementations.
+- Thirteen `[TESTE]` template families are pure builders over normalized PF2e NPC
+  analysis; a stable seed and Actor fingerprint reproduce the same definition.
+- Standard, Elite and Boss budgets reserve the minimum cost of later components,
+  preventing a strong early choice from overspending the final composition.
+- Generated Items are ordinary PF2e Actions with safe inline checks/damage and
+  module ownership flags, never executable macro source.
+- Application revalidates Actor identity and fingerprint, snapshots generated
+  state, preserves manual Items and compensates partial failures.
+- Administrative apply/revert reuse the existing Authority Bridge and audit path.
+
+Experiments harvested: All thirteen new template families remain explicitly
+marked `[TESTE]` pending campaign feedback.
+
+Backlog:
+
+- Replace the shared Foundry V1 Dialog helper with ApplicationV2 without coupling
+  that migration to generator rules.
+- Promote individual template families only after encounter telemetry and GM
+  review establish stable tuning.
+
+Rejected:
+
+- Dynamic authored-profile registration, arbitrary JavaScript, generated macro
+  text, silent Actor mutation and unbounded free damage.
+- AI as a dependency of deterministic generation.
+- Reading journals, conversations or unrelated world documents as NPC context.
+
+Foundry harvest:
+
+- The live Adamantine Dragon produced a reproducible Boss composition with four
+  components and a complete 9/9 power budget.
+- PF2e 7.5 reported the legacy `system.attributes.speed` getter. Analysis now uses
+  prepared `system.movement.speeds` and a raw-source-only compatibility fallback;
+  the warning disappeared on the repeated smoke test.
+- The final four-column metric strip removed an inherited empty fifth column and
+  retained readable cards at the current Command Device size.
+- Live apply/revert could not complete while the active primary GM retained the
+  previous bundle; the secondary GM correctly waited for authority. Transactional
+  tests cover completed apply, duplicate apply, revert, manual restoration and
+  compensating rollback, and the live world was left without generated changes.

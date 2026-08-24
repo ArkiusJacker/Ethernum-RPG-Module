@@ -9,6 +9,7 @@ import { getCompanyRewardService, type CompanyRewardService } from "../rewards/C
 import { getEmergencyBroadcastService, type EmergencyBroadcastService } from "../communicator/EmergencyBroadcastService.js";
 import { getLootDeliveryService, type LootDeliveryService } from "../generators/loot/LootDeliveryService.js";
 import { getOperationalGeneratorService } from "../generators/OperationalGeneratorService.js";
+import { getGeneratedNPCMechanicService, type GeneratedNPCMechanicService } from "../unique/services/GeneratedNPCMechanicService.js";
 import type { GMControlCenterSnapshot } from "../ui/GMControlCenterData.js";
 import {
   ADMINISTRATIVE_COMMAND_CATEGORY,
@@ -33,6 +34,7 @@ function isCommand(value: unknown): value is AdministrativeCommand {
   return typeof input.kind === "string" && [
     "contract.publish", "contract.status", "contract.access", "contract.intelligence",
     "store.upsert", "store.remove", "store.toggle", "identity.update", "reward.grant", "broadcast.send", "loot.apply", "loot.chat",
+    "npc-mechanic.apply", "npc-mechanic.revert",
   ].includes(input.kind);
 }
 
@@ -45,6 +47,7 @@ export class AdministrativeCommunicatorService {
     private readonly rewards: CompanyRewardService = getCompanyRewardService(),
     private readonly broadcasts: EmergencyBroadcastService = getEmergencyBroadcastService(),
     private readonly loot: LootDeliveryService = getLootDeliveryService(),
+    private readonly generatedMechanics: GeneratedNPCMechanicService = getGeneratedNPCMechanicService(),
     private readonly adapter = new PF2eStoreAdapter(),
   ) {}
 
@@ -77,7 +80,15 @@ export class AdministrativeCommunicatorService {
       handlerId: ADMINISTRATIVE_COMMAND_HANDLER,
       category: ADMINISTRATIVE_COMMAND_CATEGORY,
       actionId: command.kind,
-      sourceActorUuid: "actorUuid" in command ? command.actorUuid : "reward" in command ? command.reward.actorUuid : "application" in command ? command.application.actorUuid : undefined,
+      sourceActorUuid: "actorUuid" in command
+        ? command.actorUuid
+        : "reward" in command
+          ? command.reward.actorUuid
+          : "application" in command
+            ? command.application.actorUuid
+            : "revert" in command
+              ? command.revert.actorUuid
+              : undefined,
       summary: this.summary(command),
       idempotencyKey: idempotency,
       payload: command,
@@ -246,6 +257,14 @@ export class AdministrativeCommunicatorService {
         const transactionId = await this.loot.postToChat(command.manifest);
         return { kind: command.kind, message: "Manifesto de loot publicado no chat.", transactionId };
       }
+      case "npc-mechanic.apply": {
+        const result = await this.generatedMechanics.apply(command.application);
+        return { kind: command.kind, message: `Mecânica ${result.state} em ${result.actorName}.`, transactionId: result.applicationId };
+      }
+      case "npc-mechanic.revert": {
+        const result = await this.generatedMechanics.revert(command.revert);
+        return { kind: command.kind, message: `Mecânica ${result.state} em ${result.actorName}.`, transactionId: command.revert.revertId };
+      }
     }
   }
 
@@ -254,6 +273,8 @@ export class AdministrativeCommunicatorService {
     if (command.kind === "broadcast.send") return `admin:broadcast:${command.broadcast.broadcastId}`;
     if (command.kind === "loot.apply") return `admin:loot:apply:${command.application.applicationId}`;
     if (command.kind === "loot.chat") return `admin:loot:chat:${command.manifest.manifestId}`;
+    if (command.kind === "npc-mechanic.apply") return `admin:npc-mechanic:apply:${command.application.applicationId}`;
+    if (command.kind === "npc-mechanic.revert") return `admin:npc-mechanic:revert:${command.revert.revertId}`;
     return `admin:${command.kind}:${foundry.utils.randomID(24)}`;
   }
 
@@ -263,6 +284,7 @@ export class AdministrativeCommunicatorService {
     if (command.kind === "identity.update") return "Identidade da Companhia atualizada";
     if (command.kind === "reward.grant") return "Recompensa distribuída";
     if (command.kind.startsWith("loot.")) return `Loot: ${command.kind.split(".")[1]}`;
+    if (command.kind.startsWith("npc-mechanic.")) return `Mecânica NPC: ${command.kind.split(".")[1]}`;
     return "Comunicado operacional enviado";
   }
 }

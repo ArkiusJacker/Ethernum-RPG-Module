@@ -32,6 +32,10 @@ function actors(): Actor[] {
     .filter(actor => (actor.type as string) === "character");
 }
 
+function allActors(): Actor[] {
+  return Array.from(game.actors ?? []) as Actor[];
+}
+
 function users(): User[] {
   return Array.from(game.users ?? []) as User[];
 }
@@ -42,7 +46,7 @@ function collection<T>(value: unknown): T[] {
 }
 
 function actorByUuid(uuid: string | undefined): Actor | undefined {
-  return uuid ? actors().find(actor => actor.uuid === uuid) : undefined;
+  return uuid ? allActors().find(actor => actor.uuid === uuid) : undefined;
 }
 
 function userName(id: string | undefined): string {
@@ -186,6 +190,89 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
   }
   if (action === "encounter-analyze") {
     generators.analyzeCurrentEncounter();
+    return;
+  }
+  if (action === "mechanic-generate") {
+    const snapshot = generators.snapshot();
+    const options = snapshot.npcActors.map(actor => `<option value="${escapeHtml(actor.value)}">${escapeHtml(actor.label)} · nível ${actor.level}${actor.currentName ? ` · ${escapeHtml(actor.currentName)}` : ""}</option>`).join("");
+    if (!options) throw new Error("Nenhum NPC PF2e está disponível para análise.");
+    const data = await formDialog("Gerador determinístico de mecânica NPC", `
+      <label>NPC<select name="actorUuid" required>${options}</select></label>
+      <label>Complexidade<select name="complexity"><option value="auto">Automática</option><option value="standard">Padrão</option><option value="elite">Elite</option><option value="boss">Chefe</option></select></label>
+      <label>Semente<input name="seed" maxlength="160" value="${escapeHtml(randomId("npc-seed"))}" required></label>
+      <p class="ethernum-command-dialog__notice"><i class="fas fa-flask"></i> Todos os templates desta versão são experimentais e permanecem marcados como [TESTE]. A geração não altera o Actor.</p>
+    `, "Gerar prévia");
+    if (!data) return;
+    await generators.generateNPCMechanic(
+      field(data, "actorUuid"),
+      field(data, "seed"),
+      field(data, "complexity") as "auto" | "standard" | "elite" | "boss",
+    );
+    return;
+  }
+  if (action === "mechanic-regenerate") {
+    await generators.regenerateNPCMechanic(randomId("npc-seed"));
+    return;
+  }
+  if (action === "mechanic-edit") {
+    const definition = generators.snapshot().mechanicPreview;
+    if (!definition) throw new Error("Gere uma mecânica NPC antes de editar.");
+    const components = [definition.passive, definition.active, definition.reaction, definition.phase].filter(Boolean);
+    const componentFields = components.map(component => `
+      <fieldset><legend>${escapeHtml(component!.kind)} · ${escapeHtml(component!.templateId)}</legend>
+        <label>Nome<input name="${component!.kind}Name" maxlength="160" value="${escapeHtml(component!.name)}" required></label>
+        <label>Resumo<textarea name="${component!.kind}Summary" maxlength="500" required>${escapeHtml(component!.summary)}</textarea></label>
+        ${component!.trigger !== undefined ? `<label>Gatilho<textarea name="${component!.kind}Trigger" maxlength="700">${escapeHtml(component!.trigger)}</textarea></label>` : ""}
+        ${component!.requirements !== undefined ? `<label>Requisitos<textarea name="${component!.kind}Requirements" maxlength="700">${escapeHtml(component!.requirements)}</textarea></label>` : ""}
+        <label>Efeito<textarea name="${component!.kind}Effect" maxlength="2500" required>${escapeHtml(component!.effect)}</textarea></label>
+      </fieldset>`).join("");
+    const data = await formDialog("Editar prévia da mecânica NPC", `
+      <label>Nome da mecânica<input name="definitionName" maxlength="180" value="${escapeHtml(definition.name)}" required></label>
+      ${componentFields}
+      <p class="ethernum-command-dialog__notice"><i class="fas fa-shield-halved"></i> A edição altera somente textos. Custos, operações e limites declarativos permanecem protegidos.</p>
+    `, "Atualizar prévia");
+    if (!data) return;
+    const componentEdits = Object.fromEntries(components.map(component => [component!.kind, {
+      name: field(data, `${component!.kind}Name`),
+      summary: field(data, `${component!.kind}Summary`),
+      ...(component!.trigger !== undefined ? { trigger: field(data, `${component!.kind}Trigger`) || undefined } : {}),
+      ...(component!.requirements !== undefined ? { requirements: field(data, `${component!.kind}Requirements`) || undefined } : {}),
+      effect: field(data, `${component!.kind}Effect`),
+    }]));
+    generators.editNPCMechanic({ definitionName: field(data, "definitionName"), components: componentEdits });
+    return;
+  }
+  if (action === "mechanic-apply") {
+    const snapshot = generators.snapshot();
+    const definition = snapshot.mechanicPreview;
+    if (!definition) throw new Error("Gere uma mecânica NPC antes de aplicar.");
+    const actor = snapshot.npcActors.find(candidate => candidate.value === definition.metadata.actorUuid);
+    if (!actor) throw new Error("O NPC da prévia não está mais disponível.");
+    const data = await formDialog("Aplicar mecânica gerada", `
+      <p>Serão criados Items PF2e nativos em <strong>${escapeHtml(actor.label)}</strong>. Items manuais e o perfil autoral de Mecânica Única não serão alterados.</p>
+      ${actor.currentName ? `<p class="ethernum-command-dialog__notice"><i class="fas fa-clock-rotate-left"></i> A aplicação atual <strong>${escapeHtml(actor.currentName)}</strong> será preservada como snapshot reversível.</p>` : ""}
+      ${actor.manualProtected ? '<label><input type="checkbox" name="replaceManual"> Confirmo a substituição do conteúdo manual protegido neste flag.</label>' : ""}
+    `, "Aplicar");
+    if (!data) return;
+    if (actor.manualProtected && data.get("replaceManual") !== "on") throw new Error("Confirme explicitamente a substituição da mecânica manual protegida.");
+    const applicationId = `${definition.id}:${definition.metadata.generatedAt}`;
+    await runCommand({ kind: "npc-mechanic.apply", application: {
+      applicationId,
+      actorUuid: definition.metadata.actorUuid,
+      definition,
+      replaceManual: data.get("replaceManual") === "on",
+    } });
+    return;
+  }
+  if (action === "mechanic-revert") {
+    const actorUuid = payload.actorUuid;
+    const applicationId = payload.applicationId;
+    if (!actorUuid || !applicationId) throw new Error("Não existe aplicação gerada reversível para este NPC.");
+    const data = await formDialog("Reverter mecânica gerada", "<p>Os Items desta aplicação serão removidos e o snapshot anterior será restaurado.</p>", "Reverter");
+    if (!data) return;
+    await runCommand({ kind: "npc-mechanic.revert", revert: {
+      revertId: `${applicationId}:revert`, actorUuid, applicationId,
+    } });
     return;
   }
   if (action === "preview-player") {
