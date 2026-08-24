@@ -3,6 +3,7 @@ import type { CompanyStoreEntry } from "../store/CompanyStoreTypes.js";
 import type { CompanyIdentitySnapshot } from "../company/CompanyIdentityService.js";
 import type { CompanyRewardGrantInput } from "../rewards/CompanyRewardTypes.js";
 import type { EmergencyBroadcastInput } from "../communicator/EmergencyBroadcastService.js";
+import type { LootApplicationInput, LootManifest } from "../generators/loot/LootGeneratorTypes.js";
 
 export const ADMINISTRATIVE_COMMAND_HANDLER = "administrative-communicator.command";
 export const ADMINISTRATIVE_COMMAND_CATEGORY = "administration";
@@ -17,7 +18,9 @@ export type AdministrativeCommand =
   | { kind: "store.toggle"; entryId: string; enabled: boolean; expectedRevision: number }
   | { kind: "identity.update"; actorUuid: string; identity: Partial<CompanyIdentitySnapshot>; expectedRevision: number }
   | { kind: "reward.grant"; reward: CompanyRewardGrantInput }
-  | { kind: "broadcast.send"; broadcast: EmergencyBroadcastInput };
+  | { kind: "broadcast.send"; broadcast: EmergencyBroadcastInput }
+  | { kind: "loot.apply"; application: LootApplicationInput }
+  | { kind: "loot.chat"; manifest: LootManifest };
 
 export interface AdministrativeCommandResult {
   kind: AdministrativeCommand["kind"];

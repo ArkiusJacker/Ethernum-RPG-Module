@@ -1479,7 +1479,7 @@
       "GMOnly": "Visível somente para mestres",
       "LastUpdated": "Atualizado em",
       "Actions": { "Refresh": "Atualizar" },
-      "Sections": { "operations": "Operações", "contracts": "Contratos", "squads": "Equipes", "intelligence": "Inteligência", "store": "Loja", "requisitions": "Requisições", "rewards": "Recompensas", "broadcast": "Broadcast", "audit": "Audit Log", "system": "Sistema", "summary": "Resumo", "queue": "Autorizações", "policies": "Políticas", "diagnostics": "Diagnóstico", "admin": "Administração" },
+      "Sections": { "operations": "Operações", "contracts": "Contratos", "squads": "Equipes", "intelligence": "Inteligência", "store": "Loja", "loot": "Loot", "encounter": "Encontro", "requisitions": "Requisições", "rewards": "Recompensas", "broadcast": "Broadcast", "audit": "Audit Log", "system": "Sistema", "summary": "Resumo", "queue": "Autorizações", "policies": "Políticas", "diagnostics": "Diagnóstico", "admin": "Administração" },
       "Themes": { "Label": "Tema", "ethernum": "Ethernum", "concordia": "Concórdia" },
       "Overlay": { "Title": "ETHERNUM COMMAND DEVICE", "Open": "Abrir Dispositivo de Comando", "Minimize": "Minimizar", "RestorePosition": "Restaurar posição", "RestoreSize": "Restaurar tamanho", "Resize": "Redimensionar painel", "PrimaryGM": "Mestre primário", "Pending": "Pendentes", "NewRequest": "Nova solicitação de autorização: {actor} — {action}", "States": { "normal": "Sem alertas", "pending": "Autorizações pendentes", "warning": "Autoridade indisponível", "error": "Falha recente de autoridade" } },
       "Pagination": { "Label": "Paginação do Audit Log", "Previous": "Anterior", "Next": "Próximo" },

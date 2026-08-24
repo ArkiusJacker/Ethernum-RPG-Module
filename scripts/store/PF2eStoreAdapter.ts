@@ -126,6 +126,15 @@ export class PF2eStoreAdapter {
     }
   }
 
+  async resolveLootActor(uuid: string): Promise<StoreActorDocument | null> {
+    try {
+      const document = await fromUuid(uuid as Parameters<typeof fromUuid>[0]) as unknown as StoreActorDocument | null;
+      return document?.type === "loot" ? document : null;
+    } catch {
+      return null;
+    }
+  }
+
   isPhysicalItem(item: StoreItemDocument | null): boolean {
     return Boolean(item?.type && PF2E_STORE_PHYSICAL_ITEM_TYPES.has(item.type));
   }

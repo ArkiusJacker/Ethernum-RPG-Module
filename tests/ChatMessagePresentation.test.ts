@@ -60,6 +60,7 @@ describe("ChatMessagePresentation variant resolution", () => {
 
 describe("ChatMessagePresentation visual contract", () => {
   const styles = readFileSync(resolve(root, "styles/chat-message-presentation.css"), "utf8");
+  const controller = readFileSync(resolve(root, "scripts/ui/ChatMessagePresentation.ts"), "utf8");
 
   it("scopes presentation to classified messages and keeps both cores distinct", () => {
     expect(styles).toContain(".chat-message.ethernum-chat-presentation");
@@ -73,5 +74,10 @@ describe("ChatMessagePresentation visual contract", () => {
     expect(styles).not.toMatch(/\.pf2e\s*\{[^}]*display\s*:/s);
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toContain("transition: none !important");
+  });
+
+  it("uses the modern Foundry hook and provides a scoped loot manifest layout", () => {
+    expect(controller).toContain('"renderChatMessageHTML"');
+    expect(styles).toContain(".ethernum-loot-card");
   });
 });

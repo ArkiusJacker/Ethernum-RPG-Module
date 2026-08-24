@@ -120,7 +120,7 @@ describe("v3.8.3 command device integration", () => {
     const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
     const main = read("scripts/main.ts");
 
-    for (const action of ["contract-create", "squad-edit", "intelligence-adjust", "store-add", "reward-grant", "broadcast-send", "preview-player"]) {
+    for (const action of ["contract-create", "squad-edit", "intelligence-adjust", "store-add", "reward-grant", "broadcast-send", "preview-player", "loot-generate", "loot-apply", "loot-chat", "encounter-analyze"]) {
       expect(template).toContain(`data-gm-domain-action="${action}"`);
     }
     expect(service).toContain("ADMINISTRATIVE_COMMAND_HANDLER");

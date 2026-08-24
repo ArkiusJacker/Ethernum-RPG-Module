@@ -341,7 +341,7 @@ export class CompanyStoreService {
   }
 
   async getStore(): Promise<CompanyStoreData> {
-    this.assertPrimaryGM();
+    if (!game.user?.isGM) throw new Error("Somente o Gamemaster pode consultar a Loja da Companhia.");
     return this.repository.readStore();
   }
 

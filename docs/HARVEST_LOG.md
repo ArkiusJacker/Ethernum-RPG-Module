@@ -257,3 +257,72 @@ Foundry harvest:
   stale. Broadcast-tagged ChatMessage changes now refresh both communicators.
 - Two temporary INFO broadcasts were created and deleted. Existing Contracts,
   Store, identity and Actor data were inspected without mutation.
+
+## HARVEST Session - Deterministic Loot and Encounter Tools
+
+Version target: 3.8.4
+
+Mode: Full
+
+Execution: Independent Facilitator, Specialist, Critic/Security and Experience
+passes in the main implementation. Three auxiliary-agent attempts reached the
+session usage limit before producing code; no agent output was represented as a
+review.
+
+### Seed
+
+Add deterministic operational generation and encounter diagnostics without
+inventing PF2e documents, mutating the world during preview or bypassing the
+existing administrative authority plane.
+
+### Canonical Requirements
+
+- Loot preview sourced from real world and compendium Items.
+- Configurable level, rarity, category, type, trait, source and budget filters.
+- Optional deterministic seed and exact currency remainder.
+- Explicit, audited delivery to a PF2e Loot Actor and publication to chat.
+- Read-only encounter difficulty, XP budgets, contributions and warnings.
+
+### Harvest
+
+Canonical:
+
+- Pure seeded generator and encounter analyzer kept separate from Foundry UI.
+- Lightweight compendium indexes rather than loading every Item document during
+  candidate filtering.
+- Persistent GM-only loot ledger with idempotent application and compensation.
+- Existing Administrative Communicator and Authority Bridge as the only mutation
+  path; previews remain client-local and ephemeral.
+- Official relative-level XP table with party-size budgets, native prepared XP
+  preference and explicit warnings outside the supported range.
+- Responsive Loot and Encounter areas with full provenance and budget display.
+
+Experiments harvested: None. No opportunistic generator was added.
+
+Backlog:
+
+- A dedicated recovery/reconciliation UI for interrupted loot deliveries if
+  real-world testing ever produces a `recoveryRequired` record.
+- Modern ApplicationV2 replacement for the shared legacy Dialog helper.
+
+Rejected:
+
+- Fabricated PF2e Items, automatic NPC balancing and silent party-level edits.
+- Client Actor flags as the authoritative transaction ledger.
+- Scanning every Item pack by default when the world and Equipment sources are
+  sufficient for normal generation.
+
+Foundry harvest:
+
+- The secondary `ChatGPT Gamemaster` exposed a read path that incorrectly
+  required primary-GM authority and prevented the entire Command Device from
+  mounting. Secondary GMs may now read the administrative Store while all writes
+  remain primary-only.
+- Late restoration of the Field Communicator could occur after the one-time
+  collision check. A MutationObserver and bounded delayed checks now keep both
+  devices separated after open, drag, resize and reload.
+- The authenticated Equipment index produced 1,105 valid candidates in roughly
+  0.5 seconds. No Loot Actor existed in the test world, so real delivery was
+  verified transactionally in tests and the live world was left unchanged.
+- The current combat (one level-3 character against a level-13 Adamantine Dragon)
+  was diagnosed as beyond extreme with the expected out-of-range warning.

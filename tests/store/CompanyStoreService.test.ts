@@ -444,6 +444,15 @@ afterEach(() => {
 });
 
 describe("CompanyStoreService", () => {
+  it("permite que um GM secundário consulte a Loja sem conceder autoridade de escrita", async () => {
+    const harness = await createHarness();
+    (game as Game & { user: unknown }).user = { id: "gm-secondary", name: "Secondary GM", isGM: true };
+    harness.bridge.isPrimaryGM.mockReturnValue(false);
+
+    await expect(harness.service.getStore()).resolves.toMatchObject({ revision: 0 });
+    expect(harness.repository.readStore).toHaveBeenCalled();
+  });
+
   it.each([
     ["valor exato", coinsFromCopper(500), 500],
     ["moedas mistas", { pp: 1, gp: 2, sp: 3, cp: 4, copperValue: 1_234 }, 1_234],

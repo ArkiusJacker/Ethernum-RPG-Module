@@ -156,6 +156,8 @@ export class GMControlCenterOverlay {
   private launcherState: GMControlLauncherState = "normal";
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private pulseTimer: ReturnType<typeof setTimeout> | null = null;
+  private overlapTimer: ReturnType<typeof setTimeout> | null = null;
+  private communicatorObserver: MutationObserver | null = null;
   private initializedBadge = false;
   private stale = true;
   private theme = readTheme();
@@ -226,6 +228,8 @@ export class GMControlCenterOverlay {
     this.ensureRoot();
     this.renderShell();
     this.avoidFieldCommunicatorOverlap();
+    this.observeFieldCommunicator();
+    this.scheduleOverlapCheck();
     this.unsubscribe = this.bridge.subscribe(event => this.onAuthorityEvent(event));
     globalThis.addEventListener("resize", () => this.clampToViewport(), { signal: this.lifecycle.signal });
     globalThis.addEventListener("beforeunload", () => GMControlCenterOverlay.destroy(), { signal: this.lifecycle.signal });
@@ -356,6 +360,7 @@ export class GMControlCenterOverlay {
         this.layout.left = next.left;
         this.layout.top = next.top;
         this.persistLayout();
+        this.scheduleOverlapCheck();
       };
       globalThis.addEventListener("pointermove", onMove);
       globalThis.addEventListener("pointerup", finish, { once: true });
@@ -387,6 +392,7 @@ export class GMControlCenterOverlay {
         this.layout = { ...this.layout, ...size };
         this.persistLayout();
         this.clampToViewport();
+        this.scheduleOverlapCheck();
       };
       globalThis.addEventListener("pointermove", onMove);
       globalThis.addEventListener("pointerup", finish, { once: true });
@@ -403,6 +409,7 @@ export class GMControlCenterOverlay {
       await this.mountPanel();
       if (this.stale) await this.refresh(true);
     }
+    this.scheduleOverlapCheck();
   }
 
   private async refresh(forcePanel = false): Promise<void> {
@@ -416,6 +423,7 @@ export class GMControlCenterOverlay {
       await this.controller.render({ reload: false });
       this.stale = false;
     }
+    this.scheduleOverlapCheck();
   }
 
   private async refreshBadge(requestId?: string): Promise<void> {
@@ -540,6 +548,23 @@ export class GMControlCenterOverlay {
     this.persistLayout();
   }
 
+  private observeFieldCommunicator(): void {
+    this.communicatorObserver?.disconnect();
+    const communicator = document.getElementById("ethernum-field-communicator-overlay");
+    if (!communicator) return;
+    this.communicatorObserver = new MutationObserver(() => this.scheduleOverlapCheck());
+    this.communicatorObserver.observe(communicator, { attributes: true, attributeFilter: ["class", "style"] });
+  }
+
+  private scheduleOverlapCheck(delayMs = 120): void {
+    if (this.overlapTimer !== null) globalThis.clearTimeout(this.overlapTimer);
+    this.overlapTimer = globalThis.setTimeout(() => {
+      this.overlapTimer = null;
+      if (!this.communicatorObserver) this.observeFieldCommunicator();
+      this.avoidFieldCommunicatorOverlap();
+    }, delayMs);
+  }
+
   private clampToViewport(): void {
     if (!this.root) return;
     const size = this.layout.minimized
@@ -563,6 +588,7 @@ export class GMControlCenterOverlay {
     this.layout.top = undefined;
     this.persistLayout();
     this.applyLayout();
+    this.scheduleOverlapCheck();
   }
 
   private restoreDefaultSize(): void {
@@ -570,6 +596,7 @@ export class GMControlCenterOverlay {
     this.layout = { ...this.layout, ...size };
     this.persistLayout();
     this.applyLayout();
+    this.scheduleOverlapCheck();
   }
 
   private persistLayout(): void {
@@ -586,6 +613,8 @@ export class GMControlCenterOverlay {
     this.unsubscribe?.();
     if (this.refreshTimer !== null) globalThis.clearTimeout(this.refreshTimer);
     if (this.pulseTimer !== null) globalThis.clearTimeout(this.pulseTimer);
+    if (this.overlapTimer !== null) globalThis.clearTimeout(this.overlapTimer);
+    this.communicatorObserver?.disconnect();
     this.unmountPanel();
     this.root?.remove();
     this.root = null;

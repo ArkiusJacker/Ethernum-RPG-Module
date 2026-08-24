@@ -132,7 +132,10 @@ export function initChatMessagePresentation(): void {
   if (initialized) return;
   initialized = true;
 
-  Hooks.on("renderChatMessage", (message: ChatMessage, html: JQuery<HTMLElement> | HTMLElement) => {
+  const hook = Number((game as Game & { release?: { generation?: number } }).release?.generation) >= 13
+    ? "renderChatMessageHTML"
+    : "renderChatMessage";
+  Hooks.on(hook as "renderChatMessage", (message: ChatMessage, html: JQuery<HTMLElement> | HTMLElement) => {
     const element = renderElement(html);
     if (!element) return;
 

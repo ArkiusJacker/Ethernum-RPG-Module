@@ -54,6 +54,8 @@ describe("GM Control Center data", () => {
       "squads",
       "intelligence",
       "store",
+      "loot",
+      "encounter",
       "requisitions",
       "rewards",
       "broadcast",

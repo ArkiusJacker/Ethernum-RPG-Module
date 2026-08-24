@@ -7,6 +7,8 @@ import { PF2eStoreAdapter } from "../store/PF2eStoreAdapter.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { getCompanyRewardService, type CompanyRewardService } from "../rewards/CompanyRewardService.js";
 import { getEmergencyBroadcastService, type EmergencyBroadcastService } from "../communicator/EmergencyBroadcastService.js";
+import { getLootDeliveryService, type LootDeliveryService } from "../generators/loot/LootDeliveryService.js";
+import { getOperationalGeneratorService } from "../generators/OperationalGeneratorService.js";
 import type { GMControlCenterSnapshot } from "../ui/GMControlCenterData.js";
 import {
   ADMINISTRATIVE_COMMAND_CATEGORY,
@@ -30,7 +32,7 @@ function isCommand(value: unknown): value is AdministrativeCommand {
   const input = record(value);
   return typeof input.kind === "string" && [
     "contract.publish", "contract.status", "contract.access", "contract.intelligence",
-    "store.upsert", "store.remove", "store.toggle", "identity.update", "reward.grant", "broadcast.send",
+    "store.upsert", "store.remove", "store.toggle", "identity.update", "reward.grant", "broadcast.send", "loot.apply", "loot.chat",
   ].includes(input.kind);
 }
 
@@ -42,12 +44,14 @@ export class AdministrativeCommunicatorService {
     private readonly store: CompanyStoreService = getCompanyStoreService(),
     private readonly rewards: CompanyRewardService = getCompanyRewardService(),
     private readonly broadcasts: EmergencyBroadcastService = getEmergencyBroadcastService(),
+    private readonly loot: LootDeliveryService = getLootDeliveryService(),
     private readonly adapter = new PF2eStoreAdapter(),
   ) {}
 
   async initialize(): Promise<void> {
     this.registerHandler();
     if (!this.bridge.isPrimaryGM()) return;
+    await this.loot.initialize();
     const policies = await this.bridge.getPolicyConfiguration();
     if (policies.handlers?.[ADMINISTRATIVE_COMMAND_HANDLER] !== "auto") {
       await this.bridge.setPolicyConfiguration({
@@ -73,7 +77,7 @@ export class AdministrativeCommunicatorService {
       handlerId: ADMINISTRATIVE_COMMAND_HANDLER,
       category: ADMINISTRATIVE_COMMAND_CATEGORY,
       actionId: command.kind,
-      sourceActorUuid: "actorUuid" in command ? command.actorUuid : "reward" in command ? command.reward.actorUuid : undefined,
+      sourceActorUuid: "actorUuid" in command ? command.actorUuid : "reward" in command ? command.reward.actorUuid : "application" in command ? command.application.actorUuid : undefined,
       summary: this.summary(command),
       idempotencyKey: idempotency,
       payload: command,
@@ -169,6 +173,7 @@ export class AdministrativeCommunicatorService {
       previewUsers: users.filter(user => !user.isGM && user.id).map(user => ({ value: user.id!, label: user.character?.name ?? user.name })),
       worldItems: collection<{ uuid?: string | null; name?: string | null }>((game as Game & { items?: Iterable<{ uuid?: string | null; name?: string | null }> }).items)
         .filter(item => item.uuid && item.name).map(item => ({ value: item.uuid!, label: item.name! })),
+      generators: getOperationalGeneratorService().snapshot(),
     };
   }
 
@@ -232,12 +237,23 @@ export class AdministrativeCommunicatorService {
         const result = await this.broadcasts.send(command.broadcast);
         return { kind: command.kind, message: `Comunicado ${result.severity.toUpperCase()} enviado.`, transactionId: result.broadcastId };
       }
+      case "loot.apply": {
+        const result = await this.loot.apply(command.application);
+        if (result.state !== "completed") throw new Error(`A entrega de loot terminou em ${result.state}; consulte o ledger administrativo.`);
+        return { kind: command.kind, message: `Loot ${result.state} em ${result.actorName}.`, transactionId: result.applicationId };
+      }
+      case "loot.chat": {
+        const transactionId = await this.loot.postToChat(command.manifest);
+        return { kind: command.kind, message: "Manifesto de loot publicado no chat.", transactionId };
+      }
     }
   }
 
   private idempotency(command: AdministrativeCommand): string {
     if (command.kind === "reward.grant") return `admin:reward:${command.reward.transactionId}`;
     if (command.kind === "broadcast.send") return `admin:broadcast:${command.broadcast.broadcastId}`;
+    if (command.kind === "loot.apply") return `admin:loot:apply:${command.application.applicationId}`;
+    if (command.kind === "loot.chat") return `admin:loot:chat:${command.manifest.manifestId}`;
     return `admin:${command.kind}:${foundry.utils.randomID(24)}`;
   }
 
@@ -246,6 +262,7 @@ export class AdministrativeCommunicatorService {
     if (command.kind.startsWith("store.")) return `Loja: ${command.kind.split(".")[1]}`;
     if (command.kind === "identity.update") return "Identidade da Companhia atualizada";
     if (command.kind === "reward.grant") return "Recompensa distribuída";
+    if (command.kind.startsWith("loot.")) return `Loot: ${command.kind.split(".")[1]}`;
     return "Comunicado operacional enviado";
   }
 }

@@ -1479,7 +1479,7 @@
       "GMOnly": "Visible to GMs only",
       "LastUpdated": "Updated at",
       "Actions": { "Refresh": "Refresh" },
-      "Sections": { "operations": "Operations", "contracts": "Contracts", "squads": "Squads", "intelligence": "Intelligence", "store": "Store", "requisitions": "Requisitions", "rewards": "Rewards", "broadcast": "Broadcast", "audit": "Audit Log", "system": "System", "summary": "Summary", "queue": "Approvals", "policies": "Policies", "diagnostics": "Diagnostics", "admin": "Administration" },
+      "Sections": { "operations": "Operations", "contracts": "Contracts", "squads": "Squads", "intelligence": "Intelligence", "store": "Store", "loot": "Loot", "encounter": "Encounter", "requisitions": "Requisitions", "rewards": "Rewards", "broadcast": "Broadcast", "audit": "Audit Log", "system": "System", "summary": "Summary", "queue": "Approvals", "policies": "Policies", "diagnostics": "Diagnostics", "admin": "Administration" },
       "Themes": { "Label": "Theme", "ethernum": "Ethernum", "concordia": "Concordia" },
       "Overlay": { "Title": "ETHERNUM COMMAND DEVICE", "Open": "Open Command Device", "Minimize": "Minimize", "RestorePosition": "Restore position", "RestoreSize": "Restore size", "Resize": "Resize panel", "PrimaryGM": "Primary GM", "Pending": "Pending", "NewRequest": "New approval request: {actor} — {action}", "States": { "normal": "No alerts", "pending": "Pending approvals", "warning": "Authority unavailable", "error": "Recent authority failure" } },
       "Pagination": { "Label": "Audit Log pagination", "Previous": "Previous", "Next": "Next" },

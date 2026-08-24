@@ -9,6 +9,8 @@ import type { AdministrativeCommand } from "../administration/AdministrativeComm
 import { getContractArchiveService } from "../contracts/ContractArchiveService.js";
 import { getCompanyStoreService } from "../store/CompanyStoreService.js";
 import { storeEntryIdFromUuid } from "../store/CompanyStoreModel.js";
+import { parseCompanyStorePrice } from "../store/CompanyStoreModel.js";
+import { getOperationalGeneratorService } from "../generators/OperationalGeneratorService.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { FieldCommunicatorOverlay } from "./FieldCommunicatorOverlay.js";
 import { GMControlCenter, type GMControlCenterMountResult } from "./GMControlCenter.js";
@@ -107,6 +109,15 @@ function informationUnlocks(value: string): Map<string, number> {
 }
 function randomId(prefix: string): string { return `${prefix}-${foundry.utils.randomID(24)}`; }
 
+function actorLevel(actor: Actor): number {
+  const source = actor as Actor & { level?: number; system?: Record<string, unknown> };
+  const system = source.system ?? {};
+  const details = system.details && typeof system.details === "object" ? system.details as Record<string, unknown> : {};
+  const levelData = details.level && typeof details.level === "object" ? details.level as Record<string, unknown> : {};
+  const parsed = Number(source.level ?? levelData.value ?? 0);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+}
+
 async function runCommand(command: AdministrativeCommand): Promise<void> {
   const result = await getAdministrativeCommunicatorService().command(command);
   ui.notifications?.info(result.message);
@@ -115,6 +126,68 @@ async function runCommand(command: AdministrativeCommand): Promise<void> {
 async function handleDomainAction(action: string, payload: Readonly<Record<string, string>>): Promise<void> {
   const contracts = getContractArchiveService();
   const store = getCompanyStoreService();
+  const generators = getOperationalGeneratorService();
+  if (action === "loot-generate") {
+    const characters = actors();
+    const partyLevel = characters.length ? Math.round(characters.reduce((sum, actor) => sum + actorLevel(actor), 0) / characters.length) : 1;
+    const sourceOptions = generators.snapshot().lootSources.map(source => {
+      const selected = source.id === "world" || source.id === "pf2e.equipment-srd";
+      return `<option value="${escapeHtml(source.id)}"${selected ? " selected" : ""}>${escapeHtml(source.label)}</option>`;
+    }).join("");
+    const data = await formDialog("Gerador determinístico de loot", `
+      <label>Nível do grupo<input type="number" min="0" max="30" name="partyLevel" value="${partyLevel}"></label>
+      <label>Tamanho do grupo<input type="number" min="1" max="12" name="partySize" value="${Math.max(1, characters.length || 4)}"></label>
+      <label>Nível do encontro<input type="number" min="0" max="30" name="encounterLevel" value="${partyLevel}"></label>
+      <label>Nível mínimo do item<input type="number" min="0" max="30" name="minimumItemLevel" value="${Math.max(0, partyLevel - 2)}"></label>
+      <label>Nível máximo do item<input type="number" min="0" max="30" name="maximumItemLevel" value="${Math.min(30, partyLevel + 1)}"></label>
+      <label>Orçamento<input name="budget" value="100 gp" placeholder="100 gp"></label>
+      <label>Semente<input name="seed" value="${Date.now().toString(36)}" maxlength="160"></label>
+      <label>Tipos PF2e<input name="types" placeholder="weapon, armor, consumable"></label>
+      <label>Traits obrigatórios<input name="traits" placeholder="magical, invested"></label>
+      <fieldset><legend>Raridade</legend><label><input type="checkbox" name="rarities" value="common" checked> Comum</label><label><input type="checkbox" name="rarities" value="uncommon" checked> Incomum</label><label><input type="checkbox" name="rarities" value="rare"> Raro</label><label><input type="checkbox" name="rarities" value="unique"> Único</label></fieldset>
+      <fieldset><legend>Categoria</legend><label><input type="checkbox" name="categories" value="treasure" checked> Tesouro</label><label><input type="checkbox" name="categories" value="consumable" checked> Consumível</label><label><input type="checkbox" name="categories" value="permanent" checked> Permanente</label></fieldset>
+      <label>Fontes permitidas<select name="allowedSources" multiple size="8">${sourceOptions}</select></label>
+      <p class="ethernum-command-dialog__notice"><i class="fas fa-circle-info"></i> A geração apenas cria uma prévia. Nenhum Actor será alterado.</p>
+    `, "Gerar prévia");
+    if (!data) return;
+    const budget = parseCompanyStorePrice(field(data, "budget"));
+    if (!budget) throw new Error("Orçamento inválido. Use, por exemplo, 100 gp ou 2 pp 5 gp.");
+    await generators.generateLoot({
+      partyLevel: Number(field(data, "partyLevel")), partySize: Number(field(data, "partySize")), encounterLevel: Number(field(data, "encounterLevel")),
+      minimumItemLevel: Number(field(data, "minimumItemLevel")), maximumItemLevel: Number(field(data, "maximumItemLevel")),
+      rarities: data.getAll("rarities").map(String) as Array<"common" | "uncommon" | "rare" | "unique">,
+      categories: data.getAll("categories").map(String) as Array<"treasure" | "consumable" | "permanent">,
+      types: csv(field(data, "types")), traits: csv(field(data, "traits")),
+      allowedSources: data.getAll("allowedSources").map(String), budgetCopper: budget.copperValue, seed: field(data, "seed"),
+    });
+    return;
+  }
+  if (action === "loot-regenerate") {
+    await generators.regenerateLoot(randomId("seed"));
+    return;
+  }
+  if (action === "loot-chat") {
+    const manifest = generators.snapshot().lootPreview;
+    if (!manifest) throw new Error("Gere um manifesto de loot primeiro.");
+    await runCommand({ kind: "loot.chat", manifest });
+    return;
+  }
+  if (action === "loot-apply") {
+    const snapshot = generators.snapshot();
+    const manifest = snapshot.lootPreview;
+    if (!manifest) throw new Error("Gere um manifesto de loot primeiro.");
+    const options = snapshot.lootActors.map(actor => `<option value="${escapeHtml(actor.value)}">${escapeHtml(actor.label)}</option>`).join("");
+    if (!options) throw new Error("Crie um Actor PF2e do tipo Loot antes de entregar o manifesto.");
+    const data = await formDialog("Enviar para Actor de loot", `<label>Actor de destino<select name="actorUuid" required>${options}</select></label><p class="ethernum-command-dialog__notice"><i class="fas fa-triangle-exclamation"></i> Esta ação cria Items PF2e reais e adiciona a moeda restante. A transação é auditada e possui rollback.</p>`, "Confirmar entrega");
+    if (!data) return;
+    const actorUuid = field(data, "actorUuid");
+    await runCommand({ kind: "loot.apply", application: { applicationId: `${manifest.manifestId}:${actorUuid}`, actorUuid, manifest } });
+    return;
+  }
+  if (action === "encounter-analyze") {
+    generators.analyzeCurrentEncounter();
+    return;
+  }
   if (action === "preview-player") {
     if (!payload.userId) throw new Error("Selecione um jogador para a pré-visualização.");
     await FieldCommunicatorOverlay.openPreview(payload.userId);

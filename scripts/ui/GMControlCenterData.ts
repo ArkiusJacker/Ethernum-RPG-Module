@@ -1,6 +1,7 @@
 import type { AdministrativeContractRow, AdministrativeSquadRow, AdministrativeStoreRow } from "../administration/AdministrativeCommunicatorTypes.js";
 import type { CompanyRewardRecord } from "../rewards/CompanyRewardTypes.js";
 import type { EmergencyBroadcastDTO } from "../communicator/EmergencyBroadcastService.js";
+import type { OperationalGeneratorSnapshot } from "../generators/OperationalGeneratorService.js";
 
 export const GM_CONTROL_I18N_ROOT = "ETHERNUM.GMControl";
 
@@ -10,6 +11,8 @@ export const GM_CONTROL_SECTIONS = [
   "squads",
   "intelligence",
   "store",
+  "loot",
+  "encounter",
   "requisitions",
   "rewards",
   "broadcast",
@@ -175,6 +178,7 @@ export interface GMControlCenterSnapshot {
   requisitions?: GMControlQueueItem[];
   previewUsers?: GMControlFilterOption[];
   worldItems?: GMControlFilterOption[];
+  generators?: OperationalGeneratorSnapshot;
 }
 
 export interface GMControlCenterDataSource {
@@ -290,6 +294,8 @@ const SECTION_ICONS: Record<GMControlSection, string> = {
   squads: "fa-people-group",
   intelligence: "fa-user-secret",
   store: "fa-store",
+  loot: "fa-box-open",
+  encounter: "fa-people-arrows",
   requisitions: "fa-list-check",
   rewards: "fa-award",
   broadcast: "fa-tower-broadcast",
@@ -416,6 +422,15 @@ function timestamp(value: number | undefined, locale: string): string {
     dateStyle: "short",
     timeStyle: "medium",
   }).format(new Date(value as number));
+}
+
+function copperLabel(value: number): string {
+  let remaining = Math.max(0, Math.floor(Number(value) || 0));
+  const pp = Math.floor(remaining / 1_000); remaining -= pp * 1_000;
+  const gp = Math.floor(remaining / 100); remaining -= gp * 100;
+  const sp = Math.floor(remaining / 10); const cp = remaining - sp * 10;
+  return [[pp, "pp"], [gp, "gp"], [sp, "sp"], [cp, "cp"]]
+    .flatMap(([amount, unit]) => Number(amount) > 0 ? [`${amount} ${unit}`] : []).join(" · ") || "0 cp";
 }
 
 function optionRows(
@@ -589,6 +604,33 @@ export function buildGMControlCenterData(
     broadcastsEmpty: (snapshot.broadcasts?.length ?? 0) === 0,
     previewUsers: snapshot.previewUsers ?? [],
     worldItems: snapshot.worldItems ?? [],
+    lootPreview: snapshot.generators?.lootPreview ? {
+      ...snapshot.generators.lootPreview,
+      spentLabel: copperLabel(snapshot.generators.lootPreview.spentCopper),
+      currencyLabel: copperLabel(snapshot.generators.lootPreview.currencyCopper),
+      totalLabel: copperLabel(snapshot.generators.lootPreview.totalCopper),
+      generatedLabel: timestamp(snapshot.generators.lootPreview.generatedAt, locale),
+      items: snapshot.generators.lootPreview.items.map(item => ({ ...item, subtotalLabel: copperLabel(item.subtotalCopper) })),
+      specialCandidate: snapshot.generators.lootPreview.specialCandidate ? {
+        ...snapshot.generators.lootPreview.specialCandidate,
+        priceLabel: copperLabel(snapshot.generators.lootPreview.specialCandidate.priceCopper),
+      } : undefined,
+    } : undefined,
+    lootPreviewEmpty: !snapshot.generators?.lootPreview,
+    lootSources: snapshot.generators?.lootSources ?? [],
+    lootActors: snapshot.generators?.lootActors ?? [],
+    lootActorsEmpty: (snapshot.generators?.lootActors.length ?? 0) === 0,
+    generatorsBusy: snapshot.generators?.busy === true,
+    encounterAnalysis: snapshot.generators?.encounterAnalysis ? {
+      ...snapshot.generators.encounterAnalysis,
+      difficultyLabel: snapshot.generators.encounterAnalysis.difficulty.replace("beyond-extreme", "além de extremo"),
+      analyzedLabel: timestamp(snapshot.generators.encounterAnalysis.analyzedAt, locale),
+      contributions: snapshot.generators.encounterAnalysis.contributions.map(entry => ({
+        ...entry,
+        relativeLabel: entry.relativeLevel > 0 ? `+${entry.relativeLevel}` : String(entry.relativeLevel),
+      })),
+    } : undefined,
+    encounterAnalysisEmpty: !snapshot.generators?.encounterAnalysis,
     updatedAtLabel: timestamp(snapshot.updatedAt ?? now, locale),
     i18nRoot: GM_CONTROL_I18N_ROOT,
   };

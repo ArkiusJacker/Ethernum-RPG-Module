@@ -5,6 +5,32 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.4] - 2026-08-24
+
+### Adicionado
+- Gerador de Loot determinístico no `ETHERNUM COMMAND DEVICE`, com nível do grupo/encontro, faixa de Item, raridade, categoria, tipo, traits, orçamento, fontes permitidas e semente reproduzível.
+- Catálogo de geração baseado exclusivamente em Items PF2e físicos reais do mundo e de compêndios; resultados inexistentes permanecem vazios e nunca fabricam registros substitutos.
+- Manifesto preview-first com itens, moeda restante, candidato especial, alertas, regeneração, publicação no chat e entrega explícita para Actor PF2e do tipo Loot.
+- Ledger administrativo de loot com idempotência persistente, criação de Items reais, moedas PF2e, rollback e estado de recuperação.
+- Analisador somente leitura do encontro atual, com média de nível, ajuste pelo tamanho do grupo, orçamento PF2e, contribuição por criatura, preferência por XP preparado e alertas de composição.
+
+### Alterado
+- O Command Device ganhou as áreas funcionais `Loot` e `Encounter`, substituindo os espaços planejados sem criar um segundo plano de autoridade.
+- A seleção inicial de fontes do gerador usa Itens do mundo e `Equipment`; o mestre pode incluir ou remover qualquer compêndio de Item.
+- GMs secundários podem consultar a Loja para renderizar o dispositivo administrativo, enquanto mutações continuam exclusivas do mestre primário pela Authority Bridge.
+- O painel administrativo observa abertura, movimento e redimensionamento do Field Communicator e corrige colisões tardias entre os dois dispositivos.
+- A apresentação de chat usa `renderChatMessageHTML` no Foundry 13+ e inclui layout próprio, escopado, para manifestos de loot.
+
+### Segurança
+- Geração e análise não alteram Actors; entrega e chat exigem comando GM explícito, validado e auditado.
+- A entrega revalida Actor Loot, UUID e tipo físico de cada Item, fecha novamente o orçamento e rejeita payload adulterado antes de tocar no mundo.
+- Aplicações usam ID persistente para impedir entrega duplicada e compensam Items/moedas quando uma etapa posterior falha.
+
+### Testes
+- Testes automatizados cobrem determinismo, filtros inválidos, metadata de índice PF2e, orçamento, cálculo de encontro, XP preparado, idempotência, rollback, chat sanitizado e leitura por GM secundário.
+- Smoke test autenticado no Foundry indexou 1.105 candidatos do compêndio Equipment em menos de um segundo e analisou o combate real sem erros do módulo.
+- Evidências e relatório ficam em `docs/qa/v3.8.4/`.
+
 ## [3.8.3] - 2026-08-19
 
 ### Adicionado

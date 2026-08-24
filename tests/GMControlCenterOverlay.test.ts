@@ -72,6 +72,8 @@ describe("standalone GM Control Center integration", () => {
     expect(styles).toContain(".ethernum-gm-control-launcher");
     expect(overlay).toContain("avoidFieldCommunicatorOverlap()");
     expect(overlay).toContain('document.getElementById("ethernum-field-communicator-overlay")');
+    expect(overlay).toContain("new MutationObserver");
+    expect(overlay).toContain("scheduleOverlapCheck");
     expect(styles).toContain(".state-error");
   });
 

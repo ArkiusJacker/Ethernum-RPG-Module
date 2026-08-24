@@ -152,6 +152,69 @@
       {{/if}}
     </section>
 
+    <section id="ethernum-gm-panel-loot" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.loot'}}" {{#unless panels.loot.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-box-open"></i> Gerador de Loot</h3><p>Itens PF2e reais, orçamento fechado e resultado reproduzível por semente.</p></div>
+        <div class="ethernum-gm-control__toolbar">
+          <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="loot-generate" {{#if generatorsBusy}}disabled{{/if}}><i class="fas fa-dice"></i><span>Gerar</span></button>
+          <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="loot-regenerate" {{#if lootPreviewEmpty}}disabled{{/if}}><i class="fas fa-arrows-rotate"></i><span>Nova semente</span></button>
+        </div>
+      </div>
+      {{#if lootPreviewEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-box-open"></i><strong>Nenhum manifesto em prévia</strong><span>Defina filtros, fontes e orçamento para consultar o catálogo PF2e.</span></div>
+      {{else}}
+      <div class="ethernum-generator__metrics">
+        <div><span>Semente</span><strong>{{lootPreview.seed}}</strong></div>
+        <div><span>Candidatos</span><strong>{{lootPreview.candidateCount}}</strong></div>
+        <div><span>Itens</span><strong>{{lootPreview.spentLabel}}</strong></div>
+        <div><span>Moeda</span><strong>{{lootPreview.currencyLabel}}</strong></div>
+        <div><span>Total</span><strong>{{lootPreview.totalLabel}}</strong></div>
+      </div>
+      <div class="ethernum-command-device__list">
+        {{#each lootPreview.items}}
+        <article class="ethernum-command-device__row">
+          <div class="ethernum-command-device__agent">{{#if this.image}}<img src="{{this.image}}" alt="">{{/if}}<div><strong>{{this.quantity}}x {{this.name}}</strong><span>Nível {{this.level}} · {{this.rarity}} · {{this.category}}</span><small>{{this.sourceLabel}}</small></div></div>
+          <strong>{{this.subtotalLabel}}</strong>
+        </article>
+        {{/each}}
+      </div>
+      {{#if lootPreview.specialCandidate}}<div class="ethernum-generator__special"><i class="fas fa-star"></i><div><strong>Candidato especial: {{lootPreview.specialCandidate.name}}</strong><span>Nível {{lootPreview.specialCandidate.level}} · {{lootPreview.specialCandidate.rarity}} · {{lootPreview.specialCandidate.priceLabel}}</span></div></div>{{/if}}
+      {{#each lootPreview.warnings}}<p class="ethernum-generator__warning"><i class="fas fa-triangle-exclamation"></i>{{this}}</p>{{/each}}
+      <div class="ethernum-generator__actions">
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="loot-chat"><i class="fas fa-comment"></i><span>Enviar ao chat</span></button>
+        <button type="button" class="ethernum-gm-control__command tone-success" data-gm-domain-action="loot-apply" {{#if lootActorsEmpty}}disabled{{/if}}><i class="fas fa-boxes-packing"></i><span>Enviar para Loot Actor</span></button>
+      </div>
+      {{#if lootActorsEmpty}}<p class="ethernum-generator__warning"><i class="fas fa-circle-info"></i>Nenhum Actor PF2e do tipo Loot está disponível. A prévia e o envio ao chat continuam funcionais.</p>{{/if}}
+      {{/if}}
+    </section>
+
+    <section id="ethernum-gm-panel-encounter" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.encounter'}}" {{#unless panels.encounter.active}}hidden{{/unless}}>
+      <div class="ethernum-gm-control__section-heading">
+        <div><h3><i class="fas fa-people-arrows"></i> Analisador de Encontro</h3><p>Diagnóstico somente leitura do combate atual e dos orçamentos PF2e.</p></div>
+        <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="encounter-analyze"><i class="fas fa-magnifying-glass-chart"></i><span>Analisar agora</span></button>
+      </div>
+      {{#if encounterAnalysisEmpty}}
+      <div class="ethernum-gm-control__empty"><i class="fas fa-swords"></i><strong>Nenhuma análise preparada</strong><span>Abra ou inicie um combate e solicite o diagnóstico.</span></div>
+      {{else}}
+      <div class="ethernum-encounter__summary tone-{{encounterAnalysis.difficulty}}">
+        <div><span>Grupo</span><strong>{{encounterAnalysis.partySize}} personagens · nível {{encounterAnalysis.partyLevel}}</strong></div>
+        <div><span>Ajuste do grupo</span><strong>{{encounterAnalysis.partyAdjustment}} personagem(ns) sobre a base de 4</strong></div>
+        <div><span>XP</span><strong>{{encounterAnalysis.xp}} · {{encounterAnalysis.xpSource}}</strong></div>
+        <div><span>Dificuldade esperada</span><strong>{{encounterAnalysis.difficultyLabel}}</strong></div>
+      </div>
+      <div class="ethernum-encounter__budgets">
+        <span>Trivial <strong>{{encounterAnalysis.budgets.trivial}}</strong></span><span>Baixo <strong>{{encounterAnalysis.budgets.low}}</strong></span><span>Moderado <strong>{{encounterAnalysis.budgets.moderate}}</strong></span><span>Severo <strong>{{encounterAnalysis.budgets.severe}}</strong></span><span>Extremo <strong>{{encounterAnalysis.budgets.extreme}}</strong></span>
+      </div>
+      <div class="ethernum-command-device__list">
+        {{#each encounterAnalysis.contributions}}
+        <article class="ethernum-command-device__row"><div class="ethernum-command-device__row-main"><strong>{{this.name}}</strong><span>Nível {{this.level}} · relativo {{this.relativeLabel}}</span>{{#if this.warning}}<small>{{this.warning}}</small>{{/if}}</div><strong>{{this.xp}} XP</strong></article>
+        {{/each}}
+      </div>
+      {{#each encounterAnalysis.warnings}}<p class="ethernum-generator__warning"><i class="fas fa-triangle-exclamation"></i>{{this}}</p>{{/each}}
+      <small class="ethernum-generator__timestamp">Analisado em {{encounterAnalysis.analyzedLabel}}. Nenhum NPC ou personagem foi alterado.</small>
+      {{/if}}
+    </section>
+
     <section id="ethernum-gm-panel-requisitions" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.requisitions'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>

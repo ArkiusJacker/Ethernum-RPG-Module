@@ -84,6 +84,44 @@
   outline: none;
 }
 
+#chat-log .chat-message .ethernum-loot-card > header,
+#chat-log .chat-message .ethernum-loot-card > footer,
+#chat-log .chat-message .ethernum-loot-card li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#chat-log .chat-message .ethernum-loot-card > header {
+  padding-bottom: 0.45rem;
+  color: var(--ecp-accent-strong, #f0ca79);
+  border-bottom: 1px solid color-mix(in srgb, var(--ecp-accent, #c6a15b) 42%, transparent);
+}
+
+#chat-log .chat-message .ethernum-loot-card > header > div,
+#chat-log .chat-message .ethernum-loot-card li {
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#chat-log .chat-message .ethernum-loot-card ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.55rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+#chat-log .chat-message .ethernum-loot-card li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 9%);
+}
+
+#chat-log .chat-message .ethernum-loot-card li span,
+#chat-log .chat-message .ethernum-loot-card header span { color: var(--ecp-muted, #b8bec3); font-size: 0.75rem; }
+#chat-log .chat-message .ethernum-loot-card > footer { justify-content: space-between; color: var(--ecp-text, #f4f1e8); }
+
 @media (prefers-reduced-motion: reduce) {
   #chat-log .chat-message.ethernum-chat-presentation,
   #chat-log .chat-message.ethernum-chat-presentation * {
