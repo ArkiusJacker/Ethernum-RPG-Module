@@ -1395,6 +1395,34 @@
 .ethernum-mechanic-generator__component dd { margin: 2px 0 0; color: var(--gm-text); overflow-wrap: anywhere; }
 .ethernum-mechanic-generator__component footer { margin-top: 9px; padding-top: 7px; border-top: 1px solid var(--gm-border-soft); }
 
+.ethernum-ai-gate {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-info);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--gm-surface) 92%, transparent);
+}
+.ethernum-ai-gate.is-unavailable { border-left-color: var(--gm-text-muted); }
+.ethernum-ai-gate > header,
+.ethernum-ai-gate__actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ethernum-ai-gate > header > div { display: flex; flex-direction: column; gap: 2px; }
+.ethernum-ai-gate > header span,
+.ethernum-ai-gate > p,
+.ethernum-ai-gate > small { color: var(--gm-text-muted); }
+.ethernum-ai-gate > header strong { color: var(--gm-text); }
+.ethernum-ai-gate__status { padding: 3px 7px; border: 1px solid currentColor; font-size: 10px; font-weight: 700; }
+.ethernum-ai-gate.is-available .ethernum-ai-gate__status { color: var(--gm-success); }
+.ethernum-ai-gate > p { margin: 7px 0 4px; }
+.ethernum-ai-gate details { margin-top: 9px; color: var(--gm-text); }
+.ethernum-ai-gate summary { cursor: pointer; color: var(--gm-secondary); }
+.ethernum-ai-gate__boundary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.ethernum-ai-gate__boundary > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.ethernum-ai-gate__boundary span { color: var(--gm-text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.ethernum-ai-gate__boundary i { width: 16px; color: var(--gm-info); }
+.ethernum-ai-gate__boundary div:last-child i { color: var(--gm-danger); }
+.ethernum-ai-gate__actions { justify-content: flex-end; flex-wrap: wrap; margin-top: 9px; }
+
 @media (max-width: 720px) {
   .ethernum-command-device__overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ethernum-command-device__row { grid-template-columns: 1fr; }
@@ -1406,7 +1434,8 @@
   .ethernum-encounter__budgets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ethernum-encounter__summary { grid-template-columns: 1fr; }
   .ethernum-mechanic-generator__header,
-  .ethernum-mechanic-generator__grid { grid-template-columns: 1fr; }
+  .ethernum-mechanic-generator__grid,
+  .ethernum-ai-gate__boundary { grid-template-columns: 1fr; }
   .ethernum-mechanic-generator__budget { align-items: flex-start; }
 }
 

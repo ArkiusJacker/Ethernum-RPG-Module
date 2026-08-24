@@ -398,3 +398,81 @@ Foundry harvest:
   previous bundle; the secondary GM correctly waited for authority. Transactional
   tests cover completed apply, duplicate apply, revert, manual restoration and
   compensating rollback, and the live world was left without generated changes.
+
+## HARVEST Session - Optional AI Assistance
+
+Version target: 3.8.6
+
+Mode: Full
+
+Execution: Facilitator, architecture, data-boundary, security, PF2e integration
+and experience passes were performed in the main implementation. Focused tests
+independently exercise provider failures, hostile output, permissions and the
+approval boundary.
+
+### Seed
+
+Allow optional AI refinement of deterministic NPC mechanics without making AI a
+dependency, exposing provider credentials or sending private Foundry content.
+
+### Canonical Requirements
+
+- Preserve the complete offline and deterministic v3.8.5 workflow.
+- Keep provider transport generic and require an appropriately secure server-side
+  proxy before the feature can become available.
+- Send only the minimum mechanical and narrative NPC context.
+- Validate strict JSON, schema, mechanical invariants and power limits before
+  showing a proposal.
+- Require explicit GM request, preview, optional text edit and approve/reject.
+- Label assisted content and audit provider, model, version, time and decision
+  without recording secrets.
+
+### Harvest
+
+Canonical:
+
+- The deterministic definition is always generated first and remains the source
+  of structure, operations, costs, damage, DC and power budget.
+- A provider must declare `secure-server-proxy` transport and that it exposes no
+  client secret before registration is accepted.
+- The data boundary is a named, testable projection that excludes Journals,
+  private messages, GM notes, unrelated Actors, inventories, world exports and
+  credentials.
+- Provider output is limited to 64 KB, parsed as strict JSON, rejects unknown
+  fields and can patch only text slots already present in the deterministic base.
+- Pending AI proposals cannot be applied. Acceptance is checked again by the
+  mutation service, outside the UI.
+- Failures are local to the assistance request and preserve the deterministic
+  preview.
+
+Experiments harvested:
+
+- `[TESTE - AI]` generic provider architecture, proposal workflow, audit and UI.
+- The experiment is visible but unavailable by default because this repository
+  contains no approved secure backend.
+
+Backlog:
+
+- Implement and deploy a separately secured server-side provider adapter only
+  after its authentication, rate limit, retention and privacy policy are approved.
+- Evaluate model quality and operating cost before promoting any part of the AI
+  workflow from experimental status.
+
+Rejected:
+
+- Browser-side API keys, direct OpenAI calls, secrets in world settings or local
+  storage, unrestricted model-generated components and executable output.
+- Automatic calls during render, Actor updates, combat updates or hover.
+- Reading Journals, conversations, secret notes or full world state for flavor.
+- Automatically applying a model response or treating UI permission as the only
+  authority check.
+
+Foundry harvest:
+
+- With no provider registered, `NPC Mechanics` displayed the unavailable state,
+  the security explanation and the expandable data-boundary list; the refinement
+  command remained disabled while deterministic generation stayed usable.
+- The panel remained readable at the current Command Device size without overlap.
+- Cross-release inspection opened Store, Field Communicator Settings and the
+  original PF2e Inventory, Actions and Effects tabs without module errors.
+- No new reproducible bug was found during the v3.8.6 live pass.

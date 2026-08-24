@@ -504,6 +504,16 @@ export function buildGMControlCenterData(
   const mechanicActor = mechanicPreview
     ? snapshot.generators?.npcActors.find(actor => actor.value === mechanicPreview.metadata.actorUuid)
     : undefined;
+  const aiStatus = snapshot.generators?.aiStatus ?? {
+    available: false,
+    experimental: true,
+    reason: "Nenhum backend/proxy seguro foi registrado.",
+    dataFields: [],
+    excludedData: [],
+  };
+  const mechanicAIAssisted = mechanicPreview?.source === "ai-assisted";
+  const mechanicAIPending = mechanicAIAssisted && mechanicPreview.metadata.ai?.decision === "pending";
+  const mechanicAIAccepted = mechanicAIAssisted && mechanicPreview.metadata.ai?.decision === "accepted";
 
   return {
     isGM: options.isGM,
@@ -669,6 +679,14 @@ export function buildGMControlCenterData(
     mechanicCanRevert: mechanicActor?.canRevert === true,
     mechanicCurrentApplicationId: mechanicActor?.currentApplicationId,
     mechanicManualProtected: mechanicActor?.manualProtected === true,
+    aiStatus,
+    aiUnavailable: !aiStatus.available,
+    mechanicAIAssisted,
+    mechanicAIPending,
+    mechanicAIAccepted,
+    mechanicAIRequestAvailable: aiStatus.available && Boolean(mechanicPreview) && !mechanicAIAssisted,
+    mechanicApplyAllowed: Boolean(mechanicPreview) && (!mechanicAIAssisted || mechanicAIAccepted),
+    aiAuditCount: snapshot.generators?.aiAuditCount ?? 0,
     updatedAtLabel: timestamp(snapshot.updatedAt ?? now, locale),
     i18nRoot: GM_CONTROL_I18N_ROOT,
   };

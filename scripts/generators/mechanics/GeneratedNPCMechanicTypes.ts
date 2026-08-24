@@ -1,5 +1,5 @@
 export const GENERATED_NPC_MECHANIC_SCHEMA_VERSION = 1;
-export const GENERATED_NPC_MECHANIC_VERSION = "3.8.5";
+export const GENERATED_NPC_MECHANIC_VERSION = "3.8.6";
 
 export type GeneratedNPCMechanicSource = "deterministic" | "ai-assisted" | "manual";
 export type NPCMechanicRole =
@@ -110,6 +110,18 @@ export interface GeneratedNPCMechanicDefinition {
     templateIds: string[];
     powerBudget: number;
     powerSpent: number;
+    ai?: {
+      providerId: string;
+      providerLabel: string;
+      model: string;
+      mode: "refine" | "alternate" | "name" | "presentation" | "trigger" | "phase";
+      requestedAt: number;
+      completedAt: number;
+      decision: "pending" | "accepted" | "rejected";
+      decidedAt?: number;
+      inputFields: string[];
+      reasoningSummary: string[];
+    };
   };
 }
 

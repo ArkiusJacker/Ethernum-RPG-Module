@@ -9,6 +9,7 @@ const COSTS = new Set<unknown>(["passive", "free", "reaction", 1, 2, 3]);
 const SAVES = new Set(["fortitude", "reflex", "will"]);
 const CONDITIONS = new Set(["frightened", "off-guard", "slowed", "enfeebled", "sickened", "dazzled"]);
 const DAMAGE_TYPES = new Set(["acid", "bleed", "bludgeoning", "cold", "electricity", "fire", "force", "mental", "piercing", "poison", "slashing", "sonic", "spirit", "untyped", "vitality", "void"]);
+const AI_MODES = new Set(["refine", "alternate", "name", "presentation", "trigger", "phase"]);
 
 function safeText(value: unknown, maximum: number, label: string): string {
   if (typeof value !== "string") throw new Error(`${label} deve ser texto.`);
@@ -77,6 +78,21 @@ export function validateGeneratedNPCMechanicDefinition(definition: GeneratedNPCM
   const powerSpent = components.reduce((sum, component) => sum + component.powerCost, 0);
   if (powerSpent !== definition.metadata.powerSpent || powerSpent > definition.metadata.powerBudget) throw new Error("Orçamento de poder da mecânica gerada é inconsistente.");
   if (!new Set(["deterministic-generator", "ai-adapter", "manual"]).has(definition.metadata.origin)) throw new Error("Origem declarativa da mecânica gerada é inválida.");
+  if (definition.source === "deterministic" && definition.metadata.origin !== "deterministic-generator") throw new Error("Mecânica determinística possui origem inconsistente.");
+  if (definition.source === "ai-assisted") {
+    const ai = definition.metadata.ai;
+    if (definition.metadata.origin !== "ai-adapter" || !ai || !definition.name.startsWith("[TESTE — AI]")) throw new Error("Mecânica assistida por IA não possui identificação experimental completa.");
+    safeText(ai.providerId, 80, "ID do provedor de IA");
+    safeText(ai.providerLabel, 120, "Provedor de IA");
+    safeText(ai.model, 160, "Modelo de IA");
+    if (!AI_MODES.has(ai.mode) || !new Set(["pending", "accepted", "rejected"]).has(ai.decision)) throw new Error("Metadata de decisão da IA é inválida.");
+    if (!Number.isFinite(ai.requestedAt) || !Number.isFinite(ai.completedAt) || ai.completedAt < ai.requestedAt) throw new Error("Timestamps da assistência de IA são inválidos.");
+    if (ai.decidedAt !== undefined && (!Number.isFinite(ai.decidedAt) || ai.decidedAt < ai.completedAt)) throw new Error("Timestamp de decisão da IA é inválido.");
+    if (!Array.isArray(ai.inputFields) || ai.inputFields.length === 0 || ai.inputFields.length > 16 || ai.inputFields.some(value => typeof value !== "string" || value.length > 240)) throw new Error("Limite de dados da IA é inválido.");
+    if (!Array.isArray(ai.reasoningSummary) || ai.reasoningSummary.length > 8 || ai.reasoningSummary.some(value => typeof value !== "string" || value.length > 500)) throw new Error("Resumo de raciocínio da IA é inválido.");
+  } else if (definition.metadata.ai) {
+    throw new Error("Metadata de IA não pode acompanhar uma mecânica não assistida.");
+  }
   if (!definition.metadata.actorUuid || !definition.metadata.actorFingerprint || !definition.metadata.seed) throw new Error("Metadata da mecânica gerada está incompleta.");
   if (definition.metadata.templateIds.length !== components.length || new Set(definition.metadata.templateIds).size !== components.length) throw new Error("Lista de templates gerados é inconsistente.");
   return definition;

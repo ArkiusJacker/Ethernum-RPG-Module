@@ -134,6 +134,18 @@ describe("GM Control Center data", () => {
     expect(view.queueRows[0]?.statusLabelKey).toBe("ETHERNUM.GMControl.Statuses.queued");
     expect(view.summaryItems.every(item => item.labelKey.startsWith("ETHERNUM.GMControl."))).toBe(true);
   });
+
+  it("keeps AI assistance unavailable without a secure provider", () => {
+    const view = buildGMControlCenterData({
+      generators: {
+        lootSources: [], lootActors: [], npcActors: [], busy: false, aiAuditCount: 0,
+        aiStatus: { available: false, experimental: true, reason: "No secure proxy", dataFields: [], excludedData: [] },
+      },
+    }, { isGM: true, activeSection: "mechanics", now }) as { aiUnavailable: boolean; mechanicAIRequestAvailable: boolean; mechanicApplyAllowed: boolean };
+    expect(view.aiUnavailable).toBe(true);
+    expect(view.mechanicAIRequestAvailable).toBe(false);
+    expect(view.mechanicApplyAllowed).toBe(false);
+  });
 });
 
 describe("GM Control Center visual layer", () => {

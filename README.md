@@ -6,16 +6,16 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
 
-## Versão 3.8.2
+## Versão 3.8.6
 
-- O aplicativo Contratos agora apresenta arquivo por estado, detalhe operacional, recompensas, anexos e dossiês.
-- O Contrato 01 inclui o relatório canônico de 13 páginas e sua capa oficial dentro da distribuição do módulo.
-- Relatórios PDF abrem dentro do Comunicador com navegação de páginas, zoom e ajustes por largura ou página.
-- Journals, imagens, textos e dossiês usam o mesmo visualizador seguro, com fallback explícito quando a renderização interna não está disponível.
-- O arquivo administrativo usa revisões, transições validadas e apenas um contrato ativo por vez.
-- Jogadores recebem projeções autorizadas pelo Foundry; regras, concessões e anexos restritos permanecem fora de seus snapshots.
-- Importação idempotente preserva Journals de contratos antigos sem remover ou sobrescrever os documentos originais.
-- A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md).
+- O gerador determinístico de Mecânicas Únicas para NPCs continua completo e funcional sem IA, com treze famílias declarativas, orçamento de poder, prévia, aplicação auditada e rollback.
+- A área `NPC Mechanics` ganhou assistência opcional `[TESTE - AI]` para refinar apenas a apresentação textual de uma mecânica determinística já validada.
+- A integração aceita somente provedores registrados por um backend/proxy seguro; nenhuma chave de API é configurada, armazenada ou enviada pelo cliente Foundry.
+- O contexto permitido é mínimo e mecânico. Journals, conversas privadas, notas secretas, inventários alheios, exportações do mundo e credenciais ficam fora da fronteira de dados.
+- Respostas passam por JSON estrito, schema, validador mecânico e orçamento antes da prévia; operações, custos, dano, CD, estrutura e poder não podem ser alterados pelo provedor.
+- Todo rascunho assistido exige ação explícita do mestre, edição opcional e decisão de aprovar ou rejeitar. Conteúdo pendente nunca pode ser aplicado ao Actor.
+- Sem backend seguro, o painel explica por que a IA está indisponível e todo o módulo permanece operante no modo determinístico.
+- A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md), e o relatório do ciclo v3.7.9-v3.8.6 está em [`docs/qa/MASTER_REPORT_3.7.9_3.8.6.md`](docs/qa/MASTER_REPORT_3.7.9_3.8.6.md).
 
 ### Protocolos de desenvolvimento
 

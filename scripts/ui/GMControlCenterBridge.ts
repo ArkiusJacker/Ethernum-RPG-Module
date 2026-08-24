@@ -242,10 +242,44 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
     generators.editNPCMechanic({ definitionName: field(data, "definitionName"), components: componentEdits });
     return;
   }
+  if (action === "mechanic-ai-request") {
+    const snapshot = generators.snapshot();
+    const status = snapshot.aiStatus;
+    if (!status.available) throw new Error(status.reason);
+    if (!snapshot.mechanicPreview || snapshot.mechanicPreview.source === "ai-assisted") throw new Error("Gere uma prévia determinística antes da assistência de IA.");
+    const allowed = status.dataFields.map(entry => `<li>${escapeHtml(entry)}</li>`).join("");
+    const excluded = status.excludedData.map(entry => `<li>${escapeHtml(entry)}</li>`).join("");
+    const data = await formDialog("[TESTE — AI] Assistência opcional", `
+      <p><strong>${escapeHtml(status.providerLabel)}</strong> · ${escapeHtml(status.model)}</p>
+      <label>Modo<select name="mode"><option value="refine">Refinar mecânica determinística</option><option value="alternate">Criar apresentação alternativa</option><option value="name">Renomear conceito</option><option value="presentation">Apresentação narrativa</option><option value="trigger">Sugerir gatilho</option><option value="phase">Sugerir fase</option></select></label>
+      <label>Tema opcional<input name="theme" maxlength="240" placeholder="Ex.: forja profana, tempestade, duelo ritual"></label>
+      <div class="ethernum-command-dialog__notice"><strong>Dados permitidos</strong><ul>${allowed}</ul><strong>Dados excluídos</strong><ul>${excluded}</ul></div>
+      <label><input type="checkbox" name="confirmBoundary"> Confirmo esta fronteira de dados e a chamada manual ao proxy seguro.</label>
+    `, "Solicitar assistência");
+    if (!data) return;
+    if (data.get("confirmBoundary") !== "on") throw new Error("Confirme a fronteira de dados antes de solicitar assistência de IA.");
+    await generators.requestAIAssistance({
+      mode: field(data, "mode") as "refine" | "alternate" | "name" | "presentation" | "trigger" | "phase",
+      theme: field(data, "theme") || undefined,
+      language: String((game.i18n as { lang?: string } | undefined)?.lang ?? "pt-BR"),
+    });
+    return;
+  }
+  if (action === "mechanic-ai-accept") {
+    const data = await formDialog("Aprovar assistência de IA", "<p>A prévia assistida continuará editável e poderá então ser aplicada manualmente ao NPC.</p>", "Aprovar");
+    if (data) generators.acceptAIAssistance();
+    return;
+  }
+  if (action === "mechanic-ai-reject") {
+    const data = await formDialog("Rejeitar assistência de IA", "<p>A proposta assistida será descartada e a prévia determinística anterior será restaurada.</p>", "Rejeitar");
+    if (data) generators.rejectAIAssistance();
+    return;
+  }
   if (action === "mechanic-apply") {
     const snapshot = generators.snapshot();
     const definition = snapshot.mechanicPreview;
     if (!definition) throw new Error("Gere uma mecânica NPC antes de aplicar.");
+    if (definition.source === "ai-assisted" && definition.metadata.ai?.decision !== "accepted") throw new Error("A assistência de IA deve ser aprovada explicitamente antes da aplicação.");
     const actor = snapshot.npcActors.find(candidate => candidate.value === definition.metadata.actorUuid);
     if (!actor) throw new Error("O NPC da prévia não está mais disponível.");
     const data = await formDialog("Aplicar mecânica gerada", `

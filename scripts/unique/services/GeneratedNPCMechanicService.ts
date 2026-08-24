@@ -181,6 +181,7 @@ export class GeneratedNPCMechanicService {
     if (!/^[a-z0-9][a-z0-9:_-]{5,200}$/i.test(input.applicationId)) throw new Error("ID de aplicação inválido.");
     const actor = await resolveNPC(input.actorUuid);
     const definition = validateGeneratedNPCMechanicDefinition(input.definition);
+    if (definition.source === "ai-assisted" && definition.metadata.ai?.decision !== "accepted") throw new Error("A prévia assistida por IA exige aprovação explícita do GM antes da aplicação.");
     if (definition.metadata.actorUuid !== actor.uuid) throw new Error("A prévia foi gerada para outro NPC.");
     if (analyzePF2eNPC(actor).fingerprint !== definition.metadata.actorFingerprint) throw new Error("O NPC mudou após a prévia. Gere a mecânica novamente antes de aplicar.");
     const rawBefore = actor.getFlag(ETHERNUM.MODULE_NAME, FLAG);

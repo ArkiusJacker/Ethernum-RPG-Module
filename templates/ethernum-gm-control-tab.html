@@ -223,6 +223,28 @@
           <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-regenerate" {{#if mechanicPreviewEmpty}}disabled{{/if}}><i class="fas fa-arrows-rotate"></i><span>Nova semente</span></button>
         </div>
       </div>
+      <aside class="ethernum-ai-gate {{#if aiUnavailable}}is-unavailable{{else}}is-available{{/if}}">
+        <header>
+          <div><span>[TESTE — AI]</span><strong>AI Assisted Generation</strong></div>
+          <span class="ethernum-ai-gate__status">{{#if aiUnavailable}}INDISPONÍVEL{{else}}DISPONÍVEL{{/if}}</span>
+        </header>
+        <p>{{aiStatus.reason}}</p>
+        {{#if aiStatus.providerLabel}}<small>{{aiStatus.providerLabel}} · {{aiStatus.model}}</small>{{/if}}
+        <details>
+          <summary><i class="fas fa-shield-halved"></i> Fronteira de dados</summary>
+          <div class="ethernum-ai-gate__boundary">
+            <div><strong>Pode ser enviado</strong>{{#each aiStatus.dataFields}}<span><i class="fas fa-check"></i>{{this}}</span>{{/each}}</div>
+            <div><strong>Nunca é enviado automaticamente</strong>{{#each aiStatus.excludedData}}<span><i class="fas fa-ban"></i>{{this}}</span>{{/each}}</div>
+          </div>
+        </details>
+        <div class="ethernum-ai-gate__actions">
+          <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-ai-request" {{#unless mechanicAIRequestAvailable}}disabled{{/unless}}><i class="fas fa-wand-magic-sparkles"></i><span>Refinar com IA</span></button>
+          {{#if mechanicAIPending}}
+          <button type="button" class="ethernum-gm-control__command tone-success" data-gm-domain-action="mechanic-ai-accept"><i class="fas fa-check"></i><span>Aprovar assistência</span></button>
+          <button type="button" class="ethernum-gm-control__command tone-danger" data-gm-domain-action="mechanic-ai-reject"><i class="fas fa-xmark"></i><span>Rejeitar assistência</span></button>
+          {{/if}}
+        </div>
+      </aside>
       {{#if npcActorsEmpty}}
       <div class="ethernum-gm-control__empty"><i class="fas fa-user-slash"></i><strong>Nenhum NPC PF2e disponível</strong><span>Crie ou importe um Actor do tipo NPC para iniciar a análise.</span></div>
       {{else}}
@@ -230,7 +252,7 @@
       <div class="ethernum-gm-control__empty"><i class="fas fa-wand-magic-sparkles"></i><strong>Nenhuma mecânica em prévia</strong><span>Escolha um NPC, uma complexidade e uma semente. A geração não altera o Actor.</span></div>
       {{else}}
       <div class="ethernum-mechanic-generator__header">
-        <div><span>Mecânica experimental</span><h4>{{mechanicPreview.name}}</h4><p>{{mechanicPreview.description}}</p></div>
+        <div><span>{{#if mechanicAIAssisted}}AI ASSISTED · revisão do GM necessária{{else}}Mecânica experimental{{/if}}</span><h4>{{mechanicPreview.name}}</h4><p>{{mechanicPreview.description}}</p></div>
         <div class="ethernum-mechanic-generator__budget"><span>Orçamento</span><strong>{{mechanicPreview.metadata.powerSpent}} / {{mechanicPreview.metadata.powerBudget}}</strong></div>
       </div>
       <div class="ethernum-generator__metrics">
@@ -256,10 +278,10 @@
       {{#if mechanicManualProtected}}<p class="ethernum-generator__warning"><i class="fas fa-shield-halved"></i>Este NPC possui conteúdo manual protegido. A aplicação exigirá confirmação específica e manterá um snapshot reversível.</p>{{/if}}
       <div class="ethernum-generator__actions">
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="mechanic-edit"><i class="fas fa-pen"></i><span>Editar textos</span></button>
-        <button type="button" class="ethernum-gm-control__command tone-success" data-gm-domain-action="mechanic-apply"><i class="fas fa-floppy-disk"></i><span>Aplicar ao NPC</span></button>
+        <button type="button" class="ethernum-gm-control__command tone-success" data-gm-domain-action="mechanic-apply" {{#unless mechanicApplyAllowed}}disabled{{/unless}}><i class="fas fa-floppy-disk"></i><span>Aplicar ao NPC</span></button>
         <button type="button" class="ethernum-gm-control__command tone-warning" data-gm-domain-action="mechanic-revert" data-actor-uuid="{{mechanicPreview.metadata.actorUuid}}" data-application-id="{{mechanicCurrentApplicationId}}" {{#unless mechanicCanRevert}}disabled{{/unless}}><i class="fas fa-clock-rotate-left"></i><span>Reverter última</span></button>
       </div>
-      <small class="ethernum-generator__timestamp">Gerado em {{mechanicPreview.generatedLabel}}. Nenhum JavaScript, macro arbitrária ou perfil estático foi criado.</small>
+      <small class="ethernum-generator__timestamp">Gerado em {{mechanicPreview.generatedLabel}}. Nenhum JavaScript, macro arbitrária ou perfil estático foi criado. Auditoria AI local: {{aiAuditCount}} registro(s).</small>
       {{/if}}
       {{/if}}
     </section>

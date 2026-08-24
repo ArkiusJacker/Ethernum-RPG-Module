@@ -12,6 +12,8 @@ import type {
 } from "./mechanics/GeneratedNPCMechanicTypes.js";
 import { editGeneratedNPCMechanic, generateNPCMechanic, type GeneratedNPCMechanicTextEdit } from "./mechanics/NPCMechanicGenerator.js";
 import { PF2eNPCMechanicSource } from "./mechanics/PF2eNPCMechanicSource.js";
+import { getUniqueMechanicAIAssistanceService, type UniqueMechanicAIAssistanceService } from "./mechanics/ai/UniqueMechanicAIAssistanceService.js";
+import type { UniqueMechanicAIAssistanceStatus, UniqueMechanicAIOptions } from "./mechanics/ai/UniqueMechanicAITypes.js";
 import { getGeneratedNPCMechanicService } from "../unique/services/GeneratedNPCMechanicService.js";
 
 export interface OperationalGeneratorSnapshot {
@@ -19,6 +21,9 @@ export interface OperationalGeneratorSnapshot {
   encounterAnalysis?: EncounterAnalysis;
   mechanicPreview?: GeneratedNPCMechanicDefinition;
   mechanicAnalysis?: NPCMechanicAnalysis;
+  aiStatus: UniqueMechanicAIAssistanceStatus;
+  aiProposal?: { proposalId: string; decision: "pending" | "accepted" | "rejected" };
+  aiAuditCount: number;
   lootSources: LootSourceOption[];
   lootActors: Array<{ value: string; label: string }>;
   npcActors: GeneratedNPCMechanicActorOption[];
@@ -34,11 +39,13 @@ export class OperationalGeneratorService {
   private encounterAnalysis?: EncounterAnalysis;
   private mechanicPreview?: GeneratedNPCMechanicDefinition;
   private mechanicAnalysis?: NPCMechanicAnalysis;
+  private aiProposal?: { proposalId: string; decision: "pending" | "accepted" | "rejected" };
   private busy = false;
   constructor(
     private readonly lootSource = new PF2eLootSource(),
     private readonly encounterSource = new PF2eEncounterSource(),
     private readonly mechanicSource = new PF2eNPCMechanicSource(),
+    private readonly ai: UniqueMechanicAIAssistanceService = getUniqueMechanicAIAssistanceService(),
   ) {}
 
   snapshot(): OperationalGeneratorSnapshot {
@@ -47,6 +54,9 @@ export class OperationalGeneratorService {
       ...(this.encounterAnalysis ? { encounterAnalysis: this.encounterAnalysis } : {}),
       ...(this.mechanicPreview ? { mechanicPreview: this.mechanicPreview } : {}),
       ...(this.mechanicAnalysis ? { mechanicAnalysis: this.mechanicAnalysis } : {}),
+      aiStatus: this.ai.status(),
+      ...(this.aiProposal ? { aiProposal: { ...this.aiProposal } } : {}),
+      aiAuditCount: this.ai.listAudit().length,
       lootSources: this.lootSource.sourceOptions(),
       lootActors: collection<Actor>(game.actors).filter(actor => (actor.type as string) === "loot" && actor.uuid)
         .map(actor => ({ value: actor.uuid!, label: actor.name })),
@@ -95,6 +105,7 @@ export class OperationalGeneratorService {
     try {
       this.mechanicAnalysis = await this.mechanicSource.analyze(actorUuid);
       this.mechanicPreview = generateNPCMechanic({ analysis: this.mechanicAnalysis, seed, complexity });
+      this.aiProposal = undefined;
       return this.mechanicPreview;
     } finally {
       this.busy = false;
@@ -109,6 +120,35 @@ export class OperationalGeneratorService {
   editNPCMechanic(edit: GeneratedNPCMechanicTextEdit): GeneratedNPCMechanicDefinition {
     if (!this.mechanicPreview) throw new Error("Gere uma mecânica NPC antes de editar.");
     this.mechanicPreview = editGeneratedNPCMechanic(this.mechanicPreview, edit);
+    if (this.aiProposal?.decision === "pending") this.mechanicPreview = this.ai.updatePending(this.aiProposal.proposalId, this.mechanicPreview);
+    return this.mechanicPreview;
+  }
+
+  async requestAIAssistance(options: UniqueMechanicAIOptions): Promise<GeneratedNPCMechanicDefinition> {
+    if (this.busy) throw new Error("Uma geração operacional já está em andamento.");
+    if (!this.mechanicPreview || !this.mechanicAnalysis) throw new Error("Gere uma mecânica determinística antes de solicitar assistência de IA.");
+    this.busy = true;
+    try {
+      const proposal = await this.ai.assist(this.mechanicAnalysis, this.mechanicPreview, options);
+      this.aiProposal = { proposalId: proposal.proposalId, decision: proposal.decision };
+      this.mechanicPreview = proposal.assistedDefinition;
+      return this.mechanicPreview;
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  acceptAIAssistance(): GeneratedNPCMechanicDefinition {
+    if (!this.aiProposal || this.aiProposal.decision !== "pending") throw new Error("Não existe assistência de IA pendente para aprovação.");
+    this.mechanicPreview = this.ai.accept(this.aiProposal.proposalId);
+    this.aiProposal = { ...this.aiProposal, decision: "accepted" };
+    return this.mechanicPreview;
+  }
+
+  rejectAIAssistance(): GeneratedNPCMechanicDefinition {
+    if (!this.aiProposal || this.aiProposal.decision !== "pending") throw new Error("Não existe assistência de IA pendente para rejeição.");
+    this.mechanicPreview = this.ai.reject(this.aiProposal.proposalId);
+    this.aiProposal = { ...this.aiProposal, decision: "rejected" };
     return this.mechanicPreview;
   }
 }

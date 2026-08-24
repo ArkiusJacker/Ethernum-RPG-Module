@@ -56,6 +56,8 @@ import type {
 import { CompanyIdentityService } from './company/CompanyIdentityService.js';
 import { getCompanyRewardService } from './rewards/CompanyRewardService.js';
 import { getAdministrativeCommunicatorService } from './administration/AdministrativeCommunicatorService.js';
+import { getUniqueMechanicAIAssistanceService } from './generators/mechanics/ai/UniqueMechanicAIAssistanceService.js';
+import type { UniqueMechanicAIProvider } from './generators/mechanics/ai/UniqueMechanicAITypes.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -114,6 +116,14 @@ declare global {
           setStock: (entryId: string, stock: number | null, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["setStock"]>;
           setAuthorization: (actorUuid: string, authorization: Partial<CompanyStorePrincipalAuthorization>, options?: CompanyStoreMutationOptions) => ReturnType<ReturnType<typeof getCompanyStoreService>["setAuthorization"]>;
           reconcileTransactions: () => ReturnType<ReturnType<typeof getCompanyStoreService>["reconcileTransactions"]>;
+        };
+      };
+      ai: {
+        status: () => ReturnType<ReturnType<typeof getUniqueMechanicAIAssistanceService>["status"]>;
+        admin?: {
+          registerProvider: (provider: UniqueMechanicAIProvider) => void;
+          unregisterProvider: (providerId: string) => void;
+          audit: () => ReturnType<ReturnType<typeof getUniqueMechanicAIAssistanceService>["listAudit"]>;
         };
       };
       macros: {
@@ -699,6 +709,7 @@ Hooks.once("init", () => {
 
   const contractArchive = getContractArchiveService();
   const companyStore = getCompanyStoreService();
+  const aiAssistance = getUniqueMechanicAIAssistanceService();
   game.ethernum = {
     ETHERNUM,
     unique: UniqueMechanicsSystem,
@@ -742,6 +753,16 @@ Hooks.once("init", () => {
           setStock: (entryId, stock, options) => companyStore.setStock(entryId, stock, options),
           setAuthorization: (actorUuid, authorization, options) => companyStore.setAuthorization(actorUuid, authorization, options),
           reconcileTransactions: () => companyStore.reconcileTransactions(),
+        },
+      } : {}),
+    },
+    ai: {
+      status: () => aiAssistance.status(),
+      ...(game.user?.isGM ? {
+        admin: {
+          registerProvider: provider => aiAssistance.registerProvider(provider),
+          unregisterProvider: providerId => aiAssistance.unregisterProvider(providerId),
+          audit: () => aiAssistance.listAudit(),
         },
       } : {}),
     },

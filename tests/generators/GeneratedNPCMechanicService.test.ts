@@ -126,4 +126,35 @@ describe("generated NPC mechanic public service", () => {
     expect(content).not.toContain("eval(");
     expect(content).not.toContain("command");
   });
+
+  it("refuses AI-assisted content until the GM decision is accepted", async () => {
+    const { actor, service } = harness();
+    const base = definition(actor);
+    const assisted = {
+      ...base,
+      name: "[TESTE — AI] Refined Dragon",
+      source: "ai-assisted" as const,
+      metadata: {
+        ...base.metadata,
+        origin: "ai-adapter" as const,
+        ai: {
+          providerId: "secure-provider",
+          providerLabel: "Secure Provider",
+          model: "model-1",
+          mode: "refine" as const,
+          requestedAt: 1_000,
+          completedAt: 1_001,
+          decision: "pending" as const,
+          inputFields: ["NPC mechanics"],
+          reasoningSummary: [],
+        },
+      },
+    };
+    const input = { applicationId: `${base.id}:ai`, actorUuid: actor.uuid, definition: assisted };
+    await expect(service.apply(input)).rejects.toThrow(/aprovação explícita/i);
+    await expect(service.apply({
+      ...input,
+      definition: { ...assisted, metadata: { ...assisted.metadata, ai: { ...assisted.metadata.ai, decision: "accepted" as const, decidedAt: 1_002 } } },
+    })).resolves.toMatchObject({ state: "completed" });
+  });
 });

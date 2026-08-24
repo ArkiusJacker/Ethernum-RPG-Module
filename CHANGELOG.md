@@ -5,6 +5,32 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.6] - 2026-08-24
+
+### Adicionado
+- Interface genérica para provedores de assistência de IA com declaração obrigatória de transporte por proxy seguro, identificação de modelo e garantia de que nenhum segredo é exposto ao cliente.
+- Fronteira de dados mínima para NPCs, validador de JSON estrito e serviço de propostas assistidas com auditoria limitada em memória.
+- Painel `[TESTE - AI]` em `NPC Mechanics`, com estado disponível/indisponível, explicação de privacidade, prévia identificada como `AI ASSISTED` e decisões explícitas de aprovação ou rejeição.
+- API `game.ethernum.ai` para consultar o estado e, somente como mestre, registrar provedores seguros e inspecionar a auditoria da sessão.
+
+### Alterado
+- A IA pode somente refinar campos textuais de uma definição determinística existente; componentes, operações, custo de ações, dano, CD, orçamento e limites de poder permanecem canônicos.
+- Aplicação de proposta assistida exige decisão aceita. Propostas pendentes ou rejeitadas são recusadas também na camada de serviço, independentemente da interface.
+- Erros de provedor, JSON ou schema ficam contidos na assistência e nunca interrompem a geração determinística.
+
+### Segurança
+- O módulo não contém adaptador de provedor ao vivo, endpoint direto, chave de API, cabeçalho de autorização, configuração de segredo, `fetch` de IA ou persistência em `localStorage`/setting do mundo.
+- Journals, mensagens privadas, notas secretas de mestre, fichas e inventários alheios, exportações do mundo e credenciais são excluídos do contexto permitido.
+- Saída do provedor tem limite de 64 KB, chaves extras são recusadas e nenhum JavaScript ou texto executável é aceito.
+
+### Testes
+- 85 arquivos e 613 testes automatizados cobrem modo indisponível, registro seguro, fronteira de dados, JSON inválido, falha de schema, proposta válida, preservação mecânica, aprovação, rejeição, erro do provedor, permissão GM e aplicação protegida.
+- O painel indisponível e sua fronteira de dados foram inspecionados no Foundry; Loja, configurações do Comunicador e abas PF2e de Inventário, Ações e Efeitos passaram por verificação cruzada sem erro do módulo.
+- Evidências e relatório ficam em `docs/qa/v3.8.6/`.
+
+### Experimental
+- Toda a assistência de IA permanece `[TESTE - AI]` e indisponível por padrão até existir um backend/proxy seguro aprovado.
+
 ## [3.8.5] - 2026-08-24
 
 ### Adicionado
