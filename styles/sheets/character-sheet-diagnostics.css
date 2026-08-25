@@ -25,6 +25,13 @@
   margin: 0;
 }
 
+.ethernum-sheet-diagnostics__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .ethernum-sheet-diagnostics__header h2 {
   font-size: 20px;
 }
@@ -121,7 +128,8 @@
 
 .ethernum-sheet-diagnostics [data-status="supported"] strong,
 .ethernum-sheet-diagnostics [data-status="success"] strong,
-.ethernum-sheet-diagnostics [data-status="ok"] strong {
+.ethernum-sheet-diagnostics [data-status="ok"] strong,
+.ethernum-sheet-diagnostics [data-status="match"] strong {
   color: var(--diagnostics-ok);
 }
 
@@ -131,7 +139,8 @@
 }
 
 .ethernum-sheet-diagnostics [data-status="unsupported"] strong,
-.ethernum-sheet-diagnostics [data-status="failed"] strong {
+.ethernum-sheet-diagnostics [data-status="failed"] strong,
+.ethernum-sheet-diagnostics [data-status="mismatch"] strong {
   color: var(--diagnostics-failed);
 }
 
@@ -157,6 +166,56 @@
   color: #aeb4bd;
 }
 
+.ethernum-sheet-diagnostics__parity {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #806b3c;
+  padding: 10px;
+  background: #1c1f24;
+}
+
+.ethernum-sheet-diagnostics__parity > header,
+.ethernum-sheet-diagnostics__parity-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ethernum-sheet-diagnostics__parity-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ethernum-sheet-diagnostics__parity-list > li {
+  min-width: 0;
+  border: 1px solid #363b44;
+  padding: 7px 8px;
+  background: #202329;
+}
+
+.ethernum-sheet-diagnostics__parity-detail > div {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid #363b44;
+  padding: 6px 0;
+}
+
+.ethernum-sheet-diagnostics__parity-detail dd {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 5px;
+}
+
+.ethernum-sheet-diagnostics__parity-detail code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 @media (max-width: 620px) {
   .ethernum-sheet-diagnostics__columns {
     grid-template-columns: 1fr;
@@ -165,6 +224,16 @@
   .ethernum-sheet-diagnostics__header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .ethernum-sheet-diagnostics__header-actions,
+  .ethernum-sheet-diagnostics__parity-list {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .ethernum-sheet-diagnostics__header-actions {
+    display: grid;
   }
 
   .ethernum-sheet-diagnostics__operations > li {

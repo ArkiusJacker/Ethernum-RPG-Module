@@ -14,12 +14,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Verify release commit belongs to main
+        run: |
+          git fetch origin main --no-tags
+          npm run validate:topology -- --tag-ref "$GITHUB_REF_NAME" --main-ref "origin/main"
 
       - name: Install dependencies
         run: npm ci

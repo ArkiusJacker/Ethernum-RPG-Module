@@ -145,13 +145,41 @@ describe("CharacterSheetDiagnosticsService", () => {
   });
 
   it("serializes a compact report and copies it when a clipboard is available", async () => {
-    const snapshot = createCharacterSheetDiagnostics(input())!;
+    const snapshot = createCharacterSheetDiagnostics(input({
+      parity: {
+        actorId: "actor-pipping",
+        generatedAt: 1,
+        status: "mismatch",
+        matched: 1,
+        checked: 2,
+        categories: [{
+          id: "strikes",
+          label: "Strikes / MAP",
+          status: "mismatch",
+          matched: 1,
+          checked: 2,
+          results: [],
+          mismatches: [{
+            category: "strikes",
+            key: "fist:map-1",
+            label: "Fist MAP 1",
+            status: "mismatch",
+            pf2e: 9,
+            ethernum: 8,
+            pf2eDisplay: "9",
+            ethernumDisplay: "8",
+          }],
+        }],
+      },
+    }))!;
     const report = serializeCharacterSheetDiagnostics(snapshot);
     expect(report).toContain("Ethernum Character Sheet Diagnostic");
     expect(report).toContain("Spell Preparation: FALLBACK");
     expect(report).toContain("Cast Spell | PF2e Prepared | SUCCESS 12ms");
     expect(report).not.toContain("private");
     expect(report).not.toContain("actor.json");
+    expect(report).toContain("PF2e Parity");
+    expect(report).toContain("Fist MAP 1: PF2e=9 | Ethernum=8");
 
     const writeText = vi.fn().mockResolvedValue(undefined);
     await expect(copyCharacterSheetDiagnostics(snapshot, { writeText })).resolves.toEqual({
@@ -216,6 +244,8 @@ describe("CharacterSheetDiagnosticsService", () => {
     const css = readFileSync(join(process.cwd(), "styles", "sheets", "character-sheet-diagnostics.css"), "utf8");
     expect(template).toContain('data-access="{{access}}"');
     expect(template).toContain('data-action="copy-sheet-diagnostics"');
+    expect(template).toContain('data-action="refresh-sheet-parity"');
+    expect(template).toContain("PF2E PARITY");
     expect(template).toContain("ETHERNUM.CharacterSheet.Diagnostics.TechnicalDetails");
     expect(template).toContain("performance.moduleBuildTimes");
     expect(css).toContain(".ethernum-sheet-diagnostics");

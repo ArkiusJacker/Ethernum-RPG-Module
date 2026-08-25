@@ -180,6 +180,7 @@ export interface CharacterInventoryItemSnapshot {
   handsHeld?: number;
   inSlot?: boolean;
   hands?: "0" | "1" | "1+" | "2" | string;
+  containerId?: string;
   isInvestable?: boolean;
   bulk?: string;
   price?: string;
@@ -1139,7 +1140,8 @@ function inventoryItem(item: UnknownRecord): CharacterInventoryItemSnapshot {
   const price = formatStructuredValue(record(system.price).value ?? system.price);
   const equippedValue = typeof equipped.value === "boolean"
     ? equipped.value
-    : equipped.inSlot === true || ["held", "worn"].includes(carryType);
+      : equipped.inSlot === true || ["held", "worn"].includes(carryType);
+  const containerId = text(system.containerId, text(record(item.container).id));
 
   return {
     id: itemId(item),
@@ -1154,6 +1156,7 @@ function inventoryItem(item: UnknownRecord): CharacterInventoryItemSnapshot {
     ...(Number.isFinite(Number(equipped.handsHeld)) ? { handsHeld: Math.max(0, integer(equipped.handsHeld)) } : {}),
     ...(typeof equipped.inSlot === "boolean" ? { inSlot: equipped.inSlot } : {}),
     ...(hands ? { hands } : {}),
+    ...(containerId ? { containerId } : {}),
     ...(isInvestable !== undefined ? { isInvestable } : {}),
     ...(bulk ? { bulk } : {}),
     ...(price ? { price } : {}),

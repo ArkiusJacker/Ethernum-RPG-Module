@@ -476,3 +476,46 @@ Foundry harvest:
 - Cross-release inspection opened Store, Field Communicator Settings and the
   original PF2e Inventory, Actions and Effects tabs without module errors.
 - No new reproducible bug was found during the v3.8.6 live pass.
+
+## HARVEST Session - Repository Integrity and PF2e Parity
+
+Version target: 3.8.7
+
+Mode: Lite
+
+Seed: consolidate release truth and character-sheet mechanical parity without
+adding gameplay systems.
+
+Canonical harvest:
+
+- Repair `main` by fast-forward before feature work and preserve every published
+  release commit.
+- Enforce tag ancestry in the release workflow with a pure, testable topology
+  evaluator.
+- Compare prepared PF2e values with the Ethernum presentation snapshot without
+  deriving MAP, comparing localized labels or mutating documents.
+- Preserve a mechanical `traditionSlug` beside localized spellcasting text to
+  avoid false parity mismatches.
+- Declare compatibility according to runtime evidence rather than dormant
+  fallback code.
+- Register the three existing experiments with stable HARVEST IDs and retain
+  `AWAITING_USER_APPROVAL`.
+
+Experiments harvested: None. All changes are explicit consolidation requirements
+or defects uncovered by their validation.
+
+Backlog:
+
+- Full current Foundry 14 campaign sweep before considering it verified.
+- Administrative GitHub branch protection configuration by a repository owner.
+
+Rejected:
+
+- Deriving MAP penalties, repairing Actor data from diagnostics, claiming Foundry
+  11/12 support from compilation alone and force-upgrading Foundry typings.
+
+Foundry harvest: completed on Foundry 13.351 / PF2e 7.8.0 with ChatGPT
+Gamemaster, Bayle and Pipping sessions. The live pass found and fixed one false
+spellcasting parity mismatch caused by empty PF2e rank containers. Player
+startup also exposed an administrative Rewards read attempted without GM
+authority; this is retained as a confirmed v3.8.8 reliability item.

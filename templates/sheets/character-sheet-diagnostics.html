@@ -5,10 +5,16 @@
       <h2 id="ethernum-diagnostics-title">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Title'}}</h2>
       <p>{{actor.label}} <span>{{actor.id}}</span> <strong>{{status}}</strong></p>
     </div>
-    <button type="button" data-action="copy-sheet-diagnostics" title="{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}">
-      <i class="fas fa-copy" aria-hidden="true"></i>
-      <span>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}</span>
-    </button>
+    <div class="ethernum-sheet-diagnostics__header-actions">
+      <button type="button" data-action="refresh-sheet-parity" title="Refresh PF2e parity report">
+        <i class="fas fa-rotate" aria-hidden="true"></i>
+        <span>Refresh</span>
+      </button>
+      <button type="button" data-action="copy-sheet-diagnostics" title="{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}">
+        <i class="fas fa-copy" aria-hidden="true"></i>
+        <span>{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Copy'}}</span>
+      </button>
+    </div>
   </header>
 
   <dl class="ethernum-sheet-diagnostics__identity">
@@ -80,6 +86,42 @@
       {{/each}}
     </ul>
   </section>
+
+  {{#if parity}}
+  <section class="ethernum-sheet-diagnostics__parity" data-status="{{parity.status}}" aria-labelledby="ethernum-diagnostics-parity">
+    <header>
+      <div>
+        <p class="ethernum-sheet-diagnostics__eyebrow">Read-only audit</p>
+        <h3 id="ethernum-diagnostics-parity">PF2E PARITY</h3>
+      </div>
+      <strong>{{parity.matched}}/{{parity.checked}} match · {{parity.mismatchCount}} mismatch</strong>
+    </header>
+    <ul class="ethernum-sheet-diagnostics__parity-list">
+      {{#each parity.categories}}
+      <li data-status="{{status}}">
+        <div class="ethernum-sheet-diagnostics__parity-summary">
+          <span>{{label}}</span>
+          <strong>{{matched}}/{{checked}} match · {{mismatchCount}} mismatch</strong>
+        </div>
+        {{#if mismatches.length}}
+        <details>
+          <summary>{{mismatches.length}} mismatch detail(s)</summary>
+          <dl class="ethernum-sheet-diagnostics__parity-detail">
+            {{#each mismatches}}
+            <div>
+              <dt>{{label}}</dt>
+              <dd><span>PF2e</span><code>{{pf2eDisplay}}</code></dd>
+              <dd><span>Ethernum</span><code>{{ethernumDisplay}}</code></dd>
+            </div>
+            {{/each}}
+          </dl>
+        </details>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
 
   <section aria-labelledby="ethernum-diagnostics-operations">
     <h3 id="ethernum-diagnostics-operations">{{localize 'ETHERNUM.CharacterSheet.Diagnostics.Operations'}}</h3>

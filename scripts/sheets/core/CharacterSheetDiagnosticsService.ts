@@ -6,6 +6,7 @@ import type {
   PF2eBridgeTelemetryEntry,
   PF2eBridgeTelemetryStatus,
 } from "./PF2eBridgeTelemetry.js";
+import type { PF2eCharacterParityReport } from "./PF2eCharacterParityAudit.js";
 
 export type CharacterSheetCapabilityStatus = "supported" | "fallback" | "unsupported";
 export type CharacterSheetDiagnosticModuleStatus = "ok" | "partial" | "failed" | "not-applicable";
@@ -63,6 +64,7 @@ export interface CharacterSheetDiagnosticsInput {
   missingUIAssets?: string[];
   referenceOverlay?: boolean;
   highContrast?: boolean;
+  parity?: PF2eCharacterParityReport | null;
 }
 
 export interface CharacterSheetCapabilityDiagnostic {
@@ -119,6 +121,7 @@ export interface CharacterSheetDiagnosticsSnapshot {
     slowestModule: { id: string; durationMs: number } | null;
     dirtyPaths: string[];
   };
+  parity: PF2eCharacterParityReport | null;
 }
 
 export interface CharacterSheetControllerDiagnosticsLike {
@@ -151,6 +154,7 @@ export interface CharacterSheetControllerDiagnosticsInput {
   missingUIAssets?: string[];
   referenceOverlay?: boolean;
   highContrast?: boolean;
+  parity?: PF2eCharacterParityReport | null;
 }
 
 export interface CharacterSheetSafeErrorPresentation {
@@ -341,6 +345,7 @@ export function createCharacterSheetDiagnostics(
     modules,
     operations: operationDiagnostics(input),
     performance: performanceDiagnostics(input),
+    parity: input.parity ?? null,
   };
 }
 
@@ -374,6 +379,7 @@ export function createCharacterSheetDiagnosticsFromController(
     missingUIAssets: input.missingUIAssets,
     referenceOverlay: input.referenceOverlay,
     highContrast: input.highContrast,
+    parity: input.parity,
   });
 }
 
@@ -417,6 +423,19 @@ export function serializeCharacterSheetDiagnostics(snapshot: CharacterSheetDiagn
       ? `${snapshot.performance.slowestModule.id} (${snapshot.performance.slowestModule.durationMs}ms)`
       : "none"}`,
     `- Cache Dirty Paths: ${snapshot.performance.dirtyPaths.join(", ") || "none"}`,
+    "",
+    "PF2e Parity",
+    ...(snapshot.parity
+      ? [
+        `- Overall: ${snapshot.parity.status.toUpperCase()} (${snapshot.parity.matched}/${snapshot.parity.checked})`,
+        ...snapshot.parity.categories.map(category =>
+          `- ${category.label}: ${category.status.toUpperCase()} (${category.matched}/${category.checked})`,
+        ),
+        ...snapshot.parity.categories.flatMap(category => category.mismatches.map(entry =>
+          `  - ${entry.label}: PF2e=${entry.pf2eDisplay} | Ethernum=${entry.ethernumDisplay}`,
+        )),
+      ]
+      : ["- Unavailable"]),
     "",
     "Latest Operations",
     ...snapshot.operations.map(entry => {

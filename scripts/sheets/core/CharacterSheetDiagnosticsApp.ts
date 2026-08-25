@@ -10,6 +10,7 @@ import { PF2eBridgeTelemetry } from "./PF2eBridgeTelemetry.js";
 import { ETHERNUM_UI_ASSET_PACK_VERSION } from "../../ui/assets/EthernumUIAssetRegistry.js";
 import { EthernumUIAssetPreloader } from "../../ui/assets/EthernumUIAssetPreloader.js";
 import { EthernumVisualReferenceService } from "../../ui/assets/EthernumVisualReferenceService.js";
+import { PF2eCharacterParityAudit } from "./PF2eCharacterParityAudit.js";
 
 function localize(key: string, fallback: string): string {
   const value = game.i18n?.localize(key);
@@ -40,11 +41,8 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
     return false;
   }
 
-  let controllerDiagnostics = CharacterSheetController.diagnostics(actor);
-  if (!controllerDiagnostics) {
-    await CharacterSheetController.build(actor);
-    controllerDiagnostics = CharacterSheetController.diagnostics(actor);
-  }
+  const presentation = await CharacterSheetController.build(actor);
+  const controllerDiagnostics = CharacterSheetController.diagnostics(actor);
   if (!controllerDiagnostics) return false;
 
   const assetReport = controllerDiagnostics.resolvedSheet === "ethernum"
@@ -67,18 +65,24 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
     missingUIAssets: assetReport.missing,
     referenceOverlay: reference.enabled,
     highContrast: Boolean(game.settings.get(ETHERNUM.MODULE_NAME, "characterSheetHighContrast")),
+    parity: PF2eCharacterParityAudit.audit(actor, presentation),
   });
   if (!snapshot) return false;
 
   const content = await renderTemplate(CHARACTER_SHEET_DIAGNOSTICS_TEMPLATE, snapshot);
-  const bindCopy = (html: JQuery<HTMLElement>) => {
+  let dialog: Dialog;
+  const bindActions = (html: JQuery<HTMLElement>) => {
     html.find('[data-action="copy-sheet-diagnostics"]').on("click", event => {
       event.preventDefault();
       void copySnapshot(snapshot);
     });
+    html.find('[data-action="refresh-sheet-parity"]').on("click", event => {
+      event.preventDefault();
+      void Promise.resolve(dialog.close()).then(() => openCharacterSheetDiagnostics(actor));
+    });
   };
 
-  new Dialog({
+  dialog = new Dialog({
     title: localize("ETHERNUM.CharacterSheet.Diagnostics.Title", "Character Sheet Diagnostic"),
     content,
     buttons: {
@@ -93,11 +97,12 @@ export async function openCharacterSheetDiagnostics(actor: Actor): Promise<boole
       },
     },
     default: "close",
-    render: bindCopy,
+    render: bindActions,
   }, {
     classes: ["dialog", "ethernum-character-sheet-diagnostics-dialog"],
     width: 780,
     height: "auto",
-  }).render(true);
+  });
+  dialog.render(true);
   return true;
 }

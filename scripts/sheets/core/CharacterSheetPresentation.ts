@@ -303,6 +303,7 @@ function viewSpellcasting(value: unknown): Data {
       attack: entry.spellAttack,
       category: preparation,
       categoryLabel,
+      traditionSlug: entry.tradition,
       tradition: PF2ePresentationLocalization.tradition(entry.tradition),
       isPrepared: preparation === "prepared",
       isSpontaneous: preparation === "spontaneous",

@@ -4,18 +4,17 @@
 [![Pathfinder 2E](https://img.shields.io/badge/System-Pathfinder%202E-blue)](https://foundryvtt.com/packages/pf2e/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 11-14 no manifesto para preservar mundos existentes; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, legado e experimental.
+Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 13 como mínimo e versão verificada; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, parcial e não suportado.
 
-## Versão 3.8.6
+## Versão 3.8.7
 
-- O gerador determinístico de Mecânicas Únicas para NPCs continua completo e funcional sem IA, com treze famílias declarativas, orçamento de poder, prévia, aplicação auditada e rollback.
-- A área `NPC Mechanics` ganhou assistência opcional `[TESTE - AI]` para refinar apenas a apresentação textual de uma mecânica determinística já validada.
-- A integração aceita somente provedores registrados por um backend/proxy seguro; nenhuma chave de API é configurada, armazenada ou enviada pelo cliente Foundry.
-- O contexto permitido é mínimo e mecânico. Journals, conversas privadas, notas secretas, inventários alheios, exportações do mundo e credenciais ficam fora da fronteira de dados.
-- Respostas passam por JSON estrito, schema, validador mecânico e orçamento antes da prévia; operações, custos, dano, CD, estrutura e poder não podem ser alterados pelo provedor.
-- Todo rascunho assistido exige ação explícita do mestre, edição opcional e decisão de aprovar ou rejeitar. Conteúdo pendente nunca pode ser aplicado ao Actor.
-- Sem backend seguro, o painel explica por que a IA está indisponível e todo o módulo permanece operante no modo determinístico.
-- A documentação técnica completa do pacote está em [`docs/UI_ASSET_BIBLE.md`](docs/UI_ASSET_BIBLE.md), e o relatório do ciclo v3.7.9-v3.8.6 está em [`docs/qa/MASTER_REPORT_3.7.9_3.8.6.md`](docs/qa/MASTER_REPORT_3.7.9_3.8.6.md).
+- `main` foi sincronizada por fast-forward com todo o histórico publicado até a v3.8.6.
+- O workflow de release agora recusa tags cujo commit não pertença ao histórico de `main` e informa tag, main e merge-base.
+- O Diagnóstico da Ficha ganhou uma auditoria PF2e somente leitura para HP, CA, Percepção, salvamentos, perícias, variantes MAP, inventário, moedas, bulk, condições, Pontos Heroicos, foco e conjuração.
+- Diferenças são comparadas como valores mecânicos normalizados, com detalhe expansível e relatório copiável; a auditoria nunca corrige nem atualiza o Actor.
+- A matriz de compatibilidade passa a declarar apenas Foundry 13 como mínimo/verificado. Foundry 14 permanece experimental/parcial, e 11/12 deixam de ser apresentados como suporte testado.
+- O registro HARVEST identifica explicitamente as famílias de mecânicas geradas e os dois experimentos de IA como `AWAITING_USER_APPROVAL`.
+- Recomendações de proteção da branch principal estão documentadas em [`docs/BRANCH_PROTECTION.md`](docs/BRANCH_PROTECTION.md).
 
 ### Protocolos de desenvolvimento
 
@@ -23,6 +22,7 @@ Sistema de RPG com múltiplas funções, criado especificamente para integrar co
 - [Testes experimentais](docs/EXPERIMENTAL_TESTS.md)
 - [Registro de sessões HARVEST](docs/HARVEST_LOG.md)
 - [Roadmap v3.7.9 -> v3.8.6](docs/ROADMAP_3.7.9_3.8.6.md)
+- [Roadmap v3.8.7 -> v3.8.10](docs/ROADMAP_3.8.7_3.8.10.md)
 
 ### Paridade da ficha PF2e
 

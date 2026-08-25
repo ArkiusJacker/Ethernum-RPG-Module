@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.7] - 2026-08-25
+
+### Adicionado
+- `PF2eCharacterParityAudit` somente leitura, cobrindo HP temporário, CA, Percepção, salvamentos, perícias, variantes MAP preparadas, inventário, moedas, bulk, condições, Pontos Heroicos, foco e spellcasting.
+- Seção `PF2E PARITY` no Diagnóstico da Ficha, com atualização explícita, resumo por categoria, detalhe de mismatch e inclusão no relatório copiável.
+- Verificador testável de topologia de release e documentação de proteção recomendada para `main`.
+- Registro estável dos experimentos HARVEST atualmente ativos.
+
+### Alterado
+- `main` foi reparada por fast-forward de v3.8.2 para o commit integral da v3.8.6, sem reescrever tags ou releases.
+- O workflow de release busca `main` e falha antes do empacotamento quando o commit da tag não é seu ancestral.
+- A apresentação de spellcasting preserva o slug mecânico da tradição separadamente do rótulo localizado.
+- A paridade de spellcasting ignora ranks estruturalmente vazios do PF2e, evitando falso positivo sem esconder slots ou ranks ocupados.
+- Itens físicos preservam relação segura de container no snapshot da ficha.
+- O manifesto passa a declarar Foundry 13 como mínimo e versão verificada; Foundry 11/12 são não suportados e Foundry 14 permanece experimental/parcial na documentação.
+
+### Segurança e integridade
+- A auditoria de paridade não atualiza Actor, Items ou flags e não tenta reparar divergências.
+- Branch protection administrativa não foi representada como configurada; as recomendações e a proteção executável do workflow estão documentadas separadamente.
+
+### Testes
+- Novos testes cobrem topologia válida/inválida, valores normalizados de paridade, ranks de magia vazios, mismatch de MAP/moeda, imutabilidade, consistência HARVEST e política de compatibilidade.
+- Evidências e relatório ficam em `docs/qa/v3.8.7/`.
+
 ## [3.8.6] - 2026-08-24
 
 ### Adicionado
