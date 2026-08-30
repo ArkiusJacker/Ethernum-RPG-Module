@@ -31,6 +31,7 @@ import type {
   CompanyStorePurchaseSubmission,
   CompanyStoreSnapshot,
   CompanyStoreTransactionMode,
+  CompanyStoreTransactionRecord,
 } from "../../scripts/store/CompanyStoreTypes.js";
 import type {
   PF2eStoreAdapter,
@@ -307,6 +308,7 @@ interface HarnessOptions {
   stock?: number;
   mode?: CompanyStoreTransactionMode;
   itemExists?: boolean;
+  itemObservable?: boolean;
   ownsActor?: boolean;
   forgedMessageAuthor?: string;
 }
@@ -353,7 +355,7 @@ async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
     type: "weapon",
     visible: true,
     storePrice: price,
-    testUserPermission: vi.fn(() => true),
+    testUserPermission: vi.fn(() => options.itemObservable !== false),
   };
   const player: FakeUser = {
     id: PLAYER_ID,
@@ -438,6 +440,37 @@ function terminalTransaction(repository: FakeRepository) {
   return repository.data.transactions.at(-1);
 }
 
+function seedRecovery(
+  harness: Harness,
+  overrides: Partial<CompanyStoreTransactionRecord> = {},
+): CompanyStoreTransactionRecord {
+  (game as Game & { user: unknown }).user = { id: GM_ID, name: "Game Master", isGM: true, active: true };
+  const transaction: CompanyStoreTransactionRecord = {
+    id: "store-recovery-1",
+    fingerprint: `${PLAYER_ID}\u001f${ACTOR_UUID}\u001f${ENTRY_ID}\u001f1`,
+    requesterId: PLAYER_ID,
+    actorUuid: ACTOR_UUID,
+    actorName: "Pipping Black",
+    entryId: ENTRY_ID,
+    requestMessageUuid: "ChatMessage.recovery",
+    itemUuid: ITEM_UUID,
+    itemName: "Lâmina da Noite",
+    transactionMode: "automatic",
+    state: "recoveryRequired",
+    price: coinsFromCopper(500),
+    priceLabel: "5 gp",
+    stockBefore: 2,
+    createdItemIds: [],
+    createdAt: NOW - 1_000,
+    updatedAt: NOW,
+    error: "interrupted test transaction",
+    recovery: { debit: "confirmed", delivery: "notStarted", stock: "unchanged" },
+    ...overrides,
+  };
+  harness.repository.data.transactions.push(transaction);
+  return transaction;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -467,6 +500,18 @@ describe("CompanyStoreService", () => {
     expect(harness.adapter.grantItem).toHaveBeenCalledOnce();
     expect(harness.actor.storeBalance.copperValue).toBe(0);
     expect(terminalTransaction(harness.repository)?.state).toBe("completed");
+  });
+
+  it("publica uma projeção sanitizada sem conceder OBSERVER ao Item-fonte", async () => {
+    const harness = await createHarness({ itemObservable: false });
+
+    expect(harness.repository.readProjection(harness.player)?.items).toMatchObject([
+      { id: ENTRY_ID, name: "Lâmina da Noite", available: true },
+    ]);
+    await expect(harness.service.requestPurchase(ENTRY_ID)).resolves.toMatchObject({
+      receipt: { status: "completed" },
+    });
+    expect(harness.adapter.grantItem).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -603,5 +648,112 @@ describe("CompanyStoreService", () => {
     expect(terminalTransaction(harness.repository)).toMatchObject({ state: "recoveryRequired" });
     expect(terminalTransaction(harness.repository)?.recoveryNotes?.join(" ")).toContain("Remoção do Item");
     expect(harness.chatCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("lista somente recoveryRequired com IDs, estados e motivo", async () => {
+    const harness = await createHarness({ stock: 2 });
+    const recoveryTransaction = seedRecovery(harness);
+    harness.repository.data.transactions.push({
+      ...recoveryTransaction,
+      id: "completed-copy",
+      state: "completed",
+    });
+
+    const cases = await harness.service.getRecoveryCases();
+
+    expect(cases).toHaveLength(1);
+    expect(cases[0]).toMatchObject({
+      transactionId: "store-recovery-1",
+      actorName: "Pipping Black",
+      itemName: "Lâmina da Noite",
+      reason: "interrupted test transaction",
+      debit: { state: "confirmed" },
+      delivery: { state: "absent" },
+      stock: { state: "unchanged" },
+    });
+    expect(JSON.parse(cases[0]!.diagnostic)).toMatchObject({ transactionId: "store-recovery-1" });
+  });
+
+  it("coalesce double click e retoma somente uma etapa segura por comando", async () => {
+    const harness = await createHarness({ stock: 2, balanceCopper: 4_500 });
+    seedRecovery(harness);
+
+    const [left, right] = await Promise.all([
+      harness.service.retryRecoveryStep("store-recovery-1"),
+      harness.service.retryRecoveryStep("store-recovery-1"),
+    ]);
+
+    expect(left).toEqual(right);
+    expect(harness.adapter.grantItem).toHaveBeenCalledOnce();
+    expect(harness.repository.data.entries[0]?.stock).toBe(2);
+    await harness.service.retryRecoveryStep("store-recovery-1");
+    expect(harness.repository.data.entries[0]?.stock).toBe(1);
+    await expect(harness.service.retryRecoveryStep("store-recovery-1")).resolves.toMatchObject({ state: "completed" });
+    expect(harness.adapter.grantItem).toHaveBeenCalledOnce();
+  });
+
+  it("compensa efeitos comprovados uma vez e repete de forma idempotente", async () => {
+    const harness = await createHarness({ stock: 1, balanceCopper: 4_500 });
+    seedRecovery(harness, {
+      stockBefore: 2,
+      createdItemIds: ["grant-store-recovery-1"],
+      recovery: { debit: "confirmed", delivery: "confirmed", stock: "decremented" },
+    });
+    harness.adapter.transactionItems.set("store-recovery-1", ["grant-store-recovery-1"]);
+
+    const [left, right] = await Promise.all([
+      harness.service.compensateRecovery("store-recovery-1"),
+      harness.service.compensateRecovery("store-recovery-1"),
+    ]);
+
+    expect(left).toEqual(right);
+    expect(harness.adapter.deleteGrantedItems).toHaveBeenCalledOnce();
+    expect(harness.adapter.addCoins).toHaveBeenCalledOnce();
+    expect(harness.actor.storeBalance.copperValue).toBe(5_000);
+    expect(harness.repository.data.entries[0]?.stock).toBe(2);
+    await expect(harness.service.compensateRecovery("store-recovery-1")).resolves.toMatchObject({ changed: false, state: "rolledBack" });
+    expect(harness.adapter.addCoins).toHaveBeenCalledOnce();
+  });
+
+  it("nunca cria Item nem estorna automaticamente quando o débito é ambíguo", async () => {
+    const harness = await createHarness({ stock: 2, balanceCopper: 4_500 });
+    seedRecovery(harness, { recovery: { debit: "ambiguous", delivery: "notStarted", stock: "unchanged" } });
+
+    const [recovery] = await harness.service.getRecoveryCases();
+    expect(recovery).toMatchObject({
+      ambiguous: true,
+      requiresGMReconciliation: true,
+      actions: { retrySafeStep: { enabled: false }, compensate: { enabled: false }, markResolved: { enabled: true } },
+    });
+    await expect(harness.service.retryRecoveryStep("store-recovery-1")).rejects.toThrow("ambíguo");
+    await expect(harness.service.compensateRecovery("store-recovery-1")).rejects.toThrow("ambíguo");
+    expect(harness.adapter.grantItem).not.toHaveBeenCalled();
+    expect(harness.adapter.addCoins).not.toHaveBeenCalled();
+
+    const first = await harness.service.markRecoveryResolved("store-recovery-1", "rolledBack", "Saldo e inventário reconciliados manualmente.");
+    const replay = await harness.service.markRecoveryResolved("store-recovery-1", "rolledBack", "Saldo e inventário reconciliados manualmente.");
+    expect(first.changed).toBe(true);
+    expect(replay.changed).toBe(false);
+    expect(harness.adapter.grantItem).not.toHaveBeenCalled();
+    expect(harness.adapter.addCoins).not.toHaveBeenCalled();
+  });
+
+  it("converte compensação interrompida em recovery sem repetir mutações", async () => {
+    const harness = await createHarness({ stock: 2, balanceCopper: 4_500 });
+    seedRecovery(harness, {
+      state: "compensating",
+      recovery: undefined,
+      createdItemIds: ["historic-item-id"],
+    });
+
+    await harness.service.reconcileTransactions();
+
+    expect(terminalTransaction(harness.repository)).toMatchObject({
+      state: "recoveryRequired",
+      recovery: { debit: "ambiguous", delivery: "ambiguous", stock: "ambiguous" },
+    });
+    expect(harness.adapter.deleteGrantedItems).not.toHaveBeenCalled();
+    expect(harness.adapter.addCoins).not.toHaveBeenCalled();
+    expect(harness.adapter.grantItem).not.toHaveBeenCalled();
   });
 });

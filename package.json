@@ -1,6 +1,6 @@
 {
   "name": "ethernum-rpg-module",
-  "version": "3.8.7",
+  "version": "3.8.8",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -10,7 +10,8 @@
     "test:watch": "vitest",
     "validate:manifest": "node tools/validate-release.mjs --manifest module.json --root .",
     "validate:dist": "node tools/validate-release.mjs --manifest dist/module.json --root dist --check-imports",
-    "validate:topology": "node tools/validate-release-topology.mjs"
+    "validate:topology": "node tools/validate-release-topology.mjs",
+    "report:size": "node tools/report-package-size.mjs --root dist"
   },
   "devDependencies": {
     "@league-of-foundry-developers/foundry-vtt-types": "^12.0.0",

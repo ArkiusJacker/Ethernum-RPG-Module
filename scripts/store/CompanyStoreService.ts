@@ -23,7 +23,6 @@ import {
 } from "./CompanyStoreRepository.js";
 import {
   PF2eStoreAdapter,
-  canObserveStoreDocument,
   canOwnStoreActor,
   formatCompanyCoins,
   type StoreActorDocument,
@@ -38,6 +37,10 @@ import {
   type CompanyStoreItemDTO,
   type CompanyStoreMutationOptions,
   type CompanyStorePrincipalAuthorization,
+  type CompanyStoreRecoveryActionResult,
+  type CompanyStoreRecoveryCaseDTO,
+  type CompanyStoreRecoveryEvidence,
+  type CompanyStoreRecoveryStatusDTO,
   type CompanyStorePurchasePayload,
   type CompanyStorePurchaseReceipt,
   type CompanyStorePurchaseResult,
@@ -98,6 +101,16 @@ interface ValidatedPurchase {
   item: StoreItemDocument;
   price: CompanyStoreCoins;
   user: StoreUser;
+}
+
+interface RecoveryInspection {
+  data: CompanyStoreData;
+  transaction: CompanyStoreTransactionRecord;
+  actor: StoreActorDocument | null;
+  item: StoreItemDocument | null;
+  entry: CompanyStoreEntry | undefined;
+  itemIds: string[];
+  recoveryCase: CompanyStoreRecoveryCaseDTO;
 }
 
 function collection<T>(value: unknown): T[] {
@@ -171,6 +184,14 @@ function emptySnapshot(): CompanyStoreSnapshot {
 
 function sameCoins(left: CompanyStoreCoins, copper: number): boolean {
   return left.copperValue === Math.max(0, Math.floor(copper));
+}
+
+function recoveryStatus(
+  state: CompanyStoreRecoveryStatusDTO["state"],
+  label: string,
+  tone: CompanyStoreRecoveryStatusDTO["tone"],
+): CompanyStoreRecoveryStatusDTO {
+  return { state, label, tone };
 }
 
 function receiptFromResult(result: CompanyStorePurchaseResult): CompanyStorePurchaseReceipt {
@@ -263,6 +284,7 @@ export class CompanyStoreService {
   private transactionTail: Promise<void> = Promise.resolve();
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly pendingSubmissions = new Map<string, Promise<CompanyStorePurchaseSubmission>>();
+  private readonly pendingRecoveryActions = new Map<string, Promise<CompanyStoreRecoveryActionResult>>();
 
   constructor(options: CompanyStoreServiceOptions = {}) {
     this.bridge = options.bridge ?? getEthernumAuthorityBridge();
@@ -343,6 +365,41 @@ export class CompanyStoreService {
   async getStore(): Promise<CompanyStoreData> {
     if (!game.user?.isGM) throw new Error("Somente o Gamemaster pode consultar a Loja da Companhia.");
     return this.repository.readStore();
+  }
+
+  async getRecoveryCases(): Promise<CompanyStoreRecoveryCaseDTO[]> {
+    if (!game.user?.isGM) throw new Error("Somente o Gamemaster pode consultar a recuperação da Loja.");
+    const data = await this.repository.readStore();
+    const cases = await Promise.all(data.transactions
+      .filter(transaction => transaction.state === "recoveryRequired")
+      .map(transaction => this.inspectRecovery(data, transaction)));
+    return cases.map(entry => entry.recoveryCase).sort((left, right) => right.updatedAt - left.updatedAt);
+  }
+
+  retryRecoveryStep(transactionId: string): Promise<CompanyStoreRecoveryActionResult> {
+    return this.coalesceRecoveryAction("retry", transactionId, () => this.retryRecoveryStepNow(transactionId));
+  }
+
+  compensateRecovery(transactionId: string): Promise<CompanyStoreRecoveryActionResult> {
+    return this.coalesceRecoveryAction("compensate", transactionId, () => this.compensateRecoveryNow(transactionId));
+  }
+
+  markRecoveryResolved(
+    transactionId: string,
+    outcome: "completed" | "rolledBack",
+    note: string,
+  ): Promise<CompanyStoreRecoveryActionResult> {
+    const normalizedNote = text(note, 1_000);
+    if (normalizedNote.length < 8) throw new Error("Registre uma nota de reconciliação com pelo menos 8 caracteres.");
+    return this.coalesceRecoveryAction(`resolve:${outcome}:${normalizedNote}`, transactionId, () => (
+      this.markRecoveryResolvedNow(transactionId, outcome, normalizedNote)
+    ));
+  }
+
+  async recoveryDiagnostic(transactionId: string): Promise<string> {
+    const recoveryCase = (await this.getRecoveryCases()).find(entry => entry.transactionId === transactionId);
+    if (!recoveryCase) throw new Error("Transação de recuperação não encontrada.");
+    return recoveryCase.diagnostic;
   }
 
   async upsertEntry(input: unknown, options: CompanyStoreMutationOptions = {}): Promise<CompanyStoreData> {
@@ -582,9 +639,6 @@ export class CompanyStoreService {
     const item = await this.adapter.resolveItem(entry.itemUuid);
     if (!item) throw new Error("O Item PF2e da oferta não existe.");
     if (!this.adapter.isPhysicalItem(item)) throw new Error("A oferta não referencia um Item físico PF2e.");
-    if (!canObserveStoreDocument(item, user as unknown as User)) {
-      throw new Error("O Item PF2e da oferta não está liberado para este jogador.");
-    }
     const price = this.adapter.resolvePrice(item, entry.priceOverride);
     if (!price || !sameCoins(price, payload.quotedPriceCopper ?? -1)) throw new Error("O preço da oferta foi atualizado.");
     const authorization = data.authorizations[actor.uuid ?? ""];
@@ -635,6 +689,11 @@ export class CompanyStoreService {
       priceLabel: formatCompanyCoins(validated.price),
       ...(entry.stock === undefined ? {} : { stockBefore: entry.stock }),
       createdItemIds: [],
+      recovery: {
+        debit: "notStarted",
+        delivery: "notStarted",
+        stock: entry.stock === undefined ? "notApplicable" : "unchanged",
+      },
       createdAt: now,
       updatedAt: now,
       ...(mode === "approval" ? { approvedBy } : {}),
@@ -645,6 +704,7 @@ export class CompanyStoreService {
     let debitConfirmed = false;
     let debitAmbiguous = false;
     try {
+      transaction.recovery!.debit = "pending";
       await this.stage(data, transaction, "debiting");
       this.assertPrimaryGM();
       try {
@@ -654,11 +714,15 @@ export class CompanyStoreService {
         throw error;
       }
       if (!debitConfirmed) throw new Error("O PF2e recusou a remoção das moedas.");
+      transaction.recovery!.debit = "confirmed";
       await this.stage(data, transaction, "debited");
+      transaction.recovery!.delivery = "pending";
       await this.stage(data, transaction, "granting");
       this.assertPrimaryGM();
       transaction.createdItemIds = await this.adapter.grantItem(validated.actor, validated.item, transaction.id);
+      transaction.recovery!.delivery = "confirmed";
       await this.stage(data, transaction, "granted");
+      if (entry.stock !== undefined) transaction.recovery!.stock = "pending";
       await this.stage(data, transaction, "completing");
       this.assertPrimaryGM();
       entry = data.entries.find(candidate => candidate.id === entry.id) ?? entry;
@@ -666,6 +730,7 @@ export class CompanyStoreService {
         if (entry.stock <= 0) throw new Error("O estoque foi alterado durante a compra.");
         entry.stock -= 1;
         entry.revision += 1;
+        transaction.recovery!.stock = "decremented";
       }
       transaction.state = "completed";
       transaction.updatedAt = this.now();
@@ -677,6 +742,8 @@ export class CompanyStoreService {
       transaction.error = error instanceof Error ? error.message : String(error);
       const recoveryNotes: string[] = [];
       let recoveryRequired = debitAmbiguous;
+      if (debitAmbiguous) transaction.recovery!.debit = "ambiguous";
+      else if (!debitConfirmed) transaction.recovery!.debit = "notStarted";
       transaction.state = "compensating";
       transaction.updatedAt = this.now();
       try { await this.persist(data); } catch (persistError) {
@@ -688,22 +755,31 @@ export class CompanyStoreService {
         ...this.adapter.transactionItemIds(validated.actor, transaction.id),
       ]));
       if (grantedIds.length) {
-        try { await this.adapter.deleteGrantedItems(validated.actor, grantedIds); }
+        try {
+          await this.adapter.deleteGrantedItems(validated.actor, grantedIds);
+          transaction.recovery!.delivery = "removed";
+        }
         catch (rollbackError) {
           recoveryRequired = true;
+          transaction.recovery!.delivery = "ambiguous";
           recoveryNotes.push(`Remoção do Item: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
         }
       }
       if (debitConfirmed) {
-        try { await this.adapter.addCoins(validated.actor, validated.price); }
+        try {
+          await this.adapter.addCoins(validated.actor, validated.price);
+          transaction.recovery!.debit = "refunded";
+        }
         catch (rollbackError) {
           recoveryRequired = true;
+          transaction.recovery!.debit = "ambiguous";
           recoveryNotes.push(`Estorno de moedas: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
         }
       }
       if (transaction.stockBefore !== undefined) {
         const currentEntry = data.entries.find(candidate => candidate.id === transaction.entryId);
         if (currentEntry) currentEntry.stock = transaction.stockBefore;
+        transaction.recovery!.stock = "restored";
       }
       transaction.recoveryNotes = recoveryNotes;
       transaction.state = recoveryRequired ? "recoveryRequired" : "rolledBack";
@@ -769,7 +845,6 @@ export class CompanyStoreService {
       const item = await this.adapter.resolveItem(entry.itemUuid);
       const broken = !item || !this.adapter.isPhysicalItem(item);
       if (broken && !user.isGM) continue;
-      if (item && !canObserveStoreDocument(item, user as unknown as User)) continue;
       const price = item ? this.adapter.resolvePrice(item, entry.priceOverride) : null;
       const presentation = item ? this.adapter.itemPresentation(item) : { name: "Item PF2e indisponível" };
       const denial = !exactActor
@@ -894,6 +969,244 @@ export class CompanyStoreService {
     return data;
   }
 
+  private async inspectRecovery(
+    data: CompanyStoreData,
+    transaction: CompanyStoreTransactionRecord,
+  ): Promise<RecoveryInspection> {
+    const [actor, item] = await Promise.all([
+      this.adapter.resolveActor(transaction.actorUuid),
+      this.adapter.resolveItem(transaction.itemUuid),
+    ]);
+    const entry = data.entries.find(candidate => candidate.id === transaction.entryId);
+    const itemIds = actor
+      ? Array.from(new Set(this.adapter.transactionItemIds(actor, transaction.id))).filter(Boolean)
+      : [];
+    const evidence = transaction.recovery;
+    const debit = evidence?.debit === "confirmed"
+      ? recoveryStatus("confirmed", "Débito confirmado", "warning")
+      : evidence?.debit === "refunded"
+        ? recoveryStatus("refunded", "Estornado", "success")
+        : evidence?.debit === "notStarted"
+          ? recoveryStatus("notStarted", "Não debitado", "success")
+          : recoveryStatus(evidence?.debit ?? "unknown", "Ambíguo", "danger");
+    const delivery = !actor
+      ? recoveryStatus("unknown", "Actor indisponível", "danger")
+      : itemIds.length
+        ? recoveryStatus("present", `${itemIds.length} Item(s) presente(s)`, "warning")
+        : recoveryStatus("absent", "Nenhum Item da transação", "success");
+    const stock = transaction.stockBefore === undefined
+      ? recoveryStatus("notApplicable", "Ilimitado", "neutral")
+      : !entry || entry.stock === undefined
+        ? recoveryStatus("unknown", "Oferta/estoque indisponível", "danger")
+        : entry.stock === transaction.stockBefore
+          ? recoveryStatus("unchanged", `Inalterado (${entry.stock})`, "success")
+          : entry.stock === Math.max(0, transaction.stockBefore - 1)
+            ? recoveryStatus("decremented", `Decrementado (${entry.stock})`, "warning")
+            : recoveryStatus("unknown", `Divergente (${entry.stock}; esperado ${transaction.stockBefore})`, "danger");
+    const ambiguous = debit.state === "unknown" || debit.state === "pending" || debit.state === "ambiguous"
+      || delivery.state === "unknown" || stock.state === "unknown";
+    const primary = this.bridge.isPrimaryGM();
+    const retryNeedsSourceItem = delivery.state === "absent";
+    const retryEnabled = primary && !ambiguous && debit.state === "confirmed"
+      && Boolean(actor && entry && (!retryNeedsSourceItem || item));
+    const compensateEnabled = primary && !ambiguous && Boolean(actor)
+      && ["confirmed", "refunded", "notStarted"].includes(debit.state);
+    const reason = [transaction.error, ...(transaction.recoveryNotes ?? [])].filter(Boolean).join(" | ")
+      || "A transação foi interrompida e requer reconciliação.";
+    const diagnosticData = {
+      transactionId: transaction.id,
+      actor: { name: transaction.actorName, uuid: transaction.actorUuid, available: Boolean(actor) },
+      item: { name: transaction.itemName, uuid: transaction.itemUuid, sourceAvailable: Boolean(item), transactionItemIds: itemIds },
+      price: transaction.price,
+      state: transaction.state,
+      debit: debit.state,
+      delivery: delivery.state,
+      stock: stock.state,
+      stockBefore: transaction.stockBefore,
+      currentStock: entry?.stock,
+      reason,
+      recoveryEvidence: evidence ?? null,
+      requiresGMReconciliation: ambiguous,
+      updatedAt: transaction.updatedAt,
+    };
+    const recoveryCase: CompanyStoreRecoveryCaseDTO = {
+      transactionId: transaction.id,
+      shortId: shortId(transaction.id),
+      actorName: transaction.actorName || transaction.actorUuid,
+      actorUuid: transaction.actorUuid,
+      itemName: transaction.itemName || transaction.itemUuid,
+      itemUuid: transaction.itemUuid,
+      priceLabel: transaction.priceLabel,
+      reason,
+      updatedAt: transaction.updatedAt,
+      ambiguous,
+      requiresGMReconciliation: ambiguous,
+      debit,
+      delivery,
+      stock,
+      actions: {
+        retrySafeStep: {
+          enabled: retryEnabled,
+          reason: retryEnabled ? "A próxima etapa possui evidência persistida e pré-condições exatas."
+            : ambiguous ? "Estado ambíguo: reconciliação manual obrigatória."
+              : !primary ? "Somente o Gamemaster primário pode executar a recuperação."
+                : "Não há uma próxima etapa automática segura.",
+        },
+        compensate: {
+          enabled: compensateEnabled,
+          reason: compensateEnabled ? "A compensação pode operar apenas sobre efeitos comprovados."
+            : ambiguous ? "Estado ambíguo: nenhum Item será removido e nenhum valor será estornado automaticamente."
+              : !primary ? "Somente o Gamemaster primário pode compensar."
+                : "A compensação não possui evidência suficiente.",
+        },
+        markResolved: {
+          enabled: primary,
+          reason: primary ? "Exige resultado e nota da reconciliação manual do GM."
+            : "Somente o Gamemaster primário pode encerrar a ocorrência.",
+        },
+        copyDiagnostic: { enabled: true, reason: "Copia somente o diagnóstico desta transação." },
+      },
+      diagnostic: JSON.stringify(diagnosticData, null, 2),
+    };
+    return { data, transaction, actor, item, entry, itemIds, recoveryCase };
+  }
+
+  private async retryRecoveryStepNow(transactionId: string): Promise<CompanyStoreRecoveryActionResult> {
+    this.assertPrimaryGM();
+    return this.withTransactionLock(async () => {
+      const data = await this.repository.readStore();
+      const transaction = data.transactions.find(candidate => candidate.id === transactionId);
+      if (!transaction) throw new Error("Transação de recuperação não encontrada.");
+      if (transaction.state !== "recoveryRequired") {
+        return { transactionId, state: transaction.state, changed: false, message: "A transação já foi encerrada." };
+      }
+      const inspected = await this.inspectRecovery(data, transaction);
+      if (!inspected.recoveryCase.actions.retrySafeStep.enabled || !transaction.recovery) {
+        throw new Error(inspected.recoveryCase.actions.retrySafeStep.reason);
+      }
+      if (inspected.recoveryCase.delivery.state === "absent") {
+        transaction.recovery.delivery = "pending";
+        await this.persist(data);
+        try {
+          transaction.createdItemIds = await this.adapter.grantItem(inspected.actor!, inspected.item!, transaction.id);
+          transaction.recovery.delivery = "confirmed";
+          await this.persist(data);
+          await this.synchronizeProjections();
+          return { transactionId, state: transaction.state, changed: true, message: "Entrega refeita com segurança; revise a próxima etapa." };
+        } catch (error) {
+          transaction.recovery.delivery = "ambiguous";
+          transaction.error = error instanceof Error ? error.message : String(error);
+          await this.persist(data);
+          throw error;
+        }
+      }
+      if (transaction.stockBefore !== undefined && inspected.recoveryCase.stock.state === "unchanged") {
+        inspected.entry!.stock = Math.max(0, transaction.stockBefore - 1);
+        inspected.entry!.revision += 1;
+        transaction.recovery.stock = "decremented";
+        await this.persist(data);
+        await this.synchronizeProjections();
+        return { transactionId, state: transaction.state, changed: true, message: "Estoque decrementado com segurança; revise a conclusão." };
+      }
+      transaction.state = "completed";
+      transaction.completedAt = transaction.updatedAt = this.now();
+      transaction.recoveryResolution = {
+        outcome: "completed", note: "Concluída por RETRY SAFE STEP.", resolvedAt: transaction.updatedAt,
+        resolvedBy: String(game.user?.id ?? "primary-gm"),
+      };
+      await this.persist(data);
+      await this.synchronizeProjections();
+      return { transactionId, state: "completed", changed: true, message: "Transação concluída com evidência consistente." };
+    });
+  }
+
+  private async compensateRecoveryNow(transactionId: string): Promise<CompanyStoreRecoveryActionResult> {
+    this.assertPrimaryGM();
+    return this.withTransactionLock(async () => {
+      const data = await this.repository.readStore();
+      const transaction = data.transactions.find(candidate => candidate.id === transactionId);
+      if (!transaction) throw new Error("Transação de recuperação não encontrada.");
+      if (transaction.state !== "recoveryRequired") {
+        return { transactionId, state: transaction.state, changed: false, message: "A transação já foi encerrada." };
+      }
+      let inspected = await this.inspectRecovery(data, transaction);
+      if (!inspected.recoveryCase.actions.compensate.enabled || !transaction.recovery) {
+        throw new Error(inspected.recoveryCase.actions.compensate.reason);
+      }
+      if (inspected.itemIds.length) {
+        transaction.recovery.delivery = "pending";
+        await this.persist(data);
+        try {
+          await this.adapter.deleteGrantedItems(inspected.actor!, inspected.itemIds);
+          transaction.recovery.delivery = "removed";
+          await this.persist(data);
+        } catch (error) {
+          transaction.recovery.delivery = "ambiguous";
+          transaction.error = error instanceof Error ? error.message : String(error);
+          await this.persist(data);
+          throw error;
+        }
+      }
+      inspected = await this.inspectRecovery(data, transaction);
+      if (transaction.stockBefore !== undefined && inspected.recoveryCase.stock.state === "decremented") {
+        inspected.entry!.stock = transaction.stockBefore;
+        inspected.entry!.revision += 1;
+        transaction.recovery.stock = "restored";
+        await this.persist(data);
+      }
+      if (transaction.recovery.debit === "confirmed") {
+        transaction.recovery.debit = "pending";
+        await this.persist(data);
+        try {
+          await this.adapter.addCoins(inspected.actor!, transaction.price);
+          transaction.recovery.debit = "refunded";
+          await this.persist(data);
+        } catch (error) {
+          transaction.recovery.debit = "ambiguous";
+          transaction.error = error instanceof Error ? error.message : String(error);
+          await this.persist(data);
+          throw error;
+        }
+      }
+      transaction.state = "rolledBack";
+      transaction.completedAt = transaction.updatedAt = this.now();
+      transaction.recoveryResolution = {
+        outcome: "rolledBack", note: "Compensação segura concluída pelo Recovery Center.",
+        resolvedAt: transaction.updatedAt, resolvedBy: String(game.user?.id ?? "primary-gm"),
+      };
+      await this.persist(data);
+      await this.synchronizeProjections();
+      return { transactionId, state: "rolledBack", changed: true, message: "Compensação concluída sem inferir estado ambíguo." };
+    });
+  }
+
+  private async markRecoveryResolvedNow(
+    transactionId: string,
+    outcome: "completed" | "rolledBack",
+    note: string,
+  ): Promise<CompanyStoreRecoveryActionResult> {
+    this.assertPrimaryGM();
+    return this.withTransactionLock(async () => {
+      const data = await this.repository.readStore();
+      const transaction = data.transactions.find(candidate => candidate.id === transactionId);
+      if (!transaction) throw new Error("Transação de recuperação não encontrada.");
+      if (transaction.state !== "recoveryRequired") {
+        const sameResolution = transaction.recoveryResolution?.outcome === outcome
+          && transaction.recoveryResolution.note === note;
+        if (!sameResolution) throw new Error("A transação já foi encerrada com outro resultado.");
+        return { transactionId, state: transaction.state, changed: false, message: "A reconciliação já estava registrada." };
+      }
+      transaction.state = outcome;
+      transaction.completedAt = transaction.updatedAt = this.now();
+      transaction.recoveryResolution = {
+        outcome, note, resolvedAt: transaction.updatedAt, resolvedBy: String(game.user?.id ?? "primary-gm"),
+      };
+      await this.persist(data);
+      await this.synchronizeProjections();
+      return { transactionId, state: outcome, changed: true, message: "Reconciliação manual registrada." };
+    });
+  }
+
   private async reconcile(input: CompanyStoreData): Promise<CompanyStoreData> {
     const data = normalizeCompanyStoreData(input);
     for (const transaction of data.transactions) {
@@ -904,38 +1217,21 @@ export class CompanyStoreService {
         transaction.completedAt = transaction.updatedAt;
         continue;
       }
-      if (transaction.state === "debiting" || transaction.state === "compensating") {
-        const interruptedState = transaction.state;
-        transaction.state = "recoveryRequired";
-        transaction.error = interruptedState === "compensating"
-          ? "O estado da compensação ficou ambíguo após troca de autoridade."
-          : "O estado do débito ficou ambíguo após troca de autoridade.";
-        transaction.updatedAt = this.now();
-        transaction.completedAt = transaction.updatedAt;
-        await this.alertRecovery(transaction);
-        continue;
-      }
-      const actor = await this.adapter.resolveActor(transaction.actorUuid);
-      if (!actor) {
-        transaction.state = "recoveryRequired";
-        transaction.error = "O Actor da transação não foi encontrado durante a recuperação.";
-        transaction.updatedAt = this.now();
-        transaction.completedAt = transaction.updatedAt;
-        await this.alertRecovery(transaction);
-        continue;
-      }
-      try {
-        const ids = Array.from(new Set([...transaction.createdItemIds, ...this.adapter.transactionItemIds(actor, transaction.id)]));
-        await this.adapter.deleteGrantedItems(actor, ids);
-        await this.adapter.addCoins(actor, transaction.price);
-        transaction.state = "rolledBack";
-      } catch (error) {
-        transaction.state = "recoveryRequired";
-        transaction.error = error instanceof Error ? error.message : String(error);
-        await this.alertRecovery(transaction);
-      }
+      const interruptedState = transaction.state;
+      const recovery: CompanyStoreRecoveryEvidence = transaction.recovery ?? {
+        debit: interruptedState === "debiting" || interruptedState === "compensating" ? "ambiguous" : "confirmed",
+        delivery: interruptedState === "compensating" ? "ambiguous"
+          : interruptedState === "debited" ? "notStarted"
+          : interruptedState === "granting" ? "ambiguous" : "confirmed",
+        stock: transaction.stockBefore === undefined ? "notApplicable"
+          : interruptedState === "completing" || interruptedState === "compensating" ? "ambiguous" : "unchanged",
+      };
+      transaction.state = "recoveryRequired";
+      transaction.recovery = recovery;
+      transaction.error = `A etapa ${interruptedState} foi interrompida após troca de autoridade; nenhuma mutação automática foi aplicada.`;
       transaction.updatedAt = this.now();
       transaction.completedAt = transaction.updatedAt;
+      await this.alertRecovery(transaction);
     }
     return data;
   }
@@ -984,6 +1280,21 @@ export class CompanyStoreService {
 
   private assertPrimaryGM(): void {
     if (!this.bridge.isPrimaryGM()) throw new Error("Somente o Gamemaster primário pode alterar a Loja da Companhia.");
+  }
+
+  private coalesceRecoveryAction(
+    action: string,
+    transactionId: string,
+    operation: () => Promise<CompanyStoreRecoveryActionResult>,
+  ): Promise<CompanyStoreRecoveryActionResult> {
+    const id = text(transactionId, 140);
+    if (!id) return Promise.reject(new Error("Transaction ID inválido."));
+    const key = `${action}\u001f${id}`;
+    const existing = this.pendingRecoveryActions.get(key);
+    if (existing) return existing;
+    const pending = operation().finally(() => this.pendingRecoveryActions.delete(key));
+    this.pendingRecoveryActions.set(key, pending);
+    return pending;
   }
 
   private async withTransactionLock<T>(operation: () => Promise<T>): Promise<T> {

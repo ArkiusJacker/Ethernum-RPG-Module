@@ -7,6 +7,7 @@ import {
   type CompanyStoreData,
   type CompanyStoreEntry,
   type CompanyStorePrincipalAuthorization,
+  type CompanyStoreRecoveryStepState,
   type CompanyStoreTransactionMode,
   type CompanyStoreTransactionRecord,
 } from "./CompanyStoreTypes.js";
@@ -21,6 +22,12 @@ const TRANSACTION_KEYS = new Set([
   "itemName", "transactionMode", "state", "price", "priceLabel", "stockBefore",
   "createdItemIds", "createdAt", "updatedAt", "completedAt", "approvedBy", "error",
   "recoveryNotes",
+  "recovery", "recoveryResolution",
+]);
+
+const RECOVERY_STATES = new Set([
+  "notStarted", "pending", "confirmed", "refunded", "removed", "unchanged",
+  "decremented", "restored", "notApplicable", "ambiguous",
 ]);
 
 function record(value: unknown): Record<string, unknown> {
@@ -144,6 +151,19 @@ function normalizeTransaction(value: unknown): CompanyStoreTransactionRecord | n
   const state = COMPANY_STORE_TRANSACTION_STATES.includes(input.state as CompanyStoreTransactionRecord["state"])
     ? input.state as CompanyStoreTransactionRecord["state"]
     : "recoveryRequired";
+  const recoveryInput = record(input.recovery);
+  const recoveryState = (
+    candidate: unknown,
+    fallback: CompanyStoreRecoveryStepState,
+  ): CompanyStoreRecoveryStepState => RECOVERY_STATES.has(candidate as string)
+    ? candidate as CompanyStoreRecoveryStepState
+    : fallback;
+  const resolutionInput = record(input.recoveryResolution);
+  const outcome = resolutionInput.outcome === "completed" || resolutionInput.outcome === "rolledBack"
+    ? resolutionInput.outcome
+    : undefined;
+  const resolutionNote = text(resolutionInput.note, 1_000);
+  const resolvedBy = text(resolutionInput.resolvedBy, 140);
   return {
     ...extensions(input, TRANSACTION_KEYS),
     id,
@@ -167,6 +187,17 @@ function normalizeTransaction(value: unknown): CompanyStoreTransactionRecord | n
     ...(text(input.approvedBy, 140) ? { approvedBy: text(input.approvedBy, 140) } : {}),
     ...(text(input.error, 1_000) ? { error: text(input.error, 1_000) } : {}),
     ...(stringList(input.recoveryNotes, 20).length ? { recoveryNotes: stringList(input.recoveryNotes, 20) } : {}),
+    ...(Object.keys(recoveryInput).length ? { recovery: {
+      debit: recoveryState(recoveryInput.debit, "ambiguous"),
+      delivery: recoveryState(recoveryInput.delivery, "ambiguous"),
+      stock: recoveryState(recoveryInput.stock, "ambiguous"),
+    } } : {}),
+    ...(outcome && resolutionNote && resolvedBy ? { recoveryResolution: {
+      outcome,
+      note: resolutionNote,
+      resolvedAt: integer(resolutionInput.resolvedAt),
+      resolvedBy,
+    } } : {}),
   };
 }
 

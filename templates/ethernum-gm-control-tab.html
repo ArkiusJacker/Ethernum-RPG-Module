@@ -78,18 +78,20 @@
       <div class="ethernum-command-device__list">
         {{#each contracts}}
         <article class="ethernum-command-device__row">
-          <div class="ethernum-command-device__row-main"><strong>#{{this.number}} &middot; {{this.title}}</strong><span>{{this.statusLabel}} &middot; {{this.visibility}}{{#if this.location}} &middot; {{this.location}}{{/if}}</span></div>
+          <div class="ethernum-command-device__row-main"><strong>#{{this.number}} &middot; {{this.title}}</strong><span>{{this.statusLabel}} &middot; {{this.visibility}}{{#if this.location}} &middot; {{this.location}}{{/if}}</span>{{#if this.reportReference}}<small>Documento: {{this.reportStorage}} &middot; {{this.reportReference}}</small>{{/if}}{{#if this.reportUnavailable}}<small class="ethernum-contract-document-unavailable" title="{{this.reportDiagnostic}}"><i class="fas fa-triangle-exclamation"></i> DOCUMENT UNAVAILABLE</small>{{/if}}</div>
           <div class="ethernum-command-device__row-actions">
             <button type="button" data-gm-domain-action="contract-edit" data-contract-id="{{this.id}}" title="Editar"><i class="fas fa-pen"></i></button>
             {{#if this.canActivate}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="active" title="Ativar"><i class="fas fa-play"></i></button>{{/if}}
             {{#if this.canComplete}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="completed" title="Concluir"><i class="fas fa-check"></i></button>{{/if}}
             {{#if this.canArchive}}<button type="button" data-gm-domain-action="contract-status" data-contract-id="{{this.id}}" data-status="archived" title="Arquivar"><i class="fas fa-box-archive"></i></button>{{/if}}
             <button type="button" data-gm-domain-action="contract-access" data-contract-id="{{this.id}}" title="Acesso"><i class="fas fa-key"></i></button>
+            {{#if this.canMigrateLegacyReport}}<button type="button" data-gm-domain-action="contract-document-migrate" data-contract-id="{{this.id}}" title="Migrar relatório para o Data Folder"><i class="fas fa-file-import"></i></button>{{/if}}
           </div>
         </article>
         {{/each}}
       </div>
       {{/if}}
+
     </section>
 
     <section id="ethernum-gm-panel-squads" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.squads'}}" {{#unless panels.squads.active}}hidden{{/unless}}>
@@ -150,6 +152,33 @@
         {{/each}}
       </div>
       {{/if}}
+      <section class="ethernum-store-recovery" aria-labelledby="ethernum-store-recovery-title">
+        <div class="ethernum-store-recovery__heading">
+          <div><h4 id="ethernum-store-recovery-title"><i class="fas fa-life-ring" aria-hidden="true"></i> Store Recovery Center</h4><p>Somente transações com <code>recoveryRequired</code>. Estados ambíguos exigem reconciliação manual.</p></div>
+          <strong>{{storeRecoveryCount}}</strong>
+        </div>
+        {{#if storeRecoveryEmpty}}
+        <div class="ethernum-gm-control__empty ethernum-store-recovery__empty"><i class="fas fa-circle-check" aria-hidden="true"></i><strong>Nenhuma transação requer recuperação</strong></div>
+        {{else}}
+        <div class="ethernum-store-recovery__list">
+          {{#each storeRecovery}}
+          <article class="ethernum-store-recovery__row {{#if this.ambiguous}}is-ambiguous{{/if}}" data-recovery-transaction-id="{{this.transactionId}}">
+            <header><div><span>Transaction ID</span><code title="{{this.transactionId}}">{{this.transactionId}}</code></div><time>{{this.updatedLabel}}</time></header>
+            <div class="ethernum-store-recovery__identity"><div><span>Actor</span><strong>{{this.actorName}}</strong><small>{{this.actorUuid}}</small></div><div><span>Item</span><strong>{{this.itemName}}</strong><small>{{this.itemUuid}} · {{this.priceLabel}}</small></div></div>
+            <dl class="ethernum-store-recovery__statuses"><div class="tone-{{this.debit.tone}}"><dt>Debit</dt><dd>{{this.debit.label}}</dd></div><div class="tone-{{this.delivery.tone}}"><dt>Delivery</dt><dd>{{this.delivery.label}}</dd></div><div class="tone-{{this.stock.tone}}"><dt>Stock</dt><dd>{{this.stock.label}}</dd></div></dl>
+            <p class="ethernum-store-recovery__reason"><strong>Reason</strong><span>{{this.reason}}</span></p>
+            {{#if this.requiresGMReconciliation}}<p class="ethernum-store-recovery__warning"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Estado ambíguo: nenhum Item será criado e nenhum valor será estornado automaticamente.</p>{{/if}}
+            <div class="ethernum-store-recovery__actions">
+              <button type="button" data-gm-domain-action="store-recovery-retry" data-transaction-id="{{this.transactionId}}" title="{{this.actions.retrySafeStep.reason}}" {{#unless this.actions.retrySafeStep.enabled}}disabled{{/unless}}><i class="fas fa-forward-step" aria-hidden="true"></i><span>RETRY SAFE STEP</span></button>
+              <button type="button" data-gm-domain-action="store-recovery-compensate" data-transaction-id="{{this.transactionId}}" title="{{this.actions.compensate.reason}}" {{#unless this.actions.compensate.enabled}}disabled{{/unless}}><i class="fas fa-rotate-left" aria-hidden="true"></i><span>COMPENSATE</span></button>
+              <button type="button" data-gm-domain-action="store-recovery-resolve" data-transaction-id="{{this.transactionId}}" title="{{this.actions.markResolved.reason}}" {{#unless this.actions.markResolved.enabled}}disabled{{/unless}}><i class="fas fa-check-double" aria-hidden="true"></i><span>MARK RESOLVED</span></button>
+              <button type="button" data-gm-domain-action="store-recovery-copy" data-transaction-id="{{this.transactionId}}" title="{{this.actions.copyDiagnostic.reason}}" {{#unless this.actions.copyDiagnostic.enabled}}disabled{{/unless}}><i class="fas fa-copy" aria-hidden="true"></i><span>COPY DIAGNOSTIC</span></button>
+            </div>
+          </article>
+          {{/each}}
+        </div>
+        {{/if}}
+      </section>
     </section>
 
     <section id="ethernum-gm-panel-loot" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.loot'}}" {{#unless panels.loot.active}}hidden{{/unless}}>

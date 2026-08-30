@@ -10,6 +10,11 @@ import {
   normalizeContractVisibility,
 } from "./ContractArchiveModel.js";
 import {
+  CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
+  ContractDocumentStorageService,
+} from "./ContractDocumentStorageService.js";
+import { createFoundryContractFilePickerPort } from "./FoundryContractFilePickerAdapter.js";
+import {
   CONTRACT_ARCHIVE_SCHEMA_VERSION,
   CONTRACT_REPORT_ATTACHMENT_ID,
   type CommunicatorDocumentTarget,
@@ -18,6 +23,7 @@ import {
   type ContractArchiveMutationOptions,
   type ContractArchiveSnapshot,
   type ContractArchiveViewerContext,
+  type ContractDocumentMigrationRequest,
   type ContractDocumentReference,
   type EthernumContractAttachment,
   type EthernumContractDTO,
@@ -146,24 +152,18 @@ function stableEqual(left: unknown, right: unknown): boolean {
 }
 
 function reportSource(recordData: EthernumContractRecord): EthernumContractAttachment | null {
-  if (recordData.pdfPath) {
+  const document = recordData.reportDocument;
+  if (document) {
     return {
       id: CONTRACT_REPORT_ATTACHMENT_ID,
       label: "Ler relatório",
-      kind: "pdf",
+      kind: document.storage === "foundry-document" ? "journal" : "pdf",
       category: "attachment",
-      path: recordData.pdfPath,
+      document,
+      ...(document.path ? { path: document.path } : {}),
+      ...(document.uuid ? { uuid: document.uuid } : {}),
       pageCount: recordData.pdfPageCount,
-      publicAsset: recordData.publicAsset === true,
-    };
-  }
-  if (recordData.journalUuid) {
-    return {
-      id: CONTRACT_REPORT_ATTACHMENT_ID,
-      label: "Ler relatório",
-      kind: "journal",
-      category: "attachment",
-      uuid: recordData.journalUuid,
+      publicAsset: document.storage === "module-asset" || recordData.publicAsset === true,
     };
   }
   return null;
@@ -209,6 +209,8 @@ export class ContractArchiveService {
   private initializedAsPrimary = false;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private mutationTail: Promise<void> = Promise.resolve();
+
+  constructor(private readonly documentStorage = new ContractDocumentStorageService(createFoundryContractFilePickerPort())) {}
 
   async initialize(): Promise<void> {
     if (!this.initialized) this.initialized = true;
@@ -290,6 +292,41 @@ export class ContractArchiveService {
       };
       if (index >= 0) archive.contracts[index] = next;
       else archive.contracts.push(next);
+    });
+  }
+
+  async migrateLegacyDocumentToDataFolder(request: ContractDocumentMigrationRequest): Promise<ContractArchiveData> {
+    this.assertGM();
+    const initialArchive = await this.readArchive();
+    if (request.expectedRevision !== undefined && request.expectedRevision !== initialArchive.revision) {
+      throw new Error("O arquivo de contratos foi atualizado por outro mestre. Recarregue antes de tentar novamente.");
+    }
+    const initialContract = initialArchive.contracts.find(contract => contract.id === request.contractId);
+    if (!initialContract) throw new Error("Contrato não encontrado.");
+    const initialSource = request.attachmentId
+      ? initialContract.attachments.find(attachment => attachment.id === request.attachmentId)
+      : reportSource(initialContract);
+    if (!initialSource?.document) throw new Error("Documento legado não encontrado.");
+
+    const prepared = await this.documentStorage.prepareLegacyMigration(initialSource.document, request.selectedPath);
+    return this.mutate({ expectedRevision: initialArchive.revision }, archive => {
+      const contract = archive.contracts.find(candidate => candidate.id === request.contractId);
+      if (!contract) throw new Error("Contrato não encontrado.");
+      const source = request.attachmentId
+        ? contract.attachments.find(attachment => attachment.id === request.attachmentId)
+        : reportSource(contract);
+      if (!source?.document || !stableEqual(source.document, prepared.source)) {
+        throw new Error("O documento foi atualizado por outro mestre. A cópia não foi vinculada.");
+      }
+
+      if (request.attachmentId) {
+        const attachment = contract.attachments.find(candidate => candidate.id === request.attachmentId)!;
+        attachment.document = prepared.destination;
+      } else {
+        contract.reportDocument = prepared.destination;
+      }
+      contract.revision += 1;
+      contract.updatedAt = Date.now();
     });
   }
 
@@ -548,19 +585,36 @@ export class ContractArchiveService {
     viewer: UserWithCharacter | null,
     enforcePermission: boolean,
   ): Promise<CommunicatorDocumentTarget | null> {
-    const permissionUuid = source.permissionUuid ?? source.uuid;
+    const storedDocument = source.document;
+    const sourcePath = storedDocument?.path ?? source.path;
+    const sourceUuid = storedDocument?.uuid ?? source.uuid;
+    const permissionUuid = source.permissionUuid ?? sourceUuid;
     let permissionDocument: ArchiveJournal | null = null;
+    let availability = storedDocument
+      ? await this.documentStorage.diagnose(storedDocument)
+      : { status: "unchecked" as const };
     if (permissionUuid) {
       permissionDocument = await this.resolveUuid(permissionUuid);
-      if (!permissionDocument || (enforcePermission && !canObserve(permissionDocument, viewer))) return null;
+      if (!permissionDocument) {
+        availability = {
+          status: "unavailable",
+          code: CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
+          message: "O documento Foundry referenciado não está disponível.",
+        };
+        if (enforcePermission && !viewer?.isGM) return null;
+      } else if (enforcePermission && !canObserve(permissionDocument, viewer)) {
+        return null;
+      } else {
+        availability = { status: "available" };
+      }
     }
-    if (source.path && source.publicAsset !== true) return null;
-    if ((source.kind === "pdf" || source.kind === "image") && !source.path) return null;
-    if ((source.kind === "journal" || source.kind === "dossier") && !source.uuid && !source.content) return null;
-    if (source.kind === "text" && !source.content && !source.uuid) return null;
+    if (sourcePath && !storedDocument && source.publicAsset !== true) return null;
+    if ((source.kind === "pdf" || source.kind === "image") && !sourcePath) return null;
+    if ((source.kind === "journal" || source.kind === "dossier") && !sourceUuid && !source.content) return null;
+    if (source.kind === "text" && !source.content && !sourceUuid) return null;
 
     let extractedContent = source.content;
-    if (!extractedContent && source.uuid && permissionDocument) extractedContent = this.documentText(permissionDocument, viewer);
+    if (!extractedContent && sourceUuid && permissionDocument) extractedContent = this.documentText(permissionDocument, viewer);
     return {
       contractId: contract.id,
       attachmentId: source.id,
@@ -568,8 +622,10 @@ export class ContractArchiveService {
       kind: source.kind,
       category: source.id === CONTRACT_REPORT_ATTACHMENT_ID ? "report" : source.category,
       ...(source.description ? { description: source.description } : {}),
-      ...(source.path ? { sourceUrl: source.path } : {}),
-      ...(source.uuid ? { uuid: source.uuid } : {}),
+      ...(storedDocument ? { document: storedDocument } : {}),
+      availability,
+      ...(sourcePath ? { sourceUrl: sourcePath } : {}),
+      ...(sourceUuid ? { uuid: sourceUuid } : {}),
       ...(extractedContent ? { content: stripMarkup(extractedContent) } : {}),
       ...(source.pageCount ? { pageCount: source.pageCount } : {}),
     };

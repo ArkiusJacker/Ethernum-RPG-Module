@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  AUTHORITY_BRIDGE_PROTOCOL_VERSION,
+  AUTHORITY_BRIDGE_SETTING_KEYS,
   AuthorityBridge,
   type AuthorityBridgeStorage,
   type AuthorityPolicyMode,
+  type AuthorityRequestEnvelope,
+  type AuthorityResponse,
   type AuthoritySocket,
   type AuthoritySocketMessage,
   type AuthorityUserLike,
   type AuthorityUserProvider,
   MemoryAuthorityBridgeStorage,
+  selectAuthorityPrimaryGM,
 } from "../scripts/core/AuthorityBridge.js";
 
 class TestSocket implements AuthoritySocket {
@@ -42,6 +47,45 @@ class TestUserProvider implements AuthorityUserProvider {
 
   getUsers(): Iterable<AuthorityUserLike> {
     return this.users;
+  }
+}
+
+class PersistedTestUserProvider implements AuthorityUserProvider {
+  constructor(
+    private readonly current: AuthorityUserLike,
+    private readonly users: AuthorityUserLike[],
+    private readonly persisted: Map<string, AuthorityRequestEnvelope>,
+    private readonly responses?: Map<string, AuthorityResponse>,
+  ) {}
+
+  getCurrentUser(): AuthorityUserLike { return this.current; }
+  getUsers(): Iterable<AuthorityUserLike> { return this.users; }
+
+  async attestRequest(request: AuthorityRequestEnvelope): Promise<string> {
+    const nonce = `nonce-${request.requestId}`;
+    this.persisted.set(request.requestId, { ...request, attestation: nonce });
+    return nonce;
+  }
+
+  verifyRequestAttestation(request: AuthorityRequestEnvelope): boolean {
+    return this.persisted.get(request.requestId)?.attestation === request.attestation
+      && request.requesterId === this.persisted.get(request.requestId)?.requesterId;
+  }
+
+  getPersistedRequests(): Iterable<AuthorityRequestEnvelope> {
+    return this.persisted.values();
+  }
+
+  releasePersistedRequest(requestId: string): void { this.persisted.delete(requestId); }
+  persistResponse(response: AuthorityResponse): void { this.responses?.set(response.requestId, response); }
+  getPersistedResponses(): Iterable<AuthorityResponse> { return this.responses?.values() ?? []; }
+  releasePersistedResponse(requestId: string): void { this.responses?.delete(requestId); }
+}
+
+class DroppingAuthoritySocket extends TestSocket {
+  override emit(channel: string, message: AuthoritySocketMessage): void {
+    void channel;
+    void message;
   }
 }
 
@@ -106,6 +150,117 @@ async function waitForQueue(bridge: AuthorityBridge, length = 1) {
 }
 
 describe("AuthorityBridge", () => {
+  it("recovers request and response from persistent state when socket delivery is lost", async () => {
+    const socket = new DroppingAuthoritySocket();
+    const storage = new MemoryAuthorityBridgeStorage();
+    const persisted = new Map<string, AuthorityRequestEnvelope>();
+    const users: AuthorityUserLike[] = [
+      { id: "gm-a", active: true, isGM: true, name: "Primary" },
+      { id: "gm-b", active: true, isGM: true, name: "Secondary" },
+    ];
+    const common = { socket, storage, expirationIntervalMs: 60_000, requestTimeoutMs: 5_000 };
+    const primary = new AuthorityBridge({
+      ...common,
+      users: new PersistedTestUserProvider(users[0], users, persisted),
+    });
+    const secondary = new AuthorityBridge({
+      ...common,
+      users: new PersistedTestUserProvider(users[1], users, persisted),
+    });
+    activeBridges.push(primary, secondary);
+    primary.start();
+    secondary.start();
+    await primary.setPolicyConfiguration({ default: "auto" });
+    const execute = vi.fn(() => ({ saved: true }));
+    primary.registerHandler("persisted-admin", { validate: () => true, execute });
+
+    const pending = secondary.request({
+      handlerId: "persisted-admin",
+      category: "administration",
+      payload: { operation: "store.upsert" },
+    });
+    await vi.waitFor(() => expect(persisted.size).toBe(1));
+    expect(await primary.recoverPersistedRequests()).toBe(1);
+    expect(await secondary.recoverPersistedResponses()).toBe(0);
+    expect(await secondary.recoverAuditResponses()).toBe(1);
+
+    await expect(pending).resolves.toEqual({ saved: true });
+    expect(execute).toHaveBeenCalledOnce();
+    expect(await primary.recoverPersistedRequests()).toBe(0);
+  });
+
+  it("elects the active GM with the smallest id and hands authority off deterministically", async () => {
+    const socket = new TestSocket();
+    const storage = new MemoryAuthorityBridgeStorage();
+    const users: AuthorityUserLike[] = [
+      { id: "gm-b", active: true, isGM: true, name: "Secondary" },
+      { id: "gm-a", active: true, isGM: true, name: "Primary" },
+      { id: "player-a", active: true, isGM: false, name: "Player" },
+    ];
+    const gmA = new AuthorityBridge({
+      socket,
+      storage,
+      users: new TestUserProvider(users[1], users),
+      expirationIntervalMs: 60_000,
+    });
+    const gmB = new AuthorityBridge({
+      socket,
+      storage,
+      users: new TestUserProvider(users[0], users),
+      expirationIntervalMs: 60_000,
+    });
+    activeBridges.push(gmA, gmB);
+
+    expect(selectAuthorityPrimaryGM(users)?.id).toBe("gm-a");
+    expect(gmA.isPrimaryGM()).toBe(true);
+    expect(gmB.isPrimaryGM()).toBe(false);
+    await expect(gmB.setPolicyConfiguration({ default: "deny" }))
+      .rejects.toMatchObject({ code: "PRIMARY_GM_REQUIRED" });
+
+    users[1].active = false;
+    expect(selectAuthorityPrimaryGM(users)?.id).toBe("gm-b");
+    expect(gmB.isPrimaryGM()).toBe(true);
+    await expect(gmB.setPolicyConfiguration({ default: "log" })).resolves.toBeUndefined();
+    await expect(gmA.setPolicyConfiguration({ default: "auto" }))
+      .rejects.toMatchObject({ code: "PRIMARY_GM_REQUIRED" });
+  });
+
+  it("filters queue and audit projections for Players while GMs can read the full settings", async () => {
+    const storage = new MemoryAuthorityBridgeStorage();
+    const users: AuthorityUserLike[] = [
+      { id: "gm-a", active: true, isGM: true },
+      { id: "player-a", active: true, isGM: false },
+      { id: "player-b", active: true, isGM: false },
+    ];
+    const request = (requesterId: string, suffix: string) => ({
+      protocolVersion: AUTHORITY_BRIDGE_PROTOCOL_VERSION,
+      requestId: `request-${suffix}`,
+      idempotencyKey: `operation-${suffix}`,
+      requesterId,
+      handlerId: "test",
+      category: "effect" as const,
+      payload: {},
+      createdAt: 1,
+      expiresAt: 10_000,
+    });
+    await storage.write(AUTHORITY_BRIDGE_SETTING_KEYS.queue, [
+      { id: "queue-a", replayKey: "a", signature: "a", policy: "approval", request: request("player-a", "a"), aliases: [], queuedAt: 1, expiresAt: 10_000 },
+      { id: "queue-b", replayKey: "b", signature: "b", policy: "approval", request: request("player-b", "b"), aliases: [], queuedAt: 1, expiresAt: 10_000 },
+    ]);
+    await storage.write(AUTHORITY_BRIDGE_SETTING_KEYS.audit, [
+      { id: "audit-a", timestamp: 1, requestId: "request-a", idempotencyKey: "operation-a", requesterId: "player-a", handlerId: "test", category: "effect", policy: "approval", status: "queued" },
+      { id: "audit-b", timestamp: 1, requestId: "request-b", idempotencyKey: "operation-b", requesterId: "player-b", handlerId: "test", category: "effect", policy: "approval", status: "queued" },
+    ]);
+    const player = new AuthorityBridge({ storage, users: new TestUserProvider(users[1], users), expirationIntervalMs: 60_000 });
+    const gm = new AuthorityBridge({ storage, users: new TestUserProvider(users[0], users), expirationIntervalMs: 60_000 });
+    activeBridges.push(player, gm);
+
+    expect((await player.getQueue()).map(entry => entry.id)).toEqual(["queue-a"]);
+    expect((await player.getAuditLog()).map(entry => entry.id)).toEqual(["audit-a"]);
+    expect(await gm.getQueue()).toHaveLength(2);
+    expect(await gm.getAuditLog()).toHaveLength(2);
+  });
+
   it("replays a completed idempotent request without executing it twice", async () => {
     const { gm, player } = await createHarness("auto");
     const execute = vi.fn(async ({ request }) => ({

@@ -33,6 +33,7 @@ function isCommand(value: unknown): value is AdministrativeCommand {
   const input = record(value);
   return typeof input.kind === "string" && [
     "contract.publish", "contract.status", "contract.access", "contract.intelligence",
+    "contract.document-migrate",
     "store.upsert", "store.remove", "store.toggle", "identity.update", "reward.grant", "broadcast.send", "loot.apply", "loot.chat",
     "npc-mechanic.apply", "npc-mechanic.revert",
   ].includes(input.kind);
@@ -106,19 +107,38 @@ export class AdministrativeCommunicatorService {
     ]);
     const actors = collection<Actor>(game.actors).filter(actor => (actor.type as string) === "character" && actor.uuid);
     const users = collection<User & { character?: Actor | null }>(game.users);
-    const contracts: AdministrativeContractRow[] = archive.contracts.map(contract => ({
-      id: contract.id,
-      number: contract.number,
-      title: contract.title,
-      status: contract.status,
-      statusLabel: statusLabel(contract.status),
-      ...(contract.location ? { location: contract.location } : {}),
-      revision: contract.revision,
-      informationFound: contract.informationFound ?? 0,
-      informationTotal: contract.informationTotal ?? 0,
-      visibility: contract.visibility.mode,
-      ...(contract.journalUuid ? { journalUuid: contract.journalUuid } : {}),
-      ...(contract.pdfPath ? { pdfPath: contract.pdfPath } : {}),
+    const contracts: AdministrativeContractRow[] = await Promise.all(archive.contracts.map(async contract => {
+      const target = await this.contracts.resolveDocumentTarget(contract.id);
+      const reportDocument = contract.reportDocument;
+      const reportReference = reportDocument?.path ?? reportDocument?.uuid;
+      const reportUnavailable = target?.availability?.status === "unavailable";
+      return {
+        id: contract.id,
+        number: contract.number,
+        title: contract.title,
+        status: contract.status,
+        statusLabel: statusLabel(contract.status),
+        ...(contract.location ? { location: contract.location } : {}),
+        revision: contract.revision,
+        informationFound: contract.informationFound ?? 0,
+        informationTotal: contract.informationTotal ?? 0,
+        visibility: contract.visibility.mode,
+        ...(contract.journalUuid ? { journalUuid: contract.journalUuid } : {}),
+        ...(contract.pdfPath ? { pdfPath: contract.pdfPath } : {}),
+        ...(reportDocument ? { reportStorage: reportDocument.storage } : {}),
+        ...(reportReference ? { reportReference } : {}),
+        ...(target?.availability?.status ? { reportAvailability: target.availability.status } : {}),
+        ...(reportUnavailable ? {
+          reportUnavailable: true,
+          reportDiagnostic: [
+            "DOCUMENT UNAVAILABLE",
+            `Path: ${reportDocument?.path ?? "-"}`,
+            `Storage: ${reportDocument?.storage ?? "-"}`,
+            `Contract: ${contract.id}`,
+          ].join(" | "),
+        } : {}),
+        canMigrateLegacyReport: reportDocument?.storage === "module-asset",
+      };
     }));
     const storeEntries: AdministrativeStoreRow[] = await Promise.all(store.entries.map(async entry => {
       const item = await this.adapter.resolveItem(entry.itemUuid);
@@ -215,6 +235,15 @@ export class AdministrativeCommunicatorService {
         const data = await this.contracts.setIntelligence(command.contractId, command.found, command.total, { expectedRevision: command.expectedRevision });
         return { kind: command.kind, message: "Inteligência atualizada.", revision: data.revision };
       }
+      case "contract.document-migrate": {
+        const data = await this.contracts.migrateLegacyDocumentToDataFolder({
+          contractId: command.contractId,
+          attachmentId: command.attachmentId,
+          selectedPath: command.selectedPath,
+          expectedRevision: command.expectedRevision,
+        });
+        return { kind: command.kind, message: "Documento copiado e referência portátil validada.", revision: data.revision };
+      }
       case "store.upsert": {
         const data = await this.store.upsertEntry(command.entry, { expectedRevision: command.expectedRevision });
         return { kind: command.kind, message: "Oferta salva.", revision: data.revision };
@@ -275,6 +304,9 @@ export class AdministrativeCommunicatorService {
     if (command.kind === "loot.chat") return `admin:loot:chat:${command.manifest.manifestId}`;
     if (command.kind === "npc-mechanic.apply") return `admin:npc-mechanic:apply:${command.application.applicationId}`;
     if (command.kind === "npc-mechanic.revert") return `admin:npc-mechanic:revert:${command.revert.revertId}`;
+    if (command.kind === "contract.document-migrate") {
+      return `admin:contract-document-migrate:${command.contractId}:${command.selectedPath}:${command.expectedRevision}`;
+    }
     return `admin:${command.kind}:${foundry.utils.randomID(24)}`;
   }
 

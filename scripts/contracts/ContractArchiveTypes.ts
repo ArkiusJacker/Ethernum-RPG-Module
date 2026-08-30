@@ -15,6 +15,21 @@ export type EthernumContractStatus = (typeof CONTRACT_STATUSES)[number];
 export type EthernumContractDocumentKind = "pdf" | "journal" | "image" | "dossier" | "text";
 export type EthernumContractAttachmentCategory = "attachment" | "dossier" | "reward";
 export type EthernumContractPrincipalKind = "user" | "agent" | "squad";
+export type ContractDocumentStorage = "foundry-document" | "foundry-data" | "module-asset";
+
+export interface ContractStoredDocument {
+  storage: ContractDocumentStorage;
+  uuid?: string;
+  path?: string;
+}
+
+export type ContractDocumentAvailabilityStatus = "available" | "unavailable" | "unchecked";
+
+export interface ContractDocumentAvailability {
+  status: ContractDocumentAvailabilityStatus;
+  code?: "DOCUMENT UNAVAILABLE";
+  message?: string;
+}
 
 export interface EthernumContractPrincipal {
   kind: EthernumContractPrincipalKind;
@@ -34,6 +49,7 @@ export interface EthernumContractAttachment {
   kind: EthernumContractDocumentKind;
   category: EthernumContractAttachmentCategory;
   description?: string;
+  document?: ContractStoredDocument;
   uuid?: string;
   path?: string;
   content?: string;
@@ -58,6 +74,7 @@ export interface EthernumContractRecord {
   grade?: string;
   supervisor?: string;
   coverImage?: string;
+  reportDocument?: ContractStoredDocument;
   journalUuid?: string;
   pdfPath?: string;
   pdfPageCount?: number;
@@ -134,6 +151,8 @@ export interface CommunicatorDocumentTarget {
   kind: EthernumContractDocumentKind;
   category: EthernumContractAttachmentCategory | "report";
   description?: string;
+  document?: ContractStoredDocument;
+  availability?: ContractDocumentAvailability;
   sourceUrl?: string;
   uuid?: string;
   content?: string;
@@ -146,4 +165,10 @@ export interface ContractArchiveMutationOptions {
 
 export interface ContractArchiveCompleteOptions extends ContractArchiveMutationOptions {
   grade?: string;
+}
+
+export interface ContractDocumentMigrationRequest extends ContractArchiveMutationOptions {
+  contractId: string;
+  attachmentId?: string;
+  selectedPath: string;
 }

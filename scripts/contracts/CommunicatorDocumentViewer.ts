@@ -1,5 +1,6 @@
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { ETHERNUM } from "../config.js";
+import { CONTRACT_DOCUMENT_UNAVAILABLE_CODE } from "./ContractDocumentStorageService.js";
 import type { CommunicatorDocumentTarget } from "./ContractArchiveTypes.js";
 
 export type CommunicatorPdfFitMode = "width" | "page" | "custom";
@@ -30,6 +31,9 @@ export interface CommunicatorDocumentViewerData {
   canPrevious: boolean;
   canNext: boolean;
   canOpenExternal: boolean;
+  unavailable: boolean;
+  diagnosticCode?: "DOCUMENT UNAVAILABLE";
+  diagnosticMessage?: string;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -48,6 +52,7 @@ export class CommunicatorDocumentViewer {
   private fitMode: CommunicatorPdfFitMode = "width";
   private renderTask: RenderTask | null = null;
   private renderSequence = 0;
+  private diagnostic: { code: "DOCUMENT UNAVAILABLE"; message: string } | null = null;
   private readonly documents = new Map<string, Promise<PDFDocumentProxy>>();
   private pdfModule: Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> | null = null;
 
@@ -58,6 +63,12 @@ export class CommunicatorDocumentViewer {
       this.fitMode = "width";
     }
     this.target = target;
+    this.diagnostic = target?.availability?.status === "unavailable"
+      ? {
+          code: CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
+          message: target.availability.message ?? "O documento solicitado não está disponível.",
+        }
+      : null;
     this.pageCount = Math.max(1, Math.trunc(Number(target?.pageCount) || 1));
     this.page = clamp(this.page, 1, this.pageCount);
   }
@@ -71,6 +82,7 @@ export class CommunicatorDocumentViewer {
     this.pageCount = 1;
     this.zoom = 100;
     this.fitMode = "width";
+    this.diagnostic = null;
   }
 
   apply(action: CommunicatorDocumentViewerAction): boolean {
@@ -110,6 +122,11 @@ export class CommunicatorDocumentViewer {
       canPrevious: this.page > 1,
       canNext: this.page < this.pageCount,
       canOpenExternal: Boolean(this.target?.sourceUrl || this.target?.uuid),
+      unavailable: Boolean(this.diagnostic),
+      ...(this.diagnostic ? {
+        diagnosticCode: this.diagnostic.code,
+        diagnosticMessage: this.diagnostic.message,
+      } : {}),
     };
   }
 
@@ -123,6 +140,16 @@ export class CommunicatorDocumentViewer {
     const canvas = host.querySelector<HTMLCanvasElement>("[data-document-viewer-canvas]");
     const fallback = host.querySelector<HTMLElement>("[data-document-viewer-fallback]");
     if (!stage || !canvas || !fallback) return;
+
+    if (this.diagnostic) {
+      stage.classList.remove("is-loading");
+      stage.classList.add("is-unavailable");
+      stage.setAttribute("aria-busy", "false");
+      canvas.hidden = true;
+      fallback.hidden = false;
+      fallback.textContent = `${this.diagnostic.code} - ${this.diagnostic.message}`;
+      return;
+    }
 
     stage.classList.add("is-loading");
     stage.classList.remove("is-unavailable");
@@ -164,11 +191,16 @@ export class CommunicatorDocumentViewer {
     } catch (error) {
       if (sequence !== this.renderSequence || (error as { name?: string }).name === "RenderingCancelledException") return;
       console.error("Ethernum | Embedded PDF render failed", error);
+      this.diagnostic = {
+        code: CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
+        message: "Não foi possível carregar o documento solicitado.",
+      };
       stage.classList.remove("is-loading");
       stage.classList.add("is-unavailable");
       stage.setAttribute("aria-busy", "false");
       canvas.hidden = true;
       fallback.hidden = false;
+      fallback.textContent = `${this.diagnostic.code} - ${this.diagnostic.message}`;
     } finally {
       if (sequence === this.renderSequence) this.renderTask = null;
     }

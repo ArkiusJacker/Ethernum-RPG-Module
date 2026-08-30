@@ -116,6 +116,7 @@ export class GMControlCenter {
   private filters: GMControlAuditFilters;
   private auditPage = 1;
   private readonly auditPageSize = 50;
+  private readonly pendingDomainActions = new Set<string>();
   private snapshot: GMControlCenterSnapshot = {};
   private listeners: AbortController | null = null;
   private searchTimer: number | null = null;
@@ -333,10 +334,7 @@ export class GMControlCenter {
         const payload: Record<string, string> = {};
         for (const [key, value] of Object.entries(button.dataset)) if (typeof value === "string") payload[key] = value;
         if (action === "preview-player") payload.userId = queryValue(root, "[data-gm-preview-user]");
-        void this.run(async () => {
-          await this.options.callbacks?.onDomainAction?.(action, payload);
-          if (action !== "preview-player" && action !== "open-document") await this.render();
-        });
+        void this.handleDomainAction(action, payload);
       }, { signal });
     });
   }
@@ -398,6 +396,28 @@ export class GMControlCenter {
       await this.options.callbacks?.onAdminAction?.(action, payload);
       await this.render();
     });
+  }
+
+  private async handleDomainAction(action: string, payload: Readonly<Record<string, string>>): Promise<void> {
+    const transactionId = payload.transactionId ?? "";
+    const key = transactionId ? `${action}\u001f${transactionId}` : action;
+    if (this.pendingDomainActions.has(key)) return;
+    this.pendingDomainActions.add(key);
+    const root = this.root();
+    root?.querySelectorAll<HTMLButtonElement>(`[data-transaction-id="${CSS.escape(transactionId)}"]`)
+      .forEach(button => { button.disabled = true; });
+    try {
+      await this.run(async () => {
+        await this.options.callbacks?.onDomainAction?.(action, payload);
+        if (action !== "preview-player" && action !== "open-document" && action !== "store-recovery-copy") {
+          await this.render();
+        }
+      });
+    } finally {
+      this.pendingDomainActions.delete(key);
+      this.root()?.querySelectorAll<HTMLButtonElement>(`[data-transaction-id="${CSS.escape(transactionId)}"]`)
+        .forEach(button => { button.disabled = false; });
+    }
   }
 
   private async run(task: () => void | Promise<void>): Promise<void> {

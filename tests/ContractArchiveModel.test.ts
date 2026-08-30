@@ -4,6 +4,8 @@ import {
   createDefaultContractArchive,
   importLegacyJournalContracts,
   normalizeContractArchive,
+  normalizeContractStoredDocument,
+  normalizeFoundryDataPath,
   normalizePublicModuleAssetPath,
 } from "../scripts/contracts/ContractArchiveModel.js";
 
@@ -22,6 +24,10 @@ describe("ContractArchiveModel", () => {
       informationTotal: 5,
       pdfPageCount: 13,
       publicAsset: true,
+      reportDocument: {
+        storage: "module-asset",
+        path: "modules/ethernum-rpg-module/assets/contracts/contract-01-operation-manifesto-13.pdf",
+      },
     });
     expect(contract?.pdfPath).toBe("modules/ethernum-rpg-module/assets/contracts/contract-01-operation-manifesto-13.pdf");
   });
@@ -85,5 +91,51 @@ describe("ContractArchiveModel", () => {
       "worlds/private/report.pdf",
     ]) expect(normalizePublicModuleAssetPath(path)).toBeUndefined();
   });
-});
 
+  it("normalizes portable stored documents with storage-specific locators", () => {
+    expect(normalizeContractStoredDocument({ storage: "foundry-document", uuid: "JournalEntry.contract.Page.report", path: "ignored.pdf" }))
+      .toEqual({ storage: "foundry-document", uuid: "JournalEntry.contract.Page.report" });
+    expect(normalizeContractStoredDocument({ storage: "foundry-data", path: "worlds/ethernum/contracts/report 02.pdf", uuid: "ignored" }))
+      .toEqual({ storage: "foundry-data", path: "worlds/ethernum/contracts/report 02.pdf" });
+    expect(normalizeContractStoredDocument({ storage: "module-asset", path: "modules/ethernum-rpg-module/assets/contracts/report.pdf" }))
+      .toEqual({ storage: "module-asset", path: "modules/ethernum-rpg-module/assets/contracts/report.pdf" });
+    expect(normalizeContractStoredDocument({ storage: "foundry-document", path: "worlds/ethernum/report.pdf" })).toBeUndefined();
+    expect(normalizeContractStoredDocument({ storage: "foundry-data", uuid: "JournalEntry.contract" })).toBeUndefined();
+  });
+
+  it("never accepts or persists absolute Windows paths in document fields", () => {
+    for (const path of [
+      "C:\\Users\\Titan\\report.pdf",
+      "C:/Users/Titan/report.pdf",
+      "\\\\server\\share\\report.pdf",
+      "file:///C:/Users/Titan/report.pdf",
+      "/C:/Users/Titan/report.pdf",
+      "worlds/ethernum/../secret.pdf",
+    ]) {
+      expect(normalizeFoundryDataPath(path)).toBeUndefined();
+      expect(normalizeContractStoredDocument({ storage: "foundry-data", path })).toBeUndefined();
+    }
+
+    const archive = normalizeContractArchive({
+      contracts: [{
+        id: "unsafe",
+        number: 9,
+        title: "Unsafe",
+        pdfPath: "C:\\Users\\Titan\\report.pdf",
+        reportDocument: { storage: "foundry-data", path: "C:\\Users\\Titan\\report.pdf" },
+        attachments: [{
+          id: "unsafe-file",
+          label: "Unsafe file",
+          kind: "pdf",
+          path: "C:\\Users\\Titan\\annex.pdf",
+          document: { storage: "foundry-data", path: "C:\\Users\\Titan\\annex.pdf" },
+        }],
+        visibility: { mode: "gm" },
+      }],
+    });
+    const serialized = JSON.stringify(archive);
+    expect(serialized).not.toContain("C:\\\\Users");
+    expect(archive.contracts.find(contract => contract.id === "unsafe")?.reportDocument).toBeUndefined();
+    expect(archive.contracts.find(contract => contract.id === "unsafe")?.attachments[0]?.document).toBeUndefined();
+  });
+});

@@ -2,6 +2,7 @@ import type { AdministrativeContractRow, AdministrativeSquadRow, AdministrativeS
 import type { CompanyRewardRecord } from "../rewards/CompanyRewardTypes.js";
 import type { EmergencyBroadcastDTO } from "../communicator/EmergencyBroadcastService.js";
 import type { OperationalGeneratorSnapshot } from "../generators/OperationalGeneratorService.js";
+import type { CompanyStoreRecoveryCaseDTO } from "../store/CompanyStoreTypes.js";
 
 export const GM_CONTROL_I18N_ROOT = "ETHERNUM.GMControl";
 
@@ -172,6 +173,7 @@ export interface GMControlCenterSnapshot {
   };
   contracts?: AdministrativeContractRow[];
   storeEntries?: AdministrativeStoreRow[];
+  storeRecovery?: CompanyStoreRecoveryCaseDTO[];
   squads?: AdministrativeSquadRow[];
   intelligence?: AdministrativeContractRow[];
   rewards?: CompanyRewardRecord[];
@@ -625,6 +627,12 @@ export function buildGMControlCenterData(
     contractsEmpty: (snapshot.contracts?.length ?? 0) === 0,
     storeEntries: snapshot.storeEntries ?? [],
     storeEntriesEmpty: (snapshot.storeEntries?.length ?? 0) === 0,
+    storeRecovery: (snapshot.storeRecovery ?? []).map(entry => ({
+      ...entry,
+      updatedLabel: timestamp(entry.updatedAt, locale),
+    })),
+    storeRecoveryEmpty: (snapshot.storeRecovery?.length ?? 0) === 0,
+    storeRecoveryCount: snapshot.storeRecovery?.length ?? 0,
     squads: snapshot.squads ?? [],
     squadsEmpty: (snapshot.squads?.length ?? 0) === 0,
     intelligence: snapshot.intelligence ?? [],

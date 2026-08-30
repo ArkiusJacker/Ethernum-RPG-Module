@@ -131,4 +131,22 @@ describe("CompanyStoreModel", () => {
     expect(transactionFingerprint({ ...payload, actorUuid: "Actor.other" })).not.toBe(fingerprint);
     expect(transactionFingerprint({ ...payload, entryId: "shield" })).not.toBe(fingerprint);
   });
+
+  it("normalizes recovery evidence safely for existing world data", () => {
+    const store = normalizeCompanyStoreData({
+      transactions: [{
+        id: "store-recovery", fingerprint: "fingerprint", requesterId: "User.a", actorUuid: "Actor.hero",
+        actorName: "Hero", entryId: "blade", requestMessageUuid: "ChatMessage.1", itemUuid: "Item.blade",
+        itemName: "Blade", transactionMode: "automatic", state: "recoveryRequired", price: { gp: 5 },
+        priceLabel: "5 gp", createdItemIds: [], createdAt: 10, updatedAt: 20,
+        recovery: { debit: "confirmed", delivery: "unsupported-value", stock: "unchanged" },
+        recoveryResolution: { outcome: "rolledBack", note: "manual check", resolvedAt: 30, resolvedBy: "User.gm" },
+      }],
+    });
+
+    expect(store.transactions[0]).toMatchObject({
+      recovery: { debit: "confirmed", delivery: "ambiguous", stock: "unchanged" },
+      recoveryResolution: { outcome: "rolledBack", note: "manual check", resolvedAt: 30, resolvedBy: "User.gm" },
+    });
+  });
 });

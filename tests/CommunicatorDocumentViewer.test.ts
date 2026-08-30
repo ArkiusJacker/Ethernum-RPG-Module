@@ -21,7 +21,10 @@ const target = {
 describe("CommunicatorDocumentViewer", () => {
   let viewer: CommunicatorDocumentViewer;
 
-  beforeEach(() => { viewer = new CommunicatorDocumentViewer(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    viewer = new CommunicatorDocumentViewer();
+  });
 
   it("clamps pages and exposes complete PDF controls", () => {
     viewer.setTarget(target);
@@ -66,7 +69,7 @@ describe("CommunicatorDocumentViewer", () => {
       setAttribute: vi.fn(),
     };
     const canvas = { hidden: false };
-    const fallback = { hidden: true };
+    const fallback = { hidden: true, textContent: "" };
     const host = {
       querySelector: (selector: string) => selector.includes("stage") ? stage : selector.includes("canvas") ? canvas : fallback,
     };
@@ -77,6 +80,44 @@ describe("CommunicatorDocumentViewer", () => {
     expect(classes.has("is-unavailable")).toBe(true);
     expect(canvas.hidden).toBe(true);
     expect(fallback.hidden).toBe(false);
+    expect(fallback.textContent).toContain("DOCUMENT UNAVAILABLE");
+    expect(viewer.getData()).toMatchObject({
+      unavailable: true,
+      diagnosticCode: "DOCUMENT UNAVAILABLE",
+    });
     expect(stage.setAttribute).toHaveBeenLastCalledWith("aria-busy", "false");
+  });
+
+  it("renders a preflight missing-file diagnostic without asking PDF.js to load", async () => {
+    const classes = new Set<string>();
+    const stage = {
+      clientWidth: 420,
+      clientHeight: 300,
+      classList: {
+        add: (...names: string[]) => names.forEach(name => classes.add(name)),
+        remove: (...names: string[]) => names.forEach(name => classes.delete(name)),
+      },
+      setAttribute: vi.fn(),
+    };
+    const canvas = { hidden: false };
+    const fallback = { hidden: true, textContent: "" };
+    const host = {
+      querySelector: (selector: string) => selector.includes("stage") ? stage : selector.includes("canvas") ? canvas : fallback,
+    };
+    viewer.setTarget({
+      ...target,
+      availability: {
+        status: "unavailable",
+        code: "DOCUMENT UNAVAILABLE",
+        message: "Arquivo removido do Data Folder.",
+      },
+    });
+
+    await viewer.render(host as unknown as HTMLElement);
+
+    expect(classes.has("is-unavailable")).toBe(true);
+    expect(canvas.hidden).toBe(true);
+    expect(fallback.textContent).toBe("DOCUMENT UNAVAILABLE - Arquivo removido do Data Folder.");
+    expect(getDocument).not.toHaveBeenCalled();
   });
 });

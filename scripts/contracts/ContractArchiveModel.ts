@@ -4,6 +4,7 @@ import {
   CONTRACT_STATUSES,
   type ContractArchiveData,
   type ContractArchiveViewerContext,
+  type ContractStoredDocument,
   type EthernumContractAttachment,
   type EthernumContractDocumentKind,
   type EthernumContractPrincipal,
@@ -15,6 +16,7 @@ import {
 const DEFAULT_CONTRACT_TIMESTAMP = Date.UTC(2026, 6, 30, 23, 41, 52);
 const MODULE_ASSET_PREFIX = "modules/ethernum-rpg-module/assets/";
 const MAX_TEXT_LENGTH = 20_000;
+const WINDOWS_ABSOLUTE_PATH = /^(?:[A-Za-z]:[\\/]|\\\\)/;
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -61,13 +63,50 @@ function uuid(value: unknown): string | undefined {
     : undefined;
 }
 
-export function normalizePublicModuleAssetPath(value: unknown): string | undefined {
-  const candidate = text(value, 500)?.replace(/^\/+/, "");
-  if (!candidate || candidate.includes("\\") || candidate.includes("%") || candidate.includes("?") || candidate.includes("#")) return undefined;
-  if (!candidate.startsWith(MODULE_ASSET_PREFIX) || !/^[A-Za-z0-9_./-]+$/.test(candidate)) return undefined;
+function normalizeRelativeFoundryPath(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const candidate = value.trim();
+  if (!candidate || candidate.length > 500) return undefined;
+  if (WINDOWS_ABSOLUTE_PATH.test(candidate) || candidate.startsWith("/") || candidate.includes("\\")) return undefined;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(candidate) || /[\u0000-\u001f\u007f%?#]/.test(candidate)) return undefined;
   const segments = candidate.split("/");
   if (segments.some(segment => !segment || segment === "." || segment === "..")) return undefined;
   return candidate;
+}
+
+export function normalizePublicModuleAssetPath(value: unknown): string | undefined {
+  const candidate = normalizeRelativeFoundryPath(value);
+  return candidate?.startsWith(MODULE_ASSET_PREFIX) ? candidate : undefined;
+}
+
+export function normalizeFoundryDataPath(value: unknown): string | undefined {
+  const candidate = normalizeRelativeFoundryPath(value);
+  if (!candidate || candidate.startsWith("modules/")) return undefined;
+  return candidate;
+}
+
+export function normalizeContractStoredDocument(value: unknown): ContractStoredDocument | undefined {
+  const input = record(value);
+  if (input.storage === "foundry-document") {
+    const documentUuid = uuid(input.uuid);
+    return documentUuid ? { storage: "foundry-document", uuid: documentUuid } : undefined;
+  }
+  if (input.storage === "foundry-data") {
+    const path = normalizeFoundryDataPath(input.path);
+    return path ? { storage: "foundry-data", path } : undefined;
+  }
+  if (input.storage === "module-asset") {
+    const path = normalizePublicModuleAssetPath(input.path);
+    return path ? { storage: "module-asset", path } : undefined;
+  }
+  return undefined;
+}
+
+function legacyStoredDocument(documentUuid: unknown, modulePath: unknown): ContractStoredDocument | undefined {
+  const normalizedUuid = uuid(documentUuid);
+  if (normalizedUuid) return { storage: "foundry-document", uuid: normalizedUuid };
+  const path = normalizePublicModuleAssetPath(modulePath);
+  return path ? { storage: "module-asset", path } : undefined;
 }
 
 function normalizePrincipal(value: unknown): EthernumContractPrincipal | null {
@@ -110,16 +149,24 @@ function normalizeAttachment(value: unknown, index: number): EthernumContractAtt
   const label = text(input.label);
   if (!kind || !label) return null;
   const category = input.category === "dossier" || input.category === "reward" ? input.category : "attachment";
+  const extensions = { ...input };
+  for (const key of ["id", "label", "kind", "category", "description", "document", "uuid", "path", "content", "pageCount", "permissionUuid", "publicAsset", "informationRequired", "visibility"]) {
+    delete extensions[key];
+  }
+  const normalizedUuid = uuid(input.uuid);
   const normalizedPath = normalizePublicModuleAssetPath(input.path);
   const normalizedContent = content(input.content);
+  const storedDocument = normalizeContractStoredDocument(input.document)
+    ?? legacyStoredDocument(normalizedUuid, normalizedPath);
   return {
-    ...input,
+    ...extensions,
     id: identifier(input.id, `attachment-${index + 1}`),
     label,
     kind,
     category,
     ...(text(input.description, 500) ? { description: text(input.description, 500) } : {}),
-    ...(uuid(input.uuid) ? { uuid: uuid(input.uuid) } : {}),
+    ...(storedDocument ? { document: storedDocument } : {}),
+    ...(normalizedUuid ? { uuid: normalizedUuid } : {}),
     ...(normalizedPath ? { path: normalizedPath } : {}),
     ...(normalizedContent ? { content: normalizedContent } : {}),
     ...(integer(input.pageCount) > 0 ? { pageCount: integer(input.pageCount) } : {}),
@@ -149,8 +196,16 @@ export function normalizeContractRecord(value: unknown, index = 0): EthernumCont
   const informationTotal = input.informationTotal === undefined ? undefined : integer(input.informationTotal);
   const createdAt = integer(input.createdAt, DEFAULT_CONTRACT_TIMESTAMP);
   const updatedAt = integer(input.updatedAt, createdAt);
+  const extensions = { ...input };
+  for (const key of ["version", "revision", "id", "number", "title", "status", "location", "region", "difficulty", "grade", "supervisor", "coverImage", "reportDocument", "journalUuid", "pdfPath", "pdfPageCount", "publicAsset", "informationFound", "informationTotal", "attachments", "rewards", "visibility", "createdAt", "updatedAt"]) {
+    delete extensions[key];
+  }
+  const normalizedJournalUuid = uuid(input.journalUuid);
+  const normalizedPdfPath = normalizePublicModuleAssetPath(input.pdfPath);
+  const reportDocument = normalizeContractStoredDocument(input.reportDocument)
+    ?? legacyStoredDocument(normalizedJournalUuid, normalizedPdfPath);
   return {
-    ...input,
+    ...extensions,
     version: integer(input.version, CONTRACT_RECORD_VERSION, 1),
     revision: integer(input.revision, 1, 1),
     id,
@@ -163,8 +218,9 @@ export function normalizeContractRecord(value: unknown, index = 0): EthernumCont
     ...(text(input.grade, 40) ? { grade: text(input.grade, 40) } : {}),
     ...(text(input.supervisor) ? { supervisor: text(input.supervisor) } : {}),
     ...(normalizePublicModuleAssetPath(input.coverImage) ? { coverImage: normalizePublicModuleAssetPath(input.coverImage) } : {}),
-    ...(uuid(input.journalUuid) ? { journalUuid: uuid(input.journalUuid) } : {}),
-    ...(normalizePublicModuleAssetPath(input.pdfPath) ? { pdfPath: normalizePublicModuleAssetPath(input.pdfPath) } : {}),
+    ...(reportDocument ? { reportDocument } : {}),
+    ...(normalizedJournalUuid ? { journalUuid: normalizedJournalUuid } : {}),
+    ...(normalizedPdfPath ? { pdfPath: normalizedPdfPath } : {}),
     ...(integer(input.pdfPageCount) > 0 ? { pdfPageCount: integer(input.pdfPageCount) } : {}),
     publicAsset: input.publicAsset === true,
     ...(informationFound === undefined ? {} : { informationFound }),
@@ -191,6 +247,10 @@ export function createDefaultContractRecord(): EthernumContractRecord {
     grade: "S",
     supervisor: "Dália \"Catraca\" Venn",
     coverImage: `${MODULE_ASSET_PREFIX}contracts/contract-01-cover.png`,
+    reportDocument: {
+      storage: "module-asset",
+      path: `${MODULE_ASSET_PREFIX}contracts/contract-01-operation-manifesto-13.pdf`,
+    },
     pdfPath: `${MODULE_ASSET_PREFIX}contracts/contract-01-operation-manifesto-13.pdf`,
     pdfPageCount: 13,
     publicAsset: true,

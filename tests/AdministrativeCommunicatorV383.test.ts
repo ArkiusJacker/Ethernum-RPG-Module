@@ -69,7 +69,12 @@ describe("v3.8.3 administrative persistence", () => {
       removeCoins: vi.fn(async () => true),
     };
     let tick = 1_000;
-    const service = new CompanyRewardService(repository as never, adapter as never, () => ++tick);
+    const authority = {
+      isPrimaryGM: () => true,
+      registerHandler: vi.fn(),
+      request: vi.fn(),
+    };
+    const service = new CompanyRewardService(repository as never, adapter as never, () => ++tick, authority as never);
     const reward = {
       transactionId: "reward-1",
       actorUuid: "Actor.hero",
@@ -117,15 +122,19 @@ describe("v3.8.3 command device integration", () => {
   it("wires every administrative domain through the audited command facade", () => {
     const template = read("templates/ethernum-gm-control-tab.html");
     const service = read("scripts/administration/AdministrativeCommunicatorService.ts");
+    const bridge = read("scripts/ui/GMControlCenterBridge.ts");
     const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
     const main = read("scripts/main.ts");
 
-    for (const action of ["contract-create", "squad-edit", "intelligence-adjust", "store-add", "reward-grant", "broadcast-send", "preview-player", "loot-generate", "loot-apply", "loot-chat", "encounter-analyze", "mechanic-generate", "mechanic-edit", "mechanic-apply", "mechanic-revert"]) {
+    for (const action of ["contract-create", "contract-document-migrate", "squad-edit", "intelligence-adjust", "store-add", "reward-grant", "broadcast-send", "preview-player", "loot-generate", "loot-apply", "loot-chat", "encounter-analyze", "mechanic-generate", "mechanic-edit", "mechanic-apply", "mechanic-revert"]) {
       expect(template).toContain(`data-gm-domain-action="${action}"`);
     }
     expect(service).toContain("ADMINISTRATIVE_COMMAND_HANDLER");
     expect(service).toContain("this.bridge.request");
+    expect(service).toContain('case "contract.document-migrate"');
     expect(service).toContain("context.requester.isGM");
+    expect(bridge).toContain('enabled: payload.enabled === "true"');
+    expect(bridge).not.toContain('enabled: payload.enabled !== "true"');
     expect(overlay).toContain("readOnlyActions");
     expect(overlay).toContain('app.type !== "internal"');
     expect(main).toContain("CompanyIdentityService.initialize()");

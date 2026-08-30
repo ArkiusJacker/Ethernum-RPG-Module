@@ -778,7 +778,7 @@ Hooks.once("ready", async () => {
   await CompanyIdentityService.initialize();
   await initializeContractArchiveService();
   await initializeCompanyStoreService();
-  await getCompanyRewardService().initialize();
+  if (game.user?.isGM) await getCompanyRewardService().initialize();
   await getAdministrativeCommunicatorService().initialize();
   initializePF2eAdapterSocket();
   initializeUniqueCanvasSocket();

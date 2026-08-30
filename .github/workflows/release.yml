@@ -54,6 +54,9 @@ jobs:
             --exclude "*.DS_Store" \
             --exclude "*Thumbs.db"
 
+      - name: Report package size
+        run: npm run report:size -- --zip ethernum-rpg-module.zip --baseline tools/package-size-baseline.json --output package-size-report.json
+
       - name: Validate distribution
         run: npm run validate:dist -- --expected-version "${{ steps.version.outputs.VERSION }}" --zip ethernum-rpg-module.zip
 
@@ -63,4 +66,5 @@ jobs:
           files: |
             ethernum-rpg-module.zip
             dist/module.json
+            package-size-report.json
           generate_release_notes: true

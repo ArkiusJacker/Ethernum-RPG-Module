@@ -102,6 +102,67 @@ function formDialog(title: string, body: string, confirmLabel = "Confirmar"): Pr
   });
 }
 
+type FoundryFilePickerInstance = { render(force?: boolean): unknown };
+type FoundryFilePickerConstructor = new (options: {
+  type: "folder";
+  activeSource: "data";
+  current: string;
+  callback: (path: string) => void;
+}) => FoundryFilePickerInstance;
+
+function filePickerConstructor(): FoundryFilePickerConstructor | null {
+  const root = globalThis as typeof globalThis & {
+    FilePicker?: FoundryFilePickerConstructor;
+    foundry?: { applications?: { apps?: { FilePicker?: { implementation?: FoundryFilePickerConstructor } } } };
+  };
+  return root.foundry?.applications?.apps?.FilePicker?.implementation ?? root.FilePicker ?? null;
+}
+
+function contractDocumentMigrationDialog(initialPath: string, filename: string): Promise<FormData | null> {
+  return new Promise(resolve => {
+    new Dialog({
+      title: "Migrar relatório legado",
+      content: `<form class="ethernum-command-dialog">
+        <p class="ethernum-command-dialog__notice"><i class="fas fa-folder-tree"></i> Escolha uma pasta no Data Folder. O arquivo legado será copiado sem sobrescrever conteúdo existente.</p>
+        <label>Caminho portátil de destino<input name="selectedPath" value="${escapeHtml(initialPath)}" required></label>
+        <button type="button" data-contract-file-picker><i class="fas fa-folder-open"></i><span>Selecionar pasta no Foundry</span></button>
+        <label><input type="checkbox" name="confirm"> Confirmo a criação da cópia e a troca da referência ativa.</label>
+      </form>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-file-import"></i>',
+          label: "Migrar documento",
+          callback: html => resolve(new FormData(html.find("form")[0] as HTMLFormElement)),
+        },
+        cancel: { icon: '<i class="fas fa-xmark"></i>', label: "Cancelar", callback: () => resolve(null) },
+      },
+      render: html => {
+        const form = html.find("form")[0] as HTMLFormElement | undefined;
+        const input = form?.elements.namedItem("selectedPath") as HTMLInputElement | null;
+        const button = form?.querySelector<HTMLButtonElement>("[data-contract-file-picker]");
+        button?.addEventListener("click", () => {
+          const Picker = filePickerConstructor();
+          if (!Picker) {
+            ui.notifications?.error("O FilePicker do Foundry não está disponível.");
+            return;
+          }
+          const current = String(input?.value ?? initialPath).replace(/\/[^/]*$/, "");
+          new Picker({
+            type: "folder",
+            activeSource: "data",
+            current,
+            callback: directory => {
+              if (input) input.value = `${String(directory).replace(/\/$/, "")}/${filename}`;
+            },
+          }).render(true);
+        });
+      },
+      close: () => resolve(null),
+      default: "confirm",
+    }).render(true);
+  });
+}
+
 function field(data: FormData, name: string): string { return String(data.get(name) ?? "").trim(); }
 function csv(value: string): string[] { return value.split(",").map(item => item.trim()).filter(Boolean); }
 function informationUnlocks(value: string): Map<string, number> {
@@ -381,6 +442,27 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
     await runCommand({ kind: "contract.access", contractId: payload.contractId, principal: { kind: kind as "user", id }, grant: field(data, "grant") === "true", attachmentId: field(data, "attachmentId") || undefined, expectedRevision: archive.revision });
     return;
   }
+  if (action === "contract-document-migrate") {
+    const archive = await contracts.getArchive();
+    const contract = archive.contracts.find(candidate => candidate.id === payload.contractId);
+    const source = contract?.reportDocument;
+    if (!contract || source?.storage !== "module-asset" || !source.path) {
+      throw new Error("Este contrato não possui relatório legado do módulo para migrar.");
+    }
+    const filename = source.path.split("/").at(-1) ?? `${contract.id}.pdf`;
+    const worldId = String((game as Game & { world?: { id?: string } }).world?.id ?? "ethernum").replace(/[^a-zA-Z0-9_-]/g, "-");
+    const initialPath = `worlds/${worldId}/contracts/${contract.id}/${filename}`;
+    const data = await contractDocumentMigrationDialog(initialPath, filename);
+    if (!data) return;
+    if (data.get("confirm") !== "on") throw new Error("Confirme a migração antes de continuar.");
+    await runCommand({
+      kind: "contract.document-migrate",
+      contractId: contract.id,
+      selectedPath: field(data, "selectedPath"),
+      expectedRevision: archive.revision,
+    });
+    return;
+  }
   if (action === "intelligence-adjust") {
     const archive = await contracts.getArchive();
     const contract = archive.contracts.find(candidate => candidate.id === payload.contractId);
@@ -388,6 +470,41 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
     const total = Math.max(0, Number(payload.total) || contract.informationTotal || 5);
     const found = Math.max(0, Math.min(total, (contract.informationFound ?? 0) + Number(payload.amount || 0)));
     await runCommand({ kind: "contract.intelligence", contractId: contract.id, found, total, expectedRevision: archive.revision });
+    return;
+  }
+  if (action === "store-recovery-retry") {
+    const result = await store.retryRecoveryStep(payload.transactionId);
+    ui.notifications?.info(result.message);
+    return;
+  }
+  if (action === "store-recovery-compensate") {
+    const data = await formDialog("Compensar transação", `
+      <p>Somente efeitos comprovados serão revertidos. A operação será interrompida se qualquer etapa se tornar ambígua.</p>
+      <label><input type="checkbox" name="confirm"> Confirmo a compensação segura da transação <code>${escapeHtml(payload.transactionId)}</code>.</label>
+    `, "Compensar");
+    if (!data) return;
+    if (data.get("confirm") !== "on") throw new Error("Confirme a compensação antes de continuar.");
+    const result = await store.compensateRecovery(payload.transactionId);
+    ui.notifications?.info(result.message);
+    return;
+  }
+  if (action === "store-recovery-resolve") {
+    const data = await formDialog("Registrar reconciliação manual", `
+      <p class="ethernum-command-dialog__notice"><i class="fas fa-triangle-exclamation"></i> Esta ação não cria Item nem estorna moedas. Confira Actor, inventário, saldo e estoque manualmente antes de encerrar.</p>
+      <label>Resultado reconciliado<select name="outcome"><option value="rolledBack">Compensada / cancelada</option><option value="completed">Compra concluída</option></select></label>
+      <label>Nota da reconciliação<textarea name="note" minlength="8" maxlength="1000" required></textarea></label>
+      <label><input type="checkbox" name="confirm"> Confirmo que reconciliei o estado no PF2e.</label>
+    `, "Marcar resolvida");
+    if (!data) return;
+    if (data.get("confirm") !== "on") throw new Error("Confirme a reconciliação manual antes de encerrar.");
+    const outcome = field(data, "outcome") === "completed" ? "completed" : "rolledBack";
+    const result = await store.markRecoveryResolved(payload.transactionId, outcome, field(data, "note"));
+    ui.notifications?.info(result.message);
+    return;
+  }
+  if (action === "store-recovery-copy") {
+    await globalThis.navigator?.clipboard?.writeText(await store.recoveryDiagnostic(payload.transactionId));
+    ui.notifications?.info("Diagnóstico da transação copiado.");
     return;
   }
   if (action === "store-add" || action === "store-edit") {
@@ -421,7 +538,7 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
   }
   if (action === "store-toggle") {
     const repository = await store.getStore();
-    await runCommand({ kind: "store.toggle", entryId: payload.entryId, enabled: payload.enabled !== "true", expectedRevision: repository.revision });
+    await runCommand({ kind: "store.toggle", entryId: payload.entryId, enabled: payload.enabled === "true", expectedRevision: repository.revision });
     return;
   }
   if (action === "store-remove") {
@@ -492,11 +609,12 @@ async function handleDomainAction(action: string, payload: Readonly<Record<strin
 
 export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSnapshot> {
   const bridge = getEthernumAuthorityBridge();
-  const [queue, audit, policies, diagnostics] = await Promise.all([
+  const [queue, audit, policies, diagnostics, storeRecovery] = await Promise.all([
     bridge.getQueue(),
     bridge.getAuditLog(),
     bridge.getPolicyConfiguration(),
     bridge.getDiagnostics(),
+    getCompanyStoreService().getRecoveryCases(),
   ]);
   const queueRows: GMControlQueueItem[] = queue.map(entry => {
     const source = actorByUuid(entry.request.sourceActorUuid);
@@ -561,6 +679,7 @@ export async function buildAuthorityControlSnapshot(): Promise<GMControlCenterSn
       averageLatencyMs: diagnostics.averageLatencyMs,
     },
     queue: queueRows,
+    storeRecovery,
     audit: auditRows,
     policies: [
       ...GM_CONTROL_POLICY_CATEGORIES.map(category => ({

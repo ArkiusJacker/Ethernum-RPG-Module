@@ -5,6 +5,34 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.8] - 2026-08-29
+
+### Adicionado
+- Centro de Recuperação da Loja no Command Device, com listagem de transações ambíguas, inspeção de estágio e reconciliação explícita pelo mestre.
+- Armazenamento externo e versionado para documentos de contratos, com adaptador do FilePicker do Foundry, migração administrativa e compatibilidade com o Contrato 01 legado.
+- Relatório reproduzível de tamanho do pacote, baseline versionada e artefato `package-size-report.json` anexado ao workflow de release.
+- Documentação da Authority Bridge e da arquitetura de conteúdo de campanha em `docs/AUTHORITY.md` e `docs/CONTRACT_CONTENT_STORAGE.md`.
+
+### Alterado
+- A Authority Bridge persiste solicitações atestadas e respostas terminais por tempo limitado, permitindo recuperação segura quando mensagens de socket se perdem ou o mestre primário muda.
+- Clientes recuperam respostas concluídas pelo Audit Log usando o ID exato da solicitação ou a chave de idempotência, sem aceitar resposta de usuário que não seja o mestre primário atual.
+- Inicialização do ledger de recompensas deixou de disparar leitura administrativa proibida para jogadores.
+- Projeções públicas da Loja não dependem de permissão `OBSERVER` no Item-fonte; jogadores continuam recebendo somente o DTO sanitizado, enquanto compra, preço, estoque, ownership e Item real são revalidados pelo mestre primário.
+- O controle de habilitação de ofertas no Command Device agora preserva corretamente o valor selecionado em vez de inverter o estado.
+- Aplicações de recompensas distinguem operação concluída, duplicada, compensada e incerta, com retomada segura pelo ledger.
+
+### Segurança e integridade
+- A recuperação persistente mantém assinatura, autoria, prazo, tamanho de payload, idempotência e autoridade do mestre primário; não cria um canal alternativo de mutação.
+- Conteúdo de contratos fora do repositório é validado por tipo e caminho antes da publicação, e migração exige comando GM auditado.
+- O pacote de distribuição continua excluindo screenshots e demais artefatos de QA.
+
+### Testes
+- Compra real como jogador entregou Item PF2e, debitou `1 cp` e reduziu o estoque; a oferta de QA foi desabilitada ao final sem excluir os dados de teste.
+- Recompensa real para Pipping entregou Item, moeda, XP/EP metadata e comenda com ledger concluído.
+- Loot real foi aplicado a um Actor Loot com Item e moeda; repetição do mesmo manifesto foi auditada como duplicata sem duplicar conteúdo.
+- Mecânicas de NPC foram geradas, aplicadas, inspecionadas e revertidas em dois ciclos; um Item manual permaneceu após a reversão enquanto somente os Items gerados foram removidos.
+- Evidências e relatório ficam em `docs/qa/v3.8.8/`.
+
 ## [3.8.7] - 2026-08-25
 
 ### Adicionado

@@ -146,6 +146,33 @@ describe("GM Control Center data", () => {
     expect(view.mechanicAIRequestAvailable).toBe(false);
     expect(view.mechanicApplyAllowed).toBe(false);
   });
+
+  it("projects recoveryRequired transactions with safe action guards", () => {
+    const view = buildGMControlCenterData({
+      storeRecovery: [{
+        transactionId: "store-recovery-1", shortId: "RECOVERY1", actorName: "Pipping", actorUuid: "Actor.pipping",
+        itemName: "Lâmina", itemUuid: "Item.blade", priceLabel: "5 gp", reason: "debit ambiguous", updatedAt: now,
+        ambiguous: true, requiresGMReconciliation: true,
+        debit: { state: "ambiguous", label: "Ambíguo", tone: "danger" },
+        delivery: { state: "absent", label: "Ausente", tone: "success" },
+        stock: { state: "unchanged", label: "Inalterado", tone: "success" },
+        actions: {
+          retrySafeStep: { enabled: false, reason: "manual" }, compensate: { enabled: false, reason: "manual" },
+          markResolved: { enabled: true, reason: "reconcile" }, copyDiagnostic: { enabled: true, reason: "copy" },
+        },
+        diagnostic: "{}",
+      }],
+    }, { isGM: true, activeSection: "store", now }) as {
+      storeRecovery: Array<{ transactionId: string; updatedLabel: string; actions: { compensate: { enabled: boolean } } }>;
+      storeRecoveryCount: number;
+      storeRecoveryEmpty: boolean;
+    };
+
+    expect(view.storeRecoveryCount).toBe(1);
+    expect(view.storeRecoveryEmpty).toBe(false);
+    expect(view.storeRecovery[0]).toMatchObject({ transactionId: "store-recovery-1", actions: { compensate: { enabled: false } } });
+    expect(view.storeRecovery[0]?.updatedLabel).toBeTruthy();
+  });
 });
 
 describe("GM Control Center visual layer", () => {
@@ -168,6 +195,12 @@ describe("GM Control Center visual layer", () => {
     expect(template).toContain("data-gm-policy");
     expect(template).toContain("data-gm-diagnostics-action");
     expect(template).toContain("data-gm-admin-action");
+    expect(template).toContain("Store Recovery Center");
+    expect(template).toContain("Transaction ID");
+    expect(template).toContain("data-gm-domain-action=\"store-recovery-retry\"");
+    expect(template).toContain("data-gm-domain-action=\"store-recovery-compensate\"");
+    expect(template).toContain("data-gm-domain-action=\"store-recovery-resolve\"");
+    expect(template).toContain("data-gm-domain-action=\"store-recovery-copy\"");
     expect(template).toContain("{{localize");
     expect(template).not.toContain(">Aprovar<");
     expect(template).not.toContain(">Rejeitar<");
@@ -180,5 +213,6 @@ describe("GM Control Center visual layer", () => {
     expect(controller).toContain("Boolean(game.user?.isGM)");
     expect(controller).toContain("onQueueAction");
     expect(controller).toContain("onPolicyChange");
+    expect(controller).toContain("pendingDomainActions");
   });
 });

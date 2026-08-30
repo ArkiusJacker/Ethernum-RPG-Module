@@ -18,6 +18,31 @@ export const COMPANY_STORE_TRANSACTION_STATES = [
 ] as const;
 export type CompanyStoreTransactionState = (typeof COMPANY_STORE_TRANSACTION_STATES)[number];
 
+export type CompanyStoreRecoveryStepState =
+  | "notStarted"
+  | "pending"
+  | "confirmed"
+  | "refunded"
+  | "removed"
+  | "unchanged"
+  | "decremented"
+  | "restored"
+  | "notApplicable"
+  | "ambiguous";
+
+export interface CompanyStoreRecoveryEvidence {
+  debit: CompanyStoreRecoveryStepState;
+  delivery: CompanyStoreRecoveryStepState;
+  stock: CompanyStoreRecoveryStepState;
+}
+
+export interface CompanyStoreRecoveryResolution {
+  outcome: "completed" | "rolledBack";
+  note: string;
+  resolvedAt: number;
+  resolvedBy: string;
+}
+
 export interface CompanyStoreCoins {
   pp: number;
   gp: number;
@@ -72,7 +97,51 @@ export interface CompanyStoreTransactionRecord {
   approvedBy?: string;
   error?: string;
   recoveryNotes?: string[];
+  recovery?: CompanyStoreRecoveryEvidence;
+  recoveryResolution?: CompanyStoreRecoveryResolution;
   [key: string]: unknown;
+}
+
+export interface CompanyStoreRecoveryStatusDTO {
+  state: CompanyStoreRecoveryStepState | "present" | "absent" | "unknown";
+  label: string;
+  tone: "success" | "warning" | "danger" | "neutral";
+}
+
+export interface CompanyStoreRecoveryActionDTO {
+  enabled: boolean;
+  reason: string;
+}
+
+export interface CompanyStoreRecoveryCaseDTO {
+  transactionId: string;
+  shortId: string;
+  actorName: string;
+  actorUuid: string;
+  itemName: string;
+  itemUuid: string;
+  priceLabel: string;
+  reason: string;
+  updatedAt: number;
+  ambiguous: boolean;
+  requiresGMReconciliation: boolean;
+  debit: CompanyStoreRecoveryStatusDTO;
+  delivery: CompanyStoreRecoveryStatusDTO;
+  stock: CompanyStoreRecoveryStatusDTO;
+  actions: {
+    retrySafeStep: CompanyStoreRecoveryActionDTO;
+    compensate: CompanyStoreRecoveryActionDTO;
+    markResolved: CompanyStoreRecoveryActionDTO;
+    copyDiagnostic: CompanyStoreRecoveryActionDTO;
+  };
+  diagnostic: string;
+}
+
+export interface CompanyStoreRecoveryActionResult {
+  transactionId: string;
+  state: CompanyStoreTransactionState;
+  changed: boolean;
+  message: string;
 }
 
 export interface CompanyStoreData {

@@ -1,4 +1,9 @@
-import type { EthernumContractPrincipal, EthernumContractStatus } from "../contracts/ContractArchiveTypes.js";
+import type {
+  ContractDocumentAvailabilityStatus,
+  ContractDocumentStorage,
+  EthernumContractPrincipal,
+  EthernumContractStatus,
+} from "../contracts/ContractArchiveTypes.js";
 import type { CompanyStoreEntry } from "../store/CompanyStoreTypes.js";
 import type { CompanyIdentitySnapshot } from "../company/CompanyIdentityService.js";
 import type { CompanyRewardGrantInput } from "../rewards/CompanyRewardTypes.js";
@@ -17,6 +22,7 @@ export type AdministrativeCommand =
   | { kind: "contract.status"; contractId: string; status: EthernumContractStatus; expectedRevision: number; grade?: string }
   | { kind: "contract.access"; contractId: string; principal: EthernumContractPrincipal; grant: boolean; attachmentId?: string; expectedRevision: number }
   | { kind: "contract.intelligence"; contractId: string; found: number; total: number; expectedRevision: number }
+  | { kind: "contract.document-migrate"; contractId: string; attachmentId?: string; selectedPath: string; expectedRevision: number }
   | { kind: "store.upsert"; entry: Partial<CompanyStoreEntry>; expectedRevision: number }
   | { kind: "store.remove"; entryId: string; expectedRevision: number }
   | { kind: "store.toggle"; entryId: string; enabled: boolean; expectedRevision: number }
@@ -48,6 +54,12 @@ export interface AdministrativeContractRow {
   visibility: string;
   journalUuid?: string;
   pdfPath?: string;
+  reportStorage?: ContractDocumentStorage;
+  reportReference?: string;
+  reportAvailability?: ContractDocumentAvailabilityStatus;
+  reportUnavailable?: boolean;
+  reportDiagnostic?: string;
+  canMigrateLegacyReport?: boolean;
 }
 
 export interface AdministrativeStoreRow {

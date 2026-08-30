@@ -6,15 +6,15 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 13 como mínimo e versão verificada; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, parcial e não suportado.
 
-## Versão 3.8.7
+## Versão 3.8.8
 
-- `main` foi sincronizada por fast-forward com todo o histórico publicado até a v3.8.6.
-- O workflow de release agora recusa tags cujo commit não pertença ao histórico de `main` e informa tag, main e merge-base.
-- O Diagnóstico da Ficha ganhou uma auditoria PF2e somente leitura para HP, CA, Percepção, salvamentos, perícias, variantes MAP, inventário, moedas, bulk, condições, Pontos Heroicos, foco e conjuração.
-- Diferenças são comparadas como valores mecânicos normalizados, com detalhe expansível e relatório copiável; a auditoria nunca corrige nem atualiza o Actor.
-- A matriz de compatibilidade passa a declarar apenas Foundry 13 como mínimo/verificado. Foundry 14 permanece experimental/parcial, e 11/12 deixam de ser apresentados como suporte testado.
-- O registro HARVEST identifica explicitamente as famílias de mecânicas geradas e os dois experimentos de IA como `AWAITING_USER_APPROVAL`.
-- Recomendações de proteção da branch principal estão documentadas em [`docs/BRANCH_PROTECTION.md`](docs/BRANCH_PROTECTION.md).
+- A Authority Bridge recupera solicitações atestadas e respostas terminais mesmo quando mensagens de socket se perdem, preservando mestre primário, assinatura, prazo e idempotência.
+- A Loja ganhou Centro de Recuperação, correção do controle de habilitação e projeções sanitizadas que não exigem acesso do jogador ao Item-fonte.
+- O ledger de recompensas inicializa somente onde há autoridade, sem erros administrativos esperados nas sessões de jogadores.
+- Documentos de contratos podem viver fora do pacote do módulo, escolhidos pelo FilePicker e migrados por comando GM auditado, mantendo compatibilidade com conteúdo legado.
+- O pipeline gera `package-size-report.json`, compara o pacote com uma baseline e continua excluindo evidências de QA da distribuição.
+- A matriz ao vivo cobriu mestre primário, mestre secundário, Bayle e Pipping em Loja, Recompensas, Loot e Mecânicas de NPC.
+- Evidências da validação estão em [`docs/qa/v3.8.8/`](docs/qa/v3.8.8/).
 
 ### Protocolos de desenvolvimento
 

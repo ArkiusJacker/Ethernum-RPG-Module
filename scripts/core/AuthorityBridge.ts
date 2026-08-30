@@ -57,6 +57,11 @@ export interface AuthorityUserProvider {
   getUsers(): Iterable<AuthorityUserLike>;
   attestRequest?(request: AuthorityRequestEnvelope): Promise<string>;
   verifyRequestAttestation?(request: AuthorityRequestEnvelope): Promise<boolean> | boolean;
+  getPersistedRequests?(): Promise<Iterable<AuthorityRequestEnvelope>> | Iterable<AuthorityRequestEnvelope>;
+  releasePersistedRequest?(requestId: string): Promise<void> | void;
+  persistResponse?(response: AuthorityResponse): Promise<void> | void;
+  getPersistedResponses?(): Promise<Iterable<AuthorityResponse>> | Iterable<AuthorityResponse>;
+  releasePersistedResponse?(requestId: string): Promise<void> | void;
 }
 
 export interface AuthoritySocket {
@@ -190,6 +195,7 @@ export interface AuthorityAuditEntry {
   status: AuthorityAuditStatus;
   summary?: string;
   error?: string;
+  errorCode?: string;
   latencyMs?: number;
   duplicateOf?: string;
   result?: unknown;
@@ -258,6 +264,7 @@ export interface AuthorityBridgeOptions {
 
 interface PendingClientRequest {
   promise: Promise<AuthorityResponse>;
+  request: AuthorityRequestEnvelope;
   resolve(response: AuthorityResponse): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof setTimeout>;
@@ -440,12 +447,92 @@ export class FoundryAuthorityUserProvider implements AuthorityUserProvider {
         nonce,
         signature: requestSignature(request),
         expiresAt: request.expiresAt,
+        request: { ...request, attestation: nonce },
       },
     });
     return nonce;
   }
 
-  verifyRequestAttestation(request: AuthorityRequestEnvelope): boolean {
+  async verifyRequestAttestation(request: AuthorityRequestEnvelope): Promise<boolean> {
+    for (const delay of [0, 50, 150, 300]) {
+      if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+      if (this.isRequestAttested(request)) return true;
+    }
+    return false;
+  }
+
+  getPersistedRequests(): Iterable<AuthorityRequestEnvelope> {
+    const requests: AuthorityRequestEnvelope[] = [];
+    for (const candidate of [...(game.users ?? [])]) {
+      const user = candidate as User & { getFlag?: (scope: string, key: string) => unknown };
+      const entries = user.getFlag?.(thisModuleId(), "authorityAttestations");
+      if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+      for (const entry of Object.values(entries as Record<string, unknown>)) {
+        if (!entry || typeof entry !== "object") continue;
+        const request = (entry as { request?: unknown }).request;
+        if (!isRequestEnvelope(request) || request.requesterId !== user.id) continue;
+        requests.push(request);
+      }
+    }
+    return requests;
+  }
+
+  async releasePersistedRequest(requestId: string): Promise<void> {
+    const user = game.user as User & {
+      getFlag?: (scope: string, key: string) => unknown;
+      setFlag?: (scope: string, key: string, value: unknown) => Promise<unknown>;
+    } | null;
+    if (!user?.setFlag) return;
+    const stored = user.getFlag?.(thisModuleId(), "authorityAttestations");
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return;
+    const entries = { ...(stored as Record<string, unknown>) };
+    if (!(requestId in entries)) return;
+    delete entries[requestId];
+    await user.setFlag(thisModuleId(), "authorityAttestations", entries);
+  }
+
+  async persistResponse(response: AuthorityResponse): Promise<void> {
+    const user = [...(game.users ?? [])].find(candidate => candidate.id === response.requesterId) as User & {
+      getFlag?: (scope: string, key: string) => unknown;
+      setFlag?: (scope: string, key: string, value: unknown) => Promise<unknown>;
+    } | undefined;
+    if (!user?.setFlag) return;
+    const stored = user.getFlag?.(thisModuleId(), "authorityResponses");
+    const entries = stored && typeof stored === "object" && !Array.isArray(stored)
+      ? stored as Record<string, unknown>
+      : {};
+    const cutoff = Date.now() - DEFAULT_REPLAY_TTL_MS;
+    const recent = Object.fromEntries(Object.entries(entries).filter(([, value]) => (
+      Number((value as { completedAt?: unknown } | null)?.completedAt) >= cutoff
+    )).slice(-24));
+    await user.setFlag(thisModuleId(), "authorityResponses", {
+      ...recent,
+      [response.requestId]: response,
+    });
+  }
+
+  getPersistedResponses(): Iterable<AuthorityResponse> {
+    const user = game.user as User & { getFlag?: (scope: string, key: string) => unknown } | null;
+    const stored = user?.getFlag?.(thisModuleId(), "authorityResponses");
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return [];
+    return Object.values(stored as Record<string, unknown>).filter(isAuthorityResponse);
+  }
+
+  async releasePersistedResponse(requestId: string): Promise<void> {
+    const user = game.user as User & {
+      getFlag?: (scope: string, key: string) => unknown;
+      setFlag?: (scope: string, key: string, value: unknown) => Promise<unknown>;
+    } | null;
+    if (!user?.setFlag) return;
+    const stored = user.getFlag?.(thisModuleId(), "authorityResponses");
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return;
+    const entries = { ...(stored as Record<string, unknown>) };
+    if (!(requestId in entries)) return;
+    delete entries[requestId];
+    await user.setFlag(thisModuleId(), "authorityResponses", entries);
+  }
+
+  private isRequestAttested(request: AuthorityRequestEnvelope): boolean {
     const user = [...(game.users ?? [])].find(candidate => candidate.id === request.requesterId) as User & {
       getFlag?: (scope: string, key: string) => unknown;
     } | undefined;
@@ -507,6 +594,7 @@ export class AuthorityBridge {
   private readonly now: () => number;
   private readonly randomId: () => string;
   private readonly replay: BoundedReplayCache<ReplayRecord>;
+  private readonly recoveredTransport: BoundedReplayCache<boolean>;
   private readonly handlers = new Map<string, AuthorityHandler>();
   private readonly pendingClients = new Map<string, PendingClientRequest>();
   private readonly inFlight = new Map<string, InFlightRequest>();
@@ -514,6 +602,7 @@ export class AuthorityBridge {
   private readonly listeners = new Set<(event: AuthorityBridgeEvent) => void>();
   private storageTail: Promise<void> = Promise.resolve();
   private expirationTimer: ReturnType<typeof setInterval> | null = null;
+  private maintenanceRunning = false;
   private started = false;
   private readonly metrics: AuthorityMetrics = {
     received: 0,
@@ -558,6 +647,11 @@ export class AuthorityBridge {
       positive(options.replayTtlMs, DEFAULT_REPLAY_TTL_MS),
       this.now,
     );
+    this.recoveredTransport = new BoundedReplayCache(
+      positive(options.replayLimit, DEFAULT_REPLAY_LIMIT),
+      positive(options.replayTtlMs, DEFAULT_REPLAY_TTL_MS),
+      this.now,
+    );
   }
 
   start(): void {
@@ -565,8 +659,7 @@ export class AuthorityBridge {
     this.started = true;
     this.socket.on(this.channel, this.socketListener);
     this.expirationTimer = setInterval(() => {
-      if (!this.isPrimaryGM()) return;
-      void this.expirePending().catch(error => this.recordInternalError(error));
+      void this.runMaintenance();
     }, this.expirationIntervalMs);
   }
 
@@ -672,6 +765,7 @@ export class AuthorityBridge {
     });
     const timeout = setTimeout(() => {
       this.pendingClients.delete(requestId);
+      void this.releasePersistedRequest(requestId);
       rejectResponse(new AuthorityBridgeError(
         "The primary GM did not complete the authority request in time.",
         "REQUEST_TIMEOUT",
@@ -681,6 +775,7 @@ export class AuthorityBridge {
     }, positive(input.timeoutMs, this.requestTimeoutMs));
     this.pendingClients.set(requestId, {
       promise,
+      request,
       resolve: resolveResponse,
       reject: rejectResponse,
       timeout,
@@ -693,6 +788,7 @@ export class AuthorityBridge {
     } catch (error) {
       clearTimeout(timeout);
       this.pendingClients.delete(requestId);
+      void this.releasePersistedRequest(requestId);
       rejectResponse(asError(error));
     }
     return promise as Promise<AuthorityResponse<TResult>>;
@@ -701,10 +797,73 @@ export class AuthorityBridge {
   async handleSocketMessage(message: AuthoritySocketMessage): Promise<void> {
     if (!message || typeof message !== "object") return;
     if (message.type === "authority-bridge-request") {
-      if (this.isPrimaryGM()) await this.handleRequest(message.request, false, true);
+      if (this.isPrimaryGM()) {
+        await this.handleRequest(message.request, false, true);
+        this.recoveredTransport.set(message.request.requestId, true);
+      }
       return;
     }
     if (message.type === "authority-bridge-response") this.handleResponse(message.response);
+  }
+
+  async recoverPersistedRequests(): Promise<number> {
+    if (!this.isPrimaryGM() || !this.users.getPersistedRequests) return 0;
+    const requests = await this.users.getPersistedRequests();
+    let recovered = 0;
+    for (const request of requests) {
+      if (!isRequestEnvelope(request) || request.expiresAt <= this.now()) continue;
+      if (this.recoveredTransport.get(request.requestId)) continue;
+      if (!this.handlers.has(request.handlerId)) continue;
+      await this.handleRequest(request, false, true);
+      this.recoveredTransport.set(request.requestId, true);
+      recovered += 1;
+    }
+    return recovered;
+  }
+
+  async recoverPersistedResponses(): Promise<number> {
+    if (!this.users.getPersistedResponses) return 0;
+    const responses = await this.users.getPersistedResponses();
+    let recovered = 0;
+    for (const response of responses) {
+      if (!isAuthorityResponse(response)) continue;
+      if (!this.handleResponse(response)) continue;
+      await this.releasePersistedResponse(response.requestId);
+      recovered += 1;
+    }
+    return recovered;
+  }
+
+  async recoverAuditResponses(): Promise<number> {
+    if (this.pendingClients.size === 0) return 0;
+    const primary = this.getPrimaryGM();
+    if (!primary?.active || !primary.isGM) return 0;
+    const terminalStatuses: AuthorityAuditStatus[] = ["executed", "failed", "rejected", "expired", "cancelled"];
+    const audit = [...await this.getAuditLog()].reverse();
+    let recovered = 0;
+    for (const pending of [...this.pendingClients.values()]) {
+      const entry = audit.find(candidate => terminalStatuses.includes(candidate.status) && (
+        candidate.requestId === pending.request.requestId
+        || (candidate.requesterId === pending.request.requesterId
+          && candidate.idempotencyKey === pending.request.idempotencyKey)
+      ));
+      if (!entry) continue;
+      const response: AuthorityResponse = {
+        protocolVersion: AUTHORITY_BRIDGE_PROTOCOL_VERSION,
+        requestId: pending.request.requestId,
+        requesterId: pending.request.requesterId,
+        responderId: primary.id,
+        handlerId: pending.request.handlerId,
+        status: entry.status as AuthorityResponseStatus,
+        completedAt: entry.timestamp,
+        ...(Object.prototype.hasOwnProperty.call(entry, "result") ? { result: entry.result } : {}),
+        ...(entry.error ? { error: entry.error } : {}),
+        ...(entry.errorCode ? { errorCode: entry.errorCode } : {}),
+      };
+      if (!this.handleResponse(response)) continue;
+      recovered += 1;
+    }
+    return recovered;
   }
 
   async getPolicyConfiguration(): Promise<AuthorityPolicyConfiguration> {
@@ -979,7 +1138,7 @@ export class AuthorityBridge {
       await this.appendAuditSafely(this.auditEntryFromRequest(request, cached.policy, "duplicate", {
         duplicateOf: cached.response.requestId,
       }));
-      this.deliverResponse({
+      await this.deliverResponse({
         ...cached.response,
         requestId: request.requestId,
         requesterId: request.requesterId,
@@ -1001,7 +1160,7 @@ export class AuthorityBridge {
       }));
       const canReplayResult = terminalAudit.status === "executed"
         && Object.prototype.hasOwnProperty.call(terminalAudit, "result");
-      this.deliverResponse({
+      await this.deliverResponse({
         protocolVersion: AUTHORITY_BRIDGE_PROTOCOL_VERSION,
         requestId: request.requestId,
         requesterId: request.requesterId,
@@ -1099,18 +1258,21 @@ export class AuthorityBridge {
     }
   }
 
-  private handleResponse(response: AuthorityResponse): void {
+  private handleResponse(response: AuthorityResponse): boolean {
     const current = this.users.getCurrentUser();
-    if (!current || response.requesterId !== current.id) return;
+    if (!current || response.requesterId !== current.id) return false;
     const responder = this.findUser(response.responderId);
     const primary = this.getPrimaryGM();
-    if (!responder?.active || !responder.isGM || responder.id !== primary?.id) return;
+    if (!responder?.active || !responder.isGM || responder.id !== primary?.id) return false;
     const pending = this.pendingClients.get(response.requestId);
-    if (!pending) return;
+    if (!pending) return false;
     clearTimeout(pending.timeout);
     this.pendingClients.delete(response.requestId);
+    void this.releasePersistedRequest(response.requestId);
+    void this.releasePersistedResponse(response.requestId);
     pending.resolve(response);
     this.emitEvent({ type: "response", requestId: response.requestId });
+    return true;
   }
 
   private async validateRequest(
@@ -1267,13 +1429,14 @@ export class AuthorityBridge {
 
     await this.appendAuditSafely(this.auditEntryFromRequest(request, policy, status, {
       error: error?.error,
+      errorCode: error?.errorCode,
       latencyMs: Math.max(0, completedAt - request.createdAt),
       ...(status === "executed" ? { result } : {}),
     }));
     const recipients = [...aliases];
     if (recipients.length === 0) recipients.push(aliasFromRequest(request));
     for (const alias of recipients) {
-      this.deliverResponse({
+      await this.deliverResponse({
         ...response,
         requestId: alias.requestId,
         requesterId: alias.requesterId,
@@ -1297,8 +1460,11 @@ export class AuthorityBridge {
     };
     this.metrics.failed += 1;
     this.metrics.lastError = message;
-    await this.appendAuditSafely(this.auditEntryFromRequest(request, "auto", "failed", { error: message }));
-    this.deliverResponse(response);
+    await this.appendAuditSafely(this.auditEntryFromRequest(request, "auto", "failed", {
+      error: message,
+      errorCode: "IDEMPOTENCY_CONFLICT",
+    }));
+    await this.deliverResponse(response);
   }
 
   private async addDuplicateAlias(
@@ -1331,10 +1497,15 @@ export class AuthorityBridge {
     ));
   }
 
-  private deliverResponse(response: AuthorityResponse): void {
+  private async deliverResponse(response: AuthorityResponse): Promise<void> {
     const current = this.users.getCurrentUser();
     if (current?.id === response.requesterId) this.handleResponse(response);
     if (current?.id !== response.requesterId) {
+      try {
+        await this.users.persistResponse?.(response);
+      } catch (error) {
+        this.recordInternalError(error);
+      }
       this.socket.emit(this.channel, { type: "authority-bridge-response", response });
     }
   }
@@ -1452,6 +1623,39 @@ export class AuthorityBridge {
     this.metrics.lastError = asError(error).message;
     console.error(`${this.moduleId} | AuthorityBridge`, error);
   }
+
+  private async releasePersistedRequest(requestId: string): Promise<void> {
+    try {
+      await this.users.releasePersistedRequest?.(requestId);
+    } catch (error) {
+      this.recordInternalError(error);
+    }
+  }
+
+  private async releasePersistedResponse(requestId: string): Promise<void> {
+    try {
+      await this.users.releasePersistedResponse?.(requestId);
+    } catch (error) {
+      this.recordInternalError(error);
+    }
+  }
+
+  private async runMaintenance(): Promise<void> {
+    if (this.maintenanceRunning) return;
+    this.maintenanceRunning = true;
+    try {
+      await this.recoverPersistedResponses();
+      await this.recoverAuditResponses();
+      if (this.isPrimaryGM()) {
+        await this.recoverPersistedRequests();
+        await this.expirePending();
+      }
+    } catch (error) {
+      this.recordInternalError(error);
+    } finally {
+      this.maintenanceRunning = false;
+    }
+  }
 }
 
 function toAuthorityUser(user: User | null | undefined): AuthorityUserLike | null {
@@ -1522,6 +1726,18 @@ function isRequestEnvelope(value: unknown): value is AuthorityRequestEnvelope {
     && payloadSize <= 100_000
     && Number.isFinite(request.createdAt)
     && Number.isFinite(request.expiresAt);
+}
+
+function isAuthorityResponse(value: unknown): value is AuthorityResponse {
+  if (!value || typeof value !== "object") return false;
+  const response = value as Partial<AuthorityResponse>;
+  return response.protocolVersion === AUTHORITY_BRIDGE_PROTOCOL_VERSION
+    && typeof response.requestId === "string" && response.requestId.length > 0 && response.requestId.length <= 160
+    && typeof response.requesterId === "string" && response.requesterId.length > 0 && response.requesterId.length <= 160
+    && typeof response.responderId === "string" && response.responderId.length > 0 && response.responderId.length <= 160
+    && typeof response.handlerId === "string" && response.handlerId.length > 0 && response.handlerId.length <= 180
+    && ["executed", "rejected", "failed", "expired", "cancelled"].includes(String(response.status))
+    && Number.isFinite(response.completedAt);
 }
 
 function thisModuleId(): string {

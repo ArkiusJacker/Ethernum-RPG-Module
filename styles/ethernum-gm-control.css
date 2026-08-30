@@ -1260,6 +1260,88 @@
 .ethernum-gm-control__status.status-critical,
 .ethernum-gm-control__status.status-rolledBack { color: var(--gm-danger); }
 
+.ethernum-contract-document-unavailable { color: var(--gm-danger) !important; }
+
+.ethernum-store-recovery {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.ethernum-store-recovery__heading,
+.ethernum-store-recovery__row header,
+.ethernum-store-recovery__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ethernum-store-recovery__heading h4 { margin: 0; color: var(--gm-secondary); font-size: 15px; }
+.ethernum-store-recovery__heading h4 i { margin-right: 7px; color: var(--gm-warning); }
+.ethernum-store-recovery__heading p { margin: 4px 0 0; color: var(--gm-text-muted); font-size: 11px; }
+.ethernum-store-recovery__heading > strong { min-width: 28px; color: var(--gm-warning); font-size: 18px; text-align: center; }
+.ethernum-store-recovery__empty { margin-top: 10px; }
+
+.ethernum-store-recovery__row {
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--gm-border-soft);
+}
+
+.ethernum-store-recovery__row.is-ambiguous { border-left: 3px solid var(--gm-danger); padding-left: 10px; }
+.ethernum-store-recovery__row header > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.ethernum-store-recovery__row header span,
+.ethernum-store-recovery__identity span,
+.ethernum-store-recovery__identity small,
+.ethernum-store-recovery__row time { color: var(--gm-text-muted); font-size: 10px; }
+.ethernum-store-recovery__row code { overflow: hidden; color: var(--gm-text); text-overflow: ellipsis; white-space: nowrap; }
+
+.ethernum-store-recovery__identity,
+.ethernum-store-recovery__statuses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.ethernum-store-recovery__identity > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.ethernum-store-recovery__identity strong,
+.ethernum-store-recovery__identity small { overflow-wrap: anywhere; }
+.ethernum-store-recovery__statuses { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+.ethernum-store-recovery__statuses > div { padding: 7px 9px; background: var(--gm-surface); border: 1px solid var(--gm-border-soft); }
+.ethernum-store-recovery__statuses dt { color: var(--gm-text-muted); font-size: 10px; text-transform: uppercase; }
+.ethernum-store-recovery__statuses dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.ethernum-store-recovery__statuses .tone-success dd { color: var(--gm-success); }
+.ethernum-store-recovery__statuses .tone-warning dd { color: var(--gm-warning); }
+.ethernum-store-recovery__statuses .tone-danger dd { color: var(--gm-danger); }
+
+.ethernum-store-recovery__reason,
+.ethernum-store-recovery__warning { display: flex; gap: 8px; margin: 7px 0; font-size: 11px; }
+.ethernum-store-recovery__reason span { color: var(--gm-text-muted); overflow-wrap: anywhere; }
+.ethernum-store-recovery__warning { color: var(--gm-danger); }
+.ethernum-store-recovery__actions { justify-content: flex-end; flex-wrap: wrap; margin-top: 10px; }
+.ethernum-store-recovery__actions button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  color: var(--gm-text);
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 4px;
+  font-size: 10px;
+}
+.ethernum-store-recovery__actions button:hover:not(:disabled) { border-color: var(--gm-accent); }
+.ethernum-store-recovery__actions button:disabled { opacity: 0.42; cursor: not-allowed; }
+
+@media (max-width: 620px) {
+  .ethernum-store-recovery__identity,
+  .ethernum-store-recovery__statuses { grid-template-columns: 1fr; }
+  .ethernum-store-recovery__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ethernum-store-recovery__actions button { justify-content: center; }
+}
+
 .ethernum-command-dialog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .ethernum-command-dialog label { display: flex; flex-direction: column; gap: 4px; }
 .ethernum-command-dialog textarea { min-height: 88px; resize: vertical; }

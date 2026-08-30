@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContractArchiveService } from "../scripts/contracts/ContractArchiveService.js";
+import {
+  ContractDocumentStorageService,
+  type ContractFilePickerPort,
+} from "../scripts/contracts/ContractDocumentStorageService.js";
 
 const MODULE_ID = "ethernum-rpg-module";
 
@@ -145,5 +149,140 @@ describe("ContractArchiveService", () => {
     await expect(service.publish({ title: "Forjado" })).rejects.toThrow(/Somente o Gamemaster/i);
     await expect(service.grantAccess("contract-01-operation-manifesto-13", { kind: "user", id: world.player.id })).rejects.toThrow(/Somente o Gamemaster/i);
     await expect(service.revokeAccess("contract-01-operation-manifesto-13", { kind: "user", id: world.player.id })).rejects.toThrow(/Somente o Gamemaster/i);
+  });
+
+  it("migrates the bundled Contract 01 report to a verified portable Data Folder file", async () => {
+    installWorld(true);
+    const files: ContractFilePickerPort = {
+      copyModuleAssetToDataFolder: vi.fn(async input => ({ path: input.destinationPath })),
+      exists: vi.fn(async () => true),
+    };
+    const service = new ContractArchiveService(new ContractDocumentStorageService(files));
+    await service.initialize();
+    const before = await service.getArchive();
+
+    const after = await service.migrateLegacyDocumentToDataFolder({
+      contractId: "contract-01-operation-manifesto-13",
+      selectedPath: "worlds/ethernum/contracts/contract-01-operation-manifesto-13.pdf",
+      expectedRevision: before.revision,
+    });
+    const contract = after.contracts.find(candidate => candidate.id === "contract-01-operation-manifesto-13");
+
+    expect(contract?.reportDocument).toEqual({
+      storage: "foundry-data",
+      path: "worlds/ethernum/contracts/contract-01-operation-manifesto-13.pdf",
+    });
+    expect(contract?.pdfPath).toBe("modules/ethernum-rpg-module/assets/contracts/contract-01-operation-manifesto-13.pdf");
+    expect(files.copyModuleAssetToDataFolder).toHaveBeenCalledOnce();
+    expect(JSON.stringify(after)).not.toMatch(/[A-Za-z]:[\\\\/]/);
+  });
+
+  it("migrates a bundled attachment while preserving its legacy path alias", async () => {
+    installWorld(true);
+    const files: ContractFilePickerPort = {
+      copyModuleAssetToDataFolder: vi.fn(async input => ({ path: input.destinationPath })),
+      exists: vi.fn(async () => true),
+    };
+    const service = new ContractArchiveService(new ContractDocumentStorageService(files));
+    await service.initialize();
+    const published = await service.publish({
+      id: "contract-with-annex",
+      number: 2,
+      title: "Contrato com anexo",
+      attachments: [{
+        id: "annex",
+        label: "Anexo",
+        kind: "pdf",
+        path: "modules/ethernum-rpg-module/assets/contracts/annex.pdf",
+        publicAsset: true,
+      }],
+      visibility: { mode: "all" },
+    });
+
+    const migrated = await service.migrateLegacyDocumentToDataFolder({
+      contractId: "contract-with-annex",
+      attachmentId: "annex",
+      selectedPath: "worlds/ethernum/contracts/annex.pdf",
+      expectedRevision: published.revision,
+    });
+    const attachment = migrated.contracts.find(contract => contract.id === "contract-with-annex")?.attachments[0];
+    expect(attachment?.document).toEqual({ storage: "foundry-data", path: "worlds/ethernum/contracts/annex.pdf" });
+    expect(attachment?.path).toBe("modules/ethernum-rpg-module/assets/contracts/annex.pdf");
+  });
+
+  it("keeps the legacy reference unchanged when Data Folder verification fails", async () => {
+    installWorld(true);
+    const files: ContractFilePickerPort = {
+      copyModuleAssetToDataFolder: vi.fn(async input => ({ path: input.destinationPath })),
+      exists: vi.fn(async path => !path.includes("missing")),
+    };
+    const service = new ContractArchiveService(new ContractDocumentStorageService(files));
+    await service.initialize();
+    const before = await service.getArchive();
+
+    await expect(service.migrateLegacyDocumentToDataFolder({
+      contractId: "contract-01-operation-manifesto-13",
+      selectedPath: "worlds/ethernum/contracts/missing.pdf",
+      expectedRevision: before.revision,
+    })).rejects.toThrow(/DOCUMENT UNAVAILABLE/);
+
+    const after = await service.getArchive();
+    expect(after.revision).toBe(before.revision);
+    expect(after.contracts[0]?.reportDocument).toEqual(before.contracts[0]?.reportDocument);
+  });
+
+  it("does not link a copied file after a concurrent archive revision change", async () => {
+    const { journals } = installWorld(true);
+    let copyStarted = false;
+    const files: ContractFilePickerPort = {
+      copyModuleAssetToDataFolder: vi.fn(async input => {
+        copyStarted = true;
+        const store = journals.find(journal => journal.getFlag(MODULE_ID, "contractArchiveStore") === true)!;
+        const archive = structuredClone(store.getFlag(MODULE_ID, "contractArchiveData") as Record<string, unknown>);
+        archive.revision = Number(archive.revision) + 1;
+        await store.setFlag(MODULE_ID, "contractArchiveData", archive);
+        return { path: input.destinationPath };
+      }),
+      exists: vi.fn(async () => true),
+    };
+    const service = new ContractArchiveService(new ContractDocumentStorageService(files));
+    await service.initialize();
+    const before = await service.getArchive();
+
+    await expect(service.migrateLegacyDocumentToDataFolder({
+      contractId: "contract-01-operation-manifesto-13",
+      selectedPath: "worlds/ethernum/contracts/concurrent.pdf",
+      expectedRevision: before.revision,
+    })).rejects.toThrow(/atualizado por outro mestre/i);
+
+    const after = await service.getArchive();
+    expect(copyStarted).toBe(true);
+    expect(after.contracts[0]?.reportDocument).toEqual(before.contracts[0]?.reportDocument);
+  });
+
+  it("reports a missing portable file without breaking contract snapshots", async () => {
+    installWorld(true);
+    const files: ContractFilePickerPort = {
+      copyModuleAssetToDataFolder: vi.fn(async input => ({ path: input.destinationPath })),
+      exists: vi.fn(async path => !path.includes("missing")),
+    };
+    const service = new ContractArchiveService(new ContractDocumentStorageService(files));
+    await service.initialize();
+    const before = await service.getArchive();
+    await service.migrateLegacyDocumentToDataFolder({
+      contractId: "contract-01-operation-manifesto-13",
+      selectedPath: "worlds/ethernum/contracts/report.pdf",
+      expectedRevision: before.revision,
+    });
+    vi.mocked(files.exists).mockResolvedValue(false);
+
+    const snapshot = await service.getSnapshot();
+    const target = await service.resolveDocumentTarget("contract-01-operation-manifesto-13");
+
+    expect(snapshot.contracts[0]?.report?.id).toBe("__report__");
+    expect(target).toMatchObject({
+      sourceUrl: "worlds/ethernum/contracts/report.pdf",
+      availability: { status: "unavailable", code: "DOCUMENT UNAVAILABLE" },
+    });
   });
 });
