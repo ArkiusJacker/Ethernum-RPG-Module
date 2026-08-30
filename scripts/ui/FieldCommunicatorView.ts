@@ -536,6 +536,11 @@ export class FieldCommunicatorView {
         label: "Administração",
         description: "Aplicativos e permissões do comunicador",
         icon: "fa-solid fa-user-shield",
+      } : this.location.panelId === "notifications" ? {
+        id: "notifications",
+        label: "Notificações",
+        description: "Eventos operacionais ainda não lidos neste perfil",
+        icon: "fa-solid fa-bell",
       } : null);
     const snapshotState = this.snapshot.state && typeof this.snapshot.state === "object"
       ? this.snapshot.state as Record<string, unknown>

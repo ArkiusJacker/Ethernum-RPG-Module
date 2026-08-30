@@ -72,8 +72,14 @@ export class EmergencyBroadcastService {
     return dto;
   }
 
-  list(limit = 100, viewerId: string | null | undefined = game.user?.id, viewerIsGM = Boolean(game.user?.isGM)): EmergencyBroadcastDTO[] {
-    return collection<BroadcastMessage>((game as Game & { messages?: Iterable<BroadcastMessage> }).messages)
+  list(
+    limit = 100,
+    viewerId: string | null | undefined = game.user?.id,
+    viewerIsGM = Boolean(game.user?.isGM),
+    source?: Iterable<unknown>,
+  ): EmergencyBroadcastDTO[] {
+    const messages = source ?? (game as Game & { messages?: Iterable<BroadcastMessage> }).messages;
+    return collection<BroadcastMessage>(messages)
       .slice(-Math.max(1, Math.min(500, limit)))
       .flatMap(message => {
         if (message.whisper?.length && (!viewerId || !message.whisper.includes(viewerId)) && !viewerIsGM) return [];

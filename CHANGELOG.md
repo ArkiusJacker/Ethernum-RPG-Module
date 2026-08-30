@@ -5,6 +5,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.9] - 2026-08-30
+
+### Adicionado
+- Central de notificações com fontes confiáveis, filtros `Todas`, `Prioritárias` e `Desativadas`, estado lido/não lido por usuário e navegação ao canal ou contrato de origem.
+- Projeção segura de esquadrões da Companhia, agrupada por `squadIds`, com presença real, rank, nível, função e estado operacional disponíveis.
+- Métricas de construção do snapshot para mestre, incluindo duração e contagens de usuários, cenas, Journals, mensagens, contratos, itens da Loja e notificações.
+
+### Alterado
+- Presença online agora deriva do `User.active` associado ao Actor; agentes sem sessão ativa são apresentados como offline.
+- Barras de sinal simuladas foram substituídas pelo estado estático e explícito `Canal local protegido`.
+- Sincronização mostra `OPERAÇÃO PENDENTE` somente enquanto existe uma compra enfileirada; fora disso, mostra `DADOS LOCAIS PRONTOS`.
+- Loja, Contratos, Arquivos, Manual e Dossiês descrevem os fluxos de entrega, aprovação, permissão e descoberta de Journal realmente usados pelo módulo.
+- Coleções de usuários, cenas, Journals e mensagens são capturadas uma vez por snapshot e reutilizadas pelas projeções.
+
+### Segurança e integridade
+- Projeções de jogador incluem somente membros que compartilham um esquadrão e removem dos membros quaisquer identificadores de grupos não compartilhados.
+- Prévia de jogador permite inspecionar e navegar nas notificações sem gravar leitura em nome do jogador.
+- Estado de leitura é armazenado no próprio User, com normalização, deduplicação e limite de retenção.
+
+### Testes
+- Cobertura automatizada de presença online/offline, filtros, leitura idempotente, isolamento de esquadrões, cópia honesta, responsividade declarativa e ciclo de vida existente.
+- Evidências e relatório ficam em `docs/qa/v3.8.9/`.
+
 ## [3.8.8] - 2026-08-29
 
 ### Adicionado

@@ -55,15 +55,15 @@ const OFFICIAL_LABELS: Record<OfficialFieldCommunicatorAppId, string> = {
 
 const OFFICIAL_DESCRIPTIONS: Record<OfficialFieldCommunicatorAppId, string> = {
   sheet: "Abrir a ficha do agente",
-  conversations: "Mensagens privadas",
-  group: "Canal geral da Ethernum",
-  squad: "Canal e informações do esquadrão",
-  map: "Mapa operacional",
-  manual: "Manual de campo",
-  dossiers: "Dossiês autorizados",
-  contracts: "Contratos e missões",
-  files: "Arquivos compartilhados",
-  shop: "Suprimentos e requisições",
+  conversations: "Mensagens privadas visíveis ao agente",
+  group: "Mensagens e comunicados do canal coletivo",
+  squad: "Grupos atribuídos no registro da Companhia",
+  map: "Cenas que este usuário pode observar",
+  manual: "Journals visíveis de protocolos e procedimentos",
+  dossiers: "Journals visíveis de inteligência e ameaças",
+  contracts: "Contratos visíveis por estado e permissão",
+  files: "Todos os Journals visíveis neste mundo",
+  shop: "Entrega automática ou solicitação para aprovação",
   settings: "Preferências do comunicador",
 };
 

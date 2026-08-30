@@ -62,8 +62,8 @@
     </div>
 
     <div class="ethc-header__telemetry" aria-label="Telemetria do comunicador">
-      <span class="ethc-signal" title="Sinal {{signal.label}}" aria-label="Sinal {{signal.label}}">
-        {{#each signal.bars}}<i class="{{#if this.active}}is-active{{/if}}" aria-hidden="true"></i>{{/each}}
+      <span class="ethc-signal" title="{{signal.label}}" aria-label="{{signal.label}}">
+        <i class="fas fa-tower-broadcast" aria-hidden="true"></i><small>{{signal.label}}</small>
       </span>
       <span class="ethc-aether-reserve" title="Reserva de Éter" aria-label="Reserva de Éter: {{aether.value}} de {{aether.max}}">
         <i class="fas fa-bolt" aria-hidden="true"></i><b>{{aether.value}}</b><small>/{{aether.max}}</small>
@@ -136,7 +136,7 @@
         <div class="ethc-auth-core__copy">
           <p class="ethc-kicker">Sistema de campo autenticado</p>
           <strong>Ethernum Company</strong>
-          <div><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Conexão segura</span><span><i class="fas fa-user" aria-hidden="true"></i> Agente online</span></div>
+          <div><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Conexão segura</span><span><i class="fas {{#if agent.online}}fa-user-check{{else}}fa-user-clock{{/if}}" aria-hidden="true"></i> Agente {{#if agent.online}}online{{else}}offline{{/if}}</span></div>
         </div>
       </section>
 
@@ -153,7 +153,7 @@
       </section>
 
       {{#if priorityNotice}}
-      <button type="button" class="ethc-priority-notice" data-communicator-action="open-priority-notice">
+      <button type="button" class="ethc-priority-notice" data-communicator-action="open-priority-notice" data-communicator-notification-id="{{priorityNotice.id}}">
         <i class="fas fa-bullhorn" aria-hidden="true"></i>
         <span><small>Comunicado prioritário</small><strong>{{priorityNotice.title}}</strong></span>
         <i class="fas fa-chevron-right" aria-hidden="true"></i>
@@ -211,6 +211,50 @@
       <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Sincronizando dados...</span></div>
       {{else}}
       <div class="ethc-panel-content" data-communicator-region="panel-content">
+        {{#if panel.isNotifications}}
+        <section class="ethc-notification-center" aria-labelledby="ethc-notification-center-title">
+          <header>
+            <div><p class="ethc-kicker">Registro por usuário</p><h2 id="ethc-notification-center-title">Eventos operacionais</h2></div>
+            {{#if panel.unreadNotificationCount}}{{#unless previewMode}}<button type="button" data-communicator-action="mark-all-notifications-read"><i class="fas fa-check-double" aria-hidden="true"></i><span>Marcar todas como lidas</span></button>{{/unless}}{{/if}}
+          </header>
+          <div class="ethc-notification-list">
+            {{#each panel.notifications}}
+            <button type="button" class="ethc-notification-row ethc-notification-row--{{this.priority}} {{#unless this.read}}is-unread{{/unless}}" data-communicator-action="open-notification" data-communicator-notification-id="{{this.id}}">
+              <span class="ethc-notification-row__icon" aria-hidden="true"><i class="fas {{#if this.read}}fa-envelope-open{{else}}fa-envelope{{/if}}"></i></span>
+              <span><strong>{{this.title}}</strong>{{#if this.body}}<small>{{this.body}}</small>{{/if}}<time>{{this.createdLabel}}</time></span>
+              {{#unless this.read}}<span class="ethc-notification-row__state">Nova</span>{{/unless}}
+              <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </button>
+            {{else}}
+            <div class="ethc-empty-state"><i class="fas fa-bell-slash" aria-hidden="true"></i><h3>Nenhuma notificação</h3><p>Não há eventos visíveis para o filtro selecionado.</p></div>
+            {{/each}}
+          </div>
+        </section>
+        {{else}}
+        {{#if panel.isSquad}}
+        <section class="ethc-squad-directory" aria-labelledby="ethc-squad-directory-title">
+          <header><div><p class="ethc-kicker">Dados da Companhia</p><h2 id="ethc-squad-directory-title">Esquadrões atribuídos</h2></div></header>
+          {{#if panel.noSquad}}
+          <div class="ethc-empty-state"><i class="fas fa-users-slash" aria-hidden="true"></i><h3>NENHUM ESQUADRÃO ATRIBUÍDO</h3><p>A Companhia ainda não vinculou este agente a um esquadrão.</p></div>
+          {{else}}
+          {{#each panel.squadGroups}}
+          <section class="ethc-squad-group" aria-labelledby="ethc-squad-group-{{this.id}}">
+            <header><h3 id="ethc-squad-group-{{this.id}}"><i class="fas fa-people-group" aria-hidden="true"></i>{{this.title}}</h3><span>{{this.members.length}} agentes</span></header>
+            <div class="ethc-squad-members">
+              {{#each this.members}}
+              <article class="ethc-squad-member {{#if this.online}}is-online{{else}}is-offline{{/if}}">
+                {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<span class="ethc-squad-member__portrait" aria-hidden="true"><i class="fas fa-user"></i></span>{{/if}}
+                <div><strong>{{this.name}}</strong><small>{{#if this.role}}{{this.role}}{{else}}Agente Ethernum{{/if}}{{#if this.level}} · Nível {{this.level}}{{/if}}</small>{{#if this.operationalStatus}}<em>{{this.operationalStatus}}</em>{{/if}}</div>
+                {{#if this.rank}}<b>R{{this.rank}}</b>{{/if}}
+                <span class="ethc-squad-member__presence"><i aria-hidden="true"></i>{{#if this.online}}Online{{else}}Offline{{/if}}</span>
+              </article>
+              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-user-clock" aria-hidden="true"></i><p>Nenhum agente visível neste esquadrão.</p></div>{{/each}}
+            </div>
+          </section>
+          {{/each}}
+          {{/if}}
+        </section>
+        {{else}}
         {{#if panel.isShop}}
         <div class="ethc-store" aria-busy="false">
           {{#if panel.storeReceipt}}
@@ -301,8 +345,8 @@
             <canvas data-document-viewer-canvas aria-label="{{panel.documentViewer.title}}, página {{panel.documentViewer.page}} de {{panel.documentViewer.pageCount}}"></canvas>
             <div class="ethc-document-fallback" data-document-viewer-fallback hidden role="alert">
               <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
-              <strong>Document cannot be rendered internally.</strong>
-              {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-primary-button" data-communicator-action="document-open-external"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>Open document</span></button>{{/if}}
+              <strong>Não foi possível renderizar o documento internamente.</strong>
+              {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-primary-button" data-communicator-action="document-open-external"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>Abrir documento</span></button>{{/if}}
             </div>
           </div>
           {{/if}}
@@ -405,6 +449,8 @@
         {{else}}
         <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>Canal aguardando dados</h3><p>O conteúdo deste aplicativo aparecerá aqui quando estiver disponível.</p></div>
         {{/each}}
+        {{/if}}
+        {{/if}}
         {{/if}}
         {{/if}}
       </div>

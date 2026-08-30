@@ -17,7 +17,10 @@ import {
   type CommunicatorDocumentViewerAction,
 } from "../contracts/CommunicatorDocumentViewer.js";
 import { CONTRACT_REPORT_ATTACHMENT_ID } from "../contracts/ContractArchiveTypes.js";
-import type { FieldCommunicatorApp } from "../communicator/FieldCommunicatorTypes.js";
+import type {
+  FieldCommunicatorApp,
+  FieldCommunicatorNotification,
+} from "../communicator/FieldCommunicatorTypes.js";
 import type { CompanyStorePurchaseReceipt } from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorBootMode, getFieldCommunicatorMotionMode } from "../settings.js";
 import { resolveUIAssetPack } from "./assets/UIAssetPackRegistry.js";
@@ -533,7 +536,7 @@ export class FieldCommunicatorOverlay {
         "close", "power", "exit-preview", "open-store-item", "store-back", "store-receipt-close",
         "open-contract", "contract-back", "open-contract-document",
         "document-previous", "document-next", "document-zoom-in", "document-zoom-out", "document-fit-width", "document-fit-page",
-        "open-notifications", "open-priority-notice",
+        "open-notifications", "open-priority-notice", "open-notification",
       ]);
       if (!readOnlyActions.has(action)) throw new Error("Pré-visualização de jogador: esta ação está bloqueada no modo somente leitura.");
     }
@@ -553,11 +556,29 @@ export class FieldCommunicatorOverlay {
       return;
     }
     if (action === "open-notifications") {
-      await context.controller.openPanel("conversations");
+      await context.controller.openPanel("notifications");
       return;
     }
-    if (action === "open-priority-notice") {
-      await context.controller.openPanel("group");
+    if (action === "mark-all-notifications-read") {
+      const notifications = this.snapshotNotifications(context);
+      await this.service.markNotificationsRead(notifications.filter(notification => !notification.read).map(notification => notification.id));
+      await context.controller.render();
+      return;
+    }
+    if (action === "open-priority-notice" || action === "open-notification") {
+      const notificationId = data.communicatorNotificationId ?? data.notificationId;
+      const notification = this.snapshotNotifications(context).find(candidate => candidate.id === notificationId);
+      if (!notification) {
+        await context.controller.openPanel("notifications");
+        return;
+      }
+      if (!this.previewUserId && !notification.read) await this.service.markNotificationsRead([notification.id]);
+      if (notification.targetAppId === "contracts" && notification.targetId) {
+        this.selectedContractId = notification.targetId;
+        this.selectedContractDocumentId = null;
+      }
+      await context.controller.render();
+      await context.controller.openPanel(notification.targetAppId ?? "notifications");
       return;
     }
     if (action === "open-document" || action === "view-scene") {
@@ -670,6 +691,11 @@ export class FieldCommunicatorOverlay {
       await this.remount();
       return;
     }
+  }
+
+  private snapshotNotifications(context: FieldCommunicatorActionContext): FieldCommunicatorNotification[] {
+    const panel = context.snapshot.panels?.notifications as { notifications?: FieldCommunicatorNotification[] } | undefined;
+    return Array.isArray(panel?.notifications) ? panel.notifications : [];
   }
 
   private handleContractBack(): boolean {

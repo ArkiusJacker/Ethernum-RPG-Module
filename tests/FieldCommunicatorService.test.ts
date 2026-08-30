@@ -39,6 +39,59 @@ function installGame(isGM: boolean) {
   });
 }
 
+function installOperationalGame(active: boolean, notifications: "all" | "priority" | "off" = "all") {
+  const registry = createDefaultFieldCommunicatorRegistry();
+  const flags: Record<string, unknown> = {};
+  const actor = {
+    id: "agent-a",
+    uuid: "Actor.agent-a",
+    name: "Agent A",
+    type: "character",
+    system: {},
+    getFlag: (_scope: string, key: string) => key === "fieldCommunicator" ? { rank: 3 } : undefined,
+    testUserPermission: () => true,
+  } as unknown as Actor;
+  const user = {
+    id: "player-a",
+    name: "Player A",
+    isGM: false,
+    active,
+    character: actor,
+    getFlag: (_scope: string, key: string) => flags[key],
+    setFlag: vi.fn(async (_scope: string, key: string, value: unknown) => { flags[key] = value; }),
+  };
+  const messages = [{
+    id: "group-1",
+    timestamp: 100,
+    content: "<p>Mensagem de campo</p>",
+    speaker: { alias: "Command" },
+    flags: { "ethernum-rpg-module": { fieldCommunicator: { channel: "group" } } },
+  }];
+  vi.stubGlobal("game", {
+    user,
+    users: [user],
+    actors: [actor],
+    scenes: [],
+    items: [],
+    journal: [],
+    messages,
+    world: { id: "test-world" },
+    i18n: { lang: "pt-BR", localize: (key: string) => key },
+    settings: {
+      get: (_namespace: string, key: string) => {
+        if (key === "fieldCommunicatorApps") return registry;
+        if (key === "fieldCommunicatorMotion") return "off";
+        if (key === "fieldCommunicatorNotifications") return notifications;
+        if (key === "fieldCommunicatorGroupHistoryLimit") return 100;
+        return false;
+      },
+    },
+  });
+  const contractArchive = { getSnapshot: vi.fn(async () => ({ schemaVersion: 1, revision: 0, contracts: [] })) };
+  const store = { getSnapshot: vi.fn(async () => ({ items: [], balance: {}, state: {} })) };
+  return { actor, user, service: new FieldCommunicatorService(contractArchive as never, store as never), flags };
+}
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe("FieldCommunicatorService permissions", () => {
@@ -63,5 +116,37 @@ describe("FieldCommunicatorService permissions", () => {
     expect(snapshot).toHaveProperty("previewUsers");
     expect(snapshot).toHaveProperty("registryVersion", 1);
     expect(snapshot.panels).toHaveProperty("administration");
+  });
+
+  it("derives presence from the associated Foundry user and exposes only truthful static telemetry", async () => {
+    const onlineWorld = installOperationalGame(true);
+    const online = await onlineWorld.service.buildSnapshot();
+    expect(online.agent).toMatchObject({ online: true });
+    expect(online.signal).toEqual({ label: "Canal local protegido", static: true });
+    expect(online.sync).toEqual({ pending: false, label: "DADOS LOCAIS PRONTOS" });
+
+    vi.unstubAllGlobals();
+    const offlineWorld = installOperationalGame(false);
+    const offline = await offlineWorld.service.buildSnapshot();
+    expect(offline.agent).toMatchObject({ online: false });
+    expect(offline.homeMessage).toContain("offline");
+  });
+
+  it("counts reliable unread notifications, applies filters and persists reads on the current user", async () => {
+    const world = installOperationalGame(true, "all");
+    const snapshot = await world.service.buildSnapshot();
+    const panel = snapshot.panels?.notifications as { notifications: Array<{ id: string; read: boolean }> };
+    expect(snapshot.notificationCount).toBe(1);
+    expect(panel.notifications).toEqual([expect.objectContaining({ id: "group:group-1", read: false })]);
+
+    await world.service.markNotificationsRead(["group:group-1"]);
+    const refreshed = await world.service.buildSnapshot();
+    expect(refreshed.notificationCount).toBe(0);
+    expect((refreshed.panels?.notifications as typeof panel).notifications[0]).toMatchObject({ read: true });
+    expect(world.user.setFlag).toHaveBeenCalledOnce();
+
+    vi.unstubAllGlobals();
+    const filtered = installOperationalGame(true, "priority");
+    expect((await filtered.service.buildSnapshot()).notificationCount).toBe(0);
   });
 });

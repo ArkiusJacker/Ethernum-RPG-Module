@@ -121,6 +121,8 @@ export interface EthernumContractDTO {
   id: string;
   number: number;
   title: string;
+  createdAt: number;
+  updatedAt: number;
   status: EthernumContractStatus;
   statusLabel: string;
   location?: string;

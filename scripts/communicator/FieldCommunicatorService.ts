@@ -14,15 +14,29 @@ import type {
   CompanyStoreSnapshot,
 } from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorMotionMode } from "../settings.js";
-import { getEmergencyBroadcastService } from "./EmergencyBroadcastService.js";
+import {
+  getEmergencyBroadcastService,
+  type EmergencyBroadcastDTO,
+} from "./EmergencyBroadcastService.js";
+import {
+  addNotificationReads,
+  buildFieldCommunicatorNotifications,
+  FIELD_COMMUNICATOR_NOTIFICATION_READ_FLAG,
+  normalizeNotificationReadState,
+  type FieldCommunicatorNotificationMode,
+  type FieldCommunicatorNotificationSource,
+} from "./FieldCommunicatorNotificationModel.js";
 import {
   filterFieldCommunicatorApps,
   normalizeFieldCommunicatorRegistry,
 } from "./FieldCommunicatorRegistry.js";
 import type {
   FieldCommunicatorApp,
+  FieldCommunicatorNotification,
+  FieldCommunicatorNotificationReadState,
   FieldCommunicatorRegistryData,
 } from "./FieldCommunicatorTypes.js";
+import type { CompanySquadMemberProjection } from "../company/CompanyIdentityTypes.js";
 import type {
   FieldCommunicatorPanel,
   FieldCommunicatorSnapshot,
@@ -40,6 +54,25 @@ export interface FieldCommunicatorEntry {
   disabled?: boolean;
   icon?: string;
   badge?: string | number;
+  createdAt?: number;
+}
+
+export interface FieldCommunicatorSquadMember {
+  userId: string;
+  actorUuid: string;
+  name: string;
+  image?: string;
+  rank?: number;
+  level?: number;
+  role?: string;
+  operationalStatus?: string;
+  online: boolean;
+}
+
+export interface FieldCommunicatorSquadGroup {
+  id: string;
+  title: string;
+  members: FieldCommunicatorSquadMember[];
 }
 
 export interface FieldCommunicatorPanelData extends FieldCommunicatorPanel {
@@ -59,7 +92,13 @@ export interface FieldCommunicatorPanelData extends FieldCommunicatorPanel {
   documentViewer?: CommunicatorDocumentViewerData;
   store?: CompanyStoreSnapshot;
   storeReceipt?: CompanyStorePurchaseReceipt;
+  notifications?: FieldCommunicatorNotification[];
+  unreadNotificationCount?: number;
+  squadGroups?: FieldCommunicatorSquadGroup[];
+  noSquad?: boolean;
   isGM?: boolean;
+  isNotifications?: boolean;
+  isSquad?: boolean;
 }
 
 export interface FieldCommunicatorBuildOptions {
@@ -98,7 +137,27 @@ interface CommunicatorMessage extends PermissionDocument {
 
 type UserWithCharacter = User & {
   character?: Actor | null;
+  getFlag?: (scope: string, key: string) => unknown;
+  setFlag?: (scope: string, key: string, value: unknown) => Promise<unknown>;
 };
+
+export interface FieldCommunicatorBuildMetrics {
+  durationMs: number;
+  userCount: number;
+  sceneCount: number;
+  journalCount: number;
+  messageCount: number;
+  contractCount: number;
+  storeItemCount: number;
+  notificationCount: number;
+}
+
+interface FieldCommunicatorWorldResources {
+  users: UserWithCharacter[];
+  scenes: PermissionDocument[];
+  journals: PermissionDocument[];
+  messages: CommunicatorMessage[];
+}
 
 function localize(key: string, fallback: string): string {
   const translated = game.i18n?.localize(key);
@@ -157,10 +216,29 @@ function appDescription(app: FieldCommunicatorApp): string {
 }
 
 export class FieldCommunicatorService {
+  private lastBuildMetrics: FieldCommunicatorBuildMetrics | null = null;
+
   constructor(
     private readonly contractArchive: ContractArchiveService = getContractArchiveService(),
     private readonly companyStore: CompanyStoreService = getCompanyStoreService(),
   ) {}
+
+  getLastBuildMetrics(): FieldCommunicatorBuildMetrics | null {
+    return this.lastBuildMetrics ? { ...this.lastBuildMetrics } : null;
+  }
+
+  async markNotificationsRead(ids: readonly string[], user = game.user as UserWithCharacter | null): Promise<void> {
+    if (!user?.setFlag || ids.length === 0) return;
+    const current = normalizeNotificationReadState(user.getFlag?.(
+      ETHERNUM.MODULE_NAME,
+      FIELD_COMMUNICATOR_NOTIFICATION_READ_FLAG,
+    ));
+    await user.setFlag(
+      ETHERNUM.MODULE_NAME,
+      FIELD_COMMUNICATOR_NOTIFICATION_READ_FLAG,
+      addNotificationReads(current, ids),
+    );
+  }
 
   getAssignedActor(user = game.user as UserWithCharacter | null): Actor | null {
     const assigned = user?.character;
@@ -191,9 +269,16 @@ export class FieldCommunicatorService {
     previewUserId?: string | null,
     options: FieldCommunicatorBuildOptions = {},
   ): Promise<FieldCommunicatorSnapshot> {
+    const startedAt = Date.now();
+    const resources: FieldCommunicatorWorldResources = {
+      users: collection<UserWithCharacter>(game.users),
+      scenes: collection<PermissionDocument>(game.scenes),
+      journals: collection<PermissionDocument>((game as Game & { journal?: Iterable<PermissionDocument> }).journal),
+      messages: collection<CommunicatorMessage>((game as Game & { messages?: Iterable<CommunicatorMessage> }).messages),
+    };
     let previewUser: UserWithCharacter | null = null;
     if (previewUserId && game.user?.isGM) {
-      previewUser = collection<UserWithCharacter>(game.users)
+      previewUser = resources.users
         .find(user => user.id === previewUserId && !user.isGM) ?? null;
     }
     if (previewUserId && game.user?.isGM && !previewUser) throw new Error("Jogador de pré-visualização inválido.");
@@ -239,6 +324,7 @@ export class FieldCommunicatorService {
     }))).filter((app): app is NonNullable<typeof app> => Boolean(app));
 
     const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
+    allowedPanelIds.add("notifications");
     if (game.user?.isGM && !previewUser) allowedPanelIds.add("administration");
     const contractArchive = allowedPanelIds.has("contracts")
       ? await this.contractArchive.getSnapshot(previewUserId)
@@ -246,23 +332,69 @@ export class FieldCommunicatorService {
     const store = allowedPanelIds.has("shop")
       ? await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId)
       : undefined;
-    const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds, {
+    const preferences = this.clientSettings();
+    const messages = this.communicatorMessages(resources.messages, subjectUser?.id, Boolean(subjectUser?.isGM));
+    const broadcasts = getEmergencyBroadcastService().list(
+      20,
+      subjectUser?.id,
+      Boolean(subjectUser?.isGM),
+      resources.messages,
+    );
+    const readState = normalizeNotificationReadState(subjectUser?.getFlag?.(
+      ETHERNUM.MODULE_NAME,
+      FIELD_COMMUNICATOR_NOTIFICATION_READ_FLAG,
+    ));
+    const notificationMode = this.notificationMode(preferences.notifications);
+    const notifications = buildFieldCommunicatorNotifications(
+      this.notificationSources(broadcasts, messages, contractArchive?.contracts ?? [], allowedPanelIds),
+      readState,
+      notificationMode,
+    ).map(notification => ({
+      ...notification,
+      createdLabel: new Date(notification.createdAt).toLocaleString(game.i18n?.lang ?? "pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    }));
+    const unreadNotifications = notifications.filter(notification => !notification.read);
+    const squadProjection = allowedPanelIds.has("squad")
+      ? await CompanyIdentityService.squadMembers(actor)
+      : [];
+    const squadGroups = this.squadGroups(companyIdentity, squadProjection, resources.users);
+    const panels = await this.buildPanels(actor, registry, subjectUser, allowedPanelIds, resources, {
       ...options,
       contractArchive,
       store,
+      messages,
+      broadcasts,
+      notifications,
+      squadGroups,
     });
-    const preferences = this.clientSettings();
-    const broadcasts = getEmergencyBroadcastService().list(20, subjectUser?.id, Boolean(subjectUser?.isGM));
     const squads = companyIdentity.squadIds;
     const ether = record(actor?.getFlag(ETHERNUM.MODULE_NAME, "etherSystem"));
     const now = new Date();
-    const activeUsers = collection<UserWithCharacter>(game.users)
+    const activeUsers = resources.users
       .filter(user => user.active && !user.isGM)
       .map(user => ({
         id: user.id,
         name: text(user.character?.name || user.name),
         selected: user.id === previewUser?.id,
       }));
+    const actorUser = resources.users.find(user => user.character?.uuid === actor?.uuid);
+    const online = Boolean(actorUser?.active);
+    const syncPending = options.storeReceipt?.status === "queued";
+    this.lastBuildMetrics = {
+      durationMs: Math.max(0, Date.now() - startedAt),
+      userCount: resources.users.length,
+      sceneCount: resources.scenes.length,
+      journalCount: resources.journals.length,
+      messageCount: resources.messages.length,
+      contractCount: contractArchive?.contracts.length ?? 0,
+      storeItemCount: store?.items.length ?? 0,
+      notificationCount: notifications.length,
+    };
     return {
       apps,
       panels,
@@ -271,18 +403,20 @@ export class FieldCommunicatorService {
         name: actor?.name ?? localize("ETHERNUM.FieldCommunicator.AgentFallback", "Agente não vinculado"),
         rank: companyIdentity.rank ?? "—",
         squad: companyIdentity.squad || squads.join(", ") || localize("ETHERNUM.FieldCommunicator.Signal", "Canal operacional"),
-        online: true,
+        online,
       },
       signal: {
-        label: localize("ETHERNUM.FieldCommunicator.Signal", "Seguro"),
-        bars: [true, true, true, true].map(active => ({ active })),
+        label: localize("ETHERNUM.FieldCommunicator.LocalChannel", "Canal local protegido"),
+        static: true,
       },
       aether: {
         value: Math.max(0, number(ether.etherCurrent, 0)),
         max: Math.max(0, number(ether.etherMax, 0)),
       },
-      notificationCount: Math.min(99, broadcasts.length),
-      ...(broadcasts[0] ? { priorityNotice: broadcasts[0] } : {}),
+      notificationCount: Math.min(99, unreadNotifications.length),
+      ...(unreadNotifications.find(notification => notification.priority !== "normal") ? {
+        priorityNotice: unreadNotifications.find(notification => notification.priority !== "normal"),
+      } : {}),
       worldTime: {
         iso: now.toISOString(),
         label: now.toLocaleTimeString(game.i18n?.lang ?? "pt-BR", { hour: "2-digit", minute: "2-digit" }),
@@ -297,8 +431,15 @@ export class FieldCommunicatorService {
         documentUnavailable: false,
         maintenance: false,
       },
-      homeMessage: localize("ETHERNUM.FieldCommunicator.HomeMessage", "Acesso seguro aos recursos de campo da companhia."),
-      sync: { pending: false, label: localize("ETHERNUM.FieldCommunicator.Synchronized", "Dados sincronizados") },
+      homeMessage: online
+        ? localize("ETHERNUM.FieldCommunicator.HomeMessage", "Acesso seguro aos recursos de campo da companhia.")
+        : localize("ETHERNUM.FieldCommunicator.HomeOffline", "Dados locais disponíveis; agente associado está offline."),
+      sync: {
+        pending: syncPending,
+        label: syncPending
+          ? localize("ETHERNUM.FieldCommunicator.PendingOperation", "OPERAÇÃO PENDENTE")
+          : localize("ETHERNUM.FieldCommunicator.LocalReady", "DADOS LOCAIS PRONTOS"),
+      },
       bootStatus: localize("ETHERNUM.FieldCommunicator.BootStatus", "Autenticando canal de Éter"),
       bootSteps: [
         { label: "Núcleo", complete: true },
@@ -338,6 +479,7 @@ export class FieldCommunicatorService {
         previewUserId: "",
         previewMode: false,
         registryVersion: registry.schemaVersion,
+        buildMetrics: this.lastBuildMetrics,
       } : {}),
       preferences,
     };
@@ -454,23 +596,28 @@ export class FieldCommunicatorService {
     registry: FieldCommunicatorRegistryData,
     viewer: UserWithCharacter | null,
     allowedPanelIds: ReadonlySet<string>,
+    resources: FieldCommunicatorWorldResources,
     options: FieldCommunicatorBuildOptions & {
       contractArchive?: ContractArchiveSnapshot;
       store?: CompanyStoreSnapshot;
+      messages?: { group: FieldCommunicatorEntry[]; private: FieldCommunicatorEntry[] };
+      broadcasts?: EmergencyBroadcastDTO[];
+      notifications?: FieldCommunicatorNotification[];
+      squadGroups?: FieldCommunicatorSquadGroup[];
     } = {},
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
-    const scenes = this.documentEntries(collection<PermissionDocument>(game.scenes), "view-scene", viewer);
-    const journals = collection<PermissionDocument>((game as Game & { journal?: Iterable<PermissionDocument> }).journal)
+    const scenes = this.documentEntries(resources.scenes, "view-scene", viewer);
+    const journals = resources.journals
       .filter(document => this.canObserve(document, viewer));
     const journalEntries = (matcher?: RegExp) => this.documentEntries(
       matcher ? journals.filter(document => matcher.test(`${document.folder?.name ?? ""} ${document.name ?? ""}`)) : journals,
       "open-document",
       viewer,
     );
-    const users = collection<UserWithCharacter>(game.users)
+    const users = resources.users
       .filter(user => user.active && !user.isGM)
       .map(user => this.userEntry(user, viewer));
-    const messages = this.communicatorMessages();
+    const messages = options.messages ?? { group: [], private: [] };
 
     const panels = {
       sheet: this.panel("sheet", localize("ETHERNUM.FieldCommunicator.Apps.sheet.Label", "Ficha"), "sheet", {
@@ -483,7 +630,7 @@ export class FieldCommunicatorService {
       }),
       group: this.panel("group", localize("ETHERNUM.FieldCommunicator.Panels.Group", "Canal do grupo"), "group", {
         messages: [
-          ...getEmergencyBroadcastService().list(20, viewer?.id, Boolean(viewer?.isGM)).map(broadcast => ({
+          ...(options.broadcasts ?? []).map(broadcast => ({
             id: broadcast.broadcastId,
             name: `${broadcast.severity.toUpperCase()} · ${broadcast.title}`,
             subtitle: new Date(broadcast.createdAt).toLocaleTimeString(game.i18n?.lang ?? "pt-BR", { hour: "2-digit", minute: "2-digit" }),
@@ -493,13 +640,22 @@ export class FieldCommunicatorService {
           ...messages.group,
         ],
       }),
-      squad: this.panel("squad", localize("ETHERNUM.FieldCommunicator.Panels.Squad", "Esquadrão"), "squad", { entries: users }),
+      notifications: this.panel("notifications", "Notificações", "notifications", {
+        notifications: options.notifications ?? [],
+        unreadNotificationCount: (options.notifications ?? []).filter(notification => !notification.read).length,
+      }),
+      squad: this.panel("squad", localize("ETHERNUM.FieldCommunicator.Panels.Squad", "Esquadrão"), "squad", {
+        squadGroups: options.squadGroups ?? [],
+        noSquad: (options.squadGroups ?? []).length === 0,
+      }),
       map: this.panel("map", localize("ETHERNUM.FieldCommunicator.Panels.Map", "Mapas liberados"), "documents", { entries: scenes }),
       manual: this.panel("manual", localize("ETHERNUM.FieldCommunicator.Panels.Manual", "Manual da companhia"), "documents", {
         entries: journalEntries(/manual|protocolo|procedimento/i),
+        description: "Journals visíveis cujo nome ou pasta indica manual, protocolo ou procedimento.",
       }),
       dossiers: this.panel("dossiers", localize("ETHERNUM.FieldCommunicator.Panels.Dossiers", "Dossiês"), "documents", {
         entries: journalEntries(/dossi|ameaça|inteligência|intelligence/i),
+        description: "Journals visíveis cujo nome ou pasta indica dossiê, ameaça ou inteligência.",
       }),
       contracts: this.contractPanel(
         options.contractArchive ?? { schemaVersion: 1, revision: 0, contracts: [] },
@@ -508,6 +664,7 @@ export class FieldCommunicatorService {
       ),
       files: this.panel("files", localize("ETHERNUM.FieldCommunicator.Panels.Files", "Arquivos"), "documents", {
         entries: journalEntries(),
+        description: "Todos os Journals do mundo que este usuário pode observar.",
       }),
       shop: this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", {
         store: options.store,
@@ -550,6 +707,8 @@ export class FieldCommunicatorService {
       isShop: kind === "shop",
       isSettings: kind === "settings",
       isAdmin: kind === "admin",
+      isNotifications: kind === "notifications",
+      isSquad: kind === "squad",
       empty: entries.length === 0,
     };
   }
@@ -626,11 +785,12 @@ export class FieldCommunicatorService {
     const descriptions: Record<string, string> = {
       sheet: "Resumo operacional do agente vinculado.",
       conversations: "Canal privado entre agentes ativos.",
-      group: "Transmissão compartilhada do grupo.",
-      squad: "Situação atual dos agentes conectados.",
-      documents: "Documentos liberados pelas permissões do mundo.",
-      contracts: "Arquivo operacional com contratos liberados para este perfil.",
-      shop: "Catálogo com solicitação de compra ao mestre.",
+      group: "Mensagens do grupo e comunicados oficiais visíveis para este perfil.",
+      squad: "Esquadrões atribuídos pela Identidade da Companhia, sem combinar grupos distintos.",
+      notifications: "Eventos confiáveis com leitura registrada separadamente para cada usuário.",
+      documents: "Journals e cenas descobertos pelas permissões atuais do mundo.",
+      contracts: "Arquivo por estado e permissão, com relatórios e anexos no visualizador incorporado.",
+      shop: "Catálogo com entrega automática ou solicitação de aprovação, conforme cada oferta.",
       settings: "Preferências locais deste comunicador.",
       admin: "Registro de aplicativos administrado pelo mestre.",
     };
@@ -673,13 +833,102 @@ export class FieldCommunicatorService {
     };
   }
 
-  private communicatorMessages(): { group: FieldCommunicatorEntry[]; private: FieldCommunicatorEntry[] } {
-    const currentUserId = game.user?.id;
+  private notificationMode(value: unknown): FieldCommunicatorNotificationMode {
+    return value === "priority" || value === "off" ? value : "all";
+  }
+
+  private notificationSources(
+    broadcasts: readonly EmergencyBroadcastDTO[],
+    messages: { group: FieldCommunicatorEntry[]; private: FieldCommunicatorEntry[] },
+    contracts: readonly EthernumContractDTO[],
+    allowedPanelIds: ReadonlySet<string>,
+  ): FieldCommunicatorNotificationSource[] {
+    return [
+      ...(allowedPanelIds.has("group") ? broadcasts.map(broadcast => ({
+        id: `broadcast:${broadcast.broadcastId}`,
+        type: "broadcast",
+        title: broadcast.title,
+        body: broadcast.message,
+        createdAt: broadcast.createdAt,
+        priority: broadcast.severity === "critical" ? "critical" as const
+          : broadcast.severity === "warning" ? "priority" as const
+            : "normal" as const,
+        targetAppId: "group",
+        targetId: broadcast.broadcastId,
+      })) : []),
+      ...(allowedPanelIds.has("group") ? messages.group.map(message => ({
+        id: `group:${message.id}`,
+        type: "group-message",
+        title: message.name,
+        body: message.status,
+        createdAt: message.createdAt ?? 0,
+        priority: "normal" as const,
+        targetAppId: "group",
+        targetId: message.id,
+      })) : []),
+      ...(allowedPanelIds.has("conversations") ? messages.private.map(message => ({
+        id: `private:${message.id}`,
+        type: "private-message",
+        title: `Mensagem privada · ${message.name}`,
+        body: message.status,
+        createdAt: message.createdAt ?? 0,
+        priority: "normal" as const,
+        targetAppId: "conversations",
+        targetId: message.id,
+      })) : []),
+      ...(allowedPanelIds.has("contracts") ? contracts
+        .filter(contract => ["available", "accepted", "active"].includes(contract.status))
+        .map(contract => ({
+          id: `contract:${contract.id}:${contract.updatedAt}`,
+          type: "contract",
+          title: `Contrato ${String(contract.number).padStart(2, "0")} · ${contract.title}`,
+          body: [contract.statusLabel, contract.location].filter(Boolean).join(" · "),
+          createdAt: contract.updatedAt || contract.createdAt,
+          priority: contract.status === "active" || contract.status === "accepted" ? "priority" as const : "normal" as const,
+          targetAppId: "contracts",
+          targetId: contract.id,
+        })) : []),
+    ];
+  }
+
+  private squadGroups(
+    identity: ReturnType<typeof CompanyIdentityService.resolve>,
+    projection: readonly CompanySquadMemberProjection[],
+    users: readonly UserWithCharacter[],
+  ): FieldCommunicatorSquadGroup[] {
+    const activeByUserId = new Map(users.map(user => [text(user.id), Boolean(user.active)]));
+    return identity.squadIds.map((squadId, index) => ({
+      id: squadId,
+      title: identity.squad && identity.squadIds.length === 1
+        ? identity.squad
+        : `Esquadrão ${index + 1} · ${squadId}`,
+      members: projection
+        .filter(member => member.identity.squadIds.includes(squadId))
+        .map(member => ({
+          userId: member.userId,
+          actorUuid: member.actorUuid,
+          name: member.name,
+          ...(member.image ? { image: member.image } : {}),
+          ...(member.identity.rank === undefined ? {} : { rank: member.identity.rank }),
+          ...(member.level === undefined ? {} : { level: member.level }),
+          ...(member.role ? { role: member.role } : {}),
+          ...(member.identity.operationalStatus ? { operationalStatus: member.identity.operationalStatus } : {}),
+          online: activeByUserId.get(member.userId) === true,
+        }))
+        .sort((left, right) => Number(right.online) - Number(left.online) || left.name.localeCompare(right.name)),
+    }));
+  }
+
+  private communicatorMessages(
+    source: readonly CommunicatorMessage[],
+    viewerId: string | null | undefined = game.user?.id,
+    viewerIsGM = Boolean(game.user?.isGM),
+  ): { group: FieldCommunicatorEntry[]; private: FieldCommunicatorEntry[] } {
     const limit = Math.max(10, Math.min(500, number(game.settings?.get(
       ETHERNUM.MODULE_NAME,
       "fieldCommunicatorGroupHistoryLimit",
     ), 100)));
-    const messages = collection<CommunicatorMessage>((game as Game & { messages?: Iterable<CommunicatorMessage> }).messages)
+    const messages = source
       .slice(-limit)
       .reverse();
     const convert = (message: CommunicatorMessage): FieldCommunicatorEntry => ({
@@ -687,6 +936,7 @@ export class FieldCommunicatorService {
       name: text(message.speaker?.alias || message.author?.name || message.user?.name) || "Ethernum",
       subtitle: new Date(number(message.timestamp, Date.now())).toLocaleTimeString(game.i18n?.lang ?? "pt-BR", { hour: "2-digit", minute: "2-digit" }),
       status: stripMarkup(message.content).slice(0, 800),
+      createdAt: number(message.timestamp, 0),
     });
     const channel = (message: CommunicatorMessage): string => text(
       record(record(message.flags)?.[ETHERNUM.MODULE_NAME]).fieldCommunicator
@@ -697,7 +947,7 @@ export class FieldCommunicatorService {
       group: messages.filter(message => channel(message) === "group").map(convert),
       private: messages.filter(message => {
         if (channel(message) !== "private") return false;
-        return !message.whisper?.length || Boolean(currentUserId && message.whisper.includes(currentUserId));
+        return viewerIsGM || !message.whisper?.length || Boolean(viewerId && message.whisper.includes(viewerId));
       }).map(convert),
     };
   }

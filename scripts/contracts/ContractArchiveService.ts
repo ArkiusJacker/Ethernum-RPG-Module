@@ -187,6 +187,8 @@ function emptyDTO(recordData: EthernumContractRecord): EthernumContractDTO {
     id: recordData.id,
     number: recordData.number,
     title: recordData.title,
+    createdAt: recordData.createdAt,
+    updatedAt: recordData.updatedAt,
     status: recordData.status,
     statusLabel: statusLabel(recordData.status),
     ...(recordData.location ? { location: recordData.location } : {}),

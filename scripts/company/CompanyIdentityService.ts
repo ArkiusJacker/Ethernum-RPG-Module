@@ -1,10 +1,15 @@
 import { ETHERNUM } from "../config.js";
 import { AutomationAuthority } from "../core/AutomationAuthority.js";
-import { CompanyIdentityRepository, normalizeCompanyIdentityRecord } from "./CompanyIdentityRepository.js";
+import {
+  CompanyIdentityRepository,
+  normalizeCompanyIdentityRecord,
+  projectCompanySquadMembers,
+} from "./CompanyIdentityRepository.js";
 import type {
   CompanyIdentityData,
   CompanyIdentityMutationOptions,
   CompanyIdentityRecord,
+  CompanySquadMemberProjection,
 } from "./CompanyIdentityTypes.js";
 
 export interface CompanyIdentitySnapshot {
@@ -193,9 +198,19 @@ async function listCompanyIdentities(): Promise<CompanyIdentityData> {
   return data;
 }
 
+async function listCompanySquadMembers(actor: Actor | null): Promise<CompanySquadMemberProjection[]> {
+  const actorUuid = text(actor?.uuid);
+  if (!actorUuid) return [];
+  if (!game.user?.isGM) return repository.readSquadProjection();
+  const data = await repository.read();
+  cache(data);
+  return projectCompanySquadMembers(data, Array.from(game.users ?? []), actorUuid);
+}
+
 export const CompanyIdentityService = Object.freeze({
   initialize: initializeCompanyIdentityService,
   resolve: resolveCompanyIdentity,
   update: updateCompanyIdentity,
   list: listCompanyIdentities,
+  squadMembers: listCompanySquadMembers,
 });

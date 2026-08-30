@@ -19,6 +19,16 @@ export interface CompanyIdentityData {
   migration?: { actorFlagsImportedAt?: number };
 }
 
+export interface CompanySquadMemberProjection {
+  userId: string;
+  actorUuid: string;
+  name: string;
+  image?: string;
+  level?: number;
+  role?: string;
+  identity: CompanyIdentityRecord;
+}
+
 export interface CompanyIdentityMutationOptions {
   expectedRevision?: number;
 }

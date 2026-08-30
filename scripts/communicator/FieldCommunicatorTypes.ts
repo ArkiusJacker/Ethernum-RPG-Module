@@ -91,3 +91,31 @@ export interface FieldCommunicatorImportResult {
   rejectedCount: number;
   warnings: string[];
 }
+
+export const FIELD_COMMUNICATOR_NOTIFICATION_PRIORITIES = [
+  "normal",
+  "priority",
+  "critical",
+] as const;
+
+export type FieldCommunicatorNotificationPriority =
+  (typeof FIELD_COMMUNICATOR_NOTIFICATION_PRIORITIES)[number];
+
+export interface FieldCommunicatorNotification {
+  id: string;
+  type: string;
+  title: string;
+  body?: string;
+  createdAt: number;
+  createdLabel?: string;
+  priority: FieldCommunicatorNotificationPriority;
+  read: boolean;
+  targetAppId?: string;
+  targetId?: string;
+}
+
+export interface FieldCommunicatorNotificationReadState {
+  schemaVersion: 1;
+  ids: string[];
+  updatedAt: number;
+}

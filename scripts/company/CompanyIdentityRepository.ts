@@ -3,6 +3,7 @@ import {
   COMPANY_IDENTITY_SCHEMA_VERSION,
   type CompanyIdentityData,
   type CompanyIdentityRecord,
+  type CompanySquadMemberProjection,
 } from "./CompanyIdentityTypes.js";
 
 export const COMPANY_IDENTITY_ADMIN_FLAG = "companyIdentityRepository";
@@ -53,6 +54,49 @@ function strings(value: unknown): string[] {
 function collection<T>(value: unknown): T[] {
   if (!value || typeof (value as Iterable<T>)[Symbol.iterator] !== "function") return [];
   return Array.from(value as Iterable<T>);
+}
+
+function actorLevel(actor: Actor | null | undefined): number | undefined {
+  const system = record((actor as Actor & { system?: unknown } | null)?.system);
+  const details = record(system.details);
+  const level = integer(record(details.level).value ?? system.level);
+  return level;
+}
+
+function actorRole(actor: Actor | null | undefined): string | undefined {
+  if (!actor) return undefined;
+  type ActorItemSummary = { type?: string; name?: string | null };
+  const actorRecord = actor as Actor & { class?: { name?: string | null }; items?: Iterable<ActorItemSummary> };
+  const classItem = collection<ActorItemSummary>(actorRecord.items).find(item => item.type === "class");
+  return text(actorRecord.class?.name) ?? text(classItem?.name);
+}
+
+export function projectCompanySquadMembers(
+  data: CompanyIdentityData,
+  users: Iterable<IdentityUser>,
+  viewerActorUuid: string,
+): CompanySquadMemberProjection[] {
+  const viewer = data.identities[viewerActorUuid];
+  const sharedSquads = new Set(viewer?.squadIds ?? []);
+  if (sharedSquads.size === 0) return [];
+  return collection<IdentityUser>(users).flatMap(user => {
+    const userId = text(user.id, 140);
+    const actorUuid = text(user.character?.uuid, 300);
+    const identity = actorUuid ? data.identities[actorUuid] : undefined;
+    if (!userId || !actorUuid || !identity || !identity.squadIds.some(id => sharedSquads.has(id))) return [];
+    const image = text((user.character as Actor & { img?: string | null } | null)?.img, 512);
+    const level = actorLevel(user.character);
+    const role = actorRole(user.character);
+    return [{
+      userId,
+      actorUuid,
+      name: text(identity.codename, 180) ?? text(user.character?.name, 180) ?? text(user.name, 180) ?? "Agente",
+      ...(image ? { image } : {}),
+      ...(level === undefined ? {} : { level }),
+      ...(role ? { role } : {}),
+      identity: { ...identity, squadIds: identity.squadIds.filter(id => sharedSquads.has(id)) },
+    }];
+  });
 }
 
 function getFlag(document: IdentityJournal, key: string): unknown {
@@ -154,6 +198,36 @@ export class CompanyIdentityRepository {
     return null;
   }
 
+  readSquadProjection(user = this.dependencies.currentUser()): CompanySquadMemberProjection[] {
+    const userId = text(user?.id, 140);
+    if (!userId) return [];
+    for (const journal of this.projections()) {
+      const payload = record(getFlag(journal, COMPANY_IDENTITY_PROJECTION_FLAG));
+      if (payload.userId !== userId || !Array.isArray(payload.squadMembers)) continue;
+      return payload.squadMembers.flatMap(candidate => {
+        const input = record(candidate);
+        const memberUserId = text(input.userId, 140);
+        const actorUuid = text(input.actorUuid, 300);
+        const name = text(input.name, 180);
+        const identity = normalizeCompanyIdentityRecord(input.identity, actorUuid);
+        if (!memberUserId || !actorUuid || !name || !identity) return [];
+        const image = text(input.image, 512);
+        const level = integer(input.level);
+        const role = text(input.role, 180);
+        return [{
+          userId: memberUserId,
+          actorUuid,
+          name,
+          ...(image ? { image } : {}),
+          ...(level === undefined ? {} : { level }),
+          ...(role ? { role } : {}),
+          identity,
+        }];
+      });
+    }
+    return [];
+  }
+
   async synchronizeProjections(data: CompanyIdentityData): Promise<void> {
     this.assertGM();
     const users = collection<IdentityUser>(this.dependencies.users()).filter(user => !user.isGM && user.id && user.character?.uuid);
@@ -163,7 +237,13 @@ export class CompanyIdentityRepository {
       const userId = text(user.id, 140)!;
       const actorUuid = text(user.character?.uuid, 300)!;
       const identity = data.identities[actorUuid];
-      const payload = { schemaVersion: COMPANY_IDENTITY_SCHEMA_VERSION, userId, actorUuid, identity: identity ?? null };
+      const payload = {
+        schemaVersion: COMPANY_IDENTITY_SCHEMA_VERSION,
+        userId,
+        actorUuid,
+        identity: identity ?? null,
+        squadMembers: projectCompanySquadMembers(data, users, actorUuid),
+      };
       const ownership = { default: NONE_PERMISSION, [userId]: OBSERVER_PERMISSION };
       const candidate = existing.find(journal => record(getFlag(journal, COMPANY_IDENTITY_PROJECTION_FLAG)).userId === userId);
       if (candidate?.update) {
