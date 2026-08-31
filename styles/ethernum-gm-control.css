@@ -1184,7 +1184,7 @@
 .ethernum-command-device .ethernum-gm-control__tabs {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(104px, 1fr);
+  grid-auto-columns: minmax(124px, 1fr);
   grid-template-columns: none;
   overflow-x: auto;
 }

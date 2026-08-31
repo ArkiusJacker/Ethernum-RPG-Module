@@ -1,5 +1,6 @@
 import { ETHERNUM } from "../config.js";
 import { AutomationAuthority } from "../core/AutomationAuthority.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import {
   contractVisibilityAllows,
@@ -233,19 +234,21 @@ export class ContractArchiveService {
   }
 
   async getSnapshot(previewUserId?: string | null): Promise<ContractArchiveSnapshot> {
-    const current = game.user as UserWithCharacter | null;
-    if (!current) return { schemaVersion: CONTRACT_ARCHIVE_SCHEMA_VERSION, revision: 0, contracts: [] };
-    if (!current.isGM) return this.snapshotFromProjectionDocuments(current);
+    return PerformanceTelemetry.measure("contract-archive.snapshot", async () => {
+      const current = game.user as UserWithCharacter | null;
+      if (!current) return { schemaVersion: CONTRACT_ARCHIVE_SCHEMA_VERSION, revision: 0, contracts: [] };
+      if (!current.isGM) return this.snapshotFromProjectionDocuments(current);
 
-    const viewer = previewUserId
-      ? collection<UserWithCharacter>(game.users).find(user => user.id === previewUserId) ?? current
-      : current;
-    const archive = await this.readArchive();
-    const contracts = (await Promise.all(archive.contracts.map(contract => this.projectContract(contract, viewer))))
-      .filter((result): result is ContractProjectionResult => Boolean(result))
-      .map(result => result.contract)
-      .sort((left, right) => left.number - right.number || left.title.localeCompare(right.title));
-    return { schemaVersion: archive.schemaVersion, revision: archive.revision, contracts };
+      const viewer = previewUserId
+        ? collection<UserWithCharacter>(game.users).find(user => user.id === previewUserId) ?? current
+        : current;
+      const archive = await this.readArchive();
+      const contracts = (await Promise.all(archive.contracts.map(contract => this.projectContract(contract, viewer))))
+        .filter((result): result is ContractProjectionResult => Boolean(result))
+        .map(result => result.contract)
+        .sort((left, right) => left.number - right.number || left.title.localeCompare(right.title));
+      return { schemaVersion: archive.schemaVersion, revision: archive.revision, contracts };
+    });
   }
 
   async resolveDocumentTarget(

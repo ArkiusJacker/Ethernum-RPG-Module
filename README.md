@@ -6,6 +6,17 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 13 como mínimo e versão verificada; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, parcial e não suportado.
 
+## Versão 3.8.10
+
+- O Command Device foi dividido em controladores de Geradores, Contratos, Loja, Companhia e Comunicador, mantendo a ponte principal pequena e auditável.
+- A API pública `game.ethernum` agora possui versão e documentação de estabilidade em [`docs/API.md`](docs/API.md).
+- Diálogos administrativos reutilizáveis usam `DialogV2` no Foundry 13 com fallback compatível.
+- Telemetria silenciosa mede os fluxos principais da sessão por `game.ethernum.diagnostics.performance()`.
+- Hooks e projeções são disparados por domínio; falhas de Loja/Contratos permanecem locais ao painel correspondente.
+- PDF.js ganhou cancelamento, limpeza de canvas, cache limitado e descarte completo no encerramento.
+- Builds de produção não carregam source maps; desenvolvimento continua depurável.
+- Evidências da validação estão em [`docs/qa/v3.8.10/`](docs/qa/v3.8.10/).
+
 ## Versão 3.8.9
 
 - O Comunicador agora calcula presença pela sessão Foundry associada ao personagem e identifica o canal como dado local protegido, sem barras de sinal simuladas.

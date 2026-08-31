@@ -15,6 +15,7 @@ import { PF2eNPCMechanicSource } from "./mechanics/PF2eNPCMechanicSource.js";
 import { getUniqueMechanicAIAssistanceService, type UniqueMechanicAIAssistanceService } from "./mechanics/ai/UniqueMechanicAIAssistanceService.js";
 import type { UniqueMechanicAIAssistanceStatus, UniqueMechanicAIOptions } from "./mechanics/ai/UniqueMechanicAITypes.js";
 import { getGeneratedNPCMechanicService } from "../unique/services/GeneratedNPCMechanicService.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 
 export interface OperationalGeneratorSnapshot {
   lootPreview?: LootManifest;
@@ -81,7 +82,10 @@ export class OperationalGeneratorService {
     if (this.busy) throw new Error("Uma geração operacional já está em andamento.");
     this.busy = true;
     try {
-      const candidates = await this.lootSource.listCandidates(input.allowedSources);
+      const candidates = await PerformanceTelemetry.measure(
+        "generator.loot-index",
+        () => this.lootSource.listCandidates(input.allowedSources),
+      );
       this.lootPreview = generateLootManifest(input, candidates);
       return this.lootPreview;
     } finally {
@@ -95,7 +99,9 @@ export class OperationalGeneratorService {
   }
 
   analyzeCurrentEncounter(): EncounterAnalysis {
+    const stopMeasurement = PerformanceTelemetry.start("generator.encounter-analysis");
     this.encounterAnalysis = analyzeEncounter(this.encounterSource.current());
+    stopMeasurement();
     return this.encounterAnalysis;
   }
 
@@ -103,7 +109,10 @@ export class OperationalGeneratorService {
     if (this.busy) throw new Error("Uma geração operacional já está em andamento.");
     this.busy = true;
     try {
-      this.mechanicAnalysis = await this.mechanicSource.analyze(actorUuid);
+      this.mechanicAnalysis = await PerformanceTelemetry.measure(
+        "generator.npc-analysis",
+        () => this.mechanicSource.analyze(actorUuid),
+      );
       this.mechanicPreview = generateNPCMechanic({ analysis: this.mechanicAnalysis, seed, complexity });
       this.aiProposal = undefined;
       return this.mechanicPreview;

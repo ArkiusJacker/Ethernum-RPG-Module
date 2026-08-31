@@ -24,6 +24,7 @@ export interface CompanyIdentitySnapshot {
 const repository = new CompanyIdentityRepository();
 const authoritative = new Map<string, CompanyIdentityRecord>();
 let mutationTail: Promise<void> = Promise.resolve();
+let projectionSyncTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function withIdentityMutationLock<T>(operation: () => Promise<T>): Promise<T> {
   const previous = mutationTail;
@@ -150,6 +151,18 @@ async function initializeCompanyIdentityService(): Promise<void> {
   await repository.synchronizeProjections(data);
 }
 
+function scheduleCompanyIdentityProjectionSync(delayMs = 150): void {
+  if (!AutomationAuthority.isPrimaryGM()) return;
+  if (projectionSyncTimer) clearTimeout(projectionSyncTimer);
+  projectionSyncTimer = setTimeout(() => {
+    projectionSyncTimer = null;
+    void repository.read().then(data => {
+      cache(data);
+      return repository.synchronizeProjections(data);
+    }).catch(error => console.error(`${ETHERNUM.MODULE_NAME} | Company identity projection sync`, error));
+  }, Math.max(0, delayMs));
+}
+
 async function updateCompanyIdentity(
   actorUuid: string,
   input: Partial<CompanyIdentitySnapshot>,
@@ -209,6 +222,7 @@ async function listCompanySquadMembers(actor: Actor | null): Promise<CompanySqua
 
 export const CompanyIdentityService = Object.freeze({
   initialize: initializeCompanyIdentityService,
+  scheduleProjectionSync: scheduleCompanyIdentityProjectionSync,
   resolve: resolveCompanyIdentity,
   update: updateCompanyIdentity,
   list: listCompanyIdentities,

@@ -1,4 +1,5 @@
 import { ETHERNUM, type CampaignCoreId } from "../../config.js";
+import { PerformanceTelemetry } from "../../core/PerformanceTelemetry.js";
 import { getUniqueMechanicProfile } from "../../mechanics/registry.js";
 import { canPlayersChooseCharacterSheet } from "../../settings.js";
 import { UniqueMechanicStateService } from "../../unique/services/UniqueMechanicStateService.js";
@@ -332,6 +333,7 @@ export const CharacterSheetController = {
       : []);
     const moduleFailures = Object.fromEntries(failedModules.map(module => [module.id, module]));
     const renderTimeMs = Math.max(0, now() - started);
+    PerformanceTelemetry.record("character-sheet.build", renderTimeMs);
     const context: EthernumCharacterSheetContext = {
       actor,
       core: resolution.core,

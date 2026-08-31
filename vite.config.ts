@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   publicDir: false,
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: mode !== 'production',
     rollupOptions: {
       input: 'scripts/ethernum.js',
       output: {
@@ -33,4 +33,4 @@ export default defineConfig({
       ],
     }),
   ],
-});
+}));

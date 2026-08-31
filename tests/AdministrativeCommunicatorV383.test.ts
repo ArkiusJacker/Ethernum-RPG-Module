@@ -123,6 +123,8 @@ describe("v3.8.3 command device integration", () => {
     const template = read("templates/ethernum-gm-control-tab.html");
     const service = read("scripts/administration/AdministrativeCommunicatorService.ts");
     const bridge = read("scripts/ui/GMControlCenterBridge.ts");
+    const storeController = read("scripts/ui/gm-control/StoreCommandController.ts");
+    const dispatcher = read("scripts/ui/gm-control/GMControlCommandDispatcher.ts");
     const overlay = read("scripts/ui/FieldCommunicatorOverlay.ts");
     const main = read("scripts/main.ts");
 
@@ -133,8 +135,10 @@ describe("v3.8.3 command device integration", () => {
     expect(service).toContain("this.bridge.request");
     expect(service).toContain('case "contract.document-migrate"');
     expect(service).toContain("context.requester.isGM");
-    expect(bridge).toContain('enabled: payload.enabled === "true"');
-    expect(bridge).not.toContain('enabled: payload.enabled !== "true"');
+    expect(storeController).toContain('enabled: payload.enabled === "true"');
+    expect(storeController).not.toContain('enabled: payload.enabled !== "true"');
+    expect(bridge).toContain("dispatchGMControlCommand");
+    expect(dispatcher).toContain("handleStoreCommand");
     expect(overlay).toContain("readOnlyActions");
     expect(overlay).toContain('app.type !== "internal"');
     expect(main).toContain("CompanyIdentityService.initialize()");

@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist/legacy/build/pdf.mjs";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { ETHERNUM } from "../config.js";
 import { CONTRACT_DOCUMENT_UNAVAILABLE_CODE } from "./ContractDocumentStorageService.js";
 import type { CommunicatorDocumentTarget } from "./ContractArchiveTypes.js";
@@ -51,9 +51,13 @@ export class CommunicatorDocumentViewer {
   private zoom = 100;
   private fitMode: CommunicatorPdfFitMode = "width";
   private renderTask: RenderTask | null = null;
+  private activeCanvas: HTMLCanvasElement | null = null;
   private renderSequence = 0;
   private diagnostic: { code: "DOCUMENT UNAVAILABLE"; message: string } | null = null;
-  private readonly documents = new Map<string, Promise<PDFDocumentProxy>>();
+  private readonly documents = new Map<string, {
+    loadingTask: PDFDocumentLoadingTask;
+    document: Promise<PDFDocumentProxy>;
+  }>();
   private pdfModule: Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> | null = null;
 
   setTarget(target: CommunicatorDocumentTarget | null): void {
@@ -77,6 +81,7 @@ export class CommunicatorDocumentViewer {
     this.renderSequence += 1;
     this.renderTask?.cancel();
     this.renderTask = null;
+    this.releaseCanvas();
     this.target = null;
     this.page = 1;
     this.pageCount = 1;
@@ -134,12 +139,16 @@ export class CommunicatorDocumentViewer {
     const sequence = ++this.renderSequence;
     this.renderTask?.cancel();
     this.renderTask = null;
-    if (!host || !this.target || this.target.kind !== "pdf" || !this.target.sourceUrl) return;
+    if (!host || !this.target || this.target.kind !== "pdf" || !this.target.sourceUrl) {
+      this.releaseCanvas();
+      return;
+    }
 
     const stage = host.querySelector<HTMLElement>("[data-document-viewer-stage]");
     const canvas = host.querySelector<HTMLCanvasElement>("[data-document-viewer-canvas]");
     const fallback = host.querySelector<HTMLElement>("[data-document-viewer-fallback]");
     if (!stage || !canvas || !fallback) return;
+    if (this.activeCanvas && this.activeCanvas !== canvas) this.releaseCanvas();
 
     if (this.diagnostic) {
       stage.classList.remove("is-loading");
@@ -154,6 +163,7 @@ export class CommunicatorDocumentViewer {
     stage.classList.add("is-loading");
     stage.classList.remove("is-unavailable");
     stage.setAttribute("aria-busy", "true");
+    this.activeCanvas = canvas;
     try {
       const document = await this.loadPdf(this.target.sourceUrl);
       if (sequence !== this.renderSequence) return;
@@ -208,21 +218,49 @@ export class CommunicatorDocumentViewer {
 
   destroy(): void {
     this.clear();
-    for (const document of this.documents.values()) void document.then(pdf => pdf.destroy()).catch(() => undefined);
+    for (const cached of this.documents.values()) void cached.loadingTask.destroy().catch(() => undefined);
     this.documents.clear();
+    this.pdfModule = null;
   }
 
   private async loadPdf(sourceUrl: string): Promise<PDFDocumentProxy> {
     const existing = this.documents.get(sourceUrl);
-    if (existing) return existing;
+    if (existing) {
+      this.documents.delete(sourceUrl);
+      this.documents.set(sourceUrl, existing);
+      return existing.document;
+    }
     this.pdfModule ??= import("pdfjs-dist/legacy/build/pdf.mjs").then(pdfjs => {
       pdfjs.GlobalWorkerOptions.workerSrc = `modules/${ETHERNUM.MODULE_NAME}/scripts/pdf.worker.min.mjs`;
       return pdfjs;
     });
     const pdfjs = await this.pdfModule;
-    const loading = pdfjs.getDocument({ url: sourceUrl, isEvalSupported: false }).promise;
-    this.documents.set(sourceUrl, loading);
-    void loading.catch(() => this.documents.delete(sourceUrl));
-    return loading;
+    const loadingTask = pdfjs.getDocument({ url: sourceUrl, isEvalSupported: false });
+    const cached = { loadingTask, document: loadingTask.promise };
+    this.documents.set(sourceUrl, cached);
+    while (this.documents.size > 3) {
+      const oldestKey = this.documents.keys().next().value as string | undefined;
+      if (!oldestKey) break;
+      const oldest = this.documents.get(oldestKey);
+      this.documents.delete(oldestKey);
+      if (oldest) void oldest.loadingTask.destroy().catch(() => undefined);
+    }
+    void cached.document.catch(() => {
+      if (this.documents.get(sourceUrl) === cached) this.documents.delete(sourceUrl);
+    });
+    return cached.document;
+  }
+
+  private releaseCanvas(): void {
+    const canvas = this.activeCanvas;
+    if (!canvas) return;
+    const context = canvas.getContext?.("2d");
+    context?.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 1;
+    canvas.height = 1;
+    canvas.style?.removeProperty("width");
+    canvas.style?.removeProperty("height");
+    canvas.hidden = true;
+    this.activeCanvas = null;
   }
 }

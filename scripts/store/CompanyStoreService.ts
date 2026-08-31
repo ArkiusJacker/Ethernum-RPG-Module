@@ -1,6 +1,7 @@
 import { ETHERNUM } from "../config.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { AutomationAuthority } from "../core/AutomationAuthority.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 import {
   type AuthorityBridge,
   type AuthorityHandlerContext,
@@ -318,17 +319,19 @@ export class CompanyStoreService {
   }
 
   async getSnapshot(previewUserId?: string | null, selectedEntryId?: string | null): Promise<CompanyStoreSnapshot> {
-    const current = game.user as unknown as StoreUser | null;
-    const preview = previewUserId && current?.isGM ? userById(previewUserId) : null;
-    if (!current) return emptySnapshot();
-    if (!current.isGM) {
-      const projected = this.repository.readProjection(current as unknown as CompanyStoreRepositoryUser) ?? emptySnapshot();
-      return this.withSelected(projected, selectedEntryId);
-    }
-    const target = preview ?? current;
-    const data = await this.repository.readStore();
-    const snapshot = await this.buildSnapshotForUser(target, data, Boolean(preview));
-    return this.withSelected(snapshot, selectedEntryId);
+    return PerformanceTelemetry.measure("company-store.snapshot", async () => {
+      const current = game.user as unknown as StoreUser | null;
+      const preview = previewUserId && current?.isGM ? userById(previewUserId) : null;
+      if (!current) return emptySnapshot();
+      if (!current.isGM) {
+        const projected = this.repository.readProjection(current as unknown as CompanyStoreRepositoryUser) ?? emptySnapshot();
+        return this.withSelected(projected, selectedEntryId);
+      }
+      const target = preview ?? current;
+      const data = await this.repository.readStore();
+      const snapshot = await this.buildSnapshotForUser(target, data, Boolean(preview));
+      return this.withSelected(snapshot, selectedEntryId);
+    });
   }
 
   async requestPurchase(entryId: string): Promise<CompanyStorePurchaseSubmission> {

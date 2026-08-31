@@ -120,4 +120,43 @@ describe("CommunicatorDocumentViewer", () => {
     expect(fallback.textContent).toBe("DOCUMENT UNAVAILABLE - Arquivo removido do Data Folder.");
     expect(getDocument).not.toHaveBeenCalled();
   });
+
+  it("destroys cached loading tasks and releases the active canvas", async () => {
+    const destroy = vi.fn(async () => undefined);
+    const render = vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() }));
+    const pdf = {
+      numPages: 1,
+      getPage: vi.fn(async () => ({
+        getViewport: ({ scale }: { scale: number }) => ({ width: 100 * scale, height: 120 * scale }),
+        render,
+      })),
+    };
+    vi.mocked(getDocument).mockReturnValue({ promise: Promise.resolve(pdf), destroy } as never);
+    const stage = {
+      clientWidth: 420,
+      clientHeight: 300,
+      classList: { add: vi.fn(), remove: vi.fn() },
+      setAttribute: vi.fn(),
+    };
+    const clearRect = vi.fn();
+    const canvas = {
+      width: 0,
+      height: 0,
+      hidden: true,
+      style: { width: "", height: "", removeProperty: vi.fn() },
+      getContext: vi.fn(() => ({ clearRect })),
+    };
+    const fallback = { hidden: true, textContent: "" };
+    const host = {
+      querySelector: (selector: string) => selector.includes("stage") ? stage : selector.includes("canvas") ? canvas : fallback,
+    };
+    viewer.setTarget(target);
+    await viewer.render(host as unknown as HTMLElement);
+
+    viewer.destroy();
+
+    expect(destroy).toHaveBeenCalledOnce();
+    expect(clearRect).toHaveBeenCalledOnce();
+    expect(canvas).toMatchObject({ width: 1, height: 1, hidden: true });
+  });
 });

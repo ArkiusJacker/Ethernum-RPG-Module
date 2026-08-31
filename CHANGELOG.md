@@ -5,6 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.10] - 2026-08-31
+
+### Adicionado
+- API `game.ethernum` versionada como contrato `1`, com classificação explícita de superfícies suportadas, experimentais, internas e aliases legados em `docs/API.md`.
+- Telemetria local, agregada e silenciosa para inicialização, ficha, troca de aba, Comunicador, Command Device, Loja, Contratos, indexação de Loot e análise de NPC.
+- Controladores de comando por domínio e dispatcher testável para o painel do mestre.
+
+### Alterado
+- Formulários administrativos de Loot, NPC, Loja, Contratos, Companhia, Comunicador e o seletor de ficha preferem `DialogV2` no Foundry 13 e mantêm fallback centralizado.
+- Hooks de User, Actor, Item e Journal sincronizam apenas as projeções relacionadas, com debounce no mestre primário.
+- Builds de produção deixam de empacotar source maps; o modo de desenvolvimento continua gerando mapas.
+- Loja e Contratos preservam suas fronteiras estáveis de repositório, ACL, adaptação PF2e, armazenamento e transação, sem reescrita arriscada.
+
+### Confiabilidade
+- Falhas de snapshot em Loja ou Contratos ficam contidas no painel correspondente e não derrubam todo o Comunicador.
+- O observer de colisão do Command Device acompanha recriações do Comunicador e é sempre desconectado no encerramento.
+- O visualizador PDF cancela páginas antigas, limpa o canvas, limita o cache e destrói tarefas de carregamento.
+
+### Testes
+- Cobertura dedicada de dispatch, DialogV2/fallback, telemetria, hooks/projeções, API pública, limites de erro e ciclo de vida de PDF/observer.
+- Auditoria de arquitetura e evidências ficam em `docs/qa/v3.8.10/`.
+
 ## [3.8.9] - 2026-08-30
 
 ### Adicionado

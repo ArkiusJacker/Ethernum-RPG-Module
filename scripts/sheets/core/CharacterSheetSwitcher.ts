@@ -5,6 +5,7 @@ import {
   normalizeCharacterSheetMode,
   type CharacterSheetMode,
 } from "./CharacterSheetRegistry.js";
+import { showModernFormDialog } from "../../ui/gm-control/ModernDialogService.js";
 
 interface SheetRegistration {
   id: string;
@@ -95,22 +96,14 @@ export function openCharacterSheetSwitcher(actor: Actor): void {
     return `<option value="${mode}" ${mode === current ? "selected" : ""}>${label}</option>`;
   }).join("");
 
-  new Dialog({
-    title: localize("ETHERNUM.CharacterSheet.Switch.Title", "Change character sheet"),
-    content: `<div class="form-group"><label>${localize("ETHERNUM.CharacterSheet.Configure.Mode", "Sheet mode")}</label><select name="mode">${options}</select></div>`,
-    buttons: {
-      save: {
-        icon: '<i class="fas fa-arrows-rotate"></i>',
-        label: localize("ETHERNUM.CharacterSheet.Switch.Apply", "Change sheet"),
-        callback: html => {
-          const mode = String(html.find<HTMLSelectElement>('[name="mode"]').val() ?? "auto");
-          void changeCharacterSheet(actor, mode).catch(error => {
-            console.error("Ethernum | Character sheet switch failed", actor, error);
-          });
-        },
-      },
-      reset: {
-        icon: '<i class="fas fa-rotate-left"></i>',
+  void showModernFormDialog(
+    localize("ETHERNUM.CharacterSheet.Switch.Title", "Change character sheet"),
+    `<div class="form-group"><label>${localize("ETHERNUM.CharacterSheet.Configure.Mode", "Sheet mode")}</label><select name="mode">${options}</select></div>`,
+    {
+      confirmIcon: "fa-solid fa-arrows-rotate",
+      confirmLabel: localize("ETHERNUM.CharacterSheet.Switch.Apply", "Change sheet"),
+      secondaryAction: {
+        icon: "fa-solid fa-rotate-left",
         label: localize("ETHERNUM.CharacterSheet.Configure.ResetLayout", "Reset local layout"),
         callback: () => {
           CharacterSheetController.state(actor).reset();
@@ -118,8 +111,13 @@ export function openCharacterSheetSwitcher(actor: Actor): void {
         },
       },
     },
-    default: "save",
-  }).render(true);
+  ).then(formData => {
+    if (!formData) return;
+    const mode = String(formData.get("mode") ?? "auto");
+    return changeCharacterSheet(actor, mode);
+  }).catch(error => {
+    console.error("Ethernum | Character sheet switch failed", actor, error);
+  });
 }
 
 function rootElement(

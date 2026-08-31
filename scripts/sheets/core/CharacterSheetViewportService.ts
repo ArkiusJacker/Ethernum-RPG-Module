@@ -1,3 +1,4 @@
+import { PerformanceTelemetry } from "../../core/PerformanceTelemetry.js";
 import type { CharacterSheetViewState } from "./CharacterSheetState.js";
 
 export interface CharacterSheetViewportFocus {
@@ -221,6 +222,7 @@ export class CharacterSheetViewportService {
 
   selectTab(root: ParentNode, tabId: string, focus = true, persistCurrent = true): void {
     if (!tabId) return;
+    const stopMeasurement = PerformanceTelemetry.start("character-sheet.tab-switch");
     const stored = this.#state.load();
     const previousTab = activeTabFromDom(root) || stored.activeTab;
     const previousPanel = tabPanel(root, previousTab);
@@ -244,6 +246,7 @@ export class CharacterSheetViewportService {
     if (nextPanel) nextPanel.scrollTop = nextScroll;
     const tab = root.querySelector<HTMLElement>(`[data-sheet-tab="${escapeAttribute(tabId)}"]`);
     if (focus && tab) focusWithoutScroll(tab, nextPanel, nextScroll);
+    stopMeasurement();
   }
 
   async restoreAfterRender(root: ParentNode | null): Promise<CharacterSheetViewportSnapshot | null> {

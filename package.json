@@ -1,10 +1,10 @@
 {
   "name": "ethernum-rpg-module",
-  "version": "3.8.9",
+  "version": "3.8.10",
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch",
+    "dev": "vite build --watch --mode development",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,4 +1,5 @@
 import { ETHERNUM } from "../config.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 import {
   addFieldCommunicatorApp,
   disableFieldCommunicatorApp,
@@ -24,6 +25,7 @@ import type {
 import type { CompanyStorePurchaseReceipt } from "../store/CompanyStoreTypes.js";
 import { getFieldCommunicatorBootMode, getFieldCommunicatorMotionMode } from "../settings.js";
 import { resolveUIAssetPack } from "./assets/UIAssetPackRegistry.js";
+import { showModernFormDialog } from "./gm-control/ModernDialogService.js";
 import {
   FieldCommunicatorView,
   type FieldCommunicatorActionContext,
@@ -199,7 +201,7 @@ export class FieldCommunicatorOverlay {
   static async open(): Promise<boolean> {
     const instance = this.initialize();
     if (!instance) return false;
-    await instance.setMinimized(false);
+    await PerformanceTelemetry.measure("field-communicator.open", () => instance.setMinimized(false));
     return true;
   }
 
@@ -861,7 +863,7 @@ export class FieldCommunicatorOverlay {
     }
   }
 
-  private appDialog(existing?: FieldCommunicatorApp): Promise<Record<string, unknown> | null> {
+  private async appDialog(existing?: FieldCommunicatorApp): Promise<Record<string, unknown> | null> {
     const values = existing ?? {
       id: "",
       label: "",
@@ -874,7 +876,7 @@ export class FieldCommunicatorOverlay {
     } as FieldCommunicatorApp;
     const unlock = (values.unlock ?? {}) as Record<string, unknown>;
     const csv = (value: unknown) => Array.isArray(value) ? value.join(", ") : "";
-    const content = `<form class="ethc-admin-dialog">
+    const content = `<div class="ethc-admin-dialog">
       <label>ID<input name="id" value="${this.escapeAttribute(values.id)}"></label>
       <label>${localize("ETHERNUM.FieldCommunicator.Admin.Label", "Nome")}<input name="label" value="${this.escapeAttribute(values.label)}" required></label>
       <label>${localize("ETHERNUM.FieldCommunicator.Admin.Description", "Descrição")}<textarea name="description">${this.escapeAttribute(values.description)}</textarea></label>
@@ -892,66 +894,47 @@ export class FieldCommunicatorOverlay {
       <label>Chave de desbloqueio<input name="unlockKey" value="${this.escapeAttribute(unlock.key ?? "")}"></label>
       <label>Valor esperado<input name="unlockEquals" value="${this.escapeAttribute(unlock.equals ?? "")}"></label>
       <label><input type="checkbox" name="enabled"${values.enabled === false ? "" : " checked"}> ${localize("ETHERNUM.FieldCommunicator.Admin.Enabled", "Ativo")}</label>
-    </form>`;
-    return new Promise(resolve => {
-      new Dialog({
-        title: localize("ETHERNUM.FieldCommunicator.Admin.Title", "Configurar aplicativo"),
-        content,
-        buttons: {
-          save: {
-            icon: '<i class="fas fa-save"></i>',
-            label: localize("ETHERNUM.Buttons.Save", "Salvar"),
-            callback: html => {
-              const form = html.find("form")[0] as HTMLFormElement;
-              const data = new FormData(form);
-              const type = String(data.get("type") ?? "document");
-              const target = String(data.get("target") ?? "");
-              const split = (name: string) => String(data.get(name) ?? "").split(",").map(value => value.trim()).filter(Boolean);
-              const rawBadge = String(data.get("badge") ?? "").trim();
-              const badge = /^\d+$/.test(rawBadge) ? Number(rawBadge) : rawBadge || undefined;
-              const unlockKind = String(data.get("unlockKind") ?? "");
-              const rawEquals = String(data.get("unlockEquals") ?? "").trim();
-              const unlockEquals = rawEquals === "true" ? true : rawEquals === "false" ? false : rawEquals !== "" && Number.isFinite(Number(rawEquals)) ? Number(rawEquals) : rawEquals || undefined;
-              resolve({
-                id: String(data.get("id") ?? ""),
-                label: String(data.get("label") ?? ""),
-                description: String(data.get("description") ?? ""),
-                icon: String(data.get("icon") ?? ""),
-                type,
-                ...(type === "external" ? { targetUrl: target } : type === "internal" ? { internalTarget: target } : { targetUuid: target }),
-                accent: String(data.get("accent") ?? ""),
-                badge,
-                order: Number(data.get("order")),
-                minimumRank: Number(data.get("minimumRank")),
-                allowedRanks: split("allowedRanks").map(Number).filter(Number.isFinite),
-                allowedAgents: split("allowedAgents"),
-                allowedSquads: split("allowedSquads"),
-                ...(unlockKind ? { unlock: { kind: unlockKind, key: String(data.get("unlockKey") ?? ""), equals: unlockEquals } } : {}),
-                enabled: data.get("enabled") === "on",
-              });
-            },
-          },
-          cancel: { label: localize("ETHERNUM.Buttons.Close", "Fechar"), callback: () => resolve(null) },
-        },
-        default: "save",
-        close: () => resolve(null),
-      }).render(true);
-    });
+    </div>`;
+    const data = await showModernFormDialog(
+      localize("ETHERNUM.FieldCommunicator.Admin.Title", "Configurar aplicativo"),
+      content,
+      { confirmLabel: localize("ETHERNUM.Buttons.Save", "Salvar"), confirmIcon: "fa-solid fa-floppy-disk" },
+    );
+    if (!data) return null;
+    const type = String(data.get("type") ?? "document");
+    const target = String(data.get("target") ?? "");
+    const split = (name: string) => String(data.get(name) ?? "").split(",").map(value => value.trim()).filter(Boolean);
+    const rawBadge = String(data.get("badge") ?? "").trim();
+    const badge = /^\d+$/.test(rawBadge) ? Number(rawBadge) : rawBadge || undefined;
+    const unlockKind = String(data.get("unlockKind") ?? "");
+    const rawEquals = String(data.get("unlockEquals") ?? "").trim();
+    const unlockEquals = rawEquals === "true" ? true : rawEquals === "false" ? false : rawEquals !== "" && Number.isFinite(Number(rawEquals)) ? Number(rawEquals) : rawEquals || undefined;
+    return {
+      id: String(data.get("id") ?? ""),
+      label: String(data.get("label") ?? ""),
+      description: String(data.get("description") ?? ""),
+      icon: String(data.get("icon") ?? ""),
+      type,
+      ...(type === "external" ? { targetUrl: target } : type === "internal" ? { internalTarget: target } : { targetUuid: target }),
+      accent: String(data.get("accent") ?? ""),
+      badge,
+      order: Number(data.get("order")),
+      minimumRank: Number(data.get("minimumRank")),
+      allowedRanks: split("allowedRanks").map(Number).filter(Number.isFinite),
+      allowedAgents: split("allowedAgents"),
+      allowedSquads: split("allowedSquads"),
+      ...(unlockKind ? { unlock: { kind: unlockKind, key: String(data.get("unlockKey") ?? ""), equals: unlockEquals } } : {}),
+      enabled: data.get("enabled") === "on",
+    };
   }
 
-  private importDialog(): Promise<string | null> {
-    return new Promise(resolve => {
-      new Dialog({
-        title: localize("ETHERNUM.FieldCommunicator.Actions.Import", "Importar JSON"),
-        content: '<textarea data-communicator-import style="width:100%;min-height:280px" aria-label="JSON"></textarea>',
-        buttons: {
-          import: { label: localize("ETHERNUM.FieldCommunicator.Actions.Import", "Importar"), callback: html => resolve(String(html.find("[data-communicator-import]").val() ?? "")) },
-          cancel: { label: localize("ETHERNUM.Buttons.Close", "Fechar"), callback: () => resolve(null) },
-        },
-        default: "import",
-        close: () => resolve(null),
-      }).render(true);
-    });
+  private async importDialog(): Promise<string | null> {
+    const data = await showModernFormDialog(
+      localize("ETHERNUM.FieldCommunicator.Actions.Import", "Importar JSON"),
+      '<label style="grid-column:1/-1">JSON<textarea name="registryJson" style="width:100%;min-height:280px" aria-label="JSON" required></textarea></label>',
+      { confirmLabel: localize("ETHERNUM.FieldCommunicator.Actions.Import", "Importar"), confirmIcon: "fa-solid fa-file-import" },
+    );
+    return data ? String(data.get("registryJson") ?? "") : null;
   }
 
   private handleError(error: unknown, action: string): void {

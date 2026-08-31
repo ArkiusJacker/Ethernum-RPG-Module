@@ -1,6 +1,7 @@
 import { ETHERNUM } from "../config.js";
 import { CompanyIdentityService } from "../company/CompanyIdentityService.js";
 import { createPF2eCharacterSnapshot } from "../core/PF2eCharacterAdapter.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 import { getContractArchiveService, type ContractArchiveService } from "../contracts/ContractArchiveService.js";
 import type {
   ContractArchiveSnapshot,
@@ -326,12 +327,25 @@ export class FieldCommunicatorService {
     const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
     allowedPanelIds.add("notifications");
     if (game.user?.isGM && !previewUser) allowedPanelIds.add("administration");
-    const contractArchive = allowedPanelIds.has("contracts")
-      ? await this.contractArchive.getSnapshot(previewUserId)
-      : undefined;
-    const store = allowedPanelIds.has("shop")
-      ? await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId)
-      : undefined;
+    const panelFailures = new Set<string>();
+    let contractArchive: ContractArchiveSnapshot | undefined;
+    let store: CompanyStoreSnapshot | undefined;
+    if (allowedPanelIds.has("contracts")) {
+      try {
+        contractArchive = await this.contractArchive.getSnapshot(previewUserId);
+      } catch (error) {
+        panelFailures.add("contracts");
+        console.error(`${ETHERNUM.MODULE_NAME} | Contract panel snapshot failed`, error);
+      }
+    }
+    if (allowedPanelIds.has("shop")) {
+      try {
+        store = await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId);
+      } catch (error) {
+        panelFailures.add("shop");
+        console.error(`${ETHERNUM.MODULE_NAME} | Store panel snapshot failed`, error);
+      }
+    }
     const preferences = this.clientSettings();
     const messages = this.communicatorMessages(resources.messages, subjectUser?.id, Boolean(subjectUser?.isGM));
     const broadcasts = getEmergencyBroadcastService().list(
@@ -368,6 +382,7 @@ export class FieldCommunicatorService {
       contractArchive,
       store,
       messages,
+      panelFailures,
       broadcasts,
       notifications,
       squadGroups,
@@ -395,6 +410,7 @@ export class FieldCommunicatorService {
       storeItemCount: store?.items.length ?? 0,
       notificationCount: notifications.length,
     };
+    PerformanceTelemetry.record("field-communicator.snapshot", this.lastBuildMetrics.durationMs);
     return {
       apps,
       panels,
@@ -428,7 +444,7 @@ export class FieldCommunicatorService {
       state: {
         noActor: !actor,
         permissionDenied: false,
-        documentUnavailable: false,
+        documentUnavailable: panelFailures.size > 0,
         maintenance: false,
       },
       homeMessage: online
@@ -604,6 +620,7 @@ export class FieldCommunicatorService {
       broadcasts?: EmergencyBroadcastDTO[];
       notifications?: FieldCommunicatorNotification[];
       squadGroups?: FieldCommunicatorSquadGroup[];
+      panelFailures?: ReadonlySet<string>;
     } = {},
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
     const scenes = this.documentEntries(resources.scenes, "view-scene", viewer);
@@ -657,11 +674,15 @@ export class FieldCommunicatorService {
         entries: journalEntries(/dossi|ameaça|inteligência|intelligence/i),
         description: "Journals visíveis cujo nome ou pasta indica dossiê, ameaça ou inteligência.",
       }),
-      contracts: this.contractPanel(
-        options.contractArchive ?? { schemaVersion: 1, revision: 0, contracts: [] },
-        options.selectedContractId,
-        options.documentViewer,
-      ),
+      contracts: options.panelFailures?.has("contracts")
+        ? this.panel("contracts", localize("ETHERNUM.FieldCommunicator.Panels.Contracts", "Contratos"), "contracts", {
+            description: "Contratos temporariamente indisponíveis. Tente novamente ou informe o Gamemaster.",
+          })
+        : this.contractPanel(
+            options.contractArchive ?? { schemaVersion: 1, revision: 0, contracts: [] },
+            options.selectedContractId,
+            options.documentViewer,
+          ),
       files: this.panel("files", localize("ETHERNUM.FieldCommunicator.Panels.Files", "Arquivos"), "documents", {
         entries: journalEntries(),
         description: "Todos os Journals do mundo que este usuário pode observar.",
@@ -669,6 +690,9 @@ export class FieldCommunicatorService {
       shop: this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", {
         store: options.store,
         storeReceipt: options.storeReceipt,
+        ...(options.panelFailures?.has("shop") ? {
+          description: "Loja temporariamente indisponível. Tente novamente ou informe o Gamemaster.",
+        } : {}),
       }),
       settings: this.panel("settings", localize("ETHERNUM.FieldCommunicator.Panels.Settings", "Ajustes"), "settings", {
         settings: this.clientSettings(),

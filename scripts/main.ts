@@ -58,6 +58,7 @@ import { getCompanyRewardService } from './rewards/CompanyRewardService.js';
 import { getAdministrativeCommunicatorService } from './administration/AdministrativeCommunicatorService.js';
 import { getUniqueMechanicAIAssistanceService } from './generators/mechanics/ai/UniqueMechanicAIAssistanceService.js';
 import type { UniqueMechanicAIProvider } from './generators/mechanics/ai/UniqueMechanicAITypes.js';
+import { PerformanceTelemetry, type PerformanceMetricSnapshot } from './core/PerformanceTelemetry.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -77,6 +78,7 @@ const COMBAT_MOMENTUM_MANAGED_MACROS = [
 declare global {
   interface Game {
     ethernum?: {
+      apiVersion: "1";
       ETHERNUM: typeof ETHERNUM;
       unique: typeof UniqueMechanicsSystem;
       ui: {
@@ -125,6 +127,9 @@ declare global {
           unregisterProvider: (providerId: string) => void;
           audit: () => ReturnType<ReturnType<typeof getUniqueMechanicAIAssistanceService>["listAudit"]>;
         };
+      };
+      diagnostics: {
+        performance: () => PerformanceMetricSnapshot[];
       };
       macros: {
         getActor: () => Actor | null;
@@ -711,6 +716,7 @@ Hooks.once("init", () => {
   const companyStore = getCompanyStoreService();
   const aiAssistance = getUniqueMechanicAIAssistanceService();
   game.ethernum = {
+    apiVersion: "1",
     ETHERNUM,
     unique: UniqueMechanicsSystem,
     ui: {
@@ -766,11 +772,15 @@ Hooks.once("init", () => {
         },
       } : {}),
     },
+    diagnostics: {
+      performance: () => PerformanceTelemetry.snapshot(),
+    },
     macros: buildMacroApi(),
   };
 });
 
 Hooks.once("ready", async () => {
+  const stopInitializationMeasurement = PerformanceTelemetry.start("module.ready");
   console.log("Ethernum RPG Module | Sistema de Éter pronto!");
 
   initializeEthernumAuthorityBridge();
@@ -810,6 +820,7 @@ Hooks.once("ready", async () => {
   if (game.system?.id !== "pf2e") {
     ui.notifications?.warn(game.i18n!.localize("ETHERNUM.Warnings.NotPF2E"));
   }
+  stopInitializationMeasurement();
 });
 
 function refreshCommunicatorScreens(message?: ChatMessage): void {
@@ -823,10 +834,34 @@ function refreshCommunicatorScreens(message?: ChatMessage): void {
 
 Hooks.on("createChatMessage", refreshCommunicatorScreens);
 
-for (const hook of ["createUser", "updateUser", "deleteUser", "updateActor", "createItem", "updateItem", "deleteItem", "createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
+for (const hook of ["createUser", "updateUser", "deleteUser"] as const) {
   Hooks.on(hook, () => {
+    CompanyIdentityService.scheduleProjectionSync();
     getContractArchiveService().scheduleProjectionSync();
     getCompanyStoreService().scheduleProjectionSync();
+    void FieldCommunicatorOverlay.refresh();
+  });
+}
+
+for (const hook of ["createActor", "updateActor", "deleteActor"] as const) {
+  Hooks.on(hook, () => {
+    CompanyIdentityService.scheduleProjectionSync();
+    getContractArchiveService().scheduleProjectionSync();
+    getCompanyStoreService().scheduleProjectionSync();
+    void FieldCommunicatorOverlay.refresh();
+  });
+}
+
+for (const hook of ["createItem", "updateItem", "deleteItem"] as const) {
+  Hooks.on(hook, () => {
+    getCompanyStoreService().scheduleProjectionSync();
+    void FieldCommunicatorOverlay.refresh();
+  });
+}
+
+for (const hook of ["createJournalEntry", "updateJournalEntry", "deleteJournalEntry"] as const) {
+  Hooks.on(hook, () => {
+    getContractArchiveService().scheduleProjectionSync();
     void FieldCommunicatorOverlay.refresh();
   });
 }

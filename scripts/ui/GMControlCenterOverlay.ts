@@ -1,6 +1,7 @@
 import { ETHERNUM } from "../config.js";
 import { getEthernumAuthorityBridge } from "../core/EthernumAuthority.js";
 import type { AuthorityBridgeEvent, AuthorityDiagnostics } from "../core/AuthorityBridge.js";
+import { PerformanceTelemetry } from "../core/PerformanceTelemetry.js";
 import { GMControlCenter } from "./GMControlCenter.js";
 import {
   buildAuthorityControlSnapshot,
@@ -158,6 +159,7 @@ export class GMControlCenterOverlay {
   private pulseTimer: ReturnType<typeof setTimeout> | null = null;
   private overlapTimer: ReturnType<typeof setTimeout> | null = null;
   private communicatorObserver: MutationObserver | null = null;
+  private observedCommunicator: HTMLElement | null = null;
   private initializedBadge = false;
   private stale = true;
   private theme = readTheme();
@@ -178,7 +180,7 @@ export class GMControlCenterOverlay {
     if (!game.user?.isGM) return false;
     const instance = this.initialize();
     if (!instance) return false;
-    await instance.setMinimized(false);
+    await PerformanceTelemetry.measure("command-device.open", () => instance.setMinimized(false));
     return true;
   }
 
@@ -550,7 +552,9 @@ export class GMControlCenterOverlay {
 
   private observeFieldCommunicator(): void {
     this.communicatorObserver?.disconnect();
+    this.communicatorObserver = null;
     const communicator = document.getElementById("ethernum-field-communicator-overlay");
+    this.observedCommunicator = communicator;
     if (!communicator) return;
     this.communicatorObserver = new MutationObserver(() => this.scheduleOverlapCheck());
     this.communicatorObserver.observe(communicator, { attributes: true, attributeFilter: ["class", "style"] });
@@ -560,7 +564,8 @@ export class GMControlCenterOverlay {
     if (this.overlapTimer !== null) globalThis.clearTimeout(this.overlapTimer);
     this.overlapTimer = globalThis.setTimeout(() => {
       this.overlapTimer = null;
-      if (!this.communicatorObserver) this.observeFieldCommunicator();
+      const communicator = document.getElementById("ethernum-field-communicator-overlay");
+      if (this.observedCommunicator !== communicator) this.observeFieldCommunicator();
       this.avoidFieldCommunicatorOverlap();
     }, delayMs);
   }
@@ -615,6 +620,8 @@ export class GMControlCenterOverlay {
     if (this.pulseTimer !== null) globalThis.clearTimeout(this.pulseTimer);
     if (this.overlapTimer !== null) globalThis.clearTimeout(this.overlapTimer);
     this.communicatorObserver?.disconnect();
+    this.communicatorObserver = null;
+    this.observedCommunicator = null;
     this.unmountPanel();
     this.root?.remove();
     this.root = null;
