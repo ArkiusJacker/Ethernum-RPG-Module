@@ -61,6 +61,14 @@ continuam preservadas; sinônimos não são convertidos automaticamente.
 - Candidato local — `module.json` SHA-256:
   `FCFFF5747F292E9FC6F8E0AD880400B2A9DD08A0C1DF6C65923AFBC464737D94`.
 
+### Artefato publicado
+
+- ZIP da Release — SHA-256:
+  `19257A12F593A773DF8E6A9EEC7A9A169F84A5444F93BD46A69968554130F8E8`.
+- `module.json` publicado — SHA-256:
+  `13B24F1625FC8CE5811AF7FBFE2AE55C60CAE333329CA37F4B3AB15491938058`.
+- O manifesto publicado é semanticamente idêntico ao candidato local; a diferença de hash textual decorre apenas da normalização CRLF/LF do runner Linux.
+
 Os hashes dos assets finais gerados pelo GitHub Actions serão conferidos após a
 publicação e registrados na página desta release.
 

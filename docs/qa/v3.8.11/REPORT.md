@@ -43,6 +43,17 @@ Ambiente validado:
 - sem arquivos `.ts`, `.map`, `tests`, `docs/qa`, `node_modules` ou `.git` no artefato;
 - 0 grupos de duplicatas exatas e 0 arquivos de arte-fonte.
 
+## Verificação pós-publicação
+
+A Release pública [`v3.8.11`](https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/v3.8.11) foi criada pelo workflow e os três artefatos foram baixados novamente do GitHub para validação independente:
+
+- `ethernum-rpg-module.zip`: 35.443.372 bytes;
+- ZIP publicado SHA-256: `19257A12F593A773DF8E6A9EEC7A9A169F84A5444F93BD46A69968554130F8E8`;
+- `module.json` publicado SHA-256: `13B24F1625FC8CE5811AF7FBFE2AE55C60CAE333329CA37F4B3AB15491938058`;
+- 103 entradas lidas integralmente, 0 entradas proibidas e manifesto interno idêntico ao manifesto publicado;
+- manifesto publicado semanticamente idêntico ao manifesto local 3.8.11; o hash textual difere apenas pela normalização CRLF/LF entre Windows e o runner Linux;
+- relatório de tamanho publicado com 0 avisos e 0 arquivos proibidos.
+
 ## Proteção de dados
 
 Nenhum ator, item, contrato, oferta, registro de loja ou documento de QA foi apagado. Nenhuma compra, recompensa, concessão de Fulgor, aplicação de Mecânica NPC ou edição rúnica foi realizada. A implantação substituiu somente arquivos do módulo pela saída final do build e não tocou nos dados do mundo.
