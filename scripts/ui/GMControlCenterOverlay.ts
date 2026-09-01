@@ -9,6 +9,7 @@ import {
   unmountAuthorityControlCenter,
 } from "./GMControlCenterBridge.js";
 import type { GMControlCenterSnapshot, GMControlTheme } from "./GMControlCenterData.js";
+import { resolveNonOverlappingPosition } from "./layout/NonOverlappingPlacement.js";
 
 const ROOT_ID = "ethernum-gm-control-overlay";
 const STORAGE_SUFFIX = "gmControlOverlayLayout";
@@ -163,6 +164,7 @@ export class GMControlCenterOverlay {
   private initializedBadge = false;
   private stale = true;
   private theme = readTheme();
+  private overlapCompactMode = false;
 
   static initialize(): GMControlCenterOverlay | null {
     if (!shouldMountGMControlCenter(Boolean(game.user?.isGM)) || typeof document === "undefined") {
@@ -233,7 +235,10 @@ export class GMControlCenterOverlay {
     this.observeFieldCommunicator();
     this.scheduleOverlapCheck();
     this.unsubscribe = this.bridge.subscribe(event => this.onAuthorityEvent(event));
-    globalThis.addEventListener("resize", () => this.clampToViewport(), { signal: this.lifecycle.signal });
+    globalThis.addEventListener("resize", () => {
+      this.clampToViewport();
+      this.scheduleOverlapCheck();
+    }, { signal: this.lifecycle.signal });
     globalThis.addEventListener("beforeunload", () => GMControlCenterOverlay.destroy(), { signal: this.lifecycle.signal });
     void this.refreshBadge();
     if (!this.layout.minimized) void this.mountPanel();
@@ -254,7 +259,7 @@ export class GMControlCenterOverlay {
     const root = this.ensureRoot();
     this.shellListeners?.abort();
     this.shellListeners = new AbortController();
-    root.className = `ethernum-gm-control-overlay theme-${this.theme} state-${this.launcherState}${this.layout.minimized ? " is-minimized" : ""}`;
+    root.className = `ethernum-gm-control-overlay theme-${this.theme} state-${this.launcherState}${this.layout.minimized ? " is-minimized" : ""}${this.overlapCompactMode ? " is-overlap-compact" : ""}`;
     this.applyLayout();
 
     if (this.layout.minimized) {
@@ -287,7 +292,8 @@ export class GMControlCenterOverlay {
         </header>
         <div class="ethernum-gm-control-overlay__content" data-gm-overlay-host></div>
         <button type="button" class="ethernum-gm-control-overlay__resize" data-gm-overlay-resize
-          title="${localize("ETHERNUM.GMControl.Overlay.Resize")}" aria-label="${localize("ETHERNUM.GMControl.Overlay.Resize")}"></button>`;
+          title="${localize("ETHERNUM.GMControl.Overlay.Resize")}" aria-label="${localize("ETHERNUM.GMControl.Overlay.Resize")}"></button>
+        <span class="sr-only" data-gm-overlap-status role="status" ${this.overlapCompactMode ? "" : "hidden"}>${localize("ETHERNUM.GMControl.Overlay.CompactOverlap")}</span>`;
       this.host = root.querySelector<HTMLElement>("[data-gm-overlay-host]");
     }
 
@@ -534,20 +540,63 @@ export class GMControlCenterOverlay {
   private avoidFieldCommunicatorOverlap(): void {
     const root = this.root;
     const communicator = document.getElementById("ethernum-field-communicator-overlay");
-    if (!root || !communicator) return;
+    if (!root) return;
+    if (this.overlapCompactMode && !this.layout.minimized) {
+      this.setOverlapCompactMode(false);
+      const restored = clampGMControlSize(this.layout.width, this.layout.height, viewport());
+      root.style.width = `${restored.width}px`;
+      root.style.height = `${restored.height}px`;
+    }
+    if (!communicator) return;
     const own = root.getBoundingClientRect();
     const other = communicator.getBoundingClientRect();
-    const overlaps = own.left < other.right && own.right > other.left && own.top < other.bottom && own.bottom > other.top;
-    if (!overlaps) return;
     const view = viewport();
-    const rightCandidate = other.right + VIEWPORT_MARGIN;
-    const next = rightCandidate + own.width <= view.width - VIEWPORT_MARGIN
-      ? clampGMControlPosition(rightCandidate, other.top, { width: own.width, height: own.height }, view)
-      : clampGMControlPosition(view.width - own.width - DEFAULT_RIGHT, DEFAULT_TOP, { width: own.width, height: own.height }, view);
+    let next = resolveNonOverlappingPosition({
+      movingRect: own,
+      obstacleRect: other,
+      viewport: view,
+      margin: VIEWPORT_MARGIN,
+      preferredOrder: ["right", "left", "above", "below"],
+    });
+    if (next.strategy === "preserved") return;
+    if (next.compactRequired && !this.layout.minimized) {
+      const compactSize = clampGMControlSize(MIN_WIDTH, MIN_HEIGHT, view);
+      this.setOverlapCompactMode(true);
+      root.style.width = `${compactSize.width}px`;
+      root.style.height = `${compactSize.height}px`;
+      const compactOwn = {
+        width: compactSize.width,
+        height: compactSize.height,
+        left: own.left,
+        top: own.top,
+        right: own.left + compactSize.width,
+        bottom: own.top + compactSize.height,
+      };
+      next = resolveNonOverlappingPosition({
+        movingRect: compactOwn,
+        obstacleRect: other,
+        viewport: view,
+        margin: VIEWPORT_MARGIN,
+        preferredOrder: ["right", "left", "above", "below"],
+      });
+    }
     this.setRootPosition(next.left, next.top);
-    this.layout.left = next.left;
-    this.layout.top = next.top;
-    this.persistLayout();
+    if (next.intersectionArea === 0 && !this.overlapCompactMode) {
+      this.layout.left = next.left;
+      this.layout.top = next.top;
+      this.persistLayout();
+    }
+  }
+
+  private setOverlapCompactMode(active: boolean): void {
+    this.overlapCompactMode = active;
+    this.root?.classList.toggle("is-overlap-compact", active);
+    if (this.root) this.root.dataset.overlapMode = active ? "compact" : "standard";
+    const status = this.root?.querySelector<HTMLElement>("[data-gm-overlap-status]");
+    if (status) {
+      status.hidden = !active;
+      status.textContent = active ? localize("ETHERNUM.GMControl.Overlay.CompactOverlap") : "";
+    }
   }
 
   private observeFieldCommunicator(): void {

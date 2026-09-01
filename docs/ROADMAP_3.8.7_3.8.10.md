@@ -14,6 +14,8 @@ Every version must pass a clean install, typecheck, automated tests, build,
 manifest/distribution validation, Foundry QA, commit on `main`, tag, independent
 GitHub release and post-release asset/topology verification.
 
-The planned Encounter Suite begins only after this arc, in v3.8.11.
+The canonical and interface-reliability hotfix occupies v3.8.11. Encounter Suite
+2.0 moves to v3.8.12 so its mechanical scope remains separate from the migration,
+localization and reliability corrections.
 
 All four consolidation releases were implemented and independently validated. The v3.8.10 architecture decisions and performance evidence are recorded under `docs/qa/v3.8.10/`.

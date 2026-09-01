@@ -1,3 +1,5 @@
+import { RUNE_CATALOG, type RuneCatalog } from "./runes/RuneCatalog.js";
+
 export type Rank = "F" | "E" | "D" | "C" | "B" | "A" | "S" | "K";
 export type RuneClassKey = 1 | 2 | 3 | 4 | 5;
 export type CampaignCoreId = "ethernum-company" | "concordia";
@@ -9,6 +11,7 @@ export interface EtherAttribute {
 }
 
 export interface RuneClassConfig {
+  labelKey: string;
   name: string;
   nameEn: string;
   defaultDC: number;
@@ -42,11 +45,7 @@ export interface EthernumConfig {
   MAX_RUNE_CLASS: number;
   MIN_LEVEL: number;
   MAX_LEVEL: number;
-  RUNE_TRINITY: {
-    VERBS: { tier1: string[]; tier2: string[]; tier3: string[] };
-    NOUNS: string[];
-    SOURCES: string[];
-  };
+  RUNE_CATALOG: RuneCatalog;
   DEFAULT_ETHER_ATTRIBUTES: Record<string, EtherAttribute>;
   DEFAULT_TALENTS: Record<string, EtherAttribute>;
   DEFAULT_FE: { current: number; total: number };
@@ -104,6 +103,7 @@ export const ETHERNUM: EthernumConfig = {
 
   RUNE_CLASSES: {
     1: {
+      labelKey: "ETHERNUM.RuneClass.1.Name",
       name: "Latente",
       nameEn: "Latent",
       defaultDC: 15,
@@ -112,6 +112,7 @@ export const ETHERNUM: EthernumConfig = {
       visual: "Runas brilham levemente, quase imperceptíveis"
     },
     2: {
+      labelKey: "ETHERNUM.RuneClass.2.Name",
       name: "Tangível",
       nameEn: "Tangible",
       defaultDC: 20,
@@ -120,24 +121,27 @@ export const ETHERNUM: EthernumConfig = {
       visual: "Éter visível, emanações claras"
     },
     3: {
-      name: "Dissonante",
-      nameEn: "Dissonant",
+      labelKey: "ETHERNUM.RuneClass.3.Name",
+      name: "Manifestação",
+      nameEn: "Manifestation",
       defaultDC: 30,
       cost: "médio",
       focus: "Alteração de regras locais, distorção da realidade",
       visual: "Ambiente distorce, leis físicas tremem"
     },
     4: {
-      name: "Crítico",
-      nameEn: "Critical",
+      labelKey: "ETHERNUM.RuneClass.4.Name",
+      name: "Disrupção",
+      nameEn: "Disruption",
       defaultDC: 40,
       cost: "alto",
       focus: "Efeitos permanentes, alterações fundamentais",
       visual: "Ruptura visível na realidade"
     },
     5: {
-      name: "Evento Zero",
-      nameEn: "Event Zero",
+      labelKey: "ETHERNUM.RuneClass.5.Name",
+      name: "Horizonte de Eventos",
+      nameEn: "Event Horizon",
       defaultDC: 50,
       cost: "catastrófico",
       focus: "Reescrever a Narrativa/Realidade completamente",
@@ -150,24 +154,7 @@ export const ETHERNUM: EthernumConfig = {
   MIN_LEVEL: 1,
   MAX_LEVEL: 10,
 
-  RUNE_TRINITY: {
-    VERBS: {
-      tier1: ["INFLINGIR", "SUSTENTAR", "IDENTIFICAR", "IMBUIR", "TRAVAR", "AGENDAR"],
-      tier2: ["MOLDAR", "ATRAVESSAR", "REFLETIR", "MODIFICAR", "EXECUTAR", "RASTREAR"],
-      tier3: ["DESTRUIR", "DOMINAR", "TRANSPORTAR", "CRIAR", "REESCREVER", "OTIMIZAR"]
-    },
-    NOUNS: [
-      "Fogo", "Eletricidade", "Aço", "Corpo", "Mente", "Gelo", "Sombra", "Tempo",
-      "Gravidade", "Natureza", "Luz", "Som", "Ar", "Sangue", "Destino", "Peso",
-      "Velocidade", "Ligação", "Duração", "Destreza", "Ferocidade", "Água",
-      "Vida", "Madeira", "Percepção"
-    ],
-    SOURCES: [
-      "Sangue", "Calor", "Dor", "Memória", "Força", "Vigor", "Destreza",
-      "Velocidade", "Personalidade", "Inteligência", "Sabedoria", "Conhecimento",
-      "Coragem", "Sanidade", "Amor", "Raiva", "Desejo", "Empatia", "Sonho", "Éter"
-    ]
-  },
+  RUNE_CATALOG,
 
   DEFAULT_ETHER_ATTRIBUTES: {
     forca:         { value: 1, rank: "F", points: 0 },

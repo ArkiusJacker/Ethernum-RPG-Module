@@ -362,12 +362,13 @@ export class FieldCommunicatorOverlay {
       }, { signal: this.lifecycle.signal });
       return;
     }
+    const resizeLabel = localize("ETHERNUM.FieldCommunicator.Copy.Resize", "Redimensionar");
     root.innerHTML = `<div class="ethc-device-stage">
       <span class="ethc-opening-sweep" aria-hidden="true"></span>
       <span class="ethc-fold-half ethc-fold-half--top" aria-hidden="true"></span>
       <div class="ethernum-field-communicator-overlay__host" data-field-communicator-host></div>
       <span class="ethc-fold-half ethc-fold-half--bottom" aria-hidden="true"></span>
-    </div><button type="button" class="ethc-overlay-resize" data-field-overlay-resize title="Redimensionar" aria-label="Redimensionar"></button>`;
+    </div><button type="button" class="ethc-overlay-resize" data-field-overlay-resize title="${resizeLabel}" aria-label="${resizeLabel}"></button>`;
     this.host = root.querySelector<HTMLElement>("[data-field-communicator-host]");
     root.querySelector<HTMLElement>("[data-field-overlay-resize]")?.addEventListener("pointerdown", event => this.beginResize(event), { signal: this.lifecycle.signal });
   }
@@ -404,6 +405,12 @@ export class FieldCommunicatorOverlay {
       maxRecents: 8,
       callbacks: {
         onOpenApp: (app, context) => this.openApp(app as FieldCommunicatorApp, context),
+        onRetryPanel: panelId => this.service.retryPanel(panelId, this.previewUserId, {
+          selectedContractId: this.selectedContractId,
+          documentViewer: this.documentViewer.getData(),
+          selectedStoreEntryId: this.selectedStoreEntryId,
+          storeReceipt: this.storeReceipt,
+        }),
         onHome: () => { this.clearInternalNavigation(); },
         onBack: () => this.handleInternalBack(),
         onRendered: () => {
@@ -617,8 +624,10 @@ export class FieldCommunicatorOverlay {
           this.storeReceipt = {
             ...submission.receipt,
             status: "failed",
-            statusLabel: "Compra não concluída",
-            message: error instanceof Error ? error.message : "A autoridade da Loja não respondeu.",
+            statusLabel: localize("ETHERNUM.FieldCommunicator.Copy.PurchaseFailed", "Compra não concluída"),
+            message: error instanceof Error
+              ? error.message
+              : localize("ETHERNUM.FieldCommunicator.Copy.StoreAuthorityUnavailable", "A autoridade da Loja não respondeu."),
             tone: "danger",
             icon: "fa-solid fa-circle-xmark",
           };

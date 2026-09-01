@@ -39,6 +39,7 @@ class TestElement {
   scrollTop = 0;
   focused = false;
   removed = false;
+  isConnected = true;
   scroll: TestElement | null = null;
   tagName = "BUTTON";
   type = "button";
@@ -163,6 +164,7 @@ function setup(overrides: Partial<FieldCommunicatorMountOptions> = {}) {
       communicatorTargetId: "entry-1",
     }),
     refresh: action("refresh"),
+    retry: action("retry-panel", { communicatorPanelId: "shop" }),
     custom: action("signal"),
   };
   const host = new TestHost(Object.values(actions));
@@ -407,6 +409,57 @@ describe("FieldCommunicatorView boot and keyboard", () => {
 });
 
 describe("FieldCommunicatorView lifecycle", () => {
+  it("replaces only a failed panel on retry and keeps navigation usable", async () => {
+    const retry = vi.fn(async () => ({ id: "shop", title: "Shop", store: { items: [] } }));
+    const { host, actions, renders, options } = setup({
+      dataSource: () => ({
+        apps: [
+          { id: "shop", label: "Shop", panelId: "shop" },
+          { id: "sheet", label: "Sheet", panelId: "sheet-panel" },
+        ],
+        panels: {
+          shop: { id: "shop", error: { panelId: "shop", title: "Unavailable" } },
+          "sheet-panel": { id: "sheet-panel", title: "Sheet" },
+        },
+        panelErrors: { shop: { panelId: "shop" } },
+        state: { documentUnavailable: false },
+      }),
+      callbacks: { onRetryPanel: retry },
+    });
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+
+    await controller.openApp("shop");
+    host.root.emit("click", actions.retry);
+    await flush();
+    await flush();
+
+    expect(retry).toHaveBeenCalledOnce();
+    expect(controller.getSnapshot().panels?.shop).toMatchObject({ store: { items: [] } });
+    expect(controller.getSnapshot().panels?.["sheet-panel"]).toMatchObject({ title: "Sheet" });
+    expect(controller.getSnapshot().panelErrors).toEqual({});
+    expect(renders.at(-1)?.state).toMatchObject({ documentUnavailable: false });
+    expect(await controller.openApp("sheet")).toBe(true);
+  });
+
+  it("restores retry controls in finally when isolated refresh fails", async () => {
+    const failure = new Error("retry failed");
+    const errors: unknown[] = [];
+    const { host, actions, options } = setup({
+      callbacks: {
+        onRetryPanel: async () => { throw failure; },
+        onError: error => errors.push(error),
+      },
+    });
+    const { controller } = await FieldCommunicatorView.mount(host as unknown as HTMLElement, options);
+    actions.retry.dataset.communicatorPanelId = "sheet-panel";
+
+    await expect(controller.retryPanel("sheet-panel")).resolves.toBe(false);
+    expect(errors).toEqual([failure]);
+    expect(actions.retry.getAttribute("aria-disabled")).toBeNull();
+    expect(actions.retry.dataset.processing).toBeUndefined();
+    expect(host.root.getAttribute("aria-busy")).toBeNull();
+  });
+
   it("aborts stale listeners on rerender and all listeners on destroy", async () => {
     let settings = 0;
     const { host, actions, options } = setup({ callbacks: { onSettings: () => settings += 1 } });

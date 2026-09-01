@@ -100,6 +100,15 @@ export interface FieldCommunicatorPanelData extends FieldCommunicatorPanel {
   isGM?: boolean;
   isNotifications?: boolean;
   isSquad?: boolean;
+  error?: FieldCommunicatorPanelErrorViewModel;
+}
+
+export interface FieldCommunicatorPanelErrorViewModel {
+  code: "PANEL_SNAPSHOT_UNAVAILABLE";
+  panelId: "contracts" | "shop" | "archive";
+  title: string;
+  message: string;
+  retryLabel: string;
 }
 
 export interface FieldCommunicatorBuildOptions {
@@ -327,14 +336,14 @@ export class FieldCommunicatorService {
     const allowedPanelIds = new Set(apps.flatMap(app => app.panelId ? [app.panelId] : []));
     allowedPanelIds.add("notifications");
     if (game.user?.isGM && !previewUser) allowedPanelIds.add("administration");
-    const panelFailures = new Set<string>();
+    const panelErrors: Partial<Record<"contracts" | "shop" | "archive", FieldCommunicatorPanelErrorViewModel>> = {};
     let contractArchive: ContractArchiveSnapshot | undefined;
     let store: CompanyStoreSnapshot | undefined;
     if (allowedPanelIds.has("contracts")) {
       try {
         contractArchive = await this.contractArchive.getSnapshot(previewUserId);
       } catch (error) {
-        panelFailures.add("contracts");
+        panelErrors.contracts = this.panelError("contracts");
         console.error(`${ETHERNUM.MODULE_NAME} | Contract panel snapshot failed`, error);
       }
     }
@@ -342,7 +351,7 @@ export class FieldCommunicatorService {
       try {
         store = await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId);
       } catch (error) {
-        panelFailures.add("shop");
+        panelErrors.shop = this.panelError("shop");
         console.error(`${ETHERNUM.MODULE_NAME} | Store panel snapshot failed`, error);
       }
     }
@@ -382,7 +391,7 @@ export class FieldCommunicatorService {
       contractArchive,
       store,
       messages,
-      panelFailures,
+      panelErrors,
       broadcasts,
       notifications,
       squadGroups,
@@ -414,6 +423,7 @@ export class FieldCommunicatorService {
     return {
       apps,
       panels,
+      panelErrors,
       character,
       agent: {
         name: actor?.name ?? localize("ETHERNUM.FieldCommunicator.AgentFallback", "Agente não vinculado"),
@@ -444,7 +454,7 @@ export class FieldCommunicatorService {
       state: {
         noActor: !actor,
         permissionDenied: false,
-        documentUnavailable: panelFailures.size > 0,
+        documentUnavailable: options.documentViewer?.active === true && options.documentViewer.unavailable === true,
         maintenance: false,
       },
       homeMessage: online
@@ -458,9 +468,9 @@ export class FieldCommunicatorService {
       },
       bootStatus: localize("ETHERNUM.FieldCommunicator.BootStatus", "Autenticando canal de Éter"),
       bootSteps: [
-        { label: "Núcleo", complete: true },
-        { label: "Identidade", complete: true },
-        { label: "Canal", current: true },
+        { label: localize("ETHERNUM.FieldCommunicator.Copy.Core", "Núcleo"), complete: true },
+        { label: localize("ETHERNUM.FieldCommunicator.Copy.Identity", "Identidade"), complete: true },
+        { label: localize("ETHERNUM.FieldCommunicator.Copy.Channel", "Canal"), current: true },
       ],
       motionMode: preferences.motion,
       highContrast: preferences.highContrast,
@@ -607,6 +617,28 @@ export class FieldCommunicatorService {
     return this.companyStore.requestPurchase(entryId);
   }
 
+  async retryPanel(
+    panelId: string,
+    previewUserId?: string | null,
+    options: FieldCommunicatorBuildOptions = {},
+  ): Promise<FieldCommunicatorPanelData> {
+    if (panelId === "contracts") {
+      const archive = await this.contractArchive.getSnapshot(previewUserId);
+      return this.contractPanel(archive, options.selectedContractId, options.documentViewer);
+    }
+    if (panelId === "shop") {
+      const store = await this.companyStore.getSnapshot(previewUserId, options.selectedStoreEntryId);
+      return this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", {
+        store,
+        storeReceipt: options.storeReceipt,
+      });
+    }
+    throw new Error(localize(
+      "ETHERNUM.FieldCommunicator.Errors.UnsupportedPanelRetry",
+      "Este painel não oferece uma atualização isolada.",
+    ));
+  }
+
   private async buildPanels(
     actor: Actor | null,
     registry: FieldCommunicatorRegistryData,
@@ -620,7 +652,7 @@ export class FieldCommunicatorService {
       broadcasts?: EmergencyBroadcastDTO[];
       notifications?: FieldCommunicatorNotification[];
       squadGroups?: FieldCommunicatorSquadGroup[];
-      panelFailures?: ReadonlySet<string>;
+      panelErrors?: Partial<Record<"contracts" | "shop" | "archive", FieldCommunicatorPanelErrorViewModel>>;
     } = {},
   ): Promise<Record<string, FieldCommunicatorPanelData>> {
     const scenes = this.documentEntries(resources.scenes, "view-scene", viewer);
@@ -674,9 +706,9 @@ export class FieldCommunicatorService {
         entries: journalEntries(/dossi|ameaça|inteligência|intelligence/i),
         description: "Journals visíveis cujo nome ou pasta indica dossiê, ameaça ou inteligência.",
       }),
-      contracts: options.panelFailures?.has("contracts")
+      contracts: options.panelErrors?.contracts
         ? this.panel("contracts", localize("ETHERNUM.FieldCommunicator.Panels.Contracts", "Contratos"), "contracts", {
-            description: "Contratos temporariamente indisponíveis. Tente novamente ou informe o Gamemaster.",
+            error: options.panelErrors.contracts,
           })
         : this.contractPanel(
             options.contractArchive ?? { schemaVersion: 1, revision: 0, contracts: [] },
@@ -690,9 +722,7 @@ export class FieldCommunicatorService {
       shop: this.panel("shop", localize("ETHERNUM.FieldCommunicator.Panels.Shop", "Loja"), "shop", {
         store: options.store,
         storeReceipt: options.storeReceipt,
-        ...(options.panelFailures?.has("shop") ? {
-          description: "Loja temporariamente indisponível. Tente novamente ou informe o Gamemaster.",
-        } : {}),
+        ...(options.panelErrors?.shop ? { error: options.panelErrors.shop } : {}),
       }),
       settings: this.panel("settings", localize("ETHERNUM.FieldCommunicator.Panels.Settings", "Ajustes"), "settings", {
         settings: this.clientSettings(),
@@ -737,6 +767,27 @@ export class FieldCommunicatorService {
     };
   }
 
+  private panelError(panelId: "contracts" | "shop" | "archive"): FieldCommunicatorPanelErrorViewModel {
+    const name = localize(
+      panelId === "contracts"
+        ? "ETHERNUM.FieldCommunicator.Panels.Contracts"
+        : panelId === "shop"
+          ? "ETHERNUM.FieldCommunicator.Panels.Shop"
+          : "ETHERNUM.FieldCommunicator.Panels.Files",
+      panelId === "contracts" ? "Contratos" : panelId === "shop" ? "Loja" : "Arquivos",
+    );
+    return {
+      code: "PANEL_SNAPSHOT_UNAVAILABLE",
+      panelId,
+      title: localize("ETHERNUM.FieldCommunicator.PanelError.Title", `${name} temporariamente indisponível`),
+      message: localize(
+        "ETHERNUM.FieldCommunicator.PanelError.Message",
+        "Não foi possível sincronizar este aplicativo. Os demais recursos continuam disponíveis.",
+      ),
+      retryLabel: localize("ETHERNUM.FieldCommunicator.PanelError.Retry", "Tentar novamente"),
+    };
+  }
+
   private contractPanel(
     archive: ContractArchiveSnapshot,
     selectedContractId?: string | null,
@@ -764,7 +815,7 @@ export class FieldCommunicatorService {
         count: contracts.length,
         items: contracts.map(contract => ({
           id: contract.id,
-          numberLabel: `Contrato ${String(contract.number).padStart(2, "0")}`,
+          numberLabel: `${localize("ETHERNUM.FieldCommunicator.Copy.Contract", "Contrato")} ${String(contract.number).padStart(2, "0")}`,
           label: contract.title,
           description: [contract.location, contract.statusLabel].filter(Boolean).join(" · "),
           grade: contract.grade,
@@ -905,7 +956,7 @@ export class FieldCommunicatorService {
         .map(contract => ({
           id: `contract:${contract.id}:${contract.updatedAt}`,
           type: "contract",
-          title: `Contrato ${String(contract.number).padStart(2, "0")} · ${contract.title}`,
+          title: `${localize("ETHERNUM.FieldCommunicator.Copy.Contract", "Contrato")} ${String(contract.number).padStart(2, "0")} · ${contract.title}`,
           body: [contract.statusLabel, contract.location].filter(Boolean).join(" · "),
           createdAt: contract.updatedAt || contract.createdAt,
           priority: contract.status === "active" || contract.status === "accepted" ? "priority" as const : "normal" as const,

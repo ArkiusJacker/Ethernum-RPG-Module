@@ -68,6 +68,15 @@ function isSection(value: string | undefined): value is GMControlSection {
   return Boolean(value && GM_CONTROL_SECTIONS.includes(value as GMControlSection));
 }
 
+export function resolveRovingTabIndex(current: number, length: number, key: string): number | null {
+  if (length <= 0) return null;
+  if (key === "Home") return 0;
+  if (key === "End") return length - 1;
+  if (key === "ArrowRight") return (Math.max(0, current) + 1) % length;
+  if (key === "ArrowLeft") return (Math.max(0, current) - 1 + length) % length;
+  return null;
+}
+
 function queryValue(root: HTMLElement, selector: string): string {
   return root.querySelector<HTMLInputElement | HTMLSelectElement>(selector)?.value ?? "";
 }
@@ -248,6 +257,7 @@ export class GMControlCenter {
         if (isSection(section)) void this.setSection(section);
       }, { signal });
     });
+    this.activateTabKeyboard(root, signal);
 
     root.querySelectorAll<HTMLButtonElement>("[data-gm-theme]").forEach(button => {
       button.addEventListener("click", () => {
@@ -335,6 +345,40 @@ export class GMControlCenter {
         for (const [key, value] of Object.entries(button.dataset)) if (typeof value === "string") payload[key] = value;
         if (action === "preview-player") payload.userId = queryValue(root, "[data-gm-preview-user]");
         void this.handleDomainAction(action, payload);
+      }, { signal });
+    });
+  }
+
+  private activateTabKeyboard(root: HTMLElement, signal: AbortSignal): void {
+    const tabList = root.querySelector<HTMLElement>("[role='tablist']");
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-gm-section][role='tab']"));
+    if (!tabList || tabs.length === 0) return;
+    const updateOverflow = (): void => {
+      const maximum = Math.max(0, tabList.scrollWidth - tabList.clientWidth);
+      tabList.dataset.overflowLeft = String(tabList.scrollLeft > 1);
+      tabList.dataset.overflowRight = String(tabList.scrollLeft < maximum - 1);
+    };
+    tabList.addEventListener("scroll", updateOverflow, { signal, passive: true });
+    updateOverflow();
+    const active = tabs.find(tab => tab.getAttribute("aria-selected") === "true") ?? tabs[0];
+    active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("keydown", event => {
+        const nextIndex = resolveRovingTabIndex(index, tabs.length, event.key);
+        if (nextIndex !== null) {
+          event.preventDefault();
+          tabs.forEach((candidate, candidateIndex) => { candidate.tabIndex = candidateIndex === nextIndex ? 0 : -1; });
+          const next = tabs[nextIndex];
+          next?.focus();
+          next?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+          updateOverflow();
+          return;
+        }
+        if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+        const section = tab.dataset.gmSection;
+        if (!isSection(section)) return;
+        event.preventDefault();
+        void this.setSection(section);
       }, { signal });
     });
   }

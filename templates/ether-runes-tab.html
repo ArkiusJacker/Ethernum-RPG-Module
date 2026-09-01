@@ -382,123 +382,43 @@
                   <div class="ethernum-trinity-chip-group">
                     <button type="button" class="ethernum-trinity-chip" data-rune-id="{{this.id}}" data-field="verb">
                       <i class="fas fa-bolt ethernum-chip-icon"></i>
-                      {{#if this.verb}}<span class="ethernum-chip-val">{{this.verb}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectVerb"}}</span>{{/if}}
+                      {{#if this.verb}}<span class="ethernum-chip-val">{{this.verbLabel}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectVerb"}}</span>{{/if}}
                     </button>
                     <select class="ethernum-rune-input ethernum-trinity-select-hidden" data-rune-id="{{this.id}}" data-field="verb">
                       <option value="">{{localize "ETHERNUM.RuneTrinity.SelectVerb"}}</option>
-                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier1'}}">
-                        <option value="INFLINGIR" {{#if (ethernum-eq this.verb "INFLINGIR")}}selected{{/if}}>INFLINGIR</option>
-                        <option value="SUSTENTAR" {{#if (ethernum-eq this.verb "SUSTENTAR")}}selected{{/if}}>SUSTENTAR</option>
-                        <option value="IDENTIFICAR" {{#if (ethernum-eq this.verb "IDENTIFICAR")}}selected{{/if}}>IDENTIFICAR</option>
-                        <option value="IMBUIR" {{#if (ethernum-eq this.verb "IMBUIR")}}selected{{/if}}>IMBUIR</option>
-                        <option value="TRAVAR" {{#if (ethernum-eq this.verb "TRAVAR")}}selected{{/if}}>TRAVAR</option>
-                        <option value="AGENDAR" {{#if (ethernum-eq this.verb "AGENDAR")}}selected{{/if}}>AGENDAR</option>
-                      </optgroup>
-                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier2'}}">
-                        <option value="MOLDAR" {{#if (ethernum-eq this.verb "MOLDAR")}}selected{{/if}}>MOLDAR</option>
-                        <option value="ATRAVESSAR" {{#if (ethernum-eq this.verb "ATRAVESSAR")}}selected{{/if}}>ATRAVESSAR</option>
-                        <option value="REFLETIR" {{#if (ethernum-eq this.verb "REFLETIR")}}selected{{/if}}>REFLETIR</option>
-                        <option value="MODIFICAR" {{#if (ethernum-eq this.verb "MODIFICAR")}}selected{{/if}}>MODIFICAR</option>
-                        <option value="EXECUTAR" {{#if (ethernum-eq this.verb "EXECUTAR")}}selected{{/if}}>EXECUTAR</option>
-                        <option value="RASTREAR" {{#if (ethernum-eq this.verb "RASTREAR")}}selected{{/if}}>RASTREAR</option>
-                      </optgroup>
-                      <optgroup label="{{localize 'ETHERNUM.RuneTrinity.Tier3'}}">
-                        <option value="DESTRUIR" {{#if (ethernum-eq this.verb "DESTRUIR")}}selected{{/if}}>DESTRUIR</option>
-                        <option value="DOMINAR" {{#if (ethernum-eq this.verb "DOMINAR")}}selected{{/if}}>DOMINAR</option>
-                        <option value="TRANSPORTAR" {{#if (ethernum-eq this.verb "TRANSPORTAR")}}selected{{/if}}>TRANSPORTAR</option>
-                        <option value="CRIAR" {{#if (ethernum-eq this.verb "CRIAR")}}selected{{/if}}>CRIAR</option>
-                        <option value="REESCREVER" {{#if (ethernum-eq this.verb "REESCREVER")}}selected{{/if}}>REESCREVER</option>
-                        <option value="OTIMIZAR" {{#if (ethernum-eq this.verb "OTIMIZAR")}}selected{{/if}}>OTIMIZAR</option>
-                      </optgroup>
-                      {{#if ../../customWords.verbs}}
-                      <optgroup label="{{localize 'ETHERNUM.GM.CustomWords'}}">
-                        {{#each ../../customWords.verbs}}
-                        <option value="{{this}}" {{#if (ethernum-eq ../verb this)}}selected{{/if}}>{{this}}</option>
-                        {{/each}}
-                      </optgroup>
-                      {{/if}}
+                      {{#each this.wordOptions.verbs}}
+                      <option value="{{this.value}}" data-word-status="{{this.status}}" {{#if this.selected}}selected{{/if}}>{{this.label}}{{#if this.legacy}} · {{localize "ETHERNUM.RuneCatalog.LegacyBadge"}}{{/if}}</option>
+                      {{/each}}
                     </select>
                   </div>
                   <span class="ethernum-chip-sep">+</span>
                   <div class="ethernum-trinity-chip-group">
                     <button type="button" class="ethernum-trinity-chip" data-rune-id="{{this.id}}" data-field="noun">
                       <i class="fas fa-fire ethernum-chip-icon"></i>
-                      {{#if this.noun}}<span class="ethernum-chip-val">{{this.noun}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectNoun"}}</span>{{/if}}
+                      {{#if this.noun}}<span class="ethernum-chip-val">{{this.nounLabel}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectNoun"}}</span>{{/if}}
                     </button>
                     <select class="ethernum-rune-input ethernum-trinity-select-hidden" data-rune-id="{{this.id}}" data-field="noun">
                       <option value="">{{localize "ETHERNUM.RuneTrinity.SelectNoun"}}</option>
-                      <option value="Fogo" {{#if (ethernum-eq this.noun "Fogo")}}selected{{/if}}>Fogo</option>
-                      <option value="Eletricidade" {{#if (ethernum-eq this.noun "Eletricidade")}}selected{{/if}}>Eletricidade</option>
-                      <option value="Aço" {{#if (ethernum-eq this.noun "Aço")}}selected{{/if}}>Aço</option>
-                      <option value="Corpo" {{#if (ethernum-eq this.noun "Corpo")}}selected{{/if}}>Corpo</option>
-                      <option value="Mente" {{#if (ethernum-eq this.noun "Mente")}}selected{{/if}}>Mente</option>
-                      <option value="Gelo" {{#if (ethernum-eq this.noun "Gelo")}}selected{{/if}}>Gelo</option>
-                      <option value="Sombra" {{#if (ethernum-eq this.noun "Sombra")}}selected{{/if}}>Sombra</option>
-                      <option value="Tempo" {{#if (ethernum-eq this.noun "Tempo")}}selected{{/if}}>Tempo</option>
-                      <option value="Gravidade" {{#if (ethernum-eq this.noun "Gravidade")}}selected{{/if}}>Gravidade</option>
-                      <option value="Natureza" {{#if (ethernum-eq this.noun "Natureza")}}selected{{/if}}>Natureza</option>
-                      <option value="Luz" {{#if (ethernum-eq this.noun "Luz")}}selected{{/if}}>Luz</option>
-                      <option value="Som" {{#if (ethernum-eq this.noun "Som")}}selected{{/if}}>Som</option>
-                      <option value="Ar" {{#if (ethernum-eq this.noun "Ar")}}selected{{/if}}>Ar</option>
-                      <option value="Sangue" {{#if (ethernum-eq this.noun "Sangue")}}selected{{/if}}>Sangue</option>
-                      <option value="Destino" {{#if (ethernum-eq this.noun "Destino")}}selected{{/if}}>Destino</option>
-                      <option value="Peso" {{#if (ethernum-eq this.noun "Peso")}}selected{{/if}}>Peso</option>
-                      <option value="Velocidade" {{#if (ethernum-eq this.noun "Velocidade")}}selected{{/if}}>Velocidade</option>
-                      <option value="Ligação" {{#if (ethernum-eq this.noun "Ligação")}}selected{{/if}}>Ligação</option>
-                      <option value="Duração" {{#if (ethernum-eq this.noun "Duração")}}selected{{/if}}>Duração</option>
-                      <option value="Destreza" {{#if (ethernum-eq this.noun "Destreza")}}selected{{/if}}>Destreza</option>
-                      <option value="Ferocidade" {{#if (ethernum-eq this.noun "Ferocidade")}}selected{{/if}}>Ferocidade</option>
-                      <option value="Água" {{#if (ethernum-eq this.noun "Água")}}selected{{/if}}>Água</option>
-                      <option value="Vida" {{#if (ethernum-eq this.noun "Vida")}}selected{{/if}}>Vida</option>
-                      <option value="Madeira" {{#if (ethernum-eq this.noun "Madeira")}}selected{{/if}}>Madeira</option>
-                      <option value="Percepção" {{#if (ethernum-eq this.noun "Percepção")}}selected{{/if}}>Percepção</option>
-                      {{#if ../../customWords.nouns}}
-                      <optgroup label="{{localize 'ETHERNUM.GM.CustomWords'}}">
-                        {{#each ../../customWords.nouns}}
-                        <option value="{{this}}" {{#if (ethernum-eq ../noun this)}}selected{{/if}}>{{this}}</option>
-                        {{/each}}
-                      </optgroup>
-                      {{/if}}
+                      {{#each this.wordOptions.nouns}}
+                      <option value="{{this.value}}" data-word-status="{{this.status}}" {{#if this.selected}}selected{{/if}}>{{this.label}}{{#if this.legacy}} · {{localize "ETHERNUM.RuneCatalog.LegacyBadge"}}{{/if}}</option>
+                      {{/each}}
                     </select>
                   </div>
                   <span class="ethernum-chip-sep">+</span>
                   <div class="ethernum-trinity-chip-group">
                     <button type="button" class="ethernum-trinity-chip" data-rune-id="{{this.id}}" data-field="source">
                       <i class="fas fa-tint ethernum-chip-icon"></i>
-                      {{#if this.source}}<span class="ethernum-chip-val">{{this.source}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectSource"}}</span>{{/if}}
+                      {{#if this.source}}<span class="ethernum-chip-val">{{this.sourceLabel}}</span>{{else}}<span class="ethernum-chip-empty">{{localize "ETHERNUM.RuneTrinity.SelectSource"}}</span>{{/if}}
                     </button>
                     <select class="ethernum-rune-input ethernum-trinity-select-hidden" data-rune-id="{{this.id}}" data-field="source">
                       <option value="">{{localize "ETHERNUM.RuneTrinity.SelectSource"}}</option>
-                      <option value="Sangue" {{#if (ethernum-eq this.source "Sangue")}}selected{{/if}}>Sangue</option>
-                      <option value="Calor" {{#if (ethernum-eq this.source "Calor")}}selected{{/if}}>Calor</option>
-                      <option value="Dor" {{#if (ethernum-eq this.source "Dor")}}selected{{/if}}>Dor</option>
-                      <option value="Memória" {{#if (ethernum-eq this.source "Memória")}}selected{{/if}}>Memória</option>
-                      <option value="Força" {{#if (ethernum-eq this.source "Força")}}selected{{/if}}>Força</option>
-                      <option value="Vigor" {{#if (ethernum-eq this.source "Vigor")}}selected{{/if}}>Vigor</option>
-                      <option value="Destreza" {{#if (ethernum-eq this.source "Destreza")}}selected{{/if}}>Destreza</option>
-                      <option value="Velocidade" {{#if (ethernum-eq this.source "Velocidade")}}selected{{/if}}>Velocidade</option>
-                      <option value="Personalidade" {{#if (ethernum-eq this.source "Personalidade")}}selected{{/if}}>Personalidade</option>
-                      <option value="Inteligência" {{#if (ethernum-eq this.source "Inteligência")}}selected{{/if}}>Inteligência</option>
-                      <option value="Sabedoria" {{#if (ethernum-eq this.source "Sabedoria")}}selected{{/if}}>Sabedoria</option>
-                      <option value="Conhecimento" {{#if (ethernum-eq this.source "Conhecimento")}}selected{{/if}}>Conhecimento</option>
-                      <option value="Coragem" {{#if (ethernum-eq this.source "Coragem")}}selected{{/if}}>Coragem</option>
-                      <option value="Sanidade" {{#if (ethernum-eq this.source "Sanidade")}}selected{{/if}}>Sanidade</option>
-                      <option value="Amor" {{#if (ethernum-eq this.source "Amor")}}selected{{/if}}>Amor</option>
-                      <option value="Raiva" {{#if (ethernum-eq this.source "Raiva")}}selected{{/if}}>Raiva</option>
-                      <option value="Desejo" {{#if (ethernum-eq this.source "Desejo")}}selected{{/if}}>Desejo</option>
-                      <option value="Empatia" {{#if (ethernum-eq this.source "Empatia")}}selected{{/if}}>Empatia</option>
-                      <option value="Sonho" {{#if (ethernum-eq this.source "Sonho")}}selected{{/if}}>Sonho</option>
-                      <option value="Éter" {{#if (ethernum-eq this.source "Éter")}}selected{{/if}}>Éter</option>
-                      {{#if ../../customWords.sources}}
-                      <optgroup label="{{localize 'ETHERNUM.GM.CustomWords'}}">
-                        {{#each ../../customWords.sources}}
-                        <option value="{{this}}" {{#if (ethernum-eq ../source this)}}selected{{/if}}>{{this}}</option>
-                        {{/each}}
-                      </optgroup>
-                      {{/if}}
+                      {{#each this.wordOptions.sources}}
+                      <option value="{{this.value}}" data-word-status="{{this.status}}" {{#if this.selected}}selected{{/if}}>{{this.label}}{{#if this.legacy}} · {{localize "ETHERNUM.RuneCatalog.LegacyBadge"}}{{/if}}</option>
+                      {{/each}}
                     </select>
                   </div>
                 </div>
+                {{#if this.hasLegacyWord}}<span class="ethernum-rune-legacy-badge">{{localize "ETHERNUM.RuneCatalog.LegacyBadge"}}</span>{{/if}}
 
                 <div class="ethernum-rune-stats">
                   <div class="ethernum-rune-stat">

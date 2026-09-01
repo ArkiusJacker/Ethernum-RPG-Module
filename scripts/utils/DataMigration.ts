@@ -10,8 +10,12 @@ import { DEFAULT_CHARLES_STATE } from '../mechanics/charles/profile.js';
 import { DEFAULT_ATLAS_STATE } from '../mechanics/atlas/profile.js';
 import { normalizePippingState } from '../mechanics/pipping/profile.js';
 import { AutomationAuthority } from '../core/AutomationAuthority.js';
+import {
+  migrateRuneCatalog,
+  type RuneCatalogMigrationSummary,
+} from '../runes/RuneCatalogMigration.js';
 
-export const CURRENT_SCHEMA_VERSION = 14;
+export const CURRENT_SCHEMA_VERSION = 15;
 
 interface EtherSystem {
   etherMax: number;
@@ -121,11 +125,12 @@ export function validateActorFlags(actor: Actor): ValidationResult {
   return { valid: issues.length === 0, issues };
 }
 
-export async function migrateActor(actor: Actor): Promise<void> {
+export async function migrateActor(actor: Actor): Promise<RuneCatalogMigrationSummary> {
   const m = ETHERNUM.MODULE_NAME;
   const schemaVersion = (actor.getFlag(m, "schemaVersion") as number | undefined) ?? 0;
+  let runeCatalogSummary: RuneCatalogMigrationSummary = { converted: 0, legacy: 0, unknown: 0 };
 
-  if (schemaVersion >= CURRENT_SCHEMA_VERSION) return;
+  if (schemaVersion >= CURRENT_SCHEMA_VERSION) return runeCatalogSummary;
 
   const updates: Record<string, unknown> = {};
 
@@ -435,9 +440,23 @@ export async function migrateActor(actor: Actor): Promise<void> {
     console.log(`Ethernum | Migrado ator "${actor.name}" para schema v14`);
   }
 
+  if (schemaVersion < 15) {
+    const runes = (updates[`flags.${m}.runes`] as Rune[] | undefined)
+      ?? actor.getFlag(m, "runes") as Rune[] | undefined;
+    const customWords = (actor.getFlag(m, "customWords") ?? {}) as Partial<Record<"verbs" | "nouns" | "sources", string[]>>;
+    if (Array.isArray(runes)) {
+      const result = migrateRuneCatalog(runes, customWords);
+      updates[`flags.${m}.runes`] = result.runes;
+      runeCatalogSummary = result.summary;
+    }
+    updates[`flags.${m}.catalogSchemaVersion`] = 2;
+    console.log(`Ethernum | Catálogo de runas v2 preparado para "${actor.name}"`, runeCatalogSummary);
+  }
+
   updates[`flags.${m}.schemaVersion`] = CURRENT_SCHEMA_VERSION;
 
   if (Object.keys(updates).length > 0) await actor.update(updates);
+  return runeCatalogSummary;
 }
 
 export async function migrateWorld(): Promise<void> {
@@ -450,7 +469,7 @@ export async function migrateWorld(): Promise<void> {
   const actors = (Array.from(game.actors ?? []) as Actor[])
     .filter(actor => (actor.type as string) === "character");
   const results = await Promise.allSettled(actors.map(async actor => {
-    await migrateActor(actor);
+    const summary = await migrateActor(actor);
     const actorSchema = Number(actor.getFlag(ETHERNUM.MODULE_NAME, "schemaVersion") ?? 0);
     const unique = actor.getFlag(ETHERNUM.MODULE_NAME, "uniqueMechanics");
     const momentum = actor.getFlag(ETHERNUM.MODULE_NAME, "combatMomentum");
@@ -459,7 +478,7 @@ export async function migrateWorld(): Promise<void> {
     if (!validateUniqueMechanics(unique)) issues.push("uniqueMechanics");
     if (!validateCombatMomentum(momentum)) issues.push("combatMomentum");
     if (issues.length > 0) throw new Error(`Falha de validação: ${issues.join(", ")}`);
-    return actor;
+    return { actor, summary };
   }));
   const failures = results.flatMap((result, index) => result.status === "rejected"
     ? [{
@@ -479,5 +498,13 @@ export async function migrateWorld(): Promise<void> {
 
   await game.settings!.set(ETHERNUM.MODULE_NAME, "schemaVersion", CURRENT_SCHEMA_VERSION);
   ui.notifications?.info(game.i18n!.format("ETHERNUM.Migrations.Success", { total: actors.length }));
+  const catalogSummary = results.reduce<RuneCatalogMigrationSummary>((total, result) => {
+    if (result.status !== "fulfilled") return total;
+    total.converted += result.value.summary.converted;
+    total.legacy += result.value.summary.legacy;
+    total.unknown += result.value.summary.unknown;
+    return total;
+  }, { converted: 0, legacy: 0, unknown: 0 });
+  ui.notifications?.info(game.i18n!.format("ETHERNUM.Migrations.RuneCatalogSummary", { ...catalogSummary }));
   console.log("Ethernum | Migração concluída");
 }

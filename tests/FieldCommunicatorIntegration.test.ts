@@ -39,7 +39,7 @@ describe("Field Communicator v3.8.0 integration", () => {
     expect(template).toContain("data-communicator-group-message");
     expect(template).toContain('data-communicator-action="open-notification"');
     expect(template).toContain('data-communicator-action="mark-all-notifications-read"');
-    expect(template).toContain("NENHUM ESQUADRÃO ATRIBUÍDO");
+    expect(template).toContain("ETHERNUM.FieldCommunicator.Copy.NoSquad");
     expect(read("scripts/communicator/FieldCommunicatorService.ts")).toContain("Canal local protegido");
     expect(template).not.toContain("signal.bars");
     expect(template).not.toContain("Document cannot be rendered internally");

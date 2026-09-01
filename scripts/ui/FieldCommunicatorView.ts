@@ -82,6 +82,10 @@ export interface FieldCommunicatorAdminPayload {
 
 export interface FieldCommunicatorCallbacks {
   onRefresh?(context: FieldCommunicatorActionContext): void | Promise<void>;
+  onRetryPanel?(
+    panelId: string,
+    context: FieldCommunicatorActionContext,
+  ): FieldCommunicatorPanel | Promise<FieldCommunicatorPanel>;
   onSettings?(context: FieldCommunicatorActionContext): void | Promise<void>;
   onOpenApp?(
     app: FieldCommunicatorApp,
@@ -173,6 +177,11 @@ const DEFAULT_BOOT_DURATIONS: Record<Exclude<FieldCommunicatorBootMode, "off">, 
   short: 450,
   skippable: 2_200,
 };
+
+function localize(key: string, fallback: string): string {
+  const translated = (globalThis as typeof globalThis & { game?: Game }).game?.i18n?.localize(key);
+  return translated && translated !== key ? translated : fallback;
+}
 
 const defaultTimers: FieldCommunicatorTimerAdapter = {
   setTimeout: (callback, delay) => globalThis.setTimeout(callback, delay),
@@ -325,6 +334,26 @@ export class FieldCommunicatorView {
       await this.options.callbacks?.onRefresh?.(this.context());
       await this.render();
     });
+  }
+
+  async retryPanel(panelId = this.location.panelId ?? ""): Promise<boolean> {
+    if (!panelId || !this.hasPanel(panelId) || !this.options.callbacks?.onRetryPanel) return false;
+    let succeeded = false;
+    await this.run(`retry-panel:${panelId}`, async () => {
+      const panel = await this.options.callbacks!.onRetryPanel!(panelId, this.context());
+      const panelErrors = this.snapshot.panelErrors && typeof this.snapshot.panelErrors === "object"
+        ? { ...(this.snapshot.panelErrors as Record<string, unknown>) }
+        : {};
+      delete panelErrors[panelId];
+      this.snapshot = {
+        ...this.snapshot,
+        panelErrors,
+        panels: { ...(this.snapshot.panels ?? {}), [panelId]: panel },
+      };
+      succeeded = true;
+      await this.render({ reload: false });
+    });
+    return succeeded;
   }
 
   async showHome(): Promise<void> {
@@ -525,7 +554,10 @@ export class FieldCommunicatorView {
     const isAdmin = isCommunicatorPanel && this.location.panelId === "administration";
     const recentApps = this.recentAppIds.flatMap(id => {
       const app = appById.get(id);
-      return app ? [{ ...app, lastOpenedLabel: "Acessado nesta sessão" }] : [];
+      return app ? [{
+        ...app,
+        lastOpenedLabel: localize("ETHERNUM.FieldCommunicator.Copy.AccessedThisSession", "Acessado nesta sessão"),
+      }] : [];
     });
     const activeApp = apps.find(app =>
       app.id === this.location.panelId
@@ -533,13 +565,13 @@ export class FieldCommunicatorView {
       || app.internalTarget === this.location.panelId)
       ?? (isAdmin ? {
         id: "administration",
-        label: "Administração",
-        description: "Aplicativos e permissões do comunicador",
+        label: localize("ETHERNUM.FieldCommunicator.Panels.Administration", "Administração"),
+        description: localize("ETHERNUM.FieldCommunicator.Copy.AdministrationDescription", "Aplicativos e permissões do comunicador"),
         icon: "fa-solid fa-user-shield",
       } : this.location.panelId === "notifications" ? {
         id: "notifications",
-        label: "Notificações",
-        description: "Eventos operacionais ainda não lidos neste perfil",
+        label: localize("ETHERNUM.FieldCommunicator.Notifications", "Notificações"),
+        description: localize("ETHERNUM.FieldCommunicator.Copy.NotificationsPanelDescription", "Eventos operacionais ainda não lidos neste perfil"),
         icon: "fa-solid fa-bell",
       } : null);
     const snapshotState = this.snapshot.state && typeof this.snapshot.state === "object"
@@ -769,6 +801,9 @@ export class FieldCommunicatorView {
       case "refresh-panel":
         await this.refresh();
         return;
+      case "retry-panel":
+        await this.retryPanel(panelId ?? this.location.panelId ?? "");
+        return;
       case "open-admin":
         await this.openPanel("administration");
         return;
@@ -816,9 +851,10 @@ export class FieldCommunicatorView {
     if (this.pendingActions.has(action)) return;
     this.pendingActions.add(action);
     const root = this.root();
-    const controls = action === "store-purchase"
+    const controlAction = action.split(":", 1)[0] ?? action;
+    const controls = controlAction === "store-purchase" || controlAction === "retry-panel"
       ? Array.from(root?.querySelectorAll<HTMLElement>("[data-communicator-action]") ?? [])
-        .filter(control => control.dataset.communicatorAction === action)
+        .filter(control => control.dataset.communicatorAction === controlAction)
       : [];
     const controlStates = controls.map(control => ({
       control,

@@ -9,6 +9,11 @@ function git(args) {
   return result.stdout.trim();
 }
 
+function tryGit(args) {
+  const result = spawnSync("git", args, { encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : "";
+}
+
 export function evaluateReleaseTopology({ tagCommit, mainCommit, mergeBase }) {
   const normalized = {
     tagCommit: String(tagCommit ?? "").trim(),
@@ -28,7 +33,14 @@ export function inspectReleaseTopology({ tagRef, mainRef }) {
   return evaluateReleaseTopology({ tagCommit, mainCommit, mergeBase });
 }
 
-function parseArguments(argv) {
+export function resolveTagRef({ explicitTagRef = "", githubRefName = "", githubRefType = "", exactLocalTag = "" } = {}) {
+  if (String(explicitTagRef).trim()) return String(explicitTagRef).trim();
+  const githubName = String(githubRefName).trim();
+  if (githubName && (githubRefType === "tag" || /^v\d+(?:\.\d+){2}(?:[-+].+)?$/.test(githubName))) return githubName;
+  return String(exactLocalTag).trim();
+}
+
+export function parseArguments(argv, env = process.env, exactLocalTag = "") {
   const options = { tagRef: "", mainRef: "origin/main" };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -40,12 +52,23 @@ function parseArguments(argv) {
     options[argument === "--tag-ref" ? "tagRef" : "mainRef"] = value;
     index += 1;
   }
-  if (!options.tagRef) throw new Error("--tag-ref is required");
+  options.tagRef = resolveTagRef({
+    explicitTagRef: options.tagRef,
+    githubRefName: env.GITHUB_REF_NAME,
+    githubRefType: env.GITHUB_REF_TYPE,
+    exactLocalTag,
+  });
+  if (!options.tagRef) {
+    throw new Error(
+      "No release tag could be determined. Pass --tag-ref vX.Y.Z, run from a commit with an exact local tag, or execute the tag workflow with GITHUB_REF_NAME/GITHUB_REF_TYPE=tag.",
+    );
+  }
   return options;
 }
 
 function main() {
-  const topology = inspectReleaseTopology(parseArguments(process.argv.slice(2)));
+  const exactLocalTag = tryGit(["describe", "--tags", "--exact-match", "HEAD"]);
+  const topology = inspectReleaseTopology(parseArguments(process.argv.slice(2), process.env, exactLocalTag));
   console.log(`Tag commit:  ${topology.tagCommit}`);
   console.log(`Main commit: ${topology.mainCommit}`);
   console.log(`Merge base:  ${topology.mergeBase}`);

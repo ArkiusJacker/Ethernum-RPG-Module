@@ -7,7 +7,7 @@
   data-communicator-screen="{{screen}}"
   data-navigation-direction="{{navigationDirection}}"
   style="{{#if textScale}}--ethc-text-scale: {{textScale}};{{/if}}{{#if glowIntensity}} --ethc-glow-strength: {{glowIntensity}};{{/if}}"
-  aria-label="Comunicador de Campo Ethernum"
+  aria-label="{{localize 'ETHERNUM.FieldCommunicator.Title'}}"
 >
   <span class="ethc-chassis-detail ethc-chassis-detail--top" aria-hidden="true"></span>
   <span class="ethc-chassis-detail ethc-chassis-detail--bottom" aria-hidden="true"></span>
@@ -26,16 +26,16 @@
       <img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt="" aria-hidden="true">
     </div>
     <div class="ethc-boot__copy">
-      <p class="ethc-kicker">ETHERNUM FIELD SYSTEM</p>
-      <h1 id="ethc-boot-title">Comunicador de Campo</h1>
+      <p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Boot.System"}}</p>
+      <h1 id="ethc-boot-title">{{localize "ETHERNUM.FieldCommunicator.Title"}}</h1>
       <p id="ethc-boot-status" class="ethc-boot__status">{{bootStatus}}</p>
       <dl class="ethc-boot__identity">
-        <div><dt>Agente</dt><dd>{{agent.name}}</dd></div>
-        <div><dt>Autorização</dt><dd>Rank {{agent.rank}}</dd></div>
-        <div><dt>Esquadrão</dt><dd>{{agent.squad}}</dd></div>
+        <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Agent"}}</dt><dd>{{agent.name}}</dd></div>
+        <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Authorization"}}</dt><dd>{{localize "ETHERNUM.FieldCommunicator.Rank"}} {{agent.rank}}</dd></div>
+        <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Squad"}}</dt><dd>{{agent.squad}}</dd></div>
       </dl>
     </div>
-    <ol class="ethc-boot__steps" aria-label="Progresso da inicialização">
+    <ol class="ethc-boot__steps" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.BootProgress'}}">
       {{#each bootSteps}}
       <li class="{{#if this.complete}}is-complete{{/if}} {{#if this.current}}is-current{{/if}}">
         <span aria-hidden="true"></span><span>{{this.label}}</span>
@@ -44,7 +44,7 @@
     </ol>
     {{#if communicator.boot.canSkip}}<button type="button" class="ethc-boot__skip" data-communicator-action="skip-boot">
       <i class="fas fa-forward-step" aria-hidden="true"></i>
-      <span>Pular inicialização</span>
+      <span>{{localize "ETHERNUM.FieldCommunicator.Boot.Skip"}}</span>
     </button>{{/if}}
   </section>
   {{/if}}
@@ -52,98 +52,98 @@
   <header class="ethc-header" data-communicator-drag {{#if showBoot}}inert aria-hidden="true"{{/if}}>
     <div class="ethc-header__brand" aria-label="Ethernum Company">
       <span class="ethc-brand-mark" aria-hidden="true"><img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt=""></span>
-      <span><small>Ethernum Company</small><strong>Field Communicator</strong></span>
+      <span><small>Ethernum Company</small><strong>{{localize "ETHERNUM.FieldCommunicator.Copy.DeviceName"}}</strong></span>
     </div>
 
     <div class="ethc-header__identity">
       <span class="ethc-agent-status {{#if agent.online}}is-online{{/if}}" aria-hidden="true"></span>
-      <span><small>Agente autenticado</small><strong>{{agent.name}}</strong></span>
+      <span><small>{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticatedAgent"}}</small><strong>{{agent.name}}</strong></span>
       <b>R{{agent.rank}}</b>
     </div>
 
-    <div class="ethc-header__telemetry" aria-label="Telemetria do comunicador">
+    <div class="ethc-header__telemetry" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.Telemetry'}}">
       <span class="ethc-signal" title="{{signal.label}}" aria-label="{{signal.label}}">
         <i class="fas fa-tower-broadcast" aria-hidden="true"></i><small>{{signal.label}}</small>
       </span>
-      <span class="ethc-aether-reserve" title="Reserva de Éter" aria-label="Reserva de Éter: {{aether.value}} de {{aether.max}}">
+      <span class="ethc-aether-reserve" title="{{localize 'ETHERNUM.FieldCommunicator.EtherReserve'}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.EtherReserve'}}: {{aether.value}} / {{aether.max}}">
         <i class="fas fa-bolt" aria-hidden="true"></i><b>{{aether.value}}</b><small>/{{aether.max}}</small>
       </span>
       <button
         type="button"
         class="ethc-icon-button ethc-notifications {{#if notificationCount}}has-notifications{{/if}}"
         data-communicator-action="open-notifications"
-        aria-label="Abrir notificações: {{notificationCount}} pendentes"
-        title="Notificações"
+        aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.OpenNotifications'}}: {{notificationCount}}"
+        title="{{localize 'ETHERNUM.FieldCommunicator.Notifications'}}"
       >
         <i class="fas fa-bell" aria-hidden="true"></i>
         {{#if notificationCount}}<span class="ethc-badge ethc-badge--danger">{{notificationCount}}</span>{{/if}}
       </button>
-      <button type="button" class="ethc-icon-button" data-communicator-action="power" aria-label="Desligar comunicador" title="Desligar">
+      <button type="button" class="ethc-icon-button" data-communicator-action="power" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.PowerOff'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.PowerOff'}}">
         <i class="fas fa-power-off" aria-hidden="true"></i>
       </button>
       <time class="ethc-world-time" datetime="{{worldTime.iso}}">{{worldTime.label}}</time>
     </div>
   </header>
 
-  <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="Conteúdo do comunicador" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
+  <main class="ethc-viewport" data-communicator-scroll tabindex="0" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.Content'}}" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
     {{#if previewMode}}
     <aside class="ethc-preview-banner" role="status">
       <i class="fas fa-eye" aria-hidden="true"></i>
-      <span><strong>PRÉVIA DE JOGADOR</strong><small>{{previewUserName}} · SOMENTE LEITURA</small></span>
-      <button type="button" data-communicator-action="exit-preview" title="Encerrar prévia" aria-label="Encerrar prévia"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+      <span><strong>{{localize "ETHERNUM.FieldCommunicator.Copy.PlayerPreview"}}</strong><small>{{previewUserName}} · {{localize "ETHERNUM.FieldCommunicator.Copy.ReadOnly"}}</small></span>
+      <button type="button" data-communicator-action="exit-preview" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.ExitPreview'}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.ExitPreview'}}"><i class="fas fa-xmark" aria-hidden="true"></i></button>
     </aside>
     {{/if}}
     {{#if state.noActor}}
     <section class="ethc-system-state ethc-system-state--warning" role="status" aria-labelledby="ethc-state-no-actor">
       <i class="fas fa-id-card-clip" aria-hidden="true"></i>
-      <div><p class="ethc-kicker">Falha de autenticação</p><h2 id="ethc-state-no-actor">Identidade não vinculada</h2><p>Vincule um personagem ao usuário para habilitar os recursos de campo.</p></div>
-      {{#if isGM}}<button type="button" data-communicator-action="open-user-configuration"><i class="fas fa-user-gear" aria-hidden="true"></i><span>Configurar usuário</span></button>{{/if}}
+      <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticationFailure"}}</p><h2 id="ethc-state-no-actor">{{localize "ETHERNUM.FieldCommunicator.States.Unlinked"}}</h2><p>{{localize "ETHERNUM.FieldCommunicator.Errors.NoActor"}}</p></div>
+      {{#if isGM}}<button type="button" data-communicator-action="open-user-configuration"><i class="fas fa-user-gear" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.ConfigureUser"}}</span></button>{{/if}}
     </section>
     {{/if}}
 
     {{#if state.permissionDenied}}
     <section class="ethc-system-state ethc-system-state--danger" role="alert" aria-labelledby="ethc-state-permission">
       <i class="fas fa-shield-halved" aria-hidden="true"></i>
-      <div><p class="ethc-kicker">Protocolo de segurança</p><h2 id="ethc-state-permission">Acesso negado</h2><p>Seu perfil não possui autorização para consultar este recurso.</p></div>
-      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button>
+      <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.SecurityProtocol"}}</p><h2 id="ethc-state-permission">{{localize "ETHERNUM.FieldCommunicator.States.Denied"}}</h2><p>{{localize "ETHERNUM.FieldCommunicator.Errors.NoPermission"}}</p></div>
+      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Home"}}</span></button>
     </section>
     {{/if}}
 
     {{#if state.documentUnavailable}}
     <section class="ethc-system-state ethc-system-state--danger" role="alert" aria-labelledby="ethc-state-document">
       <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
-      <div><p class="ethc-kicker">Destino interrompido</p><h2 id="ethc-state-document">Arquivo indisponível</h2><p>O documento foi removido, movido ou não está acessível neste mundo.</p></div>
-      <button type="button" data-communicator-action="go-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Retornar</span></button>
+      <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.InterruptedDestination"}}</p><h2 id="ethc-state-document">{{localize "ETHERNUM.FieldCommunicator.States.Unavailable"}}</h2><p>{{localize "ETHERNUM.FieldCommunicator.Errors.BrokenTarget"}}</p></div>
+      <button type="button" data-communicator-action="go-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Back"}}</span></button>
     </section>
     {{/if}}
 
     {{#if state.maintenance}}
     <section class="ethc-system-state ethc-system-state--maintenance" role="status" aria-labelledby="ethc-state-maintenance">
       <i class="fas fa-screwdriver-wrench" aria-hidden="true"></i>
-      <div><p class="ethc-kicker">Canal temporariamente isolado</p><h2 id="ethc-state-maintenance">Em manutenção</h2><p>Este aplicativo foi preservado, mas está desativado pelo comando.</p></div>
-      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button>
+      <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.IsolatedChannel"}}</p><h2 id="ethc-state-maintenance">{{localize "ETHERNUM.FieldCommunicator.States.Maintenance"}}</h2><p>{{localize "ETHERNUM.FieldCommunicator.Copy.MaintenanceDescription"}}</p></div>
+      <button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Home"}}</span></button>
     </section>
     {{/if}}
 
     {{#if isHome}}
     <div class="ethc-home" data-communicator-view="home">
-      <section class="ethc-auth-core" aria-label="Núcleo de autenticação Ethernum">
+      <section class="ethc-auth-core" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.AuthenticationCore'}}">
         <div class="ethc-auth-core__seal" aria-hidden="true">
           <span class="ethc-auth-core__ring ethc-auth-core__ring--outer"></span>
           <span class="ethc-auth-core__ring ethc-auth-core__ring--inner"></span>
           <img src="modules/ethernum-rpg-module/assets/unique/company-logo.png" alt="" aria-hidden="true">
         </div>
         <div class="ethc-auth-core__copy">
-          <p class="ethc-kicker">Sistema de campo autenticado</p>
+          <p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticatedFieldSystem"}}</p>
           <strong>Ethernum Company</strong>
-          <div><span><i class="fas fa-shield-halved" aria-hidden="true"></i> Conexão segura</span><span><i class="fas {{#if agent.online}}fa-user-check{{else}}fa-user-clock{{/if}}" aria-hidden="true"></i> Agente {{#if agent.online}}online{{else}}offline{{/if}}</span></div>
+          <div><span><i class="fas fa-shield-halved" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.SecureConnection"}}</span><span><i class="fas {{#if agent.online}}fa-user-check{{else}}fa-user-clock{{/if}}" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.Agent"}} {{#if agent.online}}{{localize "ETHERNUM.FieldCommunicator.Copy.Online"}}{{else}}{{localize "ETHERNUM.FieldCommunicator.Copy.Offline"}}{{/if}}</span></div>
         </div>
       </section>
 
       <section class="ethc-home-status" aria-labelledby="ethc-home-title">
         <div>
-          <p class="ethc-kicker">Canal operacional estabelecido</p>
-          <h1 id="ethc-home-title">Central de Operações</h1>
+          <p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Boot.Channel"}}</p>
+          <h1 id="ethc-home-title">{{localize "ETHERNUM.FieldCommunicator.Copy.OperationsCenter"}}</h1>
           <p>{{homeMessage}}</p>
         </div>
         <div class="ethc-home-status__sync {{#if sync.pending}}is-pending{{else}}is-ready{{/if}}" role="status">
@@ -155,15 +155,15 @@
       {{#if priorityNotice}}
       <button type="button" class="ethc-priority-notice" data-communicator-action="open-priority-notice" data-communicator-notification-id="{{priorityNotice.id}}">
         <i class="fas fa-bullhorn" aria-hidden="true"></i>
-        <span><small>Comunicado prioritário</small><strong>{{priorityNotice.title}}</strong></span>
+        <span><small>{{localize "ETHERNUM.FieldCommunicator.Copy.PriorityNotice"}}</small><strong>{{priorityNotice.title}}</strong></span>
         <i class="fas fa-chevron-right" aria-hidden="true"></i>
       </button>
       {{/if}}
 
       <section class="ethc-app-directory" aria-labelledby="ethc-apps-title">
         <header class="ethc-section-heading">
-          <div><p class="ethc-kicker">Diretório autenticado</p><h2 id="ethc-apps-title">Aplicativos</h2></div>
-          <span>{{apps.length}} disponíveis</span>
+          <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticatedDirectory"}}</p><h2 id="ethc-apps-title">{{localize "ETHERNUM.FieldCommunicator.Copy.Applications"}}</h2></div>
+          <span>{{apps.length}} {{localize "ETHERNUM.FieldCommunicator.Copy.Available"}}</span>
         </header>
         <div class="ethc-app-grid">
           {{#each apps}}
@@ -173,22 +173,22 @@
             style="{{#if this.accentColor}}--ethc-app-accent: {{this.accentColor}};{{/if}}"
             data-communicator-action="open-app"
             data-communicator-app-id="{{this.id}}"
-            aria-label="Abrir {{this.label}}{{#if this.badge}}, {{this.badge}} notificações{{/if}}"
+            aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.Open'}} {{this.label}}{{#if this.badge}}, {{this.badge}} {{localize 'ETHERNUM.FieldCommunicator.Notifications'}}{{/if}}"
             {{#if this.active}}aria-current="page"{{/if}}
             {{#unless this.enabled}}aria-disabled="true"{{/unless}}
           >
             <span class="ethc-app__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
             <span class="ethc-app__copy"><strong>{{this.label}}</strong><small>{{this.description}}</small></span>
             {{#if this.badge}}<span class="ethc-badge">{{this.badge}}</span>{{/if}}
-            {{#if this.locked}}<span class="ethc-app__state"><i class="fas fa-lock" aria-hidden="true"></i> Rank {{this.minimumRank}}</span>{{/if}}
-            {{#if this.brokenTarget}}<span class="ethc-app__state"><i class="fas fa-file-circle-xmark" aria-hidden="true"></i> Arquivo indisponível</span>{{/if}}
-            {{#unless this.enabled}}<span class="ethc-app__state"><i class="fas fa-screwdriver-wrench" aria-hidden="true"></i> Manutenção</span>{{/unless}}
+            {{#if this.locked}}<span class="ethc-app__state"><i class="fas fa-lock" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Rank"}} {{this.minimumRank}}</span>{{/if}}
+            {{#if this.brokenTarget}}<span class="ethc-app__state"><i class="fas fa-file-circle-xmark" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.States.Unavailable"}}</span>{{/if}}
+            {{#unless this.enabled}}<span class="ethc-app__state"><i class="fas fa-screwdriver-wrench" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.States.Maintenance"}}</span>{{/unless}}
           </button>
           {{else}}
           <div class="ethc-empty-state">
             <i class="fas fa-grid-2" aria-hidden="true"></i>
-            <h3>Nenhum aplicativo liberado</h3>
-            <p>Os canais disponíveis aparecerão aqui após a sincronização.</p>
+            <h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoApplications"}}</h3>
+            <p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoApplicationsDescription"}}</p>
           </div>
           {{/each}}
         </div>
@@ -200,55 +200,62 @@
     <article class="ethc-internal-panel" data-communicator-view="panel" data-communicator-app-id="{{activeApp.id}}" aria-labelledby="ethc-panel-title">
       <header class="ethc-panel-header">
         <span class="ethc-panel-header__icon" aria-hidden="true"><i class="{{activeApp.icon}}"></i></span>
-        <div><p class="ethc-kicker">Aplicativo autenticado</p><h1 id="ethc-panel-title">{{activeApp.label}}</h1><p>{{activeApp.description}}</p></div>
+        <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticatedApplication"}}</p><h1 id="ethc-panel-title">{{activeApp.label}}</h1><p>{{activeApp.description}}</p></div>
         {{#if activeApp.badge}}<span class="ethc-badge">{{activeApp.badge}}</span>{{/if}}
         <div class="ethc-panel-header__actions">
-          <button type="button" class="ethc-icon-button" data-communicator-action="refresh-panel" aria-label="Atualizar painel" title="Atualizar"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
+          <button type="button" class="ethc-icon-button" data-communicator-action="refresh-panel" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.RefreshPanel'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.Refresh'}}"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></button>
         </div>
       </header>
 
       {{#if panel.loading}}
-      <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>Sincronizando dados...</span></div>
+      <div class="ethc-panel-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.SyncingData"}}</span></div>
       {{else}}
       <div class="ethc-panel-content" data-communicator-region="panel-content">
+        {{#if panel.error}}
+        <section class="ethc-system-state ethc-system-state--danger" role="alert" aria-labelledby="ethc-panel-error-{{panel.error.panelId}}">
+          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+          <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.PanelError.Kicker"}}</p><h2 id="ethc-panel-error-{{panel.error.panelId}}">{{panel.error.title}}</h2><p>{{panel.error.message}}</p></div>
+          <button type="button" data-communicator-action="retry-panel" data-communicator-panel-id="{{panel.error.panelId}}"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><span>{{panel.error.retryLabel}}</span></button>
+        </section>
+        {{else}}
         {{#if panel.isNotifications}}
         <section class="ethc-notification-center" aria-labelledby="ethc-notification-center-title">
           <header>
-            <div><p class="ethc-kicker">Registro por usuário</p><h2 id="ethc-notification-center-title">Eventos operacionais</h2></div>
-            {{#if panel.unreadNotificationCount}}{{#unless previewMode}}<button type="button" data-communicator-action="mark-all-notifications-read"><i class="fas fa-check-double" aria-hidden="true"></i><span>Marcar todas como lidas</span></button>{{/unless}}{{/if}}
+            <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.UserRegistry"}}</p><h2 id="ethc-notification-center-title">{{localize "ETHERNUM.FieldCommunicator.Copy.OperationalEvents"}}</h2></div>
+            {{#if panel.unreadNotificationCount}}{{#unless previewMode}}<button type="button" data-communicator-action="mark-all-notifications-read"><i class="fas fa-check-double" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.MarkAllRead"}}</span></button>{{/unless}}{{/if}}
           </header>
           <div class="ethc-notification-list">
             {{#each panel.notifications}}
             <button type="button" class="ethc-notification-row ethc-notification-row--{{this.priority}} {{#unless this.read}}is-unread{{/unless}}" data-communicator-action="open-notification" data-communicator-notification-id="{{this.id}}">
               <span class="ethc-notification-row__icon" aria-hidden="true"><i class="fas {{#if this.read}}fa-envelope-open{{else}}fa-envelope{{/if}}"></i></span>
               <span><strong>{{this.title}}</strong>{{#if this.body}}<small>{{this.body}}</small>{{/if}}<time>{{this.createdLabel}}</time></span>
-              {{#unless this.read}}<span class="ethc-notification-row__state">Nova</span>{{/unless}}
+              {{#unless this.read}}<span class="ethc-notification-row__state">{{localize "ETHERNUM.FieldCommunicator.Copy.New"}}</span>{{/unless}}
               <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
             {{else}}
-            <div class="ethc-empty-state"><i class="fas fa-bell-slash" aria-hidden="true"></i><h3>Nenhuma notificação</h3><p>Não há eventos visíveis para o filtro selecionado.</p></div>
+            <div class="ethc-empty-state"><i class="fas fa-bell-slash" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoNotifications"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoNotificationsDescription"}}</p></div>
             {{/each}}
           </div>
         </section>
         {{else}}
         {{#if panel.isSquad}}
         <section class="ethc-squad-directory" aria-labelledby="ethc-squad-directory-title">
-          <header><div><p class="ethc-kicker">Dados da Companhia</p><h2 id="ethc-squad-directory-title">Esquadrões atribuídos</h2></div></header>
+          <header><div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.CompanyData"}}</p><h2 id="ethc-squad-directory-title">{{localize "ETHERNUM.FieldCommunicator.Copy.AssignedSquads"}}</h2></div></header>
           {{#if panel.noSquad}}
-          <div class="ethc-empty-state"><i class="fas fa-users-slash" aria-hidden="true"></i><h3>NENHUM ESQUADRÃO ATRIBUÍDO</h3><p>A Companhia ainda não vinculou este agente a um esquadrão.</p></div>
+          <div class="ethc-empty-state"><i class="fas fa-users-slash" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoSquad"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoSquadDescription"}}</p></div>
           {{else}}
           {{#each panel.squadGroups}}
           <section class="ethc-squad-group" aria-labelledby="ethc-squad-group-{{this.id}}">
-            <header><h3 id="ethc-squad-group-{{this.id}}"><i class="fas fa-people-group" aria-hidden="true"></i>{{this.title}}</h3><span>{{this.members.length}} agentes</span></header>
+            <header><h3 id="ethc-squad-group-{{this.id}}"><i class="fas fa-people-group" aria-hidden="true"></i>{{this.title}}</h3><span>{{this.members.length}} {{localize "ETHERNUM.FieldCommunicator.Copy.Agents"}}</span></header>
             <div class="ethc-squad-members">
               {{#each this.members}}
               <article class="ethc-squad-member {{#if this.online}}is-online{{else}}is-offline{{/if}}">
                 {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<span class="ethc-squad-member__portrait" aria-hidden="true"><i class="fas fa-user"></i></span>{{/if}}
-                <div><strong>{{this.name}}</strong><small>{{#if this.role}}{{this.role}}{{else}}Agente Ethernum{{/if}}{{#if this.level}} · Nível {{this.level}}{{/if}}</small>{{#if this.operationalStatus}}<em>{{this.operationalStatus}}</em>{{/if}}</div>
+                <div><strong>{{this.name}}</strong><small>{{#if this.role}}{{this.role}}{{else}}{{localize "ETHERNUM.FieldCommunicator.Copy.EthernumAgent"}}{{/if}}{{#if this.level}} · {{localize "ETHERNUM.FieldCommunicator.Copy.Level"}} {{this.level}}{{/if}}</small>{{#if this.operationalStatus}}<em>{{this.operationalStatus}}</em>{{/if}}</div>
                 {{#if this.rank}}<b>R{{this.rank}}</b>{{/if}}
-                <span class="ethc-squad-member__presence"><i aria-hidden="true"></i>{{#if this.online}}Online{{else}}Offline{{/if}}</span>
+                <span class="ethc-squad-member__presence"><i aria-hidden="true"></i>{{#if this.online}}{{localize "ETHERNUM.FieldCommunicator.Copy.Online"}}{{else}}{{localize "ETHERNUM.FieldCommunicator.Copy.Offline"}}{{/if}}</span>
               </article>
-              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-user-clock" aria-hidden="true"></i><p>Nenhum agente visível neste esquadrão.</p></div>{{/each}}
+              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-user-clock" aria-hidden="true"></i><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoVisibleAgent"}}</p></div>{{/each}}
             </div>
           </section>
           {{/each}}
@@ -260,34 +267,34 @@
           {{#if panel.storeReceipt}}
           <section class="ethc-store-receipt ethc-store-receipt--{{panel.storeReceipt.tone}}" aria-live="polite" aria-labelledby="ethc-store-receipt-title">
             <i class="{{panel.storeReceipt.icon}}" aria-hidden="true"></i>
-            <p class="ethc-kicker">Transação {{panel.storeReceipt.shortId}}</p>
+            <p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.Transaction"}} {{panel.storeReceipt.shortId}}</p>
             <h2 id="ethc-store-receipt-title">{{panel.storeReceipt.statusLabel}}</h2>
             <p>{{panel.storeReceipt.message}}</p>
             <dl>
-              <div><dt>Item</dt><dd>{{panel.storeReceipt.itemName}}</dd></div>
-              {{#if panel.storeReceipt.actorName}}<div><dt>Agente</dt><dd>{{panel.storeReceipt.actorName}}</dd></div>{{/if}}
-              {{#if panel.storeReceipt.priceLabel}}<div><dt>Valor</dt><dd>{{panel.storeReceipt.priceLabel}}</dd></div>{{/if}}
+              <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Item"}}</dt><dd>{{panel.storeReceipt.itemName}}</dd></div>
+              {{#if panel.storeReceipt.actorName}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Agent"}}</dt><dd>{{panel.storeReceipt.actorName}}</dd></div>{{/if}}
+              {{#if panel.storeReceipt.priceLabel}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Value"}}</dt><dd>{{panel.storeReceipt.priceLabel}}</dd></div>{{/if}}
             </dl>
-            <button type="button" class="ethc-primary-button" data-communicator-action="store-receipt-close"><i class="fas fa-store" aria-hidden="true"></i><span>Voltar à loja</span></button>
+            <button type="button" class="ethc-primary-button" data-communicator-action="store-receipt-close"><i class="fas fa-store" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.BackToStore"}}</span></button>
           </section>
           {{else}}
           {{#if panel.store.selectedItem}}
           <section class="ethc-store-detail" aria-labelledby="ethc-store-detail-title">
-            <button type="button" class="ethc-store-back" data-communicator-action="store-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Catálogo da Companhia</span></button>
+            <button type="button" class="ethc-store-back" data-communicator-action="store-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.CompanyCatalog"}}</span></button>
             <header class="ethc-store-detail__hero">
               {{#if panel.store.selectedItem.image}}<img src="{{panel.store.selectedItem.image}}" alt="">{{else}}<span aria-hidden="true"><i class="fas fa-box"></i></span>{{/if}}
               <div>
-                <p class="ethc-kicker">{{#if panel.store.selectedItem.level}}Nível {{panel.store.selectedItem.level}}{{else}}Item PF2e{{/if}}</p>
+                <p class="ethc-kicker">{{#if panel.store.selectedItem.level}}{{localize "ETHERNUM.FieldCommunicator.Copy.Level"}} {{panel.store.selectedItem.level}}{{else}}{{localize "ETHERNUM.FieldCommunicator.Copy.PF2eItem"}}{{/if}}</p>
                 <h2 id="ethc-store-detail-title" tabindex="-1">{{panel.store.selectedItem.name}}</h2>
                 {{#if panel.store.selectedItem.rarityLabel}}<small>{{panel.store.selectedItem.rarityLabel}}</small>{{/if}}
               </div>
             </header>
             {{#if panel.store.selectedItem.description}}<p class="ethc-store-detail__description">{{panel.store.selectedItem.description}}</p>{{/if}}
             <dl class="ethc-store-metadata">
-              <div><dt>Preço</dt><dd>{{panel.store.selectedItem.priceLabel}}</dd></div>
-              <div><dt>Saldo</dt><dd>{{panel.store.balance.label}}</dd></div>
-              <div><dt>Estoque</dt><dd>{{panel.store.selectedItem.stockLabel}}</dd></div>
-              <div><dt>Autorização</dt><dd>{{panel.store.selectedItem.authorizationLabel}}</dd></div>
+              <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Price"}}</dt><dd>{{panel.store.selectedItem.priceLabel}}</dd></div>
+              <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Balance"}}</dt><dd>{{panel.store.balance.label}}</dd></div>
+              <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Stock"}}</dt><dd>{{panel.store.selectedItem.stockLabel}}</dd></div>
+              <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Authorization"}}</dt><dd>{{panel.store.selectedItem.authorizationLabel}}</dd></div>
             </dl>
             <button type="button" class="ethc-primary-button ethc-store-purchase" data-communicator-action="store-purchase" data-communicator-store-entry-id="{{panel.store.selectedItem.id}}" {{#unless panel.store.selectedItem.available}}disabled aria-disabled="true"{{/unless}}>
               <i class="fas {{#if (ethernum-eq panel.store.selectedItem.transactionMode 'approval')}}fa-file-signature{{else}}fa-cart-shopping{{/if}}" aria-hidden="true"></i>
@@ -297,20 +304,20 @@
           {{else}}
           <section class="ethc-store-catalog" aria-labelledby="ethc-store-catalog-title">
             <header class="ethc-store-balance">
-              <div><p class="ethc-kicker">Conta do agente</p><h2 id="ethc-store-catalog-title" tabindex="-1">Catálogo da Companhia</h2></div>
-              <span><small>Saldo PF2e</small><strong>{{panel.store.balance.label}}</strong></span>
+              <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AgentAccount"}}</p><h2 id="ethc-store-catalog-title" tabindex="-1">{{localize "ETHERNUM.FieldCommunicator.Copy.CompanyCatalog"}}</h2></div>
+              <span><small>{{localize "ETHERNUM.FieldCommunicator.Copy.PF2eBalance"}}</small><strong>{{panel.store.balance.label}}</strong></span>
             </header>
-            {{#if panel.store.state.noActor}}<div class="ethc-empty-state ethc-empty-state--compact" role="status"><i class="fas fa-user-lock" aria-hidden="true"></i><p>Vincule um personagem PF2e para consultar e comprar.</p></div>{{/if}}
+            {{#if panel.store.state.noActor}}<div class="ethc-empty-state ethc-empty-state--compact" role="status"><i class="fas fa-user-lock" aria-hidden="true"></i><p>{{localize "ETHERNUM.FieldCommunicator.Copy.LinkPF2eActor"}}</p></div>{{/if}}
             <div class="ethc-store-list">
               {{#each panel.store.items}}
               <button type="button" class="ethc-store-row {{#if this.featured}}is-featured{{/if}}" data-communicator-action="open-store-item" data-communicator-store-entry-id="{{this.id}}">
                 {{#if this.image}}<img src="{{this.image}}" alt="">{{else}}<span class="ethc-store-row__image" aria-hidden="true"><i class="fas fa-box"></i></span>{{/if}}
-                <span class="ethc-store-row__body"><strong>{{this.name}}</strong><small>{{#if this.level}}Nível {{this.level}}{{/if}}{{#if this.rarityLabel}} · {{this.rarityLabel}}{{/if}}</small><em>{{this.authorizationLabel}}</em></span>
+                <span class="ethc-store-row__body"><strong>{{this.name}}</strong><small>{{#if this.level}}{{localize "ETHERNUM.FieldCommunicator.Copy.Level"}} {{this.level}}{{/if}}{{#if this.rarityLabel}} · {{this.rarityLabel}}{{/if}}</small><em>{{this.authorizationLabel}}</em></span>
                 <span class="ethc-store-row__terms"><strong>{{this.priceLabel}}</strong><small>{{this.stockLabel}}</small></span>
                 <i class="fas fa-chevron-right" aria-hidden="true"></i>
               </button>
               {{else}}
-              <div class="ethc-empty-state"><i class="fas fa-store-slash" aria-hidden="true"></i><h3>Catálogo indisponível</h3><p>Nenhuma oferta está liberada para este perfil.</p></div>
+              <div class="ethc-empty-state"><i class="fas fa-store-slash" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.CatalogUnavailable"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoOffers"}}</p></div>
               {{/each}}
             </div>
           </section>
@@ -322,31 +329,31 @@
         {{#if panel.documentViewer.active}}
         <section class="ethc-document-viewer" data-document-viewer tabindex="0" aria-labelledby="ethc-document-title">
           <header class="ethc-document-viewer__header">
-            <button type="button" class="ethc-icon-button" data-communicator-action="contract-back" aria-label="Voltar aos detalhes" title="Voltar"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button" data-communicator-action="contract-back" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.BackToDetails'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Navigation.Back'}}"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
             <span class="ethc-document-viewer__type" aria-hidden="true"><i class="fas fa-file-lines"></i></span>
-            <div><p class="ethc-kicker">Documento autenticado</p><h2 id="ethc-document-title">{{panel.documentViewer.title}}</h2></div>
-            {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-icon-button" data-communicator-action="document-open-external" aria-label="Abrir documento original" title="Abrir externamente"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>{{/if}}
+            <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticatedDocument"}}</p><h2 id="ethc-document-title">{{panel.documentViewer.title}}</h2></div>
+            {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-icon-button" data-communicator-action="document-open-external" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.OpenOriginalDocument'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.OpenExternally'}}"><i class="fas fa-up-right-from-square" aria-hidden="true"></i></button>{{/if}}
           </header>
 
           {{#if panel.documentViewer.isPdf}}
-          <div class="ethc-document-toolbar" role="toolbar" aria-label="Controles do PDF">
-            <button type="button" class="ethc-icon-button" data-communicator-action="document-previous" {{#unless panel.documentViewer.canPrevious}}disabled{{/unless}} aria-label="Página anterior" title="Página anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+          <div class="ethc-document-toolbar" role="toolbar" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.PDFControls'}}">
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-previous" {{#unless panel.documentViewer.canPrevious}}disabled{{/unless}} aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.PreviousPage'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.PreviousPage'}}"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
             <span class="ethc-document-toolbar__page" aria-live="polite">{{panel.documentViewer.pageLabel}}</span>
-            <button type="button" class="ethc-icon-button" data-communicator-action="document-next" {{#unless panel.documentViewer.canNext}}disabled{{/unless}} aria-label="Próxima página" title="Próxima página"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-next" {{#unless panel.documentViewer.canNext}}disabled{{/unless}} aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.NextPage'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.NextPage'}}"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
             <span class="ethc-document-toolbar__separator" aria-hidden="true"></span>
-            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-out" aria-label="Reduzir zoom" title="Reduzir zoom"><i class="fas fa-magnifying-glass-minus" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-out" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.ZoomOut'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.ZoomOut'}}"><i class="fas fa-magnifying-glass-minus" aria-hidden="true"></i></button>
             <span class="ethc-document-toolbar__zoom">{{panel.documentViewer.zoomLabel}}</span>
-            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-in" aria-label="Aumentar zoom" title="Aumentar zoom"><i class="fas fa-magnifying-glass-plus" aria-hidden="true"></i></button>
-            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'width')}}is-active{{/if}}" data-communicator-action="document-fit-width" aria-label="Ajustar à largura" title="Ajustar à largura"><i class="fas fa-arrows-left-right-to-line" aria-hidden="true"></i></button>
-            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'page')}}is-active{{/if}}" data-communicator-action="document-fit-page" aria-label="Ajustar página" title="Ajustar página"><i class="fas fa-expand" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button" data-communicator-action="document-zoom-in" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.ZoomIn'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.ZoomIn'}}"><i class="fas fa-magnifying-glass-plus" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'width')}}is-active{{/if}}" data-communicator-action="document-fit-width" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.FitWidth'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.FitWidth'}}"><i class="fas fa-arrows-left-right-to-line" aria-hidden="true"></i></button>
+            <button type="button" class="ethc-icon-button {{#if (ethernum-eq panel.documentViewer.fitMode 'page')}}is-active{{/if}}" data-communicator-action="document-fit-page" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.FitPage'}}" title="{{localize 'ETHERNUM.FieldCommunicator.Copy.FitPage'}}"><i class="fas fa-expand" aria-hidden="true"></i></button>
           </div>
           <div class="ethc-document-stage is-loading" data-document-viewer-stage aria-busy="true">
-            <span class="ethc-document-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> Renderizando relatório...</span>
-            <canvas data-document-viewer-canvas aria-label="{{panel.documentViewer.title}}, página {{panel.documentViewer.page}} de {{panel.documentViewer.pageCount}}"></canvas>
+            <span class="ethc-document-loading" role="status"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.RenderingDocument"}}</span>
+            <canvas data-document-viewer-canvas aria-label="{{panel.documentViewer.title}}, {{localize 'ETHERNUM.FieldCommunicator.Copy.Page'}} {{panel.documentViewer.page}} / {{panel.documentViewer.pageCount}}"></canvas>
             <div class="ethc-document-fallback" data-document-viewer-fallback hidden role="alert">
               <i class="fas fa-file-circle-xmark" aria-hidden="true"></i>
-              <strong>Não foi possível renderizar o documento internamente.</strong>
-              {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-primary-button" data-communicator-action="document-open-external"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>Abrir documento</span></button>{{/if}}
+              <strong>{{localize "ETHERNUM.FieldCommunicator.Copy.DocumentRenderFailed"}}</strong>
+              {{#if panel.documentViewer.canOpenExternal}}<button type="button" class="ethc-primary-button" data-communicator-action="document-open-external"><i class="fas fa-up-right-from-square" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.OpenDocument"}}</span></button>{{/if}}
             </div>
           </div>
           {{/if}}
@@ -361,32 +368,32 @@
         {{else}}
         {{#if panel.selectedContract}}
         <section class="ethc-contract-detail" aria-labelledby="ethc-contract-detail-title">
-          <button type="button" class="ethc-contract-back" data-communicator-action="contract-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Arquivo de contratos</span></button>
+          <button type="button" class="ethc-contract-back" data-communicator-action="contract-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.ContractArchive"}}</span></button>
           <header class="ethc-contract-detail__hero">
             {{#if panel.selectedContract.coverImage}}<img src="{{panel.selectedContract.coverImage}}" alt="" aria-hidden="true">{{/if}}
-            <div><p class="ethc-kicker">Contrato {{panel.selectedContract.number}}</p><h2 id="ethc-contract-detail-title">{{panel.selectedContract.title}}</h2><span class="ethc-contract-status ethc-contract-status--{{panel.selectedContract.status}}">{{panel.selectedContract.statusLabel}}</span></div>
-            {{#if panel.selectedContract.grade}}<strong class="ethc-contract-grade" aria-label="Nota {{panel.selectedContract.grade}}">{{panel.selectedContract.grade}}</strong>{{/if}}
+            <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.Contract"}} {{panel.selectedContract.number}}</p><h2 id="ethc-contract-detail-title">{{panel.selectedContract.title}}</h2><span class="ethc-contract-status ethc-contract-status--{{panel.selectedContract.status}}">{{panel.selectedContract.statusLabel}}</span></div>
+            {{#if panel.selectedContract.grade}}<strong class="ethc-contract-grade" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.Grade'}} {{panel.selectedContract.grade}}">{{panel.selectedContract.grade}}</strong>{{/if}}
           </header>
           <dl class="ethc-contract-metadata">
-            <div><dt>Status</dt><dd>{{panel.selectedContract.statusLabel}}</dd></div>
-            {{#if panel.selectedContract.location}}<div><dt>Local</dt><dd>{{panel.selectedContract.location}}</dd></div>{{/if}}
-            {{#if panel.selectedContract.region}}<div><dt>Região</dt><dd>{{panel.selectedContract.region}}</dd></div>{{/if}}
-            {{#if panel.selectedContract.difficulty}}<div><dt>Dificuldade</dt><dd>{{panel.selectedContract.difficulty}}</dd></div>{{/if}}
-            {{#if panel.selectedContract.grade}}<div><dt>Nota</dt><dd>{{panel.selectedContract.grade}}</dd></div>{{/if}}
-            {{#if panel.selectedContract.supervisor}}<div><dt>Supervisão</dt><dd>{{panel.selectedContract.supervisor}}</dd></div>{{/if}}
-            {{#if panel.selectedContract.informationLabel}}<div><dt>Informações encontradas</dt><dd>{{panel.selectedContract.informationLabel}}</dd></div>{{/if}}
+            <div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Status"}}</dt><dd>{{panel.selectedContract.statusLabel}}</dd></div>
+            {{#if panel.selectedContract.location}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Location"}}</dt><dd>{{panel.selectedContract.location}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.region}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Region"}}</dt><dd>{{panel.selectedContract.region}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.difficulty}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Difficulty"}}</dt><dd>{{panel.selectedContract.difficulty}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.grade}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Grade"}}</dt><dd>{{panel.selectedContract.grade}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.supervisor}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.Supervision"}}</dt><dd>{{panel.selectedContract.supervisor}}</dd></div>{{/if}}
+            {{#if panel.selectedContract.informationLabel}}<div><dt>{{localize "ETHERNUM.FieldCommunicator.Copy.FoundInformation"}}</dt><dd>{{panel.selectedContract.informationLabel}}</dd></div>{{/if}}
           </dl>
           {{#if panel.selectedContract.report}}
-          <button type="button" class="ethc-contract-report ethc-primary-button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{panel.selectedContract.id}}" data-communicator-attachment-id="{{panel.selectedContract.report.id}}"><i class="{{panel.selectedContract.report.icon}}" aria-hidden="true"></i><span>Ler relatório</span></button>
+          <button type="button" class="ethc-contract-report ethc-primary-button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{panel.selectedContract.id}}" data-communicator-attachment-id="{{panel.selectedContract.report.id}}"><i class="{{panel.selectedContract.report.icon}}" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.ReadReport"}}</span></button>
           {{/if}}
           {{#if panel.selectedContract.attachments}}
-          <section class="ethc-contract-resources"><header><h3><i class="fas fa-paperclip" aria-hidden="true"></i>Anexos</h3></header>{{#each panel.selectedContract.attachments}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
+          <section class="ethc-contract-resources"><header><h3><i class="fas fa-paperclip" aria-hidden="true"></i>{{localize "ETHERNUM.FieldCommunicator.Copy.Attachments"}}</h3></header>{{#each panel.selectedContract.attachments}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
           {{/if}}
           {{#if panel.selectedContract.dossiers}}
-          <section class="ethc-contract-resources"><header><h3><i class="fas fa-user-secret" aria-hidden="true"></i>Dossiês</h3></header>{{#each panel.selectedContract.dossiers}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
+          <section class="ethc-contract-resources"><header><h3><i class="fas fa-user-secret" aria-hidden="true"></i>{{localize "ETHERNUM.FieldCommunicator.Panels.Dossiers"}}</h3></header>{{#each panel.selectedContract.dossiers}}<button type="button" data-communicator-action="open-contract-document" data-communicator-contract-id="{{../panel.selectedContract.id}}" data-communicator-attachment-id="{{this.id}}"><i class="{{this.icon}}" aria-hidden="true"></i><span><strong>{{this.label}}</strong><small>{{this.description}}</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>{{/each}}</section>
           {{/if}}
           {{#if panel.selectedContract.rewards}}
-          <section class="ethc-contract-rewards"><header><h3><i class="fas fa-award" aria-hidden="true"></i>Recompensas</h3></header><ul>{{#each panel.selectedContract.rewards}}<li>{{this}}</li>{{/each}}</ul></section>
+          <section class="ethc-contract-rewards"><header><h3><i class="fas fa-award" aria-hidden="true"></i>{{localize "ETHERNUM.FieldCommunicator.Copy.Rewards"}}</h3></header><ul>{{#each panel.selectedContract.rewards}}<li>{{this}}</li>{{/each}}</ul></section>
           {{/if}}
         </section>
         {{else}}
@@ -402,11 +409,11 @@
                 {{#if this.grade}}<span class="ethc-contract-row__grade">{{this.grade}}</span>{{/if}}
                 <i class="fas fa-chevron-right" aria-hidden="true"></i>
               </button>
-              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-hourglass-half" aria-hidden="true"></i><p>Nenhum contrato ativo.</p></div>{{/each}}
+              {{else}}<div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-hourglass-half" aria-hidden="true"></i><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoActiveContract"}}</p></div>{{/each}}
             </div>
           </section>
           {{else}}
-          <div class="ethc-empty-state"><i class="fas fa-lock" aria-hidden="true"></i><h3>Nenhum contrato liberado</h3><p>Não há registros disponíveis para este perfil.</p></div>
+          <div class="ethc-empty-state"><i class="fas fa-lock" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoReleasedContract"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoRecordsForProfile"}}</p></div>
           {{/each}}
         </div>
         {{/if}}
@@ -414,19 +421,19 @@
         {{else}}
         {{#if panel.isConversations}}
         <section class="ethc-message-composer" aria-labelledby="ethc-private-message-title">
-          <header><h2 id="ethc-private-message-title"><i class="fas fa-lock" aria-hidden="true"></i> Nova conversa privada</h2></header>
-          <select data-communicator-private-recipient aria-label="Destinatário">
+          <header><h2 id="ethc-private-message-title"><i class="fas fa-lock" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.NewPrivateConversation"}}</h2></header>
+          <select data-communicator-private-recipient aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.Recipient'}}">
             {{#each panel.users}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}
           </select>
-          <textarea data-communicator-private-message maxlength="4000" rows="3" placeholder="Escreva uma transmissão privada..."></textarea>
-          <button type="button" class="ethc-primary-button" data-communicator-action="send-private"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>Transmitir</span></button>
+          <textarea data-communicator-private-message maxlength="4000" rows="3" placeholder="{{localize 'ETHERNUM.FieldCommunicator.Messages.PrivatePlaceholder'}}"></textarea>
+          <button type="button" class="ethc-primary-button" data-communicator-action="send-private"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.Transmit"}}</span></button>
         </section>
         {{/if}}
         {{#if panel.isGroup}}
         <section class="ethc-message-composer" aria-labelledby="ethc-group-message-title">
-          <header><h2 id="ethc-group-message-title"><i class="fas fa-tower-broadcast" aria-hidden="true"></i> Canal do grupo</h2></header>
-          <textarea data-communicator-group-message maxlength="4000" rows="3" placeholder="Escreva uma transmissão para o grupo..."></textarea>
-          <button type="button" class="ethc-primary-button" data-communicator-action="send-group"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>Transmitir</span></button>
+          <header><h2 id="ethc-group-message-title"><i class="fas fa-tower-broadcast" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Panels.Group"}}</h2></header>
+          <textarea data-communicator-group-message maxlength="4000" rows="3" placeholder="{{localize 'ETHERNUM.FieldCommunicator.Messages.GroupPlaceholder'}}"></textarea>
+          <button type="button" class="ethc-primary-button" data-communicator-action="send-group"><i class="fas fa-paper-plane" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.Transmit"}}</span></button>
         </section>
         {{/if}}
         {{#each panel.sections}}
@@ -442,13 +449,14 @@
               <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
             {{else}}
-            <div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-inbox" aria-hidden="true"></i><p>Nenhum registro disponível.</p></div>
+            <div class="ethc-empty-state ethc-empty-state--compact"><i class="fas fa-inbox" aria-hidden="true"></i><p>{{localize "ETHERNUM.FieldCommunicator.States.Empty"}}</p></div>
             {{/each}}
           </div>
         </section>
         {{else}}
-        <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>Canal aguardando dados</h3><p>O conteúdo deste aplicativo aparecerá aqui quando estiver disponível.</p></div>
+        <div class="ethc-empty-state"><i class="fas fa-satellite-dish" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.WaitingForData"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.WaitingForDataDescription"}}</p></div>
         {{/each}}
+        {{/if}}
         {{/if}}
         {{/if}}
         {{/if}}
@@ -461,8 +469,8 @@
     {{#if isRecents}}
     <section class="ethc-recents" data-communicator-view="recents" aria-labelledby="ethc-recents-title">
       <header class="ethc-section-heading">
-        <div><p class="ethc-kicker">Histórico local da sessão</p><h1 id="ethc-recents-title">Recentes</h1></div>
-        {{#if recentApps}}<button type="button" data-communicator-action="clear-recents"><i class="fas fa-trash-can" aria-hidden="true"></i><span>Limpar</span></button>{{/if}}
+        <div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.LocalSessionHistory"}}</p><h1 id="ethc-recents-title">{{localize "ETHERNUM.FieldCommunicator.Navigation.Recents"}}</h1></div>
+        {{#if recentApps}}<button type="button" data-communicator-action="clear-recents"><i class="fas fa-trash-can" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.Clear"}}</span></button>{{/if}}
       </header>
       <div class="ethc-recent-list">
         {{#each recentApps}}
@@ -473,7 +481,7 @@
           <i class="fas fa-chevron-right" aria-hidden="true"></i>
         </button>
         {{else}}
-        <div class="ethc-empty-state"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><h3>Nenhum acesso recente</h3><p>Os aplicativos abertos nesta sessão serão listados aqui.</p></div>
+        <div class="ethc-empty-state"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoRecentAccess"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.NoRecentAccessDescription"}}</p></div>
         {{/each}}
       </div>
     </section>
@@ -481,68 +489,68 @@
 
     {{#if isSettings}}
     <form class="ethc-settings" data-communicator-view="settings" aria-labelledby="ethc-settings-title">
-      <header class="ethc-section-heading"><div><p class="ethc-kicker">Preferências pessoais</p><h1 id="ethc-settings-title">Ajustes</h1></div><span>Salvos neste cliente</span></header>
+      <header class="ethc-section-heading"><div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.PersonalPreferences"}}</p><h1 id="ethc-settings-title">{{localize "ETHERNUM.FieldCommunicator.Panels.Settings"}}</h1></div><span>{{localize "ETHERNUM.FieldCommunicator.Copy.SavedOnClient"}}</span></header>
 
       <fieldset class="ethc-setting-group">
-        <legend><i class="fas fa-gauge-high" aria-hidden="true"></i> Interface</legend>
-        <label class="ethc-setting-row" for="ethc-motion"><span><strong>Movimento</strong><small>Intensidade das respostas visuais.</small></span><select id="ethc-motion" name="fieldCommunicatorMotion"><option value="full" {{#if settings.motionFull}}selected{{/if}}>Completo</option><option value="reduced" {{#if settings.motionReduced}}selected{{/if}}>Reduzido</option><option value="off" {{#if settings.motionOff}}selected{{/if}}>Desativado</option></select></label>
-        <label class="ethc-setting-row" for="ethc-boot-frequency"><span><strong>Sequência de autenticação</strong><small>Define quando a inicialização será exibida.</small></span><select id="ethc-boot-frequency" name="fieldCommunicatorBoot"><option value="always" {{#if settings.bootAlways}}selected{{/if}}>Sempre</option><option value="session" {{#if settings.bootSession}}selected{{/if}}>Uma vez por sessão</option><option value="off" {{#if settings.bootOff}}selected{{/if}}>Desativada</option></select></label>
+        <legend><i class="fas fa-gauge-high" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.Interface"}}</legend>
+        <label class="ethc-setting-row" for="ethc-motion"><span><strong>{{localize "ETHERNUM.FieldCommunicator.SettingsPanel.Motion"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.MotionDescription"}}</small></span><select id="ethc-motion" name="fieldCommunicatorMotion"><option value="full" {{#if settings.motionFull}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Full"}}</option><option value="reduced" {{#if settings.motionReduced}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Reduced"}}</option><option value="off" {{#if settings.motionOff}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Disabled"}}</option></select></label>
+        <label class="ethc-setting-row" for="ethc-boot-frequency"><span><strong>{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticationSequence"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.AuthenticationSequenceDescription"}}</small></span><select id="ethc-boot-frequency" name="fieldCommunicatorBoot"><option value="always" {{#if settings.bootAlways}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Always"}}</option><option value="session" {{#if settings.bootSession}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.OncePerSession"}}</option><option value="off" {{#if settings.bootOff}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Disabled"}}</option></select></label>
       </fieldset>
 
       <fieldset class="ethc-setting-group">
-        <legend><i class="fas fa-universal-access" aria-hidden="true"></i> Leitura e acesso</legend>
-        <label class="ethc-setting-row" for="ethc-text-scale"><span><strong>Tamanho do texto</strong><small>Escala local do aparelho.</small></span><select id="ethc-text-scale" name="fieldCommunicatorTextScale"><option value="normal" {{#if settings.textNormal}}selected{{/if}}>Normal</option><option value="large" {{#if settings.textLarge}}selected{{/if}}>Grande</option></select></label>
-        <label class="ethc-setting-row" for="ethc-brightness"><span><strong>Brilho</strong><small>Intensidade da energia ciano.</small></span><select id="ethc-brightness" name="fieldCommunicatorBrightness"><option value="low" {{#if settings.brightnessLow}}selected{{/if}}>Baixo</option><option value="normal" {{#if settings.brightnessNormal}}selected{{/if}}>Normal</option><option value="high" {{#if settings.brightnessHigh}}selected{{/if}}>Alto</option></select></label>
-        <label class="ethc-setting-row" for="ethc-notifications-mode"><span><strong>Notificações</strong><small>Filtragem de alertas recebidos.</small></span><select id="ethc-notifications-mode" name="fieldCommunicatorNotifications"><option value="all" {{#if settings.notificationsAll}}selected{{/if}}>Todas</option><option value="priority" {{#if settings.notificationsPriority}}selected{{/if}}>Prioritárias</option><option value="off" {{#if settings.notificationsOff}}selected{{/if}}>Desativadas</option></select></label>
-        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-high-contrast"><span><strong>Alto contraste</strong><small>Reforça contornos, foco e legibilidade.</small></span><input id="ethc-high-contrast" name="fieldCommunicatorHighContrast" type="checkbox" {{#if highContrast}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
-        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-interface-sound"><span><strong>Sons de interface</strong><small>Cliques e confirmações discretos.</small></span><input id="ethc-interface-sound" name="fieldCommunicatorSounds" type="checkbox" {{#if settings.sounds}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
+        <legend><i class="fas fa-universal-access" aria-hidden="true"></i> {{localize "ETHERNUM.FieldCommunicator.Copy.ReadingAndAccess"}}</legend>
+        <label class="ethc-setting-row" for="ethc-text-scale"><span><strong>{{localize "ETHERNUM.FieldCommunicator.SettingsPanel.TextScale"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.TextScaleDescription"}}</small></span><select id="ethc-text-scale" name="fieldCommunicatorTextScale"><option value="normal" {{#if settings.textNormal}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Normal"}}</option><option value="large" {{#if settings.textLarge}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Large"}}</option></select></label>
+        <label class="ethc-setting-row" for="ethc-brightness"><span><strong>{{localize "ETHERNUM.FieldCommunicator.SettingsPanel.Brightness"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.BrightnessDescription"}}</small></span><select id="ethc-brightness" name="fieldCommunicatorBrightness"><option value="low" {{#if settings.brightnessLow}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Low"}}</option><option value="normal" {{#if settings.brightnessNormal}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Normal"}}</option><option value="high" {{#if settings.brightnessHigh}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.High"}}</option></select></label>
+        <label class="ethc-setting-row" for="ethc-notifications-mode"><span><strong>{{localize "ETHERNUM.FieldCommunicator.SettingsPanel.Notifications"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.NotificationsDescription"}}</small></span><select id="ethc-notifications-mode" name="fieldCommunicatorNotifications"><option value="all" {{#if settings.notificationsAll}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.All"}}</option><option value="priority" {{#if settings.notificationsPriority}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.Priority"}}</option><option value="off" {{#if settings.notificationsOff}}selected{{/if}}>{{localize "ETHERNUM.FieldCommunicator.Copy.DisabledPlural"}}</option></select></label>
+        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-high-contrast"><span><strong>{{localize "ETHERNUM.FieldCommunicator.SettingsPanel.HighContrast"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.HighContrastDescription"}}</small></span><input id="ethc-high-contrast" name="fieldCommunicatorHighContrast" type="checkbox" {{#if highContrast}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
+        <label class="ethc-setting-row ethc-setting-row--toggle" for="ethc-interface-sound"><span><strong>{{localize "ETHERNUM.FieldCommunicator.Copy.InterfaceSounds"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.InterfaceSoundsDescription"}}</small></span><input id="ethc-interface-sound" name="fieldCommunicatorSounds" type="checkbox" {{#if settings.sounds}}checked{{/if}}><span class="ethc-toggle" aria-hidden="true"></span></label>
       </fieldset>
 
-      <div class="ethc-settings__actions"><button type="button" data-communicator-action="reset-settings"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>Restaurar padrões</span></button><button type="button" class="ethc-primary-button" data-communicator-action="save-settings"><i class="fas fa-check" aria-hidden="true"></i><span>Aplicar ajustes</span></button></div>
+      <div class="ethc-settings__actions"><button type="button" data-communicator-action="reset-settings"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.RestoreDefaults"}}</span></button><button type="button" class="ethc-primary-button" data-communicator-action="save-settings"><i class="fas fa-check" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Copy.ApplySettings"}}</span></button></div>
     </form>
     {{/if}}
 
     {{#if isAdmin}}
     {{#if isGM}}
     <section class="ethc-admin" data-communicator-view="admin" aria-labelledby="ethc-admin-title">
-      <header class="ethc-section-heading"><div><p class="ethc-kicker">Acesso Gamemaster</p><h1 id="ethc-admin-title">Administração de aplicativos</h1></div><span>{{adminApps.length}} registros</span></header>
-      <div class="ethc-admin-toolbar" role="toolbar" aria-label="Ferramentas administrativas">
-        <button type="button" class="ethc-primary-button" data-communicator-action="admin-add-app"><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar aplicativo</span></button>
-        <button type="button" data-communicator-action="admin-import-apps"><i class="fas fa-file-import" aria-hidden="true"></i><span>Importar</span></button>
-        <button type="button" data-communicator-action="admin-export-apps"><i class="fas fa-file-export" aria-hidden="true"></i><span>Exportar</span></button>
-        <button type="button" data-communicator-action="admin-reset-apps"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>Ordem padrão</span></button>
+      <header class="ethc-section-heading"><div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.GMAccess"}}</p><h1 id="ethc-admin-title">{{localize "ETHERNUM.FieldCommunicator.Copy.ApplicationAdministration"}}</h1></div><span>{{adminApps.length}} {{localize "ETHERNUM.FieldCommunicator.Copy.Records"}}</span></header>
+      <div class="ethc-admin-toolbar" role="toolbar" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.AdministrativeTools'}}">
+        <button type="button" class="ethc-primary-button" data-communicator-action="admin-add-app"><i class="fas fa-plus" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Actions.Add"}}</span></button>
+        <button type="button" data-communicator-action="admin-import-apps"><i class="fas fa-file-import" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Actions.Import"}}</span></button>
+        <button type="button" data-communicator-action="admin-export-apps"><i class="fas fa-file-export" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Actions.Export"}}</span></button>
+        <button type="button" data-communicator-action="admin-reset-apps"><i class="fas fa-arrow-rotate-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Actions.Reset"}}</span></button>
       </div>
-      <label class="ethc-admin-preview" for="ethc-preview-user"><span><strong>Pré-visualizar como</strong><small>Teste a visibilidade sem alterar permissões.</small></span><select id="ethc-preview-user" data-communicator-action="admin-preview-user"><option value="">Gamemaster</option>{{#each previewUsers}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>
-      <div class="ethc-admin-list" role="list" aria-label="Aplicativos configurados">
+      <label class="ethc-admin-preview" for="ethc-preview-user"><span><strong>{{localize "ETHERNUM.FieldCommunicator.Copy.PreviewAs"}}</strong><small>{{localize "ETHERNUM.FieldCommunicator.Copy.PreviewDescription"}}</small></span><select id="ethc-preview-user" data-communicator-action="admin-preview-user"><option value="">Gamemaster</option>{{#each previewUsers}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>
+      <div class="ethc-admin-list" role="list" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.ConfiguredApplications'}}">
         {{#each adminApps}}
         <article class="ethc-admin-row {{#unless this.enabled}}is-disabled{{/unless}}" role="listitem" draggable="true" data-communicator-admin-row data-communicator-app-id="{{this.id}}">
-          <span class="ethc-admin-row__order"><button type="button" data-communicator-action="admin-move-up" data-communicator-app-id="{{this.id}}" aria-label="Mover {{this.label}} para cima" title="Mover para cima"><i class="fas fa-chevron-up" aria-hidden="true"></i></button><button type="button" data-communicator-action="admin-move-down" data-communicator-app-id="{{this.id}}" aria-label="Mover {{this.label}} para baixo" title="Mover para baixo"><i class="fas fa-chevron-down" aria-hidden="true"></i></button></span>
+          <span class="ethc-admin-row__order"><button type="button" data-communicator-action="admin-move-up" data-communicator-app-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.MoveUp'}}: {{this.label}}" title="{{localize 'ETHERNUM.FieldCommunicator.Actions.MoveUp'}}"><i class="fas fa-chevron-up" aria-hidden="true"></i></button><button type="button" data-communicator-action="admin-move-down" data-communicator-app-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.MoveDown'}}: {{this.label}}" title="{{localize 'ETHERNUM.FieldCommunicator.Actions.MoveDown'}}"><i class="fas fa-chevron-down" aria-hidden="true"></i></button></span>
           <span class="ethc-admin-row__icon" aria-hidden="true"><i class="{{this.icon}}"></i></span>
           <span class="ethc-admin-row__copy"><strong>{{this.label}}</strong><small>{{this.type}} · {{this.targetLabel}}</small></span>
-          <span class="ethc-admin-row__status {{#if this.enabled}}is-enabled{{/if}}">{{#if this.enabled}}Ativo{{else}}Desativado{{/if}}</span>
+          <span class="ethc-admin-row__status {{#if this.enabled}}is-enabled{{/if}}">{{#if this.enabled}}{{localize "ETHERNUM.FieldCommunicator.Copy.Active"}}{{else}}{{localize "ETHERNUM.FieldCommunicator.Copy.Disabled"}}{{/if}}</span>
           <div class="ethc-admin-row__actions">
-            <button type="button" data-communicator-action="admin-edit-app" data-communicator-app-id="{{this.id}}" aria-label="Editar {{this.label}}" title="Editar"><i class="fas fa-pen" aria-hidden="true"></i></button>
-            <button type="button" data-communicator-action="admin-duplicate-app" data-communicator-app-id="{{this.id}}" aria-label="Duplicar {{this.label}}" title="Duplicar"><i class="fas fa-copy" aria-hidden="true"></i></button>
-            <button type="button" data-communicator-action="admin-toggle-app" data-communicator-app-id="{{this.id}}" aria-label="{{#if this.enabled}}Desativar{{else}}Ativar{{/if}} {{this.label}}" title="{{#if this.enabled}}Desativar{{else}}Ativar{{/if}}"><i class="fas {{#if this.enabled}}fa-toggle-on{{else}}fa-toggle-off{{/if}}" aria-hidden="true"></i></button>
-            {{#if this.canRemove}}<button type="button" class="ethc-danger-button" data-communicator-action="admin-remove-app" data-communicator-app-id="{{this.id}}" aria-label="Remover {{this.label}}" title="Remover"><i class="fas fa-trash-can" aria-hidden="true"></i></button>{{/if}}
+            <button type="button" data-communicator-action="admin-edit-app" data-communicator-app-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.Edit'}} {{this.label}}" title="{{localize 'ETHERNUM.FieldCommunicator.Actions.Edit'}}"><i class="fas fa-pen" aria-hidden="true"></i></button>
+            <button type="button" data-communicator-action="admin-duplicate-app" data-communicator-app-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.Duplicate'}} {{this.label}}" title="{{localize 'ETHERNUM.FieldCommunicator.Actions.Duplicate'}}"><i class="fas fa-copy" aria-hidden="true"></i></button>
+            <button type="button" data-communicator-action="admin-toggle-app" data-communicator-app-id="{{this.id}}" aria-label="{{#if this.enabled}}{{localize 'ETHERNUM.FieldCommunicator.Actions.Disable'}}{{else}}{{localize 'ETHERNUM.FieldCommunicator.Actions.Enable'}}{{/if}} {{this.label}}" title="{{#if this.enabled}}{{localize 'ETHERNUM.FieldCommunicator.Actions.Disable'}}{{else}}{{localize 'ETHERNUM.FieldCommunicator.Actions.Enable'}}{{/if}}"><i class="fas {{#if this.enabled}}fa-toggle-on{{else}}fa-toggle-off{{/if}}" aria-hidden="true"></i></button>
+            {{#if this.canRemove}}<button type="button" class="ethc-danger-button" data-communicator-action="admin-remove-app" data-communicator-app-id="{{this.id}}" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Actions.Remove'}} {{this.label}}" title="{{localize 'ETHERNUM.FieldCommunicator.Actions.Remove'}}"><i class="fas fa-trash-can" aria-hidden="true"></i></button>{{/if}}
           </div>
         </article>
         {{else}}
-        <div class="ethc-empty-state"><i class="fas fa-toolbox" aria-hidden="true"></i><h3>Nenhum aplicativo personalizado</h3><p>Os aplicativos oficiais continuam disponíveis na ordem padrão.</p></div>
+        <div class="ethc-empty-state"><i class="fas fa-toolbox" aria-hidden="true"></i><h3>{{localize "ETHERNUM.FieldCommunicator.Copy.NoCustomApplication"}}</h3><p>{{localize "ETHERNUM.FieldCommunicator.Copy.OfficialApplicationsRemain"}}</p></div>
         {{/each}}
       </div>
     </section>
     {{else}}
-    <section class="ethc-system-state ethc-system-state--danger" role="alert"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><p class="ethc-kicker">Protocolo de segurança</p><h2>Acesso negado</h2><p>A administração do comunicador é exclusiva do Gamemaster.</p></div><button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>Voltar ao início</span></button></section>
+    <section class="ethc-system-state ethc-system-state--danger" role="alert"><i class="fas fa-shield-halved" aria-hidden="true"></i><div><p class="ethc-kicker">{{localize "ETHERNUM.FieldCommunicator.Copy.SecurityProtocol"}}</p><h2>{{localize "ETHERNUM.FieldCommunicator.States.Denied"}}</h2><p>{{localize "ETHERNUM.FieldCommunicator.Copy.GMOnlyAdministration"}}</p></div><button type="button" data-communicator-action="go-home"><i class="fas fa-house" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Home"}}</span></button></section>
     {{/if}}
     {{/if}}
   </main>
 
-  <nav class="ethc-footer" aria-label="Navegação do comunicador" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
-    <button type="button" class="{{#if isHome}}is-active{{/if}}" data-communicator-action="go-home" aria-current="{{#if isHome}}page{{else}}false{{/if}}"><i class="fas fa-house" aria-hidden="true"></i><span>Início</span></button>
-    <button type="button" data-communicator-action="go-back" {{#unless canGoBack}}disabled{{/unless}}><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Voltar</span></button>
-    <button type="button" class="{{#if isRecents}}is-active{{/if}}" data-communicator-action="open-recents" aria-current="{{#if isRecents}}page{{else}}false{{/if}}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>Recentes</span>{{#if recentCount}}<span class="ethc-badge">{{recentCount}}</span>{{/if}}</button>
-    <button type="button" class="{{#if isSettings}}is-active{{/if}}" data-communicator-action="open-settings" aria-current="{{#if isSettings}}page{{else}}false{{/if}}"><i class="fas fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>
-    {{#if isGM}}<button type="button" class="{{#if isAdmin}}is-active{{/if}}" data-communicator-action="open-admin" aria-current="{{#if isAdmin}}page{{else}}false{{/if}}"><i class="fas fa-user-shield" aria-hidden="true"></i><span>Admin</span></button>{{/if}}
+  <nav class="ethc-footer" aria-label="{{localize 'ETHERNUM.FieldCommunicator.Copy.Navigation'}}" {{#if showBoot}}inert aria-hidden="true"{{/if}}>
+    <button type="button" class="{{#if isHome}}is-active{{/if}}" data-communicator-action="go-home" aria-current="{{#if isHome}}page{{else}}false{{/if}}"><i class="fas fa-house" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Home"}}</span></button>
+    <button type="button" data-communicator-action="go-back" {{#unless canGoBack}}disabled{{/unless}}><i class="fas fa-arrow-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Back"}}</span></button>
+    <button type="button" class="{{#if isRecents}}is-active{{/if}}" data-communicator-action="open-recents" aria-current="{{#if isRecents}}page{{else}}false{{/if}}"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Navigation.Recents"}}</span>{{#if recentCount}}<span class="ethc-badge">{{recentCount}}</span>{{/if}}</button>
+    <button type="button" class="{{#if isSettings}}is-active{{/if}}" data-communicator-action="open-settings" aria-current="{{#if isSettings}}page{{else}}false{{/if}}"><i class="fas fa-sliders" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Panels.Settings"}}</span></button>
+    {{#if isGM}}<button type="button" class="{{#if isAdmin}}is-active{{/if}}" data-communicator-action="open-admin" aria-current="{{#if isAdmin}}page{{else}}false{{/if}}"><i class="fas fa-user-shield" aria-hidden="true"></i><span>{{localize "ETHERNUM.FieldCommunicator.Panels.Administration"}}</span></button>{{/if}}
   </nav>
 </section>

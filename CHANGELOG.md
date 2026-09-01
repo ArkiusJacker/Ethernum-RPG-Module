@@ -5,6 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [3.8.11] - 2026-09-01
+
+### Corrigido
+- As classes 3–5 passam a exibir os nomes canônicos Manifestação, Disrupção e Horizonte de Eventos, preservando IDs numéricos, CDs, custos, efeitos e disponibilidade.
+- Loja e Contratos isolam falhas no próprio painel e repetem apenas o snapshot afetado; o estado global de documento indisponível depende exclusivamente do documento selecionado.
+- O Command Device tenta direita, esquerda, acima e abaixo do Comunicador, preserva posições válidas e usa um modo compacto anunciado quando a viewport não comporta ambos.
+
+### Adicionado
+- Catálogo de runas schema 2 com IDs estáveis, labels PT-BR/EN, ordem editorial e distinção explícita entre palavras canônicas, legadas, personalizadas e desconhecidas.
+- Migração idempotente e restrita ao GM primário, com resumo não sensível e preservação integral de campos desconhecidos.
+- Navegação acessível das treze abas do Command Device com roving tabindex, setas, Home, End, Enter/Espaço, foco visível e indicação de overflow.
+- Paridade automatizada das traduções e cobertura comportamental para painéis, migração, geometria, DialogV2, projeções, API pública e cancelamento/limpeza do PDF.js.
+
+### Compatibilidade e preservação
+- Foundry VTT 13 permanece mínimo e verificado, com PF2e 7.8.0 como baseline; Foundry 14 continua experimental.
+- Nenhum Actor, Item, documento, UUID, ACL, alias, palavra personalizada, flag desconhecida ou registro de QA é removido.
+- ActorSheet V1 permanece funcional no baseline, com migração para ApplicationV2 adiada para a linha 3.9.x.
+
 ## [3.8.10] - 2026-08-31
 
 ### Adicionado

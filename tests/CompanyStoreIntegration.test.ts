@@ -166,12 +166,12 @@ describe("Company Store v3.8.2 UI integration", () => {
     expect(template).toContain('data-communicator-action="store-back"');
     expect(template).toContain('data-communicator-action="store-purchase"');
     expect(template).toContain('data-communicator-action="store-receipt-close"');
-    expect(template).toContain("Saldo PF2e");
+    expect(template).toContain("ETHERNUM.FieldCommunicator.Copy.PF2eBalance");
     expect(template).toContain("panel.store.balance.label");
     expect(template).toContain("panel.store.selectedItem.stockLabel");
     expect(template).toContain("panel.store.selectedItem.authorizationLabel");
     expect(template).toContain("panel.store.state.noActor");
-    expect(template).toContain("Catálogo indisponível");
+    expect(template).toContain("ETHERNUM.FieldCommunicator.Copy.CatalogUnavailable");
     expect(template).toContain('aria-live="polite"');
     expect(template).toContain("disabled aria-disabled=\"true\"");
   });

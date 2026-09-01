@@ -36,6 +36,11 @@ interface ModernDialogConstructor {
   }): Promise<unknown>;
 }
 
+function localize(key: string, fallback: string): string {
+  const translated = (globalThis as typeof globalThis & { game?: Game }).game?.i18n?.localize(key);
+  return translated && translated !== key ? translated : fallback;
+}
+
 function modernDialog(): ModernDialogConstructor | null {
   const root = globalThis as typeof globalThis & {
     foundry?: { applications?: { api?: { DialogV2?: ModernDialogConstructor } } };
@@ -59,7 +64,7 @@ export async function showModernFormDialog(
   options: ModernFormDialogOptions = {},
 ): Promise<FormData | null> {
   const DialogV2 = modernDialog();
-  const confirmLabel = options.confirmLabel ?? "Confirmar";
+  const confirmLabel = options.confirmLabel ?? localize("ETHERNUM.Buttons.Confirm", "Confirmar");
   const confirmIcon = options.confirmIcon ?? "fa-solid fa-check";
   if (DialogV2) {
     const result = await DialogV2.wait({
@@ -82,7 +87,7 @@ export async function showModernFormDialog(
         },
       }] : []), {
         action: "cancel",
-        label: "Cancelar",
+        label: localize("ETHERNUM.Buttons.Cancel", "Cancelar"),
         icon: "fa-solid fa-xmark",
         callback: () => null,
       }],
@@ -115,7 +120,7 @@ export async function showModernFormDialog(
         },
         cancel: {
           icon: '<i class="fas fa-xmark"></i>',
-          label: "Cancelar",
+          label: localize("ETHERNUM.Buttons.Cancel", "Cancelar"),
           callback: () => finish(null),
         },
         ...(options.secondaryAction ? {

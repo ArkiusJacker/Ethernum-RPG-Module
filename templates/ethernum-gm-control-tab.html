@@ -27,8 +27,8 @@
 
   <nav class="ethernum-gm-control__tabs" role="tablist" aria-label="{{localize 'ETHERNUM.GMControl.Navigation'}}">
     {{#each sections}}
-    <button type="button" role="tab" class="ethernum-gm-control__tab {{#if this.active}}is-active{{/if}}"
-      data-gm-section="{{this.id}}" aria-selected="{{this.active}}" aria-controls="ethernum-gm-panel-{{this.id}}">
+    <button type="button" role="tab" id="ethernum-gm-tab-{{this.id}}" class="ethernum-gm-control__tab {{#if this.active}}is-active{{/if}}"
+      data-gm-section="{{this.id}}" tabindex="{{#if this.active}}0{{else}}-1{{/if}}" aria-selected="{{this.active}}" aria-controls="ethernum-gm-panel-{{this.id}}">
       <i class="fas {{this.icon}}" aria-hidden="true"></i>
       <span>{{localize this.labelKey}}</span>
     </button>
@@ -36,7 +36,7 @@
   </nav>
 
   <div class="ethernum-gm-control__body">
-    <section id="ethernum-gm-panel-operations" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.operations'}}" {{#unless panels.summary.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-operations" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-operations" {{#unless panels.summary.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-chart-simple" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Summary.Title"}}</h3>
@@ -67,7 +67,7 @@
       </div>
     </section>
 
-    <section id="ethernum-gm-panel-contracts" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.contracts'}}" {{#unless panels.contracts.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-contracts" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-contracts" {{#unless panels.contracts.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-file-signature"></i> Contratos</h3><p>Publicacao, visibilidade e ciclo operacional.</p></div>
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="contract-create"><i class="fas fa-plus"></i><span>Novo contrato</span></button>
@@ -94,7 +94,7 @@
 
     </section>
 
-    <section id="ethernum-gm-panel-squads" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.squads'}}" {{#unless panels.squads.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-squads" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-squads" {{#unless panels.squads.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading"><div><h3><i class="fas fa-people-group"></i> Equipes</h3><p>Identidade corporativa, patente e alocacao.</p></div></div>
       {{#if squadsEmpty}}
       <div class="ethernum-gm-control__empty"><i class="fas fa-user-slash"></i><strong>Nenhum agente disponivel</strong></div>
@@ -111,7 +111,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-intelligence" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.intelligence'}}" {{#unless panels.intelligence.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-intelligence" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-intelligence" {{#unless panels.intelligence.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading"><div><h3><i class="fas fa-user-secret"></i> Inteligencia</h3><p>Descobertas por contrato e desbloqueio de anexos.</p></div></div>
       {{#if intelligenceEmpty}}
       <div class="ethernum-gm-control__empty"><i class="fas fa-folder-open"></i><strong>Nenhuma operacao de inteligencia</strong></div>
@@ -131,7 +131,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-store" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.store'}}" {{#unless panels.store.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-store" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-store" {{#unless panels.store.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-store"></i> Loja</h3><p>Catalogo, estoque e disponibilidade.</p></div>
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="store-add"><i class="fas fa-plus"></i><span>Adicionar item</span></button>
@@ -181,7 +181,7 @@
       </section>
     </section>
 
-    <section id="ethernum-gm-panel-loot" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.loot'}}" {{#unless panels.loot.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-loot" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-loot" {{#unless panels.loot.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-box-open"></i> Gerador de Loot</h3><p>Itens PF2e reais, orçamento fechado e resultado reproduzível por semente.</p></div>
         <div class="ethernum-gm-control__toolbar">
@@ -217,7 +217,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-encounter" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.encounter'}}" {{#unless panels.encounter.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-encounter" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-encounter" {{#unless panels.encounter.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-people-arrows"></i> Analisador de Encontro</h3><p>Diagnóstico somente leitura do combate atual e dos orçamentos PF2e.</p></div>
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="encounter-analyze"><i class="fas fa-magnifying-glass-chart"></i><span>Analisar agora</span></button>
@@ -244,7 +244,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-mechanics" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.mechanics'}}" {{#unless panels.mechanics.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-mechanics" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-mechanics" {{#unless panels.mechanics.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-wand-magic-sparkles"></i> Gerador de Mecânica Única NPC</h3><p>Análise PF2e offline, templates declarativos e aplicação reversível.</p></div>
         <div class="ethernum-gm-control__toolbar">
@@ -315,7 +315,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-requisitions" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.requisitions'}}" {{#unless panels.queue.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-requisitions" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-requisitions" {{#unless panels.queue.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-list-check" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Queue.Title"}}</h3>
@@ -379,7 +379,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-rewards" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.rewards'}}" {{#unless panels.rewards.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-rewards" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-rewards" {{#unless panels.rewards.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-award"></i> Recompensas</h3><p>Entrega transacional de itens, moedas e registros de progressao.</p></div>
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="reward-grant"><i class="fas fa-gift"></i><span>Conceder</span></button>
@@ -398,7 +398,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-broadcast" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.broadcast'}}" {{#unless panels.broadcast.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-broadcast" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-broadcast" {{#unless panels.broadcast.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div><h3><i class="fas fa-tower-broadcast"></i> Broadcast</h3><p>Comunicados persistentes INFO, WARNING e CRITICAL.</p></div>
         <button type="button" class="ethernum-gm-control__command" data-gm-domain-action="broadcast-send"><i class="fas fa-paper-plane"></i><span>Transmitir</span></button>
@@ -417,7 +417,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-audit" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.audit'}}" {{#unless panels.audit.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-audit" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-audit" {{#unless panels.audit.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-clock-rotate-left" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Audit.Title"}}</h3>
@@ -531,7 +531,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-system" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.system'}}" {{#unless panels.policies.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-system" class="ethernum-gm-control__panel" role="tabpanel" aria-labelledby="ethernum-gm-tab-system" {{#unless panels.policies.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-shield-halved" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Policies.Title"}}</h3>
@@ -560,7 +560,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-diagnostics" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.diagnostics'}}" {{#unless panels.diagnostics.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-diagnostics" class="ethernum-gm-control__panel" role="region" aria-label="{{localize 'ETHERNUM.GMControl.Sections.diagnostics'}}" {{#unless panels.diagnostics.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-stethoscope" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Diagnostics.Title"}}</h3>
@@ -585,7 +585,7 @@
       {{/if}}
     </section>
 
-    <section id="ethernum-gm-panel-admin" class="ethernum-gm-control__panel" role="tabpanel" aria-label="{{localize 'ETHERNUM.GMControl.Sections.admin'}}" {{#unless panels.admin.active}}hidden{{/unless}}>
+    <section id="ethernum-gm-panel-admin" class="ethernum-gm-control__panel" role="region" aria-label="{{localize 'ETHERNUM.GMControl.Sections.admin'}}" {{#unless panels.admin.active}}hidden{{/unless}}>
       <div class="ethernum-gm-control__section-heading">
         <div>
           <h3><i class="fas fa-screwdriver-wrench" aria-hidden="true"></i>{{localize "ETHERNUM.GMControl.Admin.Title"}}</h3>

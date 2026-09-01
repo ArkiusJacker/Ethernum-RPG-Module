@@ -1,6 +1,7 @@
 import { ETHERNUM } from "../../config.js";
 import type { CharacterSheetPermissions } from "./CharacterSheetController.js";
 import { PF2ePresentationLocalization } from "./PF2ePresentationLocalization.js";
+import { localizeStoredRuneWord } from "../../runes/RuneCatalog.js";
 
 type Data = Record<string, unknown>;
 
@@ -515,8 +516,15 @@ function viewEthernumSystems(value: unknown): Data {
     return {
       ...rune,
       classId: runeClass,
-      classLabel: ETHERNUM.RUNE_CLASSES[runeClass as 1 | 2 | 3 | 4 | 5]?.name ?? String(runeClass),
-      formula: [rune.verb, rune.noun, rune.source].filter(Boolean).join(" + "),
+      classLabel: localize(
+        ETHERNUM.RUNE_CLASSES[runeClass as 1 | 2 | 3 | 4 | 5]?.labelKey ?? "",
+        ETHERNUM.RUNE_CLASSES[runeClass as 1 | 2 | 3 | 4 | 5]?.name ?? String(runeClass),
+      ),
+      formula: [
+        localizeStoredRuneWord("verb", rune.verb, key => localize(key)),
+        localizeStoredRuneWord("noun", rune.noun, key => localize(key)),
+        localizeStoredRuneWord("source", rune.source, key => localize(key)),
+      ].filter(Boolean).join(" + "),
       cost: rune.costValue,
       icon: "fas fa-gem",
       canUse: rune.active !== false,
@@ -527,7 +535,7 @@ function viewEthernumSystems(value: unknown): Data {
   });
   const runeClasses = Object.entries(ETHERNUM.RUNE_CLASSES).map(([id, config]) => ({
     id,
-    label: config.name,
+    label: localize(config.labelKey, config.name),
     icon: "fas fa-gem",
     count: runes.filter(rune => String(rune.classId) === id).length,
   }));

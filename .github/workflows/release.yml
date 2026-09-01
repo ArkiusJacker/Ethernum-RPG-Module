@@ -60,6 +60,9 @@ jobs:
       - name: Validate distribution
         run: npm run validate:dist -- --expected-version "${{ steps.version.outputs.VERSION }}" --zip ethernum-rpg-module.zip
 
+      - name: Test release archive
+        run: unzip -t ethernum-rpg-module.zip
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -67,4 +70,5 @@ jobs:
             ethernum-rpg-module.zip
             dist/module.json
             package-size-report.json
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: false

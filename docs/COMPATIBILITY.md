@@ -6,7 +6,7 @@ operations are authoritative.
 
 | Foundry VTT | PF2e | Status | Test level | Notes |
 | --- | --- | --- | --- | --- |
-| 13.351 | 7.8.0 | Supported baseline | Automated suite plus full campaign smoke tests | Character sheets, profile mechanics, tracker, communicators, Store, Contracts, generators and GM controls are exercised here. |
+| 13.351 | 7.8.0 | Supported baseline | Automated suite plus full v3.8.11 campaign smoke tests | Character sheets, runes, profile mechanics, tracker, Communicator, Store, Contracts, PDF and GM controls are exercised here. |
 | 14 | Compatible PF2e release | Experimental / partial | Live Store and Journal smoke pass in v3.8.2 plus build validation | A complete current campaign sweep has not been performed. Back up the world and validate PF2e before upgrading. |
 | 12 | Compatible PF2e release | Unsupported / best effort code paths | No current runtime QA | Some guarded Application V1 fallbacks remain, but new installs are not declared compatible. |
 | 11 | Compatible PF2e release | Unsupported | No current runtime QA | The modern sheet, prepared-data and application contracts are not validated on Foundry 11. |
@@ -21,6 +21,9 @@ operations are authoritative.
   summary.
 - Existing Actor data, flags, macros and aliases are preserved when upgrading the
   module. Raising the install minimum does not migrate or delete world data.
+- The custom character sheet still uses ActorSheet V1 on this baseline. Foundry
+  marks that API as deprecated for a future major release; migration to
+  ApplicationV2 is planned for the 3.9.x line and is not part of this hotfix.
 
 ## Foundry Type Definitions
 

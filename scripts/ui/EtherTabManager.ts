@@ -17,6 +17,10 @@ import {
   PippingAnimationService,
   type PippingHoverPreviewHandle,
 } from '../mechanics/pipping/animations.js';
+import {
+  buildRuneWordOptions,
+  localizeStoredRuneWord,
+} from '../runes/RuneCatalog.js';
 
 // Persiste qual aba Ethernum estava ativa por ator entre re-renders.
 // actor.setFlag() no PF2E v8 (ApplicationV2) dispara re-render automático;
@@ -54,7 +58,19 @@ interface RuneGroupData {
   label: string;
   count: number;
   collapsed: boolean;
-  runes: Array<RuneData & { minimized: boolean; effectiveCostValue: number }>;
+  runes: Array<RuneData & {
+    minimized: boolean;
+    effectiveCostValue: number;
+    verbLabel: string;
+    nounLabel: string;
+    sourceLabel: string;
+    wordOptions: {
+      verbs: ReturnType<typeof buildRuneWordOptions>;
+      nouns: ReturnType<typeof buildRuneWordOptions>;
+      sources: ReturnType<typeof buildRuneWordOptions>;
+    };
+    hasLegacyWord: boolean;
+  }>;
 }
 
 export class EtherTabManager {
@@ -193,7 +209,13 @@ export class EtherTabManager {
 
     const allRunes = (actor.getFlag(ETHERNUM.MODULE_NAME, "runes") as RuneData[] | undefined) ?? [];
     const rawRunes = allRunes.filter(rune => normalizeCampaignCore(rune.core) === activeCore);
-    const runeGroups = this._buildRuneGroups(rawRunes, collapsedSet, minimizedSet, defaultRuneCostPerClass);
+    const runeGroups = this._buildRuneGroups(
+      rawRunes,
+      collapsedSet,
+      minimizedSet,
+      defaultRuneCostPerClass,
+      customWords,
+    );
 
     return {
       actor,
@@ -216,7 +238,7 @@ export class EtherTabManager {
       ),
       ranks:               ETHERNUM.RANKS,
       runeClasses:         ETHERNUM.RUNE_CLASSES,
-      runeTrinity:         ETHERNUM.RUNE_TRINITY,
+      runeCatalog:         ETHERNUM.RUNE_CATALOG,
       runeClassDCs,
       defaultRuneCostPerClass,
       customWords,
@@ -230,7 +252,8 @@ export class EtherTabManager {
     rawRunes: RuneData[],
     collapsedSet: Set<string>,
     minimizedSet: Set<string>,
-    defaultRuneCostPerClass: Record<number, number>
+    defaultRuneCostPerClass: Record<number, number>,
+    customWords: CustomWords,
   ): RuneGroupData[] {
     const groupMap = new Map<string, RuneData[]>();
     for (const rune of rawRunes) {
@@ -250,13 +273,24 @@ export class EtherTabManager {
       label: noun || game.i18n!.localize("ETHERNUM.Rune.NoNounGroup"),
       count: groupRunes.length,
       collapsed: collapsedSet.has(noun),
-      runes: groupRunes.map(rune => ({
-        ...rune,
-        minimized: minimizedSet.has(rune.id),
-        effectiveCostValue: rune.usesDefaultCost
-          ? (defaultRuneCostPerClass[rune.runeClass] ?? 0)
-          : (rune.costValue ?? 0),
-      })),
+      runes: groupRunes.map(rune => {
+        const localize = (key: string) => game.i18n!.localize(key);
+        const verbs = buildRuneWordOptions("verb", rune.verb, customWords.verbs, localize);
+        const nouns = buildRuneWordOptions("noun", rune.noun, customWords.nouns, localize);
+        const sources = buildRuneWordOptions("source", rune.source, customWords.sources, localize);
+        return {
+          ...rune,
+          minimized: minimizedSet.has(rune.id),
+          effectiveCostValue: rune.usesDefaultCost
+            ? (defaultRuneCostPerClass[rune.runeClass] ?? 0)
+            : (rune.costValue ?? 0),
+          verbLabel: localizeStoredRuneWord("verb", rune.verb, localize),
+          nounLabel: localizeStoredRuneWord("noun", rune.noun, localize),
+          sourceLabel: localizeStoredRuneWord("source", rune.source, localize),
+          wordOptions: { verbs, nouns, sources },
+          hasLegacyWord: [...verbs, ...nouns, ...sources].some(option => option.selected && option.legacy),
+        };
+      }),
     }));
   }
 

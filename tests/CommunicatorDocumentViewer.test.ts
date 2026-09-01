@@ -159,4 +159,52 @@ describe("CommunicatorDocumentViewer", () => {
     expect(clearRect).toHaveBeenCalledOnce();
     expect(canvas).toMatchObject({ width: 1, height: 1, hidden: true });
   });
+
+  it("cancels an obsolete PDF.js render before starting the next one", async () => {
+    let resolveFirst!: () => void;
+    const firstPromise = new Promise<void>(resolve => { resolveFirst = resolve; });
+    const firstCancel = vi.fn();
+    const secondCancel = vi.fn();
+    const render = vi.fn()
+      .mockReturnValueOnce({ promise: firstPromise, cancel: firstCancel })
+      .mockReturnValueOnce({ promise: Promise.resolve(), cancel: secondCancel });
+    const pdf = {
+      numPages: 2,
+      getPage: vi.fn(async () => ({
+        getViewport: ({ scale }: { scale: number }) => ({ width: 100 * scale, height: 120 * scale }),
+        render,
+      })),
+    };
+    vi.mocked(getDocument).mockReturnValue({ promise: Promise.resolve(pdf), destroy: vi.fn(async () => undefined) } as never);
+    const stage = {
+      clientWidth: 420,
+      clientHeight: 300,
+      classList: { add: vi.fn(), remove: vi.fn() },
+      setAttribute: vi.fn(),
+    };
+    const canvas = {
+      width: 0,
+      height: 0,
+      hidden: true,
+      style: { width: "", height: "", removeProperty: vi.fn() },
+      getContext: vi.fn(() => ({ clearRect: vi.fn() })),
+    };
+    const fallback = { hidden: true, textContent: "" };
+    const host = {
+      querySelector: (selector: string) => selector.includes("stage") ? stage : selector.includes("canvas") ? canvas : fallback,
+    };
+    viewer.setTarget(target);
+
+    const obsolete = viewer.render(host as unknown as HTMLElement);
+    await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+    const current = viewer.render(host as unknown as HTMLElement);
+    expect(firstCancel).toHaveBeenCalledOnce();
+    await current;
+    resolveFirst();
+    await obsolete;
+
+    expect(render).toHaveBeenCalledTimes(2);
+    viewer.clear();
+    expect(secondCancel).not.toHaveBeenCalled();
+  });
 });

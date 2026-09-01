@@ -8,6 +8,10 @@ import {
   resolveGMControlLauncherState,
   shouldMountGMControlCenter,
 } from "../scripts/ui/GMControlCenterOverlay.js";
+import {
+  rectangleIntersectionArea,
+  resolveNonOverlappingPosition,
+} from "../scripts/ui/layout/NonOverlappingPlacement.js";
 
 const root = resolve(import.meta.dirname, "..");
 
@@ -44,6 +48,71 @@ describe("standalone GM Control Center layout", () => {
     expect(resolveGMControlLauncherState(2, { primaryGMId: "gm", lastError: null })).toBe("pending");
     expect(resolveGMControlLauncherState(0, { primaryGMId: null, lastError: null })).toBe("warning");
     expect(resolveGMControlLauncherState(0, { primaryGMId: "gm", lastError: "socket" })).toBe("error");
+  });
+
+  it.each([
+    [1280, 720],
+    [1366, 768],
+    [1600, 900],
+    [1920, 1080],
+  ])("finds a zero-intersection placement at %d×%d", (width, height) => {
+    const obstacle = { left: 8, top: 40, width: 480, height: Math.min(600, height - 80) };
+    const moving = { left: 220, top: 100, width: 560, height: Math.min(500, height - 100) };
+    const result = resolveNonOverlappingPosition({
+      movingRect: moving,
+      obstacleRect: obstacle,
+      viewport: { width, height },
+      margin: 8,
+      preferredOrder: ["right", "left", "above", "below"],
+    });
+    expect(result.intersectionArea).toBe(0);
+    expect(result.compactRequired).toBe(false);
+    expect(rectangleIntersectionArea(
+      { ...moving, left: result.left, top: result.top },
+      obstacle,
+    )).toBe(0);
+  });
+
+  it("tries right, left, above, and below while preserving a valid user position", () => {
+    const viewport = { width: 1366, height: 768 };
+    const moving = { left: 300, top: 220, width: 460, height: 260 };
+    const leftObstacle = { left: 8, top: 120, width: 480, height: 560 };
+    expect(resolveNonOverlappingPosition({ movingRect: moving, obstacleRect: leftObstacle, viewport, margin: 8 }).strategy).toBe("right");
+
+    const rightObstacle = { left: 878, top: 120, width: 480, height: 560 };
+    expect(resolveNonOverlappingPosition({ movingRect: { ...moving, left: 700 }, obstacleRect: rightObstacle, viewport, margin: 8 }).strategy).toBe("left");
+
+    const centeredObstacle = { left: 260, top: 300, width: 846, height: 300 };
+    expect(resolveNonOverlappingPosition({ movingRect: { ...moving, left: 520, top: 320 }, obstacleRect: centeredObstacle, viewport, margin: 8 }).strategy).toBe("above");
+
+    const valid = resolveNonOverlappingPosition({
+      movingRect: { ...moving, left: 890, top: 8 },
+      obstacleRect: leftObstacle,
+      viewport,
+      margin: 8,
+    });
+    expect(valid).toMatchObject({ strategy: "preserved", left: 890, top: 8, intersectionArea: 0 });
+  });
+
+  it("reports an explicit compact fallback when the viewport cannot fit both interfaces", () => {
+    const result = resolveNonOverlappingPosition({
+      movingRect: { left: 360, top: 40, width: 860, height: 650 },
+      obstacleRect: { left: 8, top: 8, width: 520, height: 704 },
+      viewport: { width: 1280, height: 720 },
+      margin: 8,
+    });
+    expect(result.strategy).toBe("minimum-intersection");
+    expect(result.compactRequired).toBe(true);
+    expect(result.intersectionArea).toBeGreaterThan(0);
+  });
+
+  it.each([1.25, 1.5])("keeps a zero-intersection option at %d× browser zoom", zoom => {
+    const width = Math.floor(1920 / zoom);
+    const height = Math.floor(1080 / zoom);
+    const moving = { left: 280, top: 120, width: 500, height: 360 };
+    const obstacle = { left: 8, top: 60, width: 430, height: 600 };
+    const result = resolveNonOverlappingPosition({ movingRect: moving, obstacleRect: obstacle, viewport: { width, height }, margin: 8 });
+    expect(result.intersectionArea).toBe(0);
   });
 });
 

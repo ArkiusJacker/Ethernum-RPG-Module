@@ -59,6 +59,7 @@ import { getAdministrativeCommunicatorService } from './administration/Administr
 import { getUniqueMechanicAIAssistanceService } from './generators/mechanics/ai/UniqueMechanicAIAssistanceService.js';
 import type { UniqueMechanicAIProvider } from './generators/mechanics/ai/UniqueMechanicAITypes.js';
 import { PerformanceTelemetry, type PerformanceMetricSnapshot } from './core/PerformanceTelemetry.js';
+import { assertPublicApiContract } from './api/PublicApiContract.js';
 
 const COMBAT_MOMENTUM_MANAGED_MACROS = [
   {
@@ -543,14 +544,6 @@ function registerHandlebarsHelpers(): void {
   Handlebars.registerHelper('ethernum-talentRankBonus', (rank: Rank) => ETHERNUM.TALENT_RANK_BONUS[rank ?? "F"] ?? 3);
   Handlebars.registerHelper('ethernum-ranks',       () => ETHERNUM.RANKS);
   Handlebars.registerHelper('ethernum-runeClasses', () => ETHERNUM.RUNE_CLASSES);
-  Handlebars.registerHelper('ethernum-runeTrinity', () => ETHERNUM.RUNE_TRINITY);
-  Handlebars.registerHelper('ethernum-verbTier', (verb: string) => {
-    const { VERBS } = ETHERNUM.RUNE_TRINITY;
-    if (VERBS.tier1.includes(verb)) return 1;
-    if (VERBS.tier2.includes(verb)) return 2;
-    if (VERBS.tier3.includes(verb)) return 3;
-    return 0;
-  });
   Handlebars.registerHelper('ethernum-feCost', (rank: Rank) => getFECostForRank(rank));
 }
 
@@ -777,6 +770,7 @@ Hooks.once("init", () => {
     },
     macros: buildMacroApi(),
   };
+  assertPublicApiContract(game.ethernum);
 });
 
 Hooks.once("ready", async () => {

@@ -36,6 +36,11 @@ export interface CommunicatorDocumentViewerData {
   diagnosticMessage?: string;
 }
 
+function localize(key: string, fallback: string): string {
+  const translated = (globalThis as typeof globalThis & { game?: Game }).game?.i18n?.localize(key);
+  return translated && translated !== key ? translated : fallback;
+}
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
 }
@@ -70,7 +75,8 @@ export class CommunicatorDocumentViewer {
     this.diagnostic = target?.availability?.status === "unavailable"
       ? {
           code: CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
-          message: target.availability.message ?? "O documento solicitado não está disponível.",
+          message: target.availability.message
+            ?? localize("ETHERNUM.FieldCommunicator.Copy.DocumentUnavailable", "O documento solicitado não está disponível."),
         }
       : null;
     this.pageCount = Math.max(1, Math.trunc(Number(target?.pageCount) || 1));
@@ -184,7 +190,7 @@ export class CommunicatorDocumentViewer {
       const outputScale = clamp(globalThis.devicePixelRatio || 1, 1, 2);
       const viewport = page.getViewport({ scale: cssScale * outputScale });
       const context = canvas.getContext("2d", { alpha: false });
-      if (!context) throw new Error("Canvas 2D indisponível.");
+      if (!context) throw new Error(localize("ETHERNUM.FieldCommunicator.Copy.CanvasUnavailable", "Canvas 2D indisponível."));
 
       canvas.width = Math.max(1, Math.floor(viewport.width));
       canvas.height = Math.max(1, Math.floor(viewport.height));
@@ -203,7 +209,7 @@ export class CommunicatorDocumentViewer {
       console.error("Ethernum | Embedded PDF render failed", error);
       this.diagnostic = {
         code: CONTRACT_DOCUMENT_UNAVAILABLE_CODE,
-        message: "Não foi possível carregar o documento solicitado.",
+        message: localize("ETHERNUM.FieldCommunicator.Copy.DocumentLoadFailed", "Não foi possível carregar o documento solicitado."),
       };
       stage.classList.remove("is-loading");
       stage.classList.add("is-unavailable");

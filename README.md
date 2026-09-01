@@ -6,6 +6,18 @@
 
 Sistema de RPG com múltiplas funções, criado especificamente para integrar com o sistema Pathfinder 2E. O módulo declara Foundry VTT 13 como mínimo e versão verificada; a combinação primária testada é Foundry 13.351 com PF2e 7.8.0. Consulte a [matriz de compatibilidade](docs/COMPATIBILITY.md) para distinguir suporte testado, parcial e não suportado.
 
+## Versão 3.8.11
+
+- As classes de runa 3–5 agora usam os nomes canônicos Manifestação, Disrupção e Horizonte de Eventos, sem alterar IDs, CDs, custos ou efeitos.
+- Verbos, Substantivos e Fontes oficiais usam IDs estáveis e ordem editorial; valores legados, personalizados ou desconhecidos continuam preservados nos mundos existentes.
+- Loja e Contratos possuem erros e retry isolados por painel; “Arquivo indisponível” fica reservado ao documento selecionado realmente ausente.
+- Command Device e Comunicador evitam sobreposição em quatro direções, com fallback compacto explícito e abas acessíveis por teclado.
+- As interfaces modificadas possuem paridade integral PT-BR/EN e testes de localização, migração, geometria, teclado, debounce, API e PDF.js.
+- Compatibilidade validada: Foundry VTT 13.351 e PF2e 7.8.0. Foundry 14 permanece experimental.
+- Evidências da validação estão em [`docs/qa/v3.8.11/`](docs/qa/v3.8.11/).
+
+Consulte o [catálogo público de runas](docs/RUNE_CATALOG.md) e a [matriz de compatibilidade](docs/COMPATIBILITY.md).
+
 ## Versão 3.8.10
 
 - O Command Device foi dividido em controladores de Geradores, Contratos, Loja, Companhia e Comunicador, mantendo a ponte principal pequena e auditável.
@@ -94,17 +106,17 @@ Sistema de RPG com múltiplas funções, criado especificamente para integrar co
 - **Custo**: Baixo
 - **Visual**: Éter visível e emanações claras
 
-#### Classe 3: Dissonante
+#### Classe 3: Manifestação
 - **Foco**: Alteração de regras locais e distorção da realidade
 - **Custo**: Médio
 - **Visual**: O ambiente distorce e as leis físicas tremem
 
-#### Classe 4: Crítico
+#### Classe 4: Disrupção
 - **Foco**: Efeitos permanentes e alterações fundamentais
 - **Custo**: Alto
 - **Visual**: Ruptura visível na realidade
 
-#### Classe 5: Evento Zero
+#### Classe 5: Horizonte de Eventos
 - **Foco**: Reescrever completamente a Narrativa/Realidade
 - **Custo**: Catastrófico
 - **Visual**: Colapso total e risco de fim de jogo
@@ -317,8 +329,8 @@ O módulo oferece as seguintes configurações (acessíveis nas configurações 
 
 ## 🔧 Requisitos
 
-- **Foundry VTT**: Compatibilidade declarada da versão 11 à 14; validação prática da v14 ainda pendente
-- **Sistema**: Pathfinder 2E (pf2e); a faixa de versões suportada será definida após testes práticos
+- **Foundry VTT**: versão 13 mínima e verificada; Foundry 14 é experimental e Foundry 11/12 não são suportados para novas instalações
+- **Sistema**: Pathfinder 2E (pf2e), com baseline de QA na versão 7.8.0
 
 ## 🌍 Idiomas Suportados
 

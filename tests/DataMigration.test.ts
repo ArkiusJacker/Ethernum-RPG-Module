@@ -112,6 +112,40 @@ describe("DataMigration", () => {
     expect(settingsSet).not.toHaveBeenCalled();
   });
 
+  it("repeats an interrupted world migration without duplicating or losing rune data", async () => {
+    const interrupted = legacyPippingActor("interrupted", true);
+    interrupted.flags.schemaVersion = 14;
+    interrupted.flags.runes = [
+      { id: "r1", name: "Kept", runeClass: 2, verb: "CRIAR", noun: "Fogo", source: "Sangue", dc: 30 },
+    ];
+    let worldSchema = 14;
+    const settingsSet = vi.fn(async (_scope: string, _key: string, value: number) => { worldSchema = value; });
+    vi.stubGlobal("game", {
+      user: { id: "gm-a", isGM: true },
+      users: [{ id: "gm-a", active: true, isGM: true }],
+      actors: [interrupted],
+      settings: {
+        get: vi.fn(() => worldSchema),
+        set: settingsSet,
+      },
+      i18n: { format: (key: string) => key },
+    });
+
+    await migrateWorld();
+    expect(worldSchema).toBe(14);
+    interrupted.failUpdate = false;
+    await migrateWorld();
+    const firstSuccess = structuredClone(interrupted.flags);
+    await migrateWorld();
+
+    expect(worldSchema).toBe(CURRENT_SCHEMA_VERSION);
+    expect(interrupted.flags).toEqual(firstSuccess);
+    expect(interrupted.flags.runes).toEqual([
+      { id: "r1", name: "Kept", runeClass: 2, verb: "criar", noun: "fogo", source: "sangue", dc: 30 },
+    ]);
+    expect(settingsSet).toHaveBeenCalledOnce();
+  });
+
   it("upgrades a schema 10 Pipping state to v5 without resetting resources", async () => {
     const actor = new FakeActor("schema-10", {
       schemaVersion: 10,
@@ -161,5 +195,44 @@ describe("DataMigration", () => {
 
     expect((absent as unknown as FakeActor).flags.characterSheetMode).toBe("auto");
     expect((existing as unknown as FakeActor).flags.characterSheetMode).toBe("pf2e");
+  });
+
+  it("migrates rune strings to catalog ids without changing classes, DCs, costs, effects, or unknown data", async () => {
+    const actor = new FakeActor("runes", {
+      schemaVersion: 14,
+      customWords: { verbs: ["SONDAR"], nouns: ["Portais"], sources: ["Esperança"] },
+      runes: [
+        { id: "r1", name: "Canonical", runeClass: 3, verb: "CRIAR", noun: "Fogo", source: "Sangue", dc: 37, costValue: 12, effect: { damage: "3d6" } },
+        { id: "r2", name: "Legacy", runeClass: 4, verb: "TRAVAR", noun: "Gelo", source: "Éter", dc: 42, costValue: 6, legacyExtra: "keep" },
+        { id: "r3", name: "Custom", runeClass: 5, verb: "SONDAR", noun: "Portais", source: "Esperança", unknownRoot: { keep: true } },
+        { id: "r4", name: "Unknown", runeClass: 1, verb: "???", noun: "void", source: "mystery" },
+      ],
+    }) as unknown as Actor;
+
+    await migrateActor(actor);
+
+    const flags = (actor as unknown as FakeActor).flags;
+    expect(flags.catalogSchemaVersion).toBe(2);
+    expect(flags.runes).toEqual([
+      { id: "r1", name: "Canonical", runeClass: 3, verb: "criar", noun: "fogo", source: "sangue", dc: 37, costValue: 12, effect: { damage: "3d6" } },
+      { id: "r2", name: "Legacy", runeClass: 4, verb: "TRAVAR", noun: "Gelo", source: "Éter", dc: 42, costValue: 6, legacyExtra: "keep" },
+      { id: "r3", name: "Custom", runeClass: 5, verb: "SONDAR", noun: "Portais", source: "Esperança", unknownRoot: { keep: true } },
+      { id: "r4", name: "Unknown", runeClass: 1, verb: "???", noun: "void", source: "mystery" },
+    ]);
+    expect(flags.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+
+    const afterFirstRun = structuredClone(flags);
+    await migrateActor(actor);
+    expect((actor as unknown as FakeActor).flags).toEqual(afterFirstRun);
+  });
+
+  it("marks an empty rune world with catalog schema v2 without creating synthetic runes", async () => {
+    const actor = new FakeActor("empty-runes", { schemaVersion: 14 }) as unknown as Actor;
+    await migrateActor(actor);
+    expect((actor as unknown as FakeActor).flags).toMatchObject({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      catalogSchemaVersion: 2,
+    });
+    expect((actor as unknown as FakeActor).flags.runes).toBeUndefined();
   });
 });

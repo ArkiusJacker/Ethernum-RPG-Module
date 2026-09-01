@@ -10,6 +10,7 @@ import {
   paginateGMControlAuditEntries,
   type GMControlAuditEntry,
 } from "../scripts/ui/GMControlCenterData.js";
+import { resolveRovingTabIndex } from "../scripts/ui/GMControlCenter.js";
 
 const root = resolve(import.meta.dirname, "..");
 const now = Date.UTC(2026, 7, 8, 12, 0, 0);
@@ -184,8 +185,25 @@ describe("GM Control Center visual layer", () => {
     expect(template).toMatch(/^\{\{#if isGM\}\}/);
     for (const section of GM_CONTROL_SECTIONS) {
       expect(template).toContain(`ethernum-gm-panel-${section}`);
-      expect(template).toContain(`ETHERNUM.GMControl.Sections.${section}`);
+      expect(template).toContain(`aria-labelledby="ethernum-gm-tab-${section}"`);
     }
+  });
+
+  it("implements roving keyboard navigation and coherent tab relationships", () => {
+    expect(resolveRovingTabIndex(0, 13, "ArrowRight")).toBe(1);
+    expect(resolveRovingTabIndex(0, 13, "ArrowLeft")).toBe(12);
+    expect(resolveRovingTabIndex(7, 13, "Home")).toBe(0);
+    expect(resolveRovingTabIndex(2, 13, "End")).toBe(12);
+    expect(resolveRovingTabIndex(2, 13, "Enter")).toBeNull();
+    expect(template).toContain('role="tablist"');
+    expect(template).toContain('tabindex="{{#if this.active}}0{{else}}-1{{/if}}"');
+    expect(template).toContain('id="ethernum-gm-tab-{{this.id}}"');
+    expect(template).toContain('aria-controls="ethernum-gm-panel-{{this.id}}"');
+    for (const section of GM_CONTROL_SECTIONS) {
+      expect(template).toContain(`aria-labelledby="ethernum-gm-tab-${section}"`);
+    }
+    expect(controller).toContain('event.key !== "Enter"');
+    expect(controller).toContain("scrollIntoView");
   });
 
   it("uses translation keys for controls and exposes every required action group", () => {

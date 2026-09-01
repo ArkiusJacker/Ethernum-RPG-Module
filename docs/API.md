@@ -1,6 +1,6 @@
 # Ethernum RPG Module API
 
-Este documento descreve o contrato de integração de `game.ethernum` a partir da API `1` (módulo v3.8.10). Métodos não listados como suportados devem ser tratados como detalhes internos e podem mudar entre versões.
+Este documento descreve o contrato de integração de `game.ethernum` a partir da API `1` (módulo v3.8.11). Métodos não listados como suportados devem ser tratados como detalhes internos e podem mudar entre versões.
 
 ## API suportada
 
@@ -65,7 +65,7 @@ Esses componentes são acessados por fachadas imutáveis ou comandos auditados. 
 
 Aliases de macros no nível raiz, como `momentumFides`, `fulgorNegro`, `showPippingStatus`, `gainGyroSP` e equivalentes antigos, continuam funcionais durante a API 1. Eles são considerados descontinuados para código novo, mas não serão removidos sem migração e janela explícita de compatibilidade.
 
-Nenhum alias histórico foi removido na v3.8.10.
+Nenhum alias histórico foi removido na v3.8.11.
 
 ## Compatibilidade
 
