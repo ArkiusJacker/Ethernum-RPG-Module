@@ -2,7 +2,7 @@
   "id": "ethernum-v-redhand",
   "title": "V RedHand — ARSENAL.EXE",
   "description": "Pacote de extensão Concórdia: adiciona V RedHand ao seletor de Mecânicas Únicas do Ethernum RPG Module, com Pocket.Mart e catálogo de playtest.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "authors": [
     {
       "name": "ArkiusJacker"
@@ -52,9 +52,9 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.1.1",
-  "manifest": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.1.1/module.json",
-  "download": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.1.1/ethernum-v-redhand.zip",
+  "url": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.2.0",
+  "manifest": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.2.0/module.json",
+  "download": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.2.0/ethernum-v-redhand.zip",
   "license": "MIT",
   "readme": "README.md"
 }

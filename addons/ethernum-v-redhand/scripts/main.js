@@ -1,14 +1,18 @@
 import {
   accessories,
+  cromaActivation,
   cromas,
   decisions,
   martItems,
   phases,
   symptoms,
   ultimates,
+  ultimateProfiles,
+  wayProfiles,
   weaponsG,
   weaponsS,
 } from "./data.js";
+import { managedWeapon, rollManifestedStrike, syncVItems } from "./foundry-items.js";
 
 const MODULE_ID = "ethernum-v-redhand";
 const BASE_ID = "ethernum-rpg-module";
@@ -26,13 +30,13 @@ const DISCOVERIES = [
 const WEAPON_ID = name => `weapon:${name}`;
 
 const DEFAULT_STATE = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   active: true,
   gloveMk: 1,
   corruptedRune: false,
   settings: { forcedRerollEnabled: false, allowT2Accessories: false, cromaStartChoice: "undecided" },
   catalog: { rewrites: [] },
-  encounter: { spins: 0, cartridge: false, mode: "G", current: null, ammo: {}, log: [] },
+  encounter: { spins: 0, cartridge: false, cartridgeSpent: false, mode: "G", current: null, ammo: {}, cromaUses: {}, cromaAmmo: null, cromaSandevistanState: null, pendingUltimateBonus: null, log: [] },
   daily: {
     tier: 1,
     tax: null,
@@ -44,6 +48,8 @@ const DEFAULT_STATE = {
     giftBoxPending: null,
     giftBoxUsed: false,
     cromas: [],
+    cromaUses: {},
+    camouflageActive: false,
     cromaChangeUsed: false,
     symptoms: [],
   },
@@ -55,7 +61,7 @@ function clone(value) {
 
 function stateFor(actor) {
   const saved = actor.getFlag(MODULE_ID, "state") ?? {};
-  return {
+  const state = {
     ...clone(DEFAULT_STATE),
     ...saved,
     settings: { ...DEFAULT_STATE.settings, ...(saved.settings ?? {}) },
@@ -63,6 +69,23 @@ function stateFor(actor) {
     encounter: { ...DEFAULT_STATE.encounter, ...(saved.encounter ?? {}) },
     daily: { ...DEFAULT_STATE.daily, ...(saved.daily ?? {}) },
   };
+  if (Number(saved.schemaVersion ?? 1) < 2) {
+    const oldCurrent = state.encounter.current;
+    if (oldCurrent?.ultimateSelect || oldCurrent?.isUltimate) {
+      oldCurrent.result = 1;
+    } else if (oldCurrent && Number(oldCurrent.result) >= 1 && Number(oldCurrent.result) <= 19) {
+      const migratedResult = Number(oldCurrent.result) + 1;
+      state.encounter.current = { ...weaponFor(oldCurrent.mode, migratedResult, state), mode: oldCurrent.mode, result: migratedResult };
+    }
+    state.encounter.log = (state.encounter.log ?? []).map(entry => {
+      const wasUltimate = entry.result === 20 && (entry.name === "Glitch / Ultimate Select" || ultimates.some(item => item[1] === entry.name));
+      return wasUltimate ? { ...entry, result: 1 } : Number(entry.result) >= 1 && Number(entry.result) <= 19
+        ? { ...entry, result: Number(entry.result) + 1 }
+        : entry;
+    });
+    state.schemaVersion = 2;
+  }
+  return state;
 }
 
 function escapeHtml(value) {
@@ -175,6 +198,7 @@ async function handleProfileSelection(event, root, app, actor, select) {
     state.active = true;
     try {
       await actor.update({ [`flags.${MODULE_ID}.active`]: true, [STATE_PATH]: state });
+      await syncVItems(actor, state);
       const currentRoot = getUniqueRoot(unwrapElement(undefined, app)) ?? root;
       const currentSelect = currentRoot.querySelector("select.ethernum-unique-profile");
       if (currentSelect) currentSelect.value = PROFILE_ID;
@@ -196,7 +220,9 @@ async function handleProfileSelection(event, root, app, actor, select) {
   const state = stateFor(actor);
   state.active = false;
   try {
+    await clearTimedCromaConditions(actor, state, { camouflage: true });
     await actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state });
+    await syncVItems(actor, state);
     const currentRoot = getUniqueRoot(unwrapElement(undefined, app)) ?? root;
     const currentSelect = currentRoot.querySelector("select.ethernum-unique-profile") ?? select;
     showNativeProfile(currentRoot, actor, requestedProfile);
@@ -225,7 +251,10 @@ function bindUniqueProfile(root, app, actor) {
       if (!coreButton || coreButton.dataset.core === "concordia" || !isVProfileActive(actor)) return;
       const state = stateFor(actor);
       state.active = false;
-      void actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state });
+      void actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state })
+        .then(() => clearTimedCromaConditions(actor, state, { camouflage: true }))
+        .then(() => syncVItems(actor, state))
+        .catch(error => console.error(`[${MODULE_ID}] could not remove managed items after core switch`, error));
     }, true);
     boundCoreRoots.add(root);
   }
@@ -324,16 +353,40 @@ function capacityFor(form) {
   return null;
 }
 
-function weaponFor(mode, result, state) {
-  const table = mode === "G" ? weaponsG : weaponsS;
-  const rewrite = state.catalog.rewrites.find(entry => entry.mode === mode && Number(entry.slot) === result);
-  if (rewrite) return { name: DISCOVERIES[rewrite.discovery]?.[0] ?? table[result - 1][0], source: DISCOVERIES[rewrite.discovery]?.[1] ?? "Descoberta", meta: DISCOVERIES[rewrite.discovery]?.[2] ?? "", effect: DISCOVERIES[rewrite.discovery]?.[3] ?? "" };
-  const [name, source, meta, effect] = table[result - 1];
-  return { name, source, meta, effect };
+function wayFor(mode, text) {
+  if (mode === "S") return "drifter";
+  if (/Escopeta|Lancer/i.test(text)) return "vanguard";
+  if (/Pistola|Par/i.test(text)) return "pistolero";
+  if (/Pesada|Rifle|Railgun|Kraber|Sniper/i.test(text) || Number(text.match(/(\d+(?:[.,]\d+)?)\s*m/i)?.[1] ?? 0) >= 24) return "sniper";
+  return "vanguard";
 }
 
-function getSectionTab(mount) {
-  return mount.dataset.vTab ?? "status";
+function weaponFor(mode, result, state) {
+  const table = mode === "G" ? weaponsG : weaponsS;
+  const slot = result - 1; // d20 2–20 map to the catalogue slots 1–19.
+  const rewrite = state.catalog.rewrites.find(entry => entry.mode === mode && Number(entry.slot) === slot);
+  const [name, source, meta, effect] = rewrite
+    ? DISCOVERIES[rewrite.discovery] ?? table[slot - 1]
+    : table[slot - 1];
+  const wayId = wayFor(mode, `${meta ?? ""} ${effect ?? ""}`);
+  return { name, source, meta, effect, catalogSlot: slot, wayId, wayName: wayProfiles[wayId]?.name ?? "" };
+}
+
+function tabStorageKey(actor) {
+  return `${MODULE_ID}:tab:${game.user?.id ?? "user"}:${actor.uuid ?? actor.id ?? "actor"}`;
+}
+
+function getSectionTab(mount, actor) {
+  const allowed = new Set(["status", "boot", "arsenal", "glove", "store", "experiments", "cromas", "campaign"]);
+  let stored = mount.dataset.vTab;
+  try { stored ??= localStorage.getItem(tabStorageKey(actor)); } catch { /* Storage can be disabled in a private browsing context. */ }
+  stored ??= "status";
+  return allowed.has(stored) ? stored : "status";
+}
+
+function saveSectionTab(mount, actor, tab) {
+  mount.dataset.vTab = tab;
+  try { localStorage.setItem(tabStorageKey(actor), tab); } catch { /* Storage can be disabled in a private browsing context. */ }
 }
 
 function tabButton(id, label, active) {
@@ -367,20 +420,26 @@ function renderBoot(state) {
   const form = state.encounter.current;
   let current = `<p class="vred-muted">Nenhum resultado ainda. O primeiro giro ocorre com Into the Fray e iniciativa, sem ação adicional.</p>`;
   if (form?.ultimateSelect) {
-    current = `<span class="vred-badge gold">20 natural · Ultimate Select</span><p>${state.encounter.cartridge ? "Cartucho obtido neste encontro. Escolha uma Suprema no manual v0.4." : "20 posterior: pode trocar a Suprema, sem novo Cartucho."}</p><div class="vred-ultimate-grid">${ultimates.map(item => `<button type="button" class="vred-pick ${form.name === item[1] ? "selected" : ""}" data-v-action="select-ultimate" data-name="${escapeHtml(item[1])}"><strong>${escapeHtml(item[1])}</strong><small>${item[3]} ações · ${escapeHtml(item[2])}</small></button>`).join("")}</div>`;
+    current = `<span class="vred-badge gold vred-glitch-badge">1 NATURAL · BRECHA GLITCH</span><h4>A roleta falhou. O Blackwall respondeu.</h4><p>${state.encounter.cartridge ? "O Cartucho já foi obtido. Escolha uma Ultimate para substituir a forma atual; isso não restaura o Cartucho gasto." : "Uma Ultimate/Glitch foi revelada. Escolha uma das 18 armas e receba 1 Cartucho neste encontro."}</p><div class="vred-ultimate-grid">${ultimates.map(item => `<button type="button" class="vred-pick" data-v-action="select-ultimate" data-name="${escapeHtml(item[1])}"><strong>${escapeHtml(item[1])}</strong><small>${item[3]} ações · ${escapeHtml(item[2])}</small></button>`).join("")}</div>`;
+  } else if (form?.isUltimate) {
+    const profile = ultimateProfiles[form.name];
+    const ammo = form.mode === "G" ? state.encounter.ammo[form.name] : null;
+    const loaded = !ammo || (ammo.kind === "pair" ? ammo.left > 0 || ammo.right > 0 : ammo.rounds > 0);
+    current = `<span class="vred-badge gold vred-glitch-badge">GLITCH · ${escapeHtml(form.source)} · d20 1</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.meta)}</p><p><strong>${escapeHtml(profile?.label ?? "Assinatura Suprema")} · ${profile?.kind === "strike" ? "Strike" : "salvamento/área"} · ${ultimates.find(item => item[1] === form.name)?.[3] ?? 2} ações · 1 Cartucho</strong></p><p>${escapeHtml(profile?.signature ?? form.effect)}</p>${ammo?.kind ? `<div class="vred-ammo"><span>Munição da forma: <strong>${ammo.kind === "pair" ? `${ammo.left}/${ammo.right}` : `${ammo.rounds}/${ammo.max}`}</strong></span></div>` : ""}<div class="vred-control-row"><button class="vred-button primary" data-v-action="use-ultimate" ${!state.encounter.cartridge || state.encounter.cartridgeSpent || !loaded ? "disabled" : ""}>${state.encounter.cartridgeSpent ? "Cartucho gasto neste encontro" : !loaded ? "Recarregue a forma antes de usar" : "Usar assinatura Glitch"}</button><span class="vred-badge">${escapeHtml(form.wayName ?? "Way indisponível")}</span></div>`;
   } else if (form) {
     const ammo = form.mode === "G" ? state.encounter.ammo[form.name] : null;
     const ammoView = ammo?.kind === "pair"
       ? `<div class="vred-ammo"><span>Carregador esquerdo: <strong>${ammo.left}/6</strong></span><button class="vred-button small" data-v-action="fire" data-hand="left" ${ammo.left <= 0 ? "disabled" : ""}>Consumir tiro esquerdo</button><button class="vred-button small" data-v-action="reload" data-hand="left">Recarregar esquerdo · 1 ação</button><span>Carregador direito: <strong>${ammo.right}/6</strong></span><button class="vred-button small" data-v-action="fire" data-hand="right" ${ammo.right <= 0 ? "disabled" : ""}>Consumir tiro direito</button><button class="vred-button small" data-v-action="reload" data-hand="right">Recarregar direito · 1 ação</button></div>`
       : ammo?.kind ? `<div class="vred-ammo"><span>Munição: <strong>${ammo.rounds}/${ammo.max}</strong></span><button class="vred-button small" data-v-action="fire" ${ammo.rounds <= 0 ? "disabled" : ""}>Consumir 1 tiro</button><button class="vred-button small" data-v-action="reload">Recarregar · ${escapeHtml(ammo.reload)}</button></div>`
       : "";
-    current = `<span class="vred-badge">${form.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${form.result}</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.source)} · ${escapeHtml(form.meta)}</p><p>${escapeHtml(form.effect)}</p>${ammoView}`;
+    current = `<span class="vred-badge">${form.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${form.result}</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.source)} · ${escapeHtml(form.meta)}</p><p>${escapeHtml(form.effect)}</p><p class="vred-way-line"><strong>${escapeHtml(form.wayName ?? "Way correspondente")}</strong> · ${escapeHtml(wayProfiles[form.wayId]?.initial ?? "Way/perks ativos na ficha PF2e")}</p>${ammoView}`;
   }
   const canReroll = state.gloveMk >= 3 && state.settings.forcedRerollEnabled && !state.daily.rerollUsed && state.encounter.log.length > 0;
   return `<div class="vred-controls"><div class="vred-segment"><button type="button" data-v-action="mode" data-mode="G" class="${mode === "G" ? "selected" : ""}">Gunslinger</button><button type="button" data-v-action="mode" data-mode="S" class="${mode === "S" ? "selected" : ""}">Swordmaster</button></div><button type="button" class="vred-button primary" data-v-action="spin" ${state.encounter.spins >= 3 ? "disabled" : ""}>Girar d20 · ${state.encounter.spins}/3</button>${isGM() ? `<button type="button" class="vred-button" data-v-action="new-encounter">Novo encontro</button>` : ""}</div>
   <div class="vred-roll-layout"><div class="vred-die" data-die>${form?.result ?? "—"}</div><div class="vred-current">${current}</div></div>
+  ${state.encounter.pendingUltimateBonus ? `<div class="vred-callout vred-pending-bonus"><strong>Dano de assinatura pendente · ${escapeHtml(state.encounter.pendingUltimateBonus.name)}</strong><p>Rode depois de confirmar o acerto do Strike; aplique a parcela conforme acerto/crítico da carta.</p><button class="vred-button primary small" data-v-action="roll-ultimate-bonus">Rolar +${escapeHtml(state.encounter.pendingUltimateBonus.formula)} ${escapeHtml(state.encounter.pendingUltimateBonus.damageType)}</button></div>` : ""}
   <div class="vred-grid two" style="margin-top:14px">${card("Re-giro Forçado · proposta / decisão 09", `<p>Mk III+. Uma vez por dia, depois de ver o resultado; aceite o novo d20, inclusive 1 ou 20. O GM aplica um Sintoma.</p><p>Estado: ${state.settings.forcedRerollEnabled ? "experimento habilitado" : "desligado até decisão do GM"} · ${state.daily.rerollUsed ? "usado hoje" : "disponível"}</p><button class="vred-button" data-v-action="forced-reroll" ${!canReroll ? "disabled" : ""}>Forçar re-giro</button>${isGM() ? `<button class="vred-button small" data-v-action="toggle-reroll">${state.settings.forcedRerollEnabled ? "Desabilitar proposta" : "Habilitar proposta"}</button>` : ""}`, "gold")}
-  ${card("Ultimate Select", `<p>O primeiro 20 natural do encontro dá 1 Cartucho. Ele expira ao fim do encontro; outro 20 troca a Suprema, sem reabastecer.</p><p>Estado: <strong>${state.encounter.cartridge ? "Cartucho obtido" : "sem Cartucho"}</strong></p><p class="vred-note">As cartas e efeitos completos permanecem no manual v0.4, pp. 32–40.</p>`)}
+  ${card("Glitch / Ultimate", `<p>Um 1 natural abre a revelação Glitch e permite escolher uma das 18 Supremas. O primeiro 1 do encontro concede 1 Cartucho; outros 1 podem trocar a forma, sem restaurá-lo.</p><p>Cartucho: <strong>${!state.encounter.cartridge ? "não obtido" : state.encounter.cartridgeSpent ? "gasto" : "disponível"}</strong></p><p>A arma e as ações da Way ativa aparecem na ficha PF2e; a assinatura Ultimate é acionada neste painel. Escolher outro Glitch atualiza arma e Way.</p>`)}
   ${card("Regras de encontro", `<p>Até 3 giros; cada um depois do primeiro custa 1 ação. Trocar e voltar não recarrega a forma. Boot inclui sacar o vínculo; Pares e formas de duas mãos ocupam ambas as mãos.</p><p>Munição inicial por forma é a proposta do v0.5 e pode ser revisada após a decisão 05.</p>`)}</div>
   <div class="vred-section-title"><span class="vred-kicker">HISTÓRICO DO ENCONTRO</span></div><div class="vred-log">${state.encounter.log.length ? state.encounter.log.slice().reverse().map(entry => `<div><span>${entry.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${entry.result}</span><strong>${escapeHtml(entry.name)}</strong>${entry.note ? `<small>${escapeHtml(entry.note)}</small>` : ""}</div>`).join("") : `<p class="vred-muted">Nenhum giro registrado.</p>`}</div>`;
 }
@@ -472,12 +531,29 @@ function renderCromas(state) {
     const unlocked = originException || availableTiers.some(tier => state.daily.tier >= tier);
     const allowed = !installed && !state.daily.cromaChangeUsed && !conflicts && !overWeight && unlocked;
     const defect = (state.daily.cromaDefects ?? []).includes(index);
-    const installControls = !isGM() ? "" : installed
-      ? `<button class="vred-button small" data-v-action="remove-croma" data-index="${index}" ${state.daily.cromaChangeUsed ? "disabled" : ""}>Remover · kit não retorna</button>`
-      : croma[3] === "Blackwall"
+    const activation = cromaActivation[index + 1];
+    const uses = activation?.frequency === "encounter" ? Number(state.encounter.cromaUses?.[index] ?? 0) : Number(state.daily.cromaUses?.[index] ?? 0);
+    const exhausted = Boolean(activation?.frequency) && uses >= 1;
+    const activationButton = installed && activation
+      ? index === 5
+        ? `<button class="vred-button primary small" data-v-action="use-croma" data-index="${index}">Disparar Braço-Canhão · 1 ação</button><button class="vred-button small" data-v-action="use-croma" data-charge="true" data-index="${index}">Disparo carregado · +1 ação</button>`
+        : `<button class="vred-button primary small" data-v-action="use-croma" data-index="${index}" ${exhausted ? "disabled" : ""}>${activation.label} · ${activation.actions ? `${activation.actions} ação` : activation.type === "reaction" ? "Reação" : "ação livre"}${exhausted ? " · usado" : ""}</button>`
+      : "";
+    const activeEffectControls = index === 3 && state.encounter.cromaSandevistanState === "quickened"
+      ? `<button class="vred-button small" data-v-action="finish-sandevistan-turn">Fim do turno · remover quickened e aplicar slowed 1</button>`
+      : index === 3 && state.encounter.cromaSandevistanState === "slowed"
+        ? `<button class="vred-button small" data-v-action="finish-sandevistan-slowed">Fim do próximo turno · remover slowed 1</button>`
+        : index === 7 && state.daily.camouflageActive
+          ? `<button class="vred-button small" data-v-action="end-camouflage">Encerrar Camuflagem Óptica</button>`
+          : index === 5
+            ? `<span class="vred-badge">Munição ${Number(state.encounter.cromaAmmo ?? 3)}/3</span><button class="vred-button small" data-v-action="reload-croma-cannon" ${Number(state.encounter.cromaAmmo ?? 3) >= 3 ? "disabled" : ""}>Recarregar · 1 ação</button>`
+            : "";
+    const installControls = installed
+      ? `<div class="vred-control-row">${activationButton}${activeEffectControls}${isGM() ? `<button class="vred-button small" data-v-action="remove-croma" data-index="${index}" ${state.daily.cromaChangeUsed ? "disabled" : ""}>Remover · kit não retorna</button>` : ""}</div>`
+      : !isGM() ? "" : croma[3] === "Blackwall"
         ? `<button class="vred-button small" data-v-action="install-croma" data-outcome="success" data-index="${index}" ${allowed ? "" : "disabled"}>Registrar Croma Blackwall (sem teste)</button>`
         : `<div class="vred-control-row"><button class="vred-button small" data-v-action="install-croma" data-outcome="success" data-index="${index}" ${allowed ? "" : "disabled"}>Registrar sucesso</button><button class="vred-button small" data-v-action="install-croma" data-outcome="failure" data-index="${index}" ${allowed ? "" : "disabled"}>Registrar falha · instala com defeito</button><button class="vred-button small danger" data-v-action="install-croma" data-outcome="critical" data-index="${index}" ${allowed ? "" : "disabled"}>Registrar falha crítica · kit perdido</button></div>`;
-    return `<article class="vred-card ${installed ? "selected" : ""}"><span class="vred-badge ${croma[3] === "Blackwall" || croma[3] === "Exotic" ? "red" : ""}">${escapeHtml(croma[0])} · ${escapeHtml(croma[2])} · ${escapeHtml(croma[3])} · Peso ${croma[4]} · ${escapeHtml(croma[5])}${defect ? " · DEFEITO" : ""}</span><h4>${escapeHtml(croma[1])}</h4><p>${escapeHtml(croma[6])}</p><small>Preço sugerido ${escapeHtml(croma[7])} · CD de instalação conforme raridade.</small>${installControls}</article>`;
+    return `<article class="vred-card ${installed ? "selected" : ""}"><span class="vred-badge ${croma[3] === "Blackwall" || croma[3] === "Exotic" ? "red" : ""}">${escapeHtml(croma[0])} · ${escapeHtml(croma[2])} · ${escapeHtml(croma[3])} · Peso ${croma[4]} · ${escapeHtml(croma[5])}${defect ? " · DEFEITO" : ""}</span><h4>${escapeHtml(croma[1])}</h4><p>${escapeHtml(croma[6])}</p><small>Preço sugerido ${escapeHtml(croma[7])} · CD de instalação conforme raridade.${installed ? " Item criado na ficha PF2e; efeitos passivos compatíveis são aplicados enquanto equipado." : ""}</small>${installControls}</article>`;
   }).join("")}</div>`;
 }
 
@@ -495,9 +571,9 @@ function renderArsenal(state) {
   const mode = state.encounter.mode;
   const table = rewrittenTable(mode, state);
   return `<div class="vred-controls"><div class="vred-segment"><button type="button" data-v-action="mode" data-mode="G" class="${mode === "G" ? "selected" : ""}">Gunslinger</button><button type="button" data-v-action="mode" data-mode="S" class="${mode === "S" ? "selected" : ""}">Swordmaster</button></div><input class="vred-search" type="search" placeholder="Buscar no catálogo" data-v-search></div>
-  <div class="vred-rewrite">${isGM() ? `<label class="vred-field">Trocar resultado 1–19<select data-rewrite-slot>${table.map((entry, index) => `<option value="${index + 1}">${String(index + 1).padStart(2, "0")} · ${escapeHtml(entry[0])}</option>`).join("")}</select></label><label class="vred-field">Descoberta<select data-rewrite-discovery>${DISCOVERIES.map((item, index) => `<option value="${index}">${escapeHtml(item[0])}</option>`).join("")}</select></label><button class="vred-button" data-v-action="rewrite" ${state.catalog.rewrites.length >= rewritesAvailable ? "disabled" : ""}>Aplicar Reescrita · ${state.catalog.rewrites.length}/${rewritesAvailable}</button>` : `<span>Reescritas: ${state.catalog.rewrites.length}/${rewritesAvailable}</span>`}<p class="vred-note">1 slot no T3, mais 1 no T4. A Descoberta herda o resultado substituído; 20 e Supremas não mudam. Cada Reescrita é revertível pelo GM, mantendo o tamanho da tabela.</p>${state.catalog.rewrites.length ? `<div class="vred-log">${state.catalog.rewrites.map(item => `<div><span>${item.mode === "G" ? "Gunslinger" : "Swordmaster"} · resultado ${String(item.slot).padStart(2, "0")}</span><strong>${escapeHtml(DISCOVERIES[item.discovery]?.[0])}</strong>${isGM() ? `<button class="vred-button small" data-v-action="remove-rewrite" data-mode="${item.mode}" data-slot="${item.slot}">Reverter</button>` : ""}</div>`).join("")}</div>` : ""}</div>
-  <div class="vred-catalog-grid" data-v-catalog>${table.map((entry, index) => `<article class="vred-card" data-v-searchable="${escapeHtml(entry.join(" ").toLowerCase())}"><span class="vred-badge">d20 ${String(index + 1).padStart(2, "0")}</span><h4>${escapeHtml(entry[0])}</h4><small>${escapeHtml(entry[1])} · ${escapeHtml(entry[2])}</small><p>${escapeHtml(entry[3])}</p></article>`).join("")}</div>
-  <div class="vred-section-title"><span class="vred-kicker">ULTIMATE SELECT · 20 NATURAL</span></div><div class="vred-grid three">${ultimates.map(item => `<div class="vred-tier"><strong>${escapeHtml(item[0])} · ${escapeHtml(item[1])}</strong><span>${escapeHtml(item[2])} · ${item[3]} ações · cartas completas no manual v0.4</span></div>`).join("")}</div>`;
+  <div class="vred-rewrite">${isGM() ? `<label class="vred-field">Trocar resultado 2–20<select data-rewrite-slot>${table.map((entry, index) => `<option value="${index + 1}">d20 ${String(index + 2).padStart(2, "0")} · ${escapeHtml(entry[0])}</option>`).join("")}</select></label><label class="vred-field">Descoberta<select data-rewrite-discovery>${DISCOVERIES.map((item, index) => `<option value="${index}">${escapeHtml(item[0])}</option>`).join("")}</select></label><button class="vred-button" data-v-action="rewrite" ${state.catalog.rewrites.length >= rewritesAvailable ? "disabled" : ""}>Aplicar Reescrita · ${state.catalog.rewrites.length}/${rewritesAvailable}</button>` : `<span>Reescritas: ${state.catalog.rewrites.length}/${rewritesAvailable}</span>`}<p class="vred-note">1 slot no T3, mais 1 no T4. A Descoberta substitui uma arma entre d20 2–20; o 1 natural revela uma Glitch. Cada Reescrita é revertível pelo GM.</p>${state.catalog.rewrites.length ? `<div class="vred-log">${state.catalog.rewrites.map(item => `<div><span>${item.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${String(Number(item.slot) + 1).padStart(2, "0")}</span><strong>${escapeHtml(DISCOVERIES[item.discovery]?.[0])}</strong>${isGM() ? `<button class="vred-button small" data-v-action="remove-rewrite" data-mode="${item.mode}" data-slot="${item.slot}">Reverter</button>` : ""}</div>`).join("")}</div>` : ""}</div>
+  <div class="vred-catalog-grid" data-v-catalog>${table.map((entry, index) => `<article class="vred-card" data-v-searchable="${escapeHtml(entry.join(" ").toLowerCase())}"><span class="vred-badge">d20 ${String(index + 2).padStart(2, "0")}</span><h4>${escapeHtml(entry[0])}</h4><small>${escapeHtml(entry[1])} · ${escapeHtml(entry[2])}</small><p>${escapeHtml(entry[3])}</p></article>`).join("")}</div>
+  <div class="vred-section-title"><span class="vred-kicker">GLITCH / ULTIMATE SELECT · 1 NATURAL</span></div><div class="vred-grid three">${ultimates.map(item => `<div class="vred-tier"><strong>${escapeHtml(item[0])} · ${escapeHtml(item[1])}</strong><span>${escapeHtml(item[2])} · ${item[3]} ações · cartas completas integradas</span></div>`).join("")}</div>`;
 }
 
 function renderCampaign(state) {
@@ -508,7 +584,7 @@ function renderCampaign(state) {
 }
 
 function renderProfile(mount, actor, state) {
-  const tab = getSectionTab(mount);
+  const tab = getSectionTab(mount, actor);
   const tabs = [
     ["status", "Resumo"], ["boot", "Boot & giros"], ["arsenal", "Catálogo"],
     ["glove", "Luva"], ["store", "Pocket.Mart"], ["experiments", "Experimentos"],
@@ -524,6 +600,9 @@ function renderProfile(mount, actor, state) {
   <div class="vred-body">${renderers[tab]?.() ?? renderers.status()}</div>
   <footer class="vred-footer"><span>Playtest · estado salvo no Actor · add-on ${MODULE_ID}</span><span>${isOwner(actor) ? "Você pode controlar este painel." : "Somente leitura: peça ao GM para ajustar o personagem."}</span>${isGM() ? `<button class="vred-button small danger" data-v-action="deactivate">Desativar perfil V</button>` : ""}</footer>
   </section>`;
+  const die = mount.querySelector("[data-die]");
+  if (die?.textContent.trim() === "1") die.classList.add("natural-one");
+  if (die?.textContent.trim() === "20") die.classList.add("natural-20");
   if (!isGM()) mount.querySelectorAll("button[data-v-action]").forEach(button => {
     if (button.dataset.vAction === "tab") return;
     if (!isOwner(actor)) button.disabled = true;
@@ -539,13 +618,18 @@ function renderProfile(mount, actor, state) {
 
 async function rollDice(actor, faces, flavor) {
   const roll = await new Roll(`1d${faces}`).evaluate();
-  await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: `V · ${flavor}` });
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor: `V · ${flavor}`,
+    flags: { [MODULE_ID]: { chatType: "roll", faces, natural: roll.total } },
+  });
   return roll.total;
 }
 
 function animateDie(mount, result) {
   const die = mount.querySelector("[data-die]");
   if (!die || matchMedia("(prefers-reduced-motion: reduce)").matches) return Promise.resolve();
+  die.classList.remove("natural-one", "natural-20");
   die.classList.add("rolling");
   return new Promise(resolve => {
     let frame = 0;
@@ -556,6 +640,7 @@ function animateDie(mount, result) {
         die.textContent = String(result);
         die.classList.remove("rolling");
         if (result === 20) die.classList.add("natural-20");
+        if (result === 1) die.classList.add("natural-one");
         resolve();
       }
     }, 55);
@@ -564,7 +649,29 @@ function animateDie(mount, result) {
 
 async function chatReceipt(actor, title, lines) {
   const content = `<h3>${escapeHtml(title)}</h3><p>${lines.map(escapeHtml).join("<br>")}</p>`;
-  await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }), flavor: title, content });
+  const chatType = /glitch|blackwall/i.test(title) ? "blackwall" : /ultimate|suprema/i.test(title) ? "ultimate" : "receipt";
+  await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }), flavor: title, content, flags: { [MODULE_ID]: { chatType } } });
+}
+
+async function rollDamageChat(actor, formula, damageType, flavor) {
+  const roll = await new Roll(formula).evaluate();
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor: `V · ${flavor} · ${formula} ${damageType}`,
+    flags: { [MODULE_ID]: { chatType: "ultimate-damage", damageType, formula } },
+  });
+  return roll.total;
+}
+
+async function announceGlitch(actor, state, result) {
+  if (result !== 1) return;
+  const earlierGlitches = state.encounter.log.filter(entry => entry.result === 1).length;
+  await chatReceipt(actor, "BLACKWALL / GLITCH REVELADA", [
+    "1 natural. Por um instante, a roleta parece ter falhado.",
+    "A tela fica vermelha, o ruído some e uma arma impossível atravessa o Blackwall.",
+    earlierGlitches === 1 ? "A mesa recebe a revelação: uma Ultimate à escolha e 1 Cartucho para este encontro." : "A Glitch pode trocar a forma Suprema, mas não restaura um Cartucho já gasto.",
+    "Escolha a forma em Boot & giros. A arma e sua Way aparecem na ficha PF2e.",
+  ]);
 }
 
 function mergeAmmo(state, form) {
@@ -581,9 +688,12 @@ function currentAmmo(state) {
 }
 
 function replaceCurrentWithResult(state, mode, result, note = "") {
-  if (result === 20) {
-    state.encounter.current = { mode, result, ultimateSelect: true, name: "Ultimate Select", source: "ARSENAL.EXE", meta: "Suprema · escolha uma das cartas do manual v0.4", effect: "As cartas não mudam; ignorar +3 Calor e Clumsy." };
-    if (!state.encounter.cartridge) state.encounter.cartridge = true;
+  if (result === 1) {
+    state.encounter.current = { mode, result, ultimateSelect: true, glitch: true, name: "Glitch / Ultimate Select", source: "BLACKWALL", meta: "1 natural · escolha uma das 18 armas Ultimate", effect: "O erro da roleta revela uma forma impossível." };
+    if (!state.encounter.cartridge) {
+      state.encounter.cartridge = true;
+      state.encounter.cartridgeSpent = false;
+    }
     return state.encounter.current;
   }
   const weapon = weaponFor(mode, result, state);
@@ -595,6 +705,12 @@ function replaceCurrentWithResult(state, mode, result, note = "") {
 
 async function persistAndRender(actor, mount, state, currency = null) {
   await updateActor(actor, state, currency);
+  try {
+    await syncVItems(actor, state);
+  } catch (error) {
+    console.error(`[${MODULE_ID}] managed PF2e item synchronization failed`, error);
+    notify("error", "O estado de V foi salvo, mas alguns itens PF2e não sincronizaram. Confira o console do Foundry.");
+  }
   renderCurrentProfile(mount, actor, state);
 }
 
@@ -614,6 +730,21 @@ function cromaCanInstall(state, index) {
 
 function encounterReset(state) {
   state.encounter = clone(DEFAULT_STATE.encounter);
+  if (state.daily.cromas.includes(5)) state.encounter.cromaAmmo = 3;
+}
+
+async function clearTimedCromaConditions(actor, state, { camouflage = false } = {}) {
+  if (state.encounter.cromaSandevistanState === "quickened" && actor.hasCondition?.("quickened")) {
+    await actor.decreaseCondition("quickened");
+  }
+  if (state.encounter.cromaSandevistanState === "slowed" && actor.hasCondition?.("slowed")) {
+    await actor.decreaseCondition("slowed");
+  }
+  state.encounter.cromaSandevistanState = null;
+  if (camouflage && state.daily.camouflageActive && actor.hasCondition?.("concealed")) {
+    await actor.decreaseCondition("concealed");
+    state.daily.camouflageActive = false;
+  }
 }
 
 function dayReset(state) {
@@ -625,6 +756,7 @@ function dayReset(state) {
     rerollUsed: false,
     accessoryRoll: null,
     giftBoxUsed: false,
+    cromaUses: {},
     cromaChangeUsed: false,
     symptoms: [],
   };
@@ -675,7 +807,7 @@ async function handleAction(event, app, mount, actor) {
   if (event.type === "click" && control.matches("select[data-v-action]")) return;
   const action = control.dataset.vAction;
   if (action === "tab") {
-    mount.dataset.vTab = control.dataset.tab;
+    saveSectionTab(mount, actor, control.dataset.tab);
     renderProfile(mount, actor, stateFor(actor));
     return;
   }
@@ -700,14 +832,17 @@ async function handleAction(event, app, mount, actor) {
         if (!isGM()) return;
         state = clone(DEFAULT_STATE);
         await actor.update({ [`flags.${MODULE_ID}.active`]: true, [STATE_PATH]: state });
-        mount.dataset.vTab = "status";
+        await syncVItems(actor, state);
+        saveSectionTab(mount, actor, "status");
         renderCurrentProfile(mount, actor, state);
         return;
       }
       case "deactivate": {
         if (!isGM()) return;
+        await clearTimedCromaConditions(actor, state, { camouflage: true });
         state.active = false;
         await actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state });
+        await syncVItems(actor, state);
         const root = getUniqueRoot(unwrapElement(undefined, app)) ?? mount.closest(".ethernum-unique-tab");
         if (root) showNativeProfile(root, actor);
         else mount.remove();
@@ -724,24 +859,94 @@ async function handleAction(event, app, mount, actor) {
         const form = replaceCurrentWithResult(state, mode, result);
         state.encounter.log.push({ mode, result, name: form.name, at: Date.now() });
         await persistAndRender(actor, mount, state);
+        await announceGlitch(actor, state, result);
         return;
       }
       case "select-ultimate": {
         const name = control.dataset.name;
         if (!state.encounter.current?.ultimateSelect || !ultimates.some(item => item[1] === name)) return;
-        state.encounter.current.name = name;
-        state.encounter.log[state.encounter.log.length - 1].name = name;
+        const profile = ultimateProfiles[name];
+        if (!profile) throw new Error(`Não encontrei o perfil mecânico de ${name}.`);
+        const meta = `${profile.family} · ${profile.dice}${profile.die} ${profile.damageType}${profile.range ? ` · ${profile.range} m` : ""}`;
+        const wayId = wayFor(profile.mode, meta);
+        state.encounter.current = {
+          mode: profile.mode,
+          result: 1,
+          isUltimate: true,
+          glitch: true,
+          name,
+          source: `Glitch · ${ultimates.find(item => item[1] === name)?.[0] ?? "Ultimate"}`,
+          meta,
+          effect: profile.signature,
+          wayId,
+          wayName: wayProfiles[wayId]?.name ?? "",
+        };
+        state.encounter.mode = profile.mode;
+        mergeAmmo(state, state.encounter.current);
+        if (state.encounter.log.length) {
+          state.encounter.log[state.encounter.log.length - 1].name = name;
+          state.encounter.log[state.encounter.log.length - 1].mode = profile.mode;
+        }
+        await persistAndRender(actor, mount, state);
+        await chatReceipt(actor, `ULTIMATE / ${name}`, [profile.signature, `Arma manifestada e vinculada à ${wayProfiles[wayId]?.name ?? "Way"}. O Cartucho permanece ${state.encounter.cartridgeSpent ? "gasto" : "disponível"}.`]);
+        return;
+      }
+      case "use-ultimate": {
+        const form = state.encounter.current;
+        const profile = form?.isUltimate ? ultimateProfiles[form.name] : null;
+        if (!profile || !state.encounter.cartridge || state.encounter.cartridgeSpent) return;
+        const ammo = currentAmmo(state);
+        if (ammo?.kind === "pair") {
+          const hand = ammo.left > 0 ? "left" : ammo.right > 0 ? "right" : null;
+          if (!hand) throw new Error("A arma Glitch está sem munição; recarregue antes de gastar o Cartucho.");
+          ammo[hand] -= 1;
+        } else if (ammo?.kind) {
+          if (ammo.rounds <= 0) throw new Error("A arma Glitch está sem munição; recarregue antes de gastar o Cartucho.");
+          ammo.rounds -= 1;
+        }
+        state.encounter.cartridgeSpent = true;
+        if (profile.kind === "strike") {
+          state.encounter.pendingUltimateBonus = {
+            name: form.name,
+            formula: profile.bonus,
+            damageType: profile.bonusType,
+            createdAt: Date.now(),
+          };
+        }
+        await updateActor(actor, state);
+        try { await syncVItems(actor, state); } catch (error) { console.error(`[${MODULE_ID}] ultimate weapon sync failed`, error); }
+        const actions = ultimates.find(item => item[1] === form.name)?.[3] ?? 2;
+        if (profile.kind === "strike") {
+          await chatReceipt(actor, `ULTIMATE / ${profile.label ?? form.name}`, [`${actions} ações · 1 Cartucho. ${profile.signature}`, "Faça o Strike pela arma V na ficha PF2e. Se acertar, use o botão de dano pendente no painel para rolar a parcela adicional."]);
+          const struck = await rollManifestedStrike(actor, event);
+          if (!struck) notify("warn", "Faça o Strike pela arma manifestada na ficha PF2e; o painel mantém o botão para rolar o dano adicional após um acerto.");
+          if (form.name === "Master Sword" && actor.hasCondition?.("frightened")) await actor.decreaseCondition("frightened");
+          if (form.name === "Devil Sword Dante") await chatReceipt(actor, "DEVIL SWORD DANTE · DEFESA", ["Após o Strike, acertando ou não, aplique +1 circunstancial à CA até o início do próximo turno."]);
+        } else {
+          await chatReceipt(actor, `ULTIMATE / ${form.name}`, [`${actions} ações · 1 Cartucho. ${profile.signature}`, `Área/alvos: ${profile.area}. Salvamento: ${profile.defense}. Afeta aliados conforme a carta.`]);
+          await rollDamageChat(actor, profile.formula, profile.formulaType, `${form.name} · ${profile.area}`);
+        }
+        renderCurrentProfile(mount, actor, state);
+        return;
+      }
+      case "roll-ultimate-bonus": {
+        const pending = state.encounter.pendingUltimateBonus;
+        if (!pending?.formula || !/^(?:\d+)d(?:4|6|8|10|12)$/.test(pending.formula)) return;
+        await rollDamageChat(actor, pending.formula, pending.damageType, `${pending.name} · dano adicional`);
+        state.encounter.pendingUltimateBonus = null;
         await persistAndRender(actor, mount, state);
         return;
       }
       case "new-encounter": {
         if (!isGM()) return;
+        await clearTimedCromaConditions(actor, state);
         encounterReset(state);
         await persistAndRender(actor, mount, state);
         return;
       }
       case "new-day": {
         if (!isGM()) return;
+        await clearTimedCromaConditions(actor, state, { camouflage: true });
         dayReset(state);
         await persistAndRender(actor, mount, state);
         return;
@@ -757,6 +962,7 @@ async function handleAction(event, app, mount, actor) {
         const form = replaceCurrentWithResult(state, mode, result, "Re-giro Forçado; aplicar Sintoma do Blackwall.");
         state.encounter.log.push({ mode, result, name: form.name, note: `Re-giro após d20 ${previous.result}; GM aplica Sintoma.`, at: Date.now() });
         await persistAndRender(actor, mount, state);
+        await announceGlitch(actor, state, result);
         notify("warn", "Re-giro registrado. O GM aplica um Sintoma do Blackwall.");
         return;
       }
@@ -777,11 +983,12 @@ async function handleAction(event, app, mount, actor) {
         const mode = state.encounter.current.mode;
         let result = await rollDice(actor, 20, "Runa Estática · falha crítica; nova forma sem Suprema");
         await animateDie(mount, result);
-        while (result === 20) result = await rollDice(actor, 20, "Runa Estática · 20 não abre Suprema");
+        while (result === 1) result = await rollDice(actor, 20, "Runa Estática · 1 não abre Glitch");
         state = stateFor(actor);
         const form = replaceCurrentWithResult(state, mode, result, "Runa Estática: mudança involuntária de forma.");
         state.encounter.log.push({ mode, result, name: form.name, note: "Runa Estática; GM aplica Sintoma do Blackwall.", at: Date.now() });
         await persistAndRender(actor, mount, state);
+        await announceGlitch(actor, state, result);
         notify("warn", "A forma mudou sem escolha. O GM aplica um Sintoma do Blackwall.");
         return;
       }
@@ -944,6 +1151,7 @@ async function handleAction(event, app, mount, actor) {
         const croma = cromas[index];
         state.daily.cromaOutcomes.push({ index, outcome, at: Date.now() });
         if (outcome !== "critical") state.daily.cromas.push(index);
+        if (outcome !== "critical" && index === 5) state.encounter.cromaAmmo = 3;
         if (outcome === "failure") state.daily.cromaDefects.push(index);
         const imports = [5, 9, 10, 11].includes(index) || croma[3] === "Blackwall";
         if (imports || outcome !== "success") {
@@ -951,13 +1159,101 @@ async function handleAction(event, app, mount, actor) {
           notify("warn", `Sintoma d10 ${symptomRoll}: ${pushSymptom(state, symptomRoll)}`);
         }
         await persistAndRender(actor, mount, state);
-        notify(outcome === "critical" ? "warn" : "info", outcome === "critical" ? "O engrama recusou o Croma; o kit foi perdido." : outcome === "failure" ? "Croma instalado com defeito até recalibração." : "Instalação registrada. O Croma não automatiza modificadores PF2e.");
+        notify(outcome === "critical" ? "warn" : "info", outcome === "critical" ? "O engrama recusou o Croma; o kit foi perdido." : outcome === "failure" ? "Croma criado na ficha PF2e com defeito até recalibração." : "Croma instalado como item PF2e; efeitos passivos compatíveis estão ativos.");
+        return;
+      }
+      case "use-croma": {
+        const index = Number(control.dataset.index);
+        const activation = cromaActivation[index + 1];
+        if (!activation || !state.daily.cromas.includes(index)) return;
+        if (index === 5) {
+          const charged = control.dataset.charge === "true";
+          const rounds = Number(state.encounter.cromaAmmo ?? 3);
+          if (rounds <= 0) throw new Error("O Braço-Canhão está vazio; recarregue antes de disparar.");
+          state.encounter.cromaAmmo = rounds - 1;
+          await persistAndRender(actor, mount, state);
+          const struck = await rollManifestedStrike(actor, event, "croma-weapon", "5");
+          if (!struck) notify("warn", "Use o Strike do Braço-Canhão C-06 na ficha PF2e.");
+          await chatReceipt(actor, "CROMA / BRAÇO-CANHÃO", [
+            charged ? "Disparo carregado: custa +1 ação; no acerto, empurre o alvo 3 m." : "Disparo Buster/Arm: Strike da arma C-06; alcance 18 m.",
+            `Munição restante: ${state.encounter.cromaAmmo}/3. A recarga completa custa 1 ação.`,
+          ]);
+          return;
+        }
+        if (activation.frequency === "encounter") {
+          state.encounter.cromaUses ??= {};
+          if (Number(state.encounter.cromaUses[index] ?? 0) >= 1) return;
+          state.encounter.cromaUses[index] = Number(state.encounter.cromaUses[index] ?? 0) + 1;
+        } else if (activation.frequency === "day") {
+          state.daily.cromaUses ??= {};
+          if (Number(state.daily.cromaUses[index] ?? 0) >= 1) return;
+          state.daily.cromaUses[index] = Number(state.daily.cromaUses[index] ?? 0) + 1;
+        }
+        if (index === 3) {
+          await actor.increaseCondition("quickened");
+          state.encounter.cromaSandevistanState = "quickened";
+        } else if (index === 7) {
+          await actor.increaseCondition("concealed");
+          state.daily.camouflageActive = true;
+        } else if (index === 8) {
+          if (actor.hasCondition?.("sickened")) await actor.decreaseCondition("sickened");
+          const temp = Number(actor.system?.attributes?.hp?.temp ?? 0);
+          await actor.update({ "system.attributes.hp.temp": Math.max(temp, 5) });
+        }
+        await persistAndRender(actor, mount, state);
+        const cromaName = `${cromas[index][0]} · ${activation.label}`;
+        const target = index === 1 ? [...(game.user?.targets ?? [])][0] : null;
+        const targetLine = index === 1
+          ? target ? `Alvo marcado: ${target.name ?? target.actor?.name ?? "alvo selecionado"}. Aplique o +1 circunstancial somente nos Strikes de fogo contra ele até o próximo turno.` : "Selecione um alvo visível até 18 m e aplique +1 circunstancial aos próximos Strikes de fogo contra ele até o próximo turno."
+          : "Uso registrado. Confira no item PF2e os limites e a duração indicados na carta.";
+        await chatReceipt(actor, `CROMA / ${cromaName}`, [activation.description, targetLine, index === 3 ? "Quickened foi aplicado na ficha. Depois do turno, aplique slowed 1 até o fim do próximo turno." : ""]);
+        return;
+      }
+      case "reload-croma-cannon": {
+        if (!state.daily.cromas.includes(5) || Number(state.encounter.cromaAmmo ?? 3) >= 3) return;
+        state.encounter.cromaAmmo = 3;
+        await persistAndRender(actor, mount, state);
+        await chatReceipt(actor, "CROMA / BRAÇO-CANHÃO RECARREGADO", ["Munição restaurada para 3. Gaste 1 ação para recarregar."]);
+        return;
+      }
+      case "finish-sandevistan-turn": {
+        if (state.encounter.cromaSandevistanState !== "quickened") return;
+        if (actor.hasCondition?.("quickened")) await actor.decreaseCondition("quickened");
+        await actor.increaseCondition("slowed");
+        state.encounter.cromaSandevistanState = "slowed";
+        await persistAndRender(actor, mount, state);
+        await chatReceipt(actor, "CROMA / SANDEVISTAN · SOBRECARGA", ["Quickened removido; slowed 1 aplicado até o fim do próximo turno."]);
+        return;
+      }
+      case "finish-sandevistan-slowed": {
+        if (state.encounter.cromaSandevistanState !== "slowed") return;
+        if (actor.hasCondition?.("slowed")) await actor.decreaseCondition("slowed");
+        state.encounter.cromaSandevistanState = null;
+        await persistAndRender(actor, mount, state);
+        return;
+      }
+      case "end-camouflage": {
+        if (!state.daily.camouflageActive) return;
+        if (actor.hasCondition?.("concealed")) await actor.decreaseCondition("concealed");
+        state.daily.camouflageActive = false;
+        await persistAndRender(actor, mount, state);
+        await chatReceipt(actor, "CROMA / CAMUFLAGEM ENCERRADA", ["Remova Concealed quando a duração acabar, V atacar, Stride duas vezes no turno ou a chuva revelar o traje."]);
         return;
       }
       case "remove-croma": {
         if (!isGM() || state.daily.cromaChangeUsed) return;
         const index = Number(control.dataset.index);
         if (!state.daily.cromas.includes(index)) return;
+        if (index === 3 && state.encounter.cromaSandevistanState) {
+          if (state.encounter.cromaSandevistanState === "quickened" && actor.hasCondition?.("quickened")) await actor.decreaseCondition("quickened");
+          if (state.encounter.cromaSandevistanState === "slowed" && actor.hasCondition?.("slowed")) await actor.decreaseCondition("slowed");
+          state.encounter.cromaSandevistanState = null;
+        }
+        if (index === 7 && state.daily.camouflageActive) {
+          if (actor.hasCondition?.("concealed")) await actor.decreaseCondition("concealed");
+          state.daily.camouflageActive = false;
+        }
+        if (index === 5) state.encounter.cromaAmmo = null;
         state.daily.cromas = state.daily.cromas.filter(entry => entry !== index);
         state.daily.cromaDefects = (state.daily.cromaDefects ?? []).filter(entry => entry !== index);
         state.daily.cromaChangeUsed = true;
@@ -1033,13 +1329,25 @@ function onRenderActorSheet(app, html) {
 Hooks.on("renderCharacterSheetPF2e", onRenderActorSheet);
 Hooks.on("renderApplicationV2", onRenderActorSheet);
 Hooks.on("renderActorSheet", onRenderActorSheet);
+Hooks.on("renderChatMessage", (message, html) => {
+  const chatType = message.getFlag(MODULE_ID, "chatType");
+  if (!chatType) return;
+  const root = unwrapElement(html);
+  if (!root) return;
+  root.classList.add("vred-chat-message", `vred-chat-${String(chatType).replace(/[^a-z0-9_-]/gi, "")}`);
+});
 Hooks.on("deleteCombat", combat => {
   if (!isGM()) return;
   for (const actor of game.actors) {
     if (actor.getFlag(MODULE_ID, "active") !== true) continue;
     const state = stateFor(actor);
-    encounterReset(state);
-    void updateActor(actor, state).catch(error => console.error(`[${MODULE_ID}] encounter reset failed`, error));
+    void clearTimedCromaConditions(actor, state)
+      .then(() => {
+        encounterReset(state);
+        return updateActor(actor, state);
+      })
+      .then(() => syncVItems(actor, state))
+      .catch(error => console.error(`[${MODULE_ID}] encounter reset failed`, error));
   }
 });
 
