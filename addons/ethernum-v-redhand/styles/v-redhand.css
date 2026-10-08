@@ -39,3 +39,55 @@
 @keyframes vred-scanline{from{transform:translateY(-12px)}to{transform:translateY(12px)}}
 @keyframes vred-chat-breach{0%{opacity:.5;filter:contrast(1.7);transform:translateX(-5px)}45%{filter:brightness(1.5);transform:translateX(3px)}100%{opacity:1;filter:none;transform:none}}
 @media(prefers-reduced-motion:reduce){.vred-header:after,.vred-current:has(.vred-glitch-badge),.vred-glitch-badge,.vred-die.rolling,.vred-die.natural-one,.chat-message.vred-chat-blackwall{animation:none!important}}
+
+/* The V sheet keeps Ethernum/Concórdia structure while switching to a Night
+   City + Blackwall palette only for an actor with the V profile active. */
+.vred-sheet-window{--vred-cyber-yellow:#fcee0a;--vred-cyber-cyan:#00f0ff;--vred-cyber-pink:#ff3fc8}
+.vred-sheet-window.vred-standalone-sheet{min-width:980px}
+.vred-sheet-window.vred-standalone-sheet .window-header::after{content:"V REDHAND / ARSENAL.EXE";margin-left:12px;color:#fcee0a;font:700 9px ui-monospace,monospace;letter-spacing:.15em;opacity:.8}
+.vred-sheet-window .window-header{color:#ffeef0!important;background:linear-gradient(100deg,#17070b,#2c0d15 65%,#08090d)!important;border-bottom:1px solid #b62a3a!important;box-shadow:0 3px 16px #e21d362e}
+.vred-sheet-window .window-content{color:#f5edf0;background:#09080b!important}
+.ethernum-character-sheet.vred-sheet{--con-bg:#09080b;--con-graphite:#171014;--con-leather:#260d13;--con-leather-deep:#13090c;--con-parchment:#fcee0a;--con-parchment-light:#ffe95e;--con-copper:#e8324b;--con-brass:#fcee0a;--con-brass-light:#fff282;--con-steel:#53636b;--con-aether:#00f0ff;--con-arcane:#ff3fc8;--con-text:#f5edf0;--con-muted:#c3adb3;--con-ink:#17090d;--con-danger:#ff334e;--con-success:#52e0a0;--ecs-bg:#09080b;--ecs-surface:#171014;--ecs-surface-raised:#25131a;--ecs-surface-soft:#13090c;--ecs-text:#f5edf0;--ecs-text-muted:#c3adb3;--ecs-border:#55212b;--ecs-border-strong:#93313f;--ecs-accent:#fcee0a;--ecs-accent-strong:#fff282;--ecs-accent-contrast:#17090d;--ecs-secondary:#00f0ff;--ecs-danger:#ff334e;--ecs-warning:#ff9d38;--ecs-focus:#00f0ff;--ecs-hp:#ed2745;color-scheme:dark;background-color:#09080b;background-image:linear-gradient(180deg,#09080bf2,#10090cf0 48%,#09080bf4),url("../assets/blackwall-city.png");background-position:center;background-size:cover;background-attachment:local,scroll}
+.ethernum-character-sheet.vred-sheet .ecs-shell{background-color:#09080b;background-image:linear-gradient(180deg,#09080bbf,#09080be8 65%),url("../assets/blackwall-city.png");background-position:center;background-size:cover;box-shadow:inset 0 0 0 3px #0b080a,inset 0 0 0 4px #fcee0a38,0 16px 34px #0009}
+.ethernum-character-sheet.vred-sheet .ecs-header{background-color:#210b11;background-image:linear-gradient(100deg,#12080bec,#260c14c9 58%,#08090bea),url("../assets/concordia-frame.png");background-position:center;background-size:cover;border-bottom-color:#fcee0a;box-shadow:inset 0 -1px 0 #080608,0 8px 18px #0009}
+.ethernum-character-sheet.vred-sheet .ecs-header::after{height:3px;background:repeating-linear-gradient(90deg,#ff3445 0 11px,transparent 11px 24px,#00f0ff 24px 26px,transparent 26px 42px);opacity:.68;animation:vred-sheet-scan 5s linear infinite}
+.ethernum-character-sheet.vred-sheet .ecs-workspace{background-color:#09080b;background-image:linear-gradient(90deg,#e51e3212,transparent 38%,#00f0ff08),repeating-linear-gradient(0deg,transparent 0 34px,#ff31480a 35px,transparent 36px 68px),url("../assets/blackwall-city.png");background-position:center;background-size:cover}
+.ethernum-character-sheet.vred-sheet .ecs-tab-panel{background:linear-gradient(135deg,#0c090cf2,#110b0ff0 60%,#09090cf2)}
+.ethernum-character-sheet.vred-sheet .ecs-panel-heading{color:#fff4c0;background-color:#251014;background-image:linear-gradient(95deg,#e8324b2a,transparent 28% 70%,#00f0ff16),repeating-linear-gradient(0deg,#fcee0a08 0 1px,transparent 1px 7px);border-color:#84303d;border-left-color:#fcee0a;box-shadow:inset 0 0 16px #ed274516,4px 5px 0 #0006}
+.ethernum-character-sheet.vred-sheet :is(.ecs-navigation__tab,.ecs-header-actions button,.ecs-rollable):is(:hover,:focus-visible),.ethernum-character-sheet.vred-sheet .ecs-navigation__tab.is-active{border-color:#fcee0a;box-shadow:0 0 13px #ff334833}
+.ethernum-character-sheet.vred-sheet .ecs-navigation__tab.is-active{color:#fff282;background:linear-gradient(100deg,#52121d,#251015)}
+.ethernum-character-sheet.vred-sheet .ecs-panel,.ethernum-character-sheet.vred-sheet .ecs-card{border-color:#55212b;background:linear-gradient(145deg,#1b1015ed,#100c10ed);box-shadow:0 5px 18px #0006}
+.ethernum-character-sheet.vred-sheet :is(input,select,textarea){border-color:#65303a;background:#100c10;color:#fff0f2}
+.ethernum-character-sheet.vred-sheet :is(button,[role="button"]){transition:filter .18s,box-shadow .18s,transform .18s}
+.ethernum-character-sheet.vred-sheet :is(button,[role="button"]):hover{filter:brightness(1.16);box-shadow:0 0 13px #ff334833}
+.vred-sheet-window .vred-addon-host{position:relative;isolation:isolate}
+.vred-sheet-window .vred-addon-host::before{position:absolute;z-index:-1;inset:-5px;border:1px solid #e8324b55;border-radius:18px;content:"";pointer-events:none;animation:vred-sheet-pulse 3.8s ease-in-out infinite}
+.vred-launcher{position:relative;overflow:hidden;margin:14px 0 6px;padding:20px;border:1px solid #6f2633;border-left:4px solid #fcee0a;border-radius:10px;background:linear-gradient(100deg,#1c090ff2,#110c10ed 58%,#0a0a0df5),url("../assets/blackwall-city.png") center 40%/cover;box-shadow:inset 0 0 25px #ed274516,0 8px 24px #0007;color:#f5edf0}
+.vred-launcher::after{position:absolute;top:0;right:0;bottom:0;width:4px;background:linear-gradient(transparent,#ed2745,#00f0ff,transparent);content:"";opacity:.7;animation:vred-sheet-scan 5s linear infinite}
+.vred-launcher__signal{color:#00f0ff;font:700 9px ui-monospace,monospace;letter-spacing:.16em}
+.vred-launcher h3{margin:7px 0;color:#fff!important;font-size:21px}
+.vred-launcher p{max-width:76ch;margin:5px 0 14px;color:#d7c4c9;font-size:12px}
+.vred-launcher .vred-button{border-color:#fcee0a;background:#4b101c}
+@keyframes vred-sheet-scan{from{background-position:0 0}to{background-position:84px 0}}
+@keyframes vred-sheet-pulse{0%,100%{opacity:.2;box-shadow:0 0 0 #ed274500}50%{opacity:.85;box-shadow:0 0 20px #ed27452b}}
+
+/* Expanded, actor-scoped roll and item-ping cards. */
+.chat-message.vred-chat-message{position:relative}
+.chat-message.vred-chat-message::before{position:absolute;z-index:1;top:0;right:0;left:0;height:2px;background:linear-gradient(90deg,transparent,#ed2745,#fcee0a,#00f0ff,transparent);content:"";background-size:200% 100%;animation:vred-chat-signal 4.5s linear infinite;pointer-events:none}
+.vred-chat-details{position:relative;overflow:hidden;margin:0 0 9px;padding:8px 10px 9px 12px;border:1px solid #642531;border-left:3px solid #ed2745;border-radius:5px;background:linear-gradient(100deg,#1d0a10f5,#100c10f5 72%,#0a0b0ef5);box-shadow:inset 0 0 16px #ed274510}
+.vred-chat-details::after{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,#ff334508 6px,transparent 7px 11px);content:"";animation:vred-chat-scan 6s linear infinite;pointer-events:none}
+.vred-chat-details__header,.vred-chat-details__title,.vred-chat-details__summary{position:relative;z-index:1}
+.vred-chat-details__header{color:#fcee0a;font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+.vred-chat-details__title{margin-top:2px;color:#fff0f2;font-size:13px;font-weight:700}
+.vred-chat-details__summary{margin-top:3px;color:#c9b5bb;font:10px/1.45 ui-monospace,monospace;overflow-wrap:anywhere}
+.chat-message.vred-chat-natural-one .vred-chat-details{border-color:#ff334e;box-shadow:inset 0 0 24px #ed27452c,0 0 16px #ed274538;animation:vred-chat-breach .72s ease-out both}
+.chat-message.vred-chat-natural-one .vred-chat-details__header{color:#ff6172;text-shadow:0 0 11px #ff334e}
+.chat-message.vred-chat-natural-20 .vred-chat-details{border-color:#fcee0a;box-shadow:inset 0 0 19px #fcee0a18,0 0 14px #fcee0a22}
+.chat-message.vred-chat-natural-20 .vred-chat-details__header{color:#fff282}
+.chat-message.vred-chat-item .vred-chat-details{border-left-color:#00f0ff}
+.chat-message.vred-chat-item .vred-chat-details__header{color:#00f0ff}
+@keyframes vred-chat-signal{from{background-position:0 0}to{background-position:200% 0}}
+@keyframes vred-chat-scan{from{transform:translateY(-10px)}to{transform:translateY(10px)}}
+@media(max-width:1000px){.vred-sheet-window.vred-standalone-sheet{min-width:0}}
+@media(max-width:700px){.ethernum-character-sheet.vred-sheet .ecs-tab-panel{padding:14px 12px 20px}.vred-chat-details__summary{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.ethernum-character-sheet.vred-sheet .ecs-header::after,.vred-sheet-window .vred-addon-host::before,.chat-message.vred-chat-message::before,.vred-chat-details::after{animation:none!important}.ethernum-character-sheet.vred-sheet :is(button,[role="button"]){transition:none!important}}

@@ -62,6 +62,19 @@ function metersToFeet(meters) {
   return Math.max(5, Math.round(Number(meters) * 3.28084 / 5) * 5);
 }
 
+function damageTypeLabel(type) {
+  return ({
+    bludgeoning: "contundente",
+    cold: "frio",
+    electricity: "elétrico",
+    fire: "fogo",
+    force: "força",
+    piercing: "perfurante",
+    slashing: "cortante",
+    spirit: "espírito",
+  })[type] ?? String(type ?? "").replaceAll("-", " ");
+}
+
 function normalProfile(form) {
   const text = `${form.meta ?? ""} ${form.effect ?? ""}`;
   const match = text.match(/(\d+)\s*d\s*(4|6|8|10|12)/i);
@@ -132,13 +145,17 @@ async function weaponSource(actor, form, { role = "manifested-weapon", key = "ma
   const potency = runes ? [1, 2, 2, 3, 3][Math.max(0, Math.min(4, mk - 1))] : 0;
   const striking = runes ? [1, 1, 2, 2, 3][Math.max(0, Math.min(4, mk - 1))] : 0;
   const baseDice = Math.max(1, Number(profile.dice) || 1);
+  const die = /^d(?:4|6|8|10|12)$/.test(String(profile.die)) ? profile.die : "d6";
+  const damageType = String(profile.damageType ?? "piercing");
+  const handsHeld = profile.hands === 2 ? 2 : 1;
+  const damageLabel = `${baseDice}${die} ${damageTypeLabel(damageType)}`;
   source.name = form.name;
   source.type = "weapon";
   source.system ??= {};
   source.system.slug = slugify(form.name);
   source.system.description = {
     ...(source.system.description ?? {}),
-    value: `<p><strong>ARSENAL.EXE · V RedHand</strong></p><p>${form.source ? `${form.source} · ` : ""}${form.meta ?? ""}</p><p>${form.effect ?? profile.signature ?? ""}</p>${form.wayName ? `<p><strong>${form.wayName}</strong></p>` : ""}<p>Forma manifestada. Bônus de dano-base e runas da Luva são preparados no item.</p>`,
+    value: `<p><strong>ARSENAL.EXE · V RedHand</strong></p><p>${form.source ? `${form.source} · ` : ""}${form.meta ?? ""}</p><p><strong>Dano do Strike:</strong> ${damageLabel}. ${striking ? `Luva: runa de striking Mk ${mk};` : ""} Potência +${potency}.</p><p>${form.effect ?? profile.signature ?? ""}</p>${form.wayName ? `<p><strong>${form.wayName}</strong></p>` : ""}<p>Forma manifestada e empunhada automaticamente. O PF2e calcula dano, runas e modificadores no Strike.</p>`,
   };
   source.system.category = source.system.category === "unarmed" ? "martial" : (source.system.category ?? "martial");
   source.system.damage = {
@@ -147,12 +164,14 @@ async function weaponSource(actor, form, { role = "manifested-weapon", key = "ma
     // PF2e adds the rune dice during damage calculation; pre-adding them here
     // would double the Luva bonus on every Strike.
     dice: baseDice,
-    die: profile.die ?? "d6",
-    damageType: profile.damageType ?? "piercing",
+    die,
+    damageType,
     persistent: null,
   };
-  source.system.usage = { ...(source.system.usage ?? {}), value: profile.hands === 2 ? "held-in-two-hands" : "held-in-one-hand" };
-  source.system.equipped = { ...(source.system.equipped ?? {}), handsHeld: profile.hands === 2 ? 2 : 1 };
+  source.system.usage = { ...(source.system.usage ?? {}), value: handsHeld === 2 ? "held-in-two-hands" : "held-in-one-hand" };
+  // carryType is intentionally explicit: without "held", PF2e puts a newly
+  // created weapon in the inventory as stowed and hides its Strike actions.
+  source.system.equipped = { ...(source.system.equipped ?? {}), carryType: "held", handsHeld };
   source.system.range = ranged ? metersToFeet(profile.range ?? 18) : null;
   source.system.group = ranged ? "firearm" : (source.system.group ?? "sword");
   source.system.traits ??= { value: [], otherTags: [] };
@@ -193,11 +212,11 @@ function gloveSource(state) {
   const mk = Math.max(1, Math.min(5, Number(state.gloveMk) || 1));
   const labels = ["Redhand", "RedCoat", "The Dealer", "Blackwall", "Além de Night City"];
   return managedSource({
-    name: `Luva de Vínculo · Mk ${mk}`,
+    name: `Luva Sintonizadora Redhand · Mk ${mk}`,
     type: "equipment",
     img: "systems/pf2e/icons/equipment/held-items/gloves.webp",
     system: {
-      slug: `luva-de-vinculo-mk-${mk}`,
+      slug: `luva-sintonizadora-redhand-mk-${mk}`,
       description: { value: `<p>ARSENAL.EXE · ${labels[mk - 1]}</p><p>Vaso de runas do vínculo. Potência +${[1, 2, 2, 3, 3][mk - 1]}, ${["striking", "striking", "greater striking", "greater striking", "major striking"][mk - 1]}, ${[1, 2, 2, 3, 3][mk - 1]} slots de propriedade.</p><p>As runas acompanham somente a arma manifestada pelo engrama; não se aplicam a Cromas, canhões de braço ou armas de terceiros.</p>` },
       traits: { value: [], otherTags: ["v-redhand"] },
       usage: { value: "worn" },

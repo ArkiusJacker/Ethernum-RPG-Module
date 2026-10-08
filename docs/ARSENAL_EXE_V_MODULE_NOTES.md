@@ -78,6 +78,15 @@ O PDF também sugere que o Mart conceda buffs apesar de regra antiga do v0.4 “
 - Release pública: [Pacote de extensão Concórdia: Mecânicas únicas v0.2.0](https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.2.0), tag `concordia-unique-mechanics-v0.2.0`; contém `ethernum-v-redhand.zip` e `module.json`.
 - Sintaxe JavaScript e manifesto JSON verificados. A extensão foi copiada para o diretório instalado; ainda é preciso reiniciar o mundo Foundry e conferir os Strikes, itens, Cromas e estilo de chat na interface real.
 
+## Implementação da extensão v0.3.0 · 08/10/2026
+
+- A ficha V é uma janela separada que herda a classe de ficha do Ethernum encontrada em `CONFIG.Actor.sheetClasses.character`, preservando os dados, abas e ações da ficha Concórdia. Ela é registrada sem `makeDefault`; selecionar V na ficha comum mostra apenas um atalho para abrir a janela individual.
+- O tema da ficha V combina a moldura Concórdia com vermelho Blackwall, amarelo Cyberpunk 2077, ciano e magenta. Os estilos são escopados à janela V, sem recolorir as fichas dos demais personagens.
+- O hook de chat identifica mensagens pelo Actor de `speaker`, token e origem PF2e, além de links UUID para itens do Actor. Rolagens de ataque, dano, perícia, salvamento, iniciativa e mensagens de item do V recebem apresentação animada com fórmula, dados individuais e total. A Glitch só é chamada quando o 1 natural pertence a `Boot / giro`.
+- Armas geradas gravam `system.damage.dice`, `die`, `damageType`, `equipped.carryType = held` e mãos ocupadas no formato PF2e. A sincronização de itens na abertura da ficha atualiza armas que já existiam e as deixa empunhadas; armas Pareadas ficam empunhadas em uma mão cada.
+- O item é nomeado provisoriamente **Luva Sintonizadora Redhand**. Alternativas editoriais: **Nexo Redhand** e **Sintonizador do Blackwall**. O nome e o slug do item foram atualizados pelo mesmo `managedKey`, preservando a camada Mk existente.
+- Pacote de desenvolvimento: `../addons/ethernum-v-redhand-v0.3.0.zip`; cópia instalada em `C:\Users\Titan\AppData\Local\FoundryVTT\Data\modules\ethernum-v-redhand`. Node `--check` e parse do manifesto JSON passaram; a ficha e os Strike ainda precisam ser conferidos após reiniciar o mundo Foundry.
+
 ## Registro do add-on separado · v0.1.1 · 08/10/2026
 
 - Pacote atualizado: `../addons/ethernum-v-redhand-v0.1.1.zip`; manifesto em `../addons/ethernum-v-redhand/module.json`.

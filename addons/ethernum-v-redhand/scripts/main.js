@@ -21,7 +21,11 @@ const PROFILE_LABEL = "V RedHand - Concórdia";
 const HIDDEN_NATIVE_CLASS = "vred-native-hidden";
 const STATE_PATH = `flags.${MODULE_ID}.state`;
 const pendingRenderObservers = new WeakMap();
+const pendingItemSyncs = new WeakMap();
+const vSheetApps = new WeakMap();
 const boundCoreRoots = new WeakSet();
+let VRedHandCharacterSheet = null;
+let vSheetRegistered = false;
 const DISCOVERIES = [
   ["Piercer Revolver", "ULTRAKILL", "Pistola · 1d6 perfurante fatal d10 · 18 m · capacidade 6", "Lance de Moeda (1 ação): o próximo Strike neste turno ignora cobertura leve e padrão; se acertar, +1d6 precisão."],
   ["Skippy", "Cyberpunk 2077", "Pistola · 1d6 perfurante fatal d10 · 18 m · capacidade 6", "Mira Conversada (1 ação): marca alvo a 18 m e dá +1 circ. ao próximo Strike; acerto marcado +2 precisão. Ao recarregar, Mata ou Pacifista. Enquanto fala, −2 circ. Stealth."],
@@ -137,6 +141,106 @@ function isVProfileActive(actor) {
   return actor.getFlag(MODULE_ID, "active") === true && stateFor(actor).active !== false;
 }
 
+function applyVSheetTheme(app, container, actor) {
+  const active = isVProfileActive(actor);
+  const appElement = unwrapElement(undefined, app);
+  const windowElement = container?.matches?.(".application, .app, .window-app")
+    ? container
+    : container?.closest?.(".application, .app, .window-app")
+      ?? (appElement?.matches?.(".application, .app, .window-app") ? appElement : appElement?.closest?.(".application, .app, .window-app"));
+  windowElement?.classList.toggle("vred-sheet-window", active);
+  if (windowElement) {
+    if (active) windowElement.dataset.vRedhandActorId = actor.id ?? "";
+    else delete windowElement.dataset.vRedhandActorId;
+  }
+  const sheet = container?.matches?.(".ethernum-character-sheet")
+    ? container
+    : container?.closest?.(".ethernum-character-sheet")
+      ?? container?.querySelector?.(".ethernum-character-sheet");
+  sheet?.classList.toggle("vred-sheet", active);
+}
+
+function syncManagedItemsWhenActive(actor) {
+  if (!isVProfileActive(actor) || pendingItemSyncs.has(actor)) return;
+  const sync = syncVItems(actor, stateFor(actor))
+    .catch(error => console.error(`[${MODULE_ID}] managed item sync failed`, error))
+    .finally(() => pendingItemSyncs.delete(actor));
+  pendingItemSyncs.set(actor, sync);
+}
+
+function getEthernumCharacterSheetClass() {
+  const actorConfig = CONFIG.Actor ?? {};
+  const registrations = actorConfig.sheetClasses?.character ?? {};
+  for (const [id, registrationValue] of Object.entries(registrations)) {
+    const registration = asObject(registrationValue);
+    const sheetClass = registration.cls ?? registration.sheetClass;
+    const scope = String(registration.scope ?? registration.namespace ?? id).toLowerCase();
+    const name = String(sheetClass?.name ?? "").toLowerCase();
+    if (typeof sheetClass === "function" && (scope.includes(BASE_ID) || name.includes("baseethernumcharactersheet"))) {
+      return sheetClass;
+    }
+  }
+  return null;
+}
+
+function registerVRedHandCharacterSheet() {
+  if (vSheetRegistered) return true;
+  const BaseSheet = getEthernumCharacterSheetClass();
+  if (!BaseSheet) return false;
+  const actorCollection = foundry.documents?.collections?.Actors;
+  if (typeof actorCollection?.registerSheet !== "function") return false;
+  VRedHandCharacterSheet = class extends BaseSheet {
+    constructor(...args) {
+      super(...args);
+      this.vRedhandStandalone = true;
+    }
+
+    static get defaultOptions() {
+      const base = super.defaultOptions;
+      return foundry.utils.mergeObject(base, {
+        classes: [...(base.classes ?? []), "vred-sheet-window", "vred-standalone-sheet"],
+        width: 1380,
+        height: 940,
+      }, { inplace: false });
+    }
+  };
+  Object.defineProperty(VRedHandCharacterSheet, "name", { value: "VRedHandCharacterSheet" });
+  actorCollection.registerSheet(MODULE_ID, VRedHandCharacterSheet, {
+    types: ["character"],
+    makeDefault: false,
+    label: "V RedHand · ARSENAL.EXE",
+  });
+  vSheetRegistered = true;
+  return true;
+}
+
+function openVRedHandCharacterSheet(actor) {
+  if (!isVProfileActive(actor)) {
+    notify("warn", "Ative V RedHand como mecânica única antes de abrir a ficha cyberpunk.");
+    return;
+  }
+  if (!registerVRedHandCharacterSheet() || !VRedHandCharacterSheet) {
+    notify("error", "Não encontrei a ficha Concórdia do Ethernum para montar a ficha separada de V.");
+    return;
+  }
+  const existing = vSheetApps.get(actor);
+  if (existing) {
+    existing.render(true);
+    return existing;
+  }
+  const sheet = new VRedHandCharacterSheet(actor, {
+    editable: isOwner(actor),
+  });
+  vSheetApps.set(actor, sheet);
+  const originalClose = sheet.close.bind(sheet);
+  sheet.close = async options => {
+    vSheetApps.delete(actor);
+    return originalClose(options);
+  };
+  sheet.render(true);
+  return sheet;
+}
+
 function showNativeProfile(root, actor, selectedProfile = null) {
   const mount = root.querySelector(`[data-v-redhand-host='${MODULE_ID}']`);
   for (const child of root.children) child.classList.remove(HIDDEN_NATIVE_CLASS);
@@ -200,11 +304,13 @@ async function handleProfileSelection(event, root, app, actor, select) {
       await actor.update({ [`flags.${MODULE_ID}.active`]: true, [STATE_PATH]: state });
       await syncVItems(actor, state);
       const currentRoot = getUniqueRoot(unwrapElement(undefined, app)) ?? root;
+      if (app.vRedhandStandalone === true) applyVSheetTheme(app, currentRoot, actor);
       const currentSelect = currentRoot.querySelector("select.ethernum-unique-profile");
       if (currentSelect) currentSelect.value = PROFILE_ID;
       const mount = ensureMount(currentRoot, app, actor);
       hideNativeProfile(currentRoot, mount);
-      renderCurrentProfile(mount, actor, state);
+      if (app.vRedhandStandalone === true) renderCurrentProfile(mount, actor, state);
+      else renderSheetLauncher(mount, actor);
     } catch (error) {
       console.error(`[${MODULE_ID}] could not activate V profile`, error);
       notify("error", "Não foi possível ativar o perfil de V.");
@@ -224,6 +330,7 @@ async function handleProfileSelection(event, root, app, actor, select) {
     await actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state });
     await syncVItems(actor, state);
     const currentRoot = getUniqueRoot(unwrapElement(undefined, app)) ?? root;
+    if (app.vRedhandStandalone === true) applyVSheetTheme(app, currentRoot, actor);
     const currentSelect = currentRoot.querySelector("select.ethernum-unique-profile") ?? select;
     showNativeProfile(currentRoot, actor, requestedProfile);
     currentSelect.dataset.vRedhandBypass = "true";
@@ -252,6 +359,7 @@ function bindUniqueProfile(root, app, actor) {
       const state = stateFor(actor);
       state.active = false;
       void actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state })
+        .then(() => { if (app.vRedhandStandalone === true) applyVSheetTheme(app, root, actor); })
         .then(() => clearTimedCromaConditions(actor, state, { camouflage: true }))
         .then(() => syncVItems(actor, state))
         .catch(error => console.error(`[${MODULE_ID}] could not remove managed items after core switch`, error));
@@ -268,8 +376,14 @@ function integrateUniqueProfile(root, app, actor) {
     select.value = PROFILE_ID;
     const mount = ensureMount(root, app, actor);
     hideNativeProfile(root, mount);
-    renderProfile(mount, actor, stateFor(actor));
+    if (app.vRedhandStandalone === true) {
+      applyVSheetTheme(app, root, actor);
+      renderProfile(mount, actor, stateFor(actor));
+    } else {
+      renderSheetLauncher(mount, actor);
+    }
   } else {
+    applyVSheetTheme(app, root, actor);
     showNativeProfile(root, actor);
   }
   return true;
@@ -449,7 +563,7 @@ function renderGlove(state) {
   const tiers = [
     "+1 potência, striking, 1 slot", "+2 potência, striking, 2 slots", "+2, greater striking, 2 slots", "+3, greater striking, 3 slots", "+3, major striking, 3 slots",
   ];
-  return `<div class="vred-grid two">${card(`Mk ${state.gloveMk} · ${names[state.gloveMk - 1]}`, `<p>${tiers[state.gloveMk - 1]}</p><p>A Luva aplica runas à forma manifestada (incluindo ambas as pistolas dos Pares). Não alcança Cromas nem armas de terceiros.</p>${isGM() ? `<label class="vred-field">Camada da Luva<select data-v-action="set-mk">${names.map((name, i) => `<option value="${i + 1}" ${state.gloveMk === i + 1 ? "selected" : ""}>Mk ${i + 1} · ${name}</option>`).join("")}</select></label>` : ""}`, "red")}
+  return `<div class="vred-grid two">${card(`Luva Sintonizadora Redhand · Mk ${state.gloveMk} · ${names[state.gloveMk - 1]}`, `<p>${tiers[state.gloveMk - 1]}</p><p>A Luva aplica runas à forma manifestada (incluindo ambas as pistolas dos Pares). Não alcança Cromas nem armas de terceiros.</p>${isGM() ? `<label class="vred-field">Camada da Luva<select data-v-action="set-mk">${names.map((name, i) => `<option value="${i + 1}" ${state.gloveMk === i + 1 ? "selected" : ""}>Mk ${i + 1} · ${name}</option>`).join("")}</select></label>` : ""}`, "red")}
   ${card("Troca de runas", `<p>Runas de propriedade já conhecidas podem ser trocadas em 10 minutos fora de combate. Comprar e gravar runas novas segue as regras normais de PF2e.</p><p>Sem a Luva, V ainda pode girar, mas a forma não recebe as runas. Perder a Luva é um problema de cena.</p>`)}
   ${card("Runa Estática Corrompida · opcional", `<p>Em crítico de ataque, o alvo fica off-guard até o início do próximo turno. Em falha crítica, a forma muda para outra do mesmo modo (novo d20, sem escolha nem Suprema) e o GM aplica Sintoma.</p><p>Remover exige uma cena; Calibração comum não basta.</p><p>Estado: ${state.corruptedRune ? "aceita por V" : "não instalada"}</p>${isGM() ? `<button class="vred-button" data-v-action="toggle-corrupted">${state.corruptedRune ? "Remover da Luva" : "Registrar aceitação da runa"}</button>` : ""}${state.corruptedRune ? `<button class="vred-button" data-v-action="corrupted-jump">Resolver mudança após falha crítica</button>` : ""}`, "gold")}
   ${card("Gatilhos de evolução", `<p>Mk II: componente do Mart T2 ou ajuda de Solven. Mk III: o engrama reconhece a Luva. Mk IV: aceitar a Runa Corrompida é decisão de V. Mk V: reservado ao fim da campanha.</p><p>A progressão é por cenas, não compra automática.</p>`)}</div>`;
@@ -614,6 +728,10 @@ function renderProfile(mount, actor, state) {
       item.hidden = query.length > 0 && !item.dataset.vSearchable.includes(query);
     });
   });
+}
+
+function renderSheetLauncher(mount, actor) {
+  mount.innerHTML = `<section class="vred-launcher"><div class="vred-launcher__signal">ARSENAL.EXE · V REDHAND · BLACKWALL LINK</div><h3>Ficha individual de V</h3><p>A mecânica de V tem uma ficha própria baseada na estrutura Concórdia. Ela mantém as abas, rolagens, inventário e recursos do Ethernum sem ocupar o espaço dos outros personagens.</p><button type="button" class="vred-button primary" data-v-action="open-sheet" ${isOwner(actor) ? "" : "disabled"}>Abrir ficha Cyberpunk</button></section>`;
 }
 
 async function rollDice(actor, faces, flavor) {
@@ -806,6 +924,10 @@ async function handleAction(event, app, mount, actor) {
   if (!control || !mount.contains(control)) return;
   if (event.type === "click" && control.matches("select[data-v-action]")) return;
   const action = control.dataset.vAction;
+  if (action === "open-sheet") {
+    openVRedHandCharacterSheet(actor);
+    return;
+  }
   if (action === "tab") {
     saveSectionTab(mount, actor, control.dataset.tab);
     renderProfile(mount, actor, stateFor(actor));
@@ -1323,19 +1445,166 @@ function onRenderActorSheet(app, html) {
   if (!actor || actor.type !== "character" || !canShowForConcórdia(actor) || !baseVersionSupported()) return;
   const container = unwrapElement(html, app);
   if (!container) return;
+  if (app.vRedhandStandalone === true) applyVSheetTheme(app, container, actor);
+  if (isVProfileActive(actor)) syncManagedItemsWhenActive(actor);
   watchUniqueRender(container, app, actor);
 }
 
+Hooks.once("setup", registerVRedHandCharacterSheet);
 Hooks.on("renderCharacterSheetPF2e", onRenderActorSheet);
 Hooks.on("renderApplicationV2", onRenderActorSheet);
 Hooks.on("renderActorSheet", onRenderActorSheet);
-Hooks.on("renderChatMessage", (message, html) => {
-  const chatType = message.getFlag(MODULE_ID, "chatType");
-  if (!chatType) return;
+
+function asObject(value) {
+  return value !== null && typeof value === "object" ? value : {};
+}
+
+function actorFromUuid(uuid) {
+  const match = String(uuid ?? "").match(/(?:^|\.)Actor\.([^.]+)(?:\.Item\.([^.]+))?/);
+  if (!match) return null;
+  return { actor: game.actors?.get(match[1]) ?? null, itemId: match[2] ?? null };
+}
+
+function actorForChatMessage(message, root) {
+  const linked = actorFromUuid(root?.querySelector?.('.content-link[data-uuid^="Actor."]')?.dataset.uuid)?.actor;
+  if (linked && isVProfileActive(linked)) return linked;
+  const direct = message.actor;
+  if (direct && isVProfileActive(direct)) return direct;
+  const speaker = asObject(message.speaker);
+  const actor = speaker.actor ? game.actors?.get(speaker.actor) : null;
+  if (actor && isVProfileActive(actor)) return actor;
+  if (speaker.scene && speaker.token) {
+    const tokenActor = game.scenes?.get(speaker.scene)?.tokens?.get(speaker.token)?.actor;
+    if (tokenActor && isVProfileActive(tokenActor)) return tokenActor;
+  }
+
+  const flags = asObject(message.flags);
+  const pf2e = asObject(flags.pf2e);
+  const context = asObject(pf2e.context);
+  const origin = asObject(context.origin ?? pf2e.origin);
+  const originActor = asObject(origin.actor);
+  const fromOrigin = actorFromUuid(origin.uuid ?? origin.actorUuid ?? originActor.uuid ?? originActor.id ?? origin.actor)
+    ?? (typeof origin.actor === "string" ? { actor: game.actors?.get(origin.actor) ?? null, itemId: null } : null);
+  if (fromOrigin?.actor && isVProfileActive(fromOrigin.actor)) return fromOrigin.actor;
+  return direct ?? actor ?? linked ?? fromOrigin?.actor ?? null;
+}
+
+function itemFromChatMessage(message, root, actor) {
+  const flags = asObject(message.flags);
+  const pf2e = asObject(flags.pf2e);
+  const context = asObject(pf2e.context);
+  const origin = asObject(context.origin ?? pf2e.origin);
+  const origins = [origin.uuid, origin.itemUuid, origin.item, root?.querySelector?.('.content-link[data-uuid*=".Item."]')?.dataset.uuid];
+  for (const uuid of origins) {
+    const parsed = actorFromUuid(uuid);
+    if (parsed?.actor && parsed.actor.id === actor?.id && parsed.itemId) {
+      const item = actor.items?.get(parsed.itemId);
+      if (item) return item;
+    }
+  }
+  return null;
+}
+
+function rollsFromMessage(message) {
+  const rolls = message.rolls;
+  if (Array.isArray(rolls)) return rolls;
+  if (Array.isArray(rolls?.contents)) return rolls.contents;
+  return rolls ? [rolls] : [];
+}
+
+function diceTerms(roll) {
+  const found = [];
+  const seen = new Set();
+  const visit = term => {
+    if (!term || typeof term !== "object" || seen.has(term)) return;
+    seen.add(term);
+    if (Number.isFinite(Number(term.faces)) && Array.isArray(term.results)) {
+      for (const result of term.results) {
+        if (result?.active === false) continue;
+        const value = Number(result?.result ?? result);
+        if (Number.isFinite(value)) found.push({ faces: Number(term.faces), value });
+      }
+    }
+    if (Array.isArray(term.terms)) term.terms.forEach(visit);
+    if (term.roll) visit(term.roll);
+  };
+  (roll?.terms ?? []).forEach(visit);
+  return found;
+}
+
+function textFrom(root, selectors) {
+  for (const selector of selectors) {
+    const value = root?.querySelector?.(selector)?.textContent?.replace(/\s+/g, " ").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function addChatDetails(root, message, actor, item, rolls, dice) {
+  if (root.querySelector(".vred-chat-details")) return;
+  const vFlags = asObject(message.flags?.[MODULE_ID]);
+  const bootRoll = Number(vFlags.faces) === 20 && /boot|giro/i.test(String(message.flavor ?? ""));
+  const naturalOne = dice.some(entry => entry.faces === 20 && entry.value === 1);
+  const naturalTwenty = dice.some(entry => entry.faces === 20 && entry.value === 20);
+  const detail = document.createElement("aside");
+  detail.className = "vred-chat-details";
+  detail.setAttribute("aria-label", "Detalhes da mensagem de V RedHand");
+
+  const header = document.createElement("div");
+  header.className = "vred-chat-details__header";
+  header.textContent = `ARSENAL.EXE · ${naturalOne && bootRoll ? "GLITCH NA BLACKWALL" : naturalOne ? "D20 NATURAL 1" : naturalTwenty ? "PICO DE SINCRONIA" : rolls.length ? "REGISTRO DE ROLAGEM" : item ? "ITEM DO ENGRAMA" : "SINAL DE V"}`;
+  const title = document.createElement("div");
+  title.className = "vred-chat-details__title";
+  title.textContent = item?.name
+    || textFrom(root, [".flavor-text", ".card-header h3", ".item-name", "h3"])
+    || String(message.flavor ?? "")
+    || actor.name
+    || "V RedHand";
+  const summary = document.createElement("div");
+  summary.className = "vred-chat-details__summary";
+  if (rolls.length) {
+    const descriptions = rolls.map(roll => {
+      const rollDice = diceTerms(roll);
+      const diceText = rollDice.length ? ` · Dados: ${rollDice.map(entry => `d${entry.faces}=${entry.value}`).join(", ")}` : "";
+      const formula = String(roll.formula ?? "rolagem");
+      const total = Number.isFinite(Number(roll.total)) ? ` · Total ${roll.total}` : "";
+      return `${formula}${diceText}${total}`;
+    });
+    summary.textContent = descriptions.join(" | ");
+  } else if (item) {
+    const itemText = item.system?.description?.value?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    summary.textContent = itemText ? itemText.slice(0, 220) : "Item vinculado ao engrama de V.";
+  } else {
+    summary.textContent = actor.name ?? "Mensagem de V RedHand";
+  }
+  detail.append(header, title, summary);
+  const content = root.querySelector(".message-content") ?? root;
+  content.prepend(detail);
+}
+
+function decorateVChatMessage(message, html) {
   const root = unwrapElement(html);
   if (!root) return;
-  root.classList.add("vred-chat-message", `vred-chat-${String(chatType).replace(/[^a-z0-9_-]/gi, "")}`);
-});
+  const actor = actorForChatMessage(message, root);
+  if (!actor || !isVProfileActive(actor)) return;
+  const chatType = message.getFlag?.(MODULE_ID, "chatType") ?? message.flags?.[MODULE_ID]?.chatType;
+  const rolls = rollsFromMessage(message);
+  const dice = rolls.flatMap(diceTerms);
+  root.classList.add("vred-chat-message", `vred-chat-${String(chatType ?? (rolls.length ? "roll" : "item")).replace(/[^a-z0-9_-]/gi, "")}`);
+  const vFlags = asObject(message.flags?.[MODULE_ID]);
+  const bootRoll = Number(vFlags.faces) === 20 && /boot|giro/i.test(String(message.flavor ?? ""));
+  if (dice.some(entry => entry.faces === 20 && entry.value === 1)) {
+    root.classList.add("vred-chat-natural-one");
+    if (bootRoll) root.classList.add("vred-chat-blackwall");
+  }
+  if (dice.some(entry => entry.faces === 20 && entry.value === 20)) root.classList.add("vred-chat-natural-20");
+  const item = itemFromChatMessage(message, root, actor);
+  if (item || (!rolls.length && root.querySelector(".content-link[data-uuid*='.Item.']"))) root.classList.add("vred-chat-item");
+  addChatDetails(root, message, actor, item, rolls, dice);
+}
+
+Hooks.on("renderChatMessage", decorateVChatMessage);
+Hooks.on("renderChatMessageHTML", decorateVChatMessage);
 Hooks.on("deleteCombat", combat => {
   if (!isGM()) return;
   for (const actor of game.actors) {
@@ -1352,6 +1621,7 @@ Hooks.on("deleteCombat", combat => {
 });
 
 Hooks.once("ready", () => {
+  registerVRedHandCharacterSheet();
   const base = game.modules.get(BASE_ID);
   if (!base?.active) notify("error", "V RedHand requer Ethernum RPG Module ativo.");
   else if (!baseVersionSupported()) notify("error", "V RedHand requer Ethernum RPG Module v3.8.11 ou posterior.");

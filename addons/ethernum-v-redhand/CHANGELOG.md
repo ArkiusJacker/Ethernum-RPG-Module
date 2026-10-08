@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.3.0 — ficha Cyberpunk individual e rolagens detalhadas
+
+- Registra uma ficha separada para V, baseada na classe e nos dados da ficha Concórdia. A ficha comum mostra somente um atalho para abrir a janela individual.
+- Aplica o tema Blackwall/Cyberpunk 2077 à ficha separada, sem alterar a apresentação das fichas dos demais personagens.
+- Aplica o visual animado às rolagens feitas pelo V e aos pings de itens vinculados ao seu Actor. O resumo mostra ação/item, fórmula, resultados individuais dos dados e total; 1 natural só aciona o rótulo Glitch na roleta Boot / giro.
+- Corrige as armas manifestadas para entrarem empunhadas e com seus dados de dano e runas no item PF2e. A ficha sincroniza automaticamente os itens existentes ao ser aberta.
+- Cria a **Luva Sintonizadora Redhand** no inventário do Actor e atualiza o item antigo sem perder o progresso da Luva.
+
 ## 0.2.0 — Glitch, armas funcionais e Blackwall
 
 - Natural 1 agora revela uma arma Ultimate/Glitch; resultados 2–20 cobrem as 19 armas normais. O primeiro Glitch concede um Cartucho por encontro; Glitches seguintes podem trocar a forma sem reabastecê-lo.
