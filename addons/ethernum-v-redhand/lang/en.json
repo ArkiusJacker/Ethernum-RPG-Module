@@ -1,0 +1,8 @@
+{
+  "VRedHand": {
+    "Name": "V RedHand — ARSENAL.EXE",
+    "Activate": "Activate V profile",
+    "Deactivate": "Deactivate V profile",
+    "Permission": "Only the GM can activate this profile on this Actor."
+  }
+}
