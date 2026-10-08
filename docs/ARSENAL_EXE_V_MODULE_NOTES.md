@@ -85,7 +85,8 @@ O PDF também sugere que o Mart conceda buffs apesar de regra antiga do v0.4 “
 - O hook de chat identifica mensagens pelo Actor de `speaker`, token e origem PF2e, além de links UUID para itens do Actor. Rolagens de ataque, dano, perícia, salvamento, iniciativa e mensagens de item do V recebem apresentação animada com fórmula, dados individuais e total. A Glitch só é chamada quando o 1 natural pertence a `Boot / giro`.
 - Armas geradas gravam `system.damage.dice`, `die`, `damageType`, `equipped.carryType = held` e mãos ocupadas no formato PF2e. A sincronização de itens na abertura da ficha atualiza armas que já existiam e as deixa empunhadas; armas Pareadas ficam empunhadas em uma mão cada.
 - O item é nomeado provisoriamente **Luva Sintonizadora Redhand**. Alternativas editoriais: **Nexo Redhand** e **Sintonizador do Blackwall**. O nome e o slug do item foram atualizados pelo mesmo `managedKey`, preservando a camada Mk existente.
-- Pacote de desenvolvimento: `../addons/ethernum-v-redhand-v0.3.0.zip`; cópia instalada em `C:\Users\Titan\AppData\Local\FoundryVTT\Data\modules\ethernum-v-redhand`. Node `--check` e parse do manifesto JSON passaram; a ficha e os Strike ainda precisam ser conferidos após reiniciar o mundo Foundry.
+- Pacote de desenvolvimento: `../addons/ethernum-v-redhand-v0.3.0.zip`; cópia instalada em `C:\Users\Titan\AppData\Local\FoundryVTT\Data\modules\ethernum-v-redhand`. Release pública: [Pacote de extensão Concórdia: Mecânicas únicas · V RedHand v0.3.0](https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.3.0), tag `concordia-unique-mechanics-v0.3.0`, com `ethernum-v-redhand.zip` e `module.json`.
+- Node `--check` e parse do manifesto JSON passaram. A instalação foi atualizada; a ficha e os Strikes ainda precisam de conferência visual após reiniciar o mundo Foundry.
 
 ## Registro do add-on separado · v0.1.1 · 08/10/2026
 
