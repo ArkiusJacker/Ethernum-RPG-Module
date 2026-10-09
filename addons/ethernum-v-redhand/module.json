@@ -1,8 +1,8 @@
 {
   "id": "ethernum-v-redhand",
   "title": "V RedHand — ARSENAL.EXE",
-  "description": "Pacote de extensão Concórdia: ficha individual cyberpunk para V RedHand, armas PF2e prontas para Strike, mensagens temáticas e Pocket.Mart.",
-  "version": "0.3.1",
+  "description": "Pacote de extensão Concórdia: ficha cyberpunk exclusiva de V RedHand, armas PF2e, roleta Glitch, ações de armas, Cromas, Pocket.Mart e SFX.",
+  "version": "0.3.2",
   "authors": [
     {
       "name": "ArkiusJacker"
@@ -10,7 +10,7 @@
   ],
   "compatibility": {
     "minimum": "13.351",
-    "verified": "14.368"
+    "verified": "14.367"
   },
   "relationships": {
     "systems": [
@@ -52,9 +52,10 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.3.1",
-  "manifest": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.3.1/module.json",
-  "download": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.3.1/ethernum-v-redhand.zip",
+  "url": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/tag/concordia-unique-mechanics-v0.3.2",
+  "manifest": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.3.2/module.json",
+  "download": "https://github.com/ArkiusJacker/Ethernum-RPG-Module/releases/download/concordia-unique-mechanics-v0.3.2/ethernum-v-redhand.zip",
+  "socket": true,
   "license": "MIT",
   "readme": "README.md"
 }

@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.3.2 — sincronização de munição e pacote de playtest
+
+- Gasta munição após o card de Strike PF2e, com idempotência por mensagem; o item exibe a reserva e fica guardado quando esvazia. Recarregar pelo painel atualiza o item e o deixa empunhado novamente.
+- Evita descontar a mesma munição duas vezes quando a assinatura Ultimate já reservou o disparo antes de rolar.
+- Serializa as ações locais por Actor, incluindo instalação/uso de Cromas, Pocket.Mart, áudio, roleta e Cartucho.
+- Adiciona ações de ficha com propriedades/técnicas de cada arma e mantém o item Gume do Infinito · Corte Perfeito.
+- Extrai regras puras de migração, Glitch, Strike, munição e caminhos SFX; adiciona 11 testes do add-on.
+- Adiciona CI próprio para testar o add-on, validar imports/manifesto/arquivos SFX e montar um ZIP com `module.json` na raiz.
+- Registra compatibilidade verificada com Foundry VTT 14.367, PF2e 8.5.1 e Ethernum RPG Module 3.8.12, versões detectadas no ambiente local.
+- Mantém 0.3.2 como versão de playtest. O fluxo de Strike, munição, áudio compartilhado e atualização ainda precisa de teste manual em Foundry com dois clientes antes da estabilidade 0.4.0.
+
 ## 0.3.1 — integração, Glitches e soundbank
 
 - Corrige a aba de mecânica única nas fichas PF2e e Concórdia, inclusive o estado vazio sem seletor do módulo-base; mantém o atalho e abre a janela individual no shell Concórdia sem alterar a preferência do Actor.

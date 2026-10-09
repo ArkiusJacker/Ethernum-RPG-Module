@@ -1,0 +1,62 @@
+name: V RedHand add-on
+
+on:
+  push:
+    paths:
+      - 'addons/ethernum-v-redhand/**'
+      - '.github/workflows/v-redhand-addon.yml'
+  pull_request:
+    paths:
+      - 'addons/ethernum-v-redhand/**'
+      - '.github/workflows/v-redhand-addon.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: v-redhand-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-addon:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install repository test tools
+        run: npm ci
+
+      - name: Run V RedHand regression tests
+        run: npm test -- addons/ethernum-v-redhand/tests
+
+      - name: Check add-on JavaScript syntax
+        shell: bash
+        run: |
+          while IFS= read -r file; do node --check "$file"; done < <(find addons/ethernum-v-redhand/scripts -name '*.js' -type f)
+
+      - name: Validate manifest, imports, and SFX
+        run: node addons/ethernum-v-redhand/tools/validate-package.mjs
+
+      - name: Build installable ZIP
+        shell: bash
+        run: |
+          mkdir -p dist/ethernum-v-redhand
+          cp addons/ethernum-v-redhand/module.json addons/ethernum-v-redhand/README.md addons/ethernum-v-redhand/CHANGELOG.md addons/ethernum-v-redhand/LICENSE dist/ethernum-v-redhand/
+          cp -a addons/ethernum-v-redhand/assets addons/ethernum-v-redhand/audio addons/ethernum-v-redhand/lang addons/ethernum-v-redhand/scripts addons/ethernum-v-redhand/styles dist/ethernum-v-redhand/
+          cd dist/ethernum-v-redhand
+          zip -qr ../ethernum-v-redhand.zip .
+
+      - name: Validate ZIP root and contents
+        run: node addons/ethernum-v-redhand/tools/validate-package.mjs --root dist/ethernum-v-redhand --zip dist/ethernum-v-redhand.zip
+
+      - name: Upload installable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethernum-v-redhand-${{ github.sha }}
+          path: dist/ethernum-v-redhand.zip
+          if-no-files-found: error

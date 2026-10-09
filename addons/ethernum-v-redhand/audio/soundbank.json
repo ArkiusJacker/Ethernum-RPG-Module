@@ -1,7 +1,19 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "moduleId": "ethernum-v-redhand",
   "audienceOptions": ["self", "v-owners", "all"],
+  "defaultVolume": 0.7,
+  "localVolumeStorage": "per-user",
+  "masterVolumeCapSetting": "world.sfx-master-cap",
+  "events": [
+    { "trigger": "sheet-open", "audio": ["gui-open", "gui-loop"], "audience": "v-owners", "stopPolicy": "sheet-close" },
+    { "trigger": "currency-update", "audio": "eurodollar-transfer", "audience": "actor-owner", "deduplicate": "one-actor-update" },
+    { "trigger": "recall-knowledge", "audio": "scanner-open", "audience": "roller" },
+    { "trigger": "ultimate-use", "audio": "relic-malfunction", "audience": "v-owners" },
+    { "trigger": "valid-glitch", "audio": "blackwall-recalculate", "audience": "all" },
+    { "trigger": "gm-mission-complete", "audio": "mission-complete", "audience": "all", "gmOnly": true },
+    { "trigger": "gm-level-up", "audio": "level-up", "audience": "all", "gmOnly": true }
+  ],
   "categories": [
     "00_CORE",
     "01_CYBERPUNK",

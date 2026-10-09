@@ -1,4 +1,5 @@
-import { cromaActivation, cromas, ultimateProfiles, wayProfiles } from "./data.js";
+import { cromaActivation, cromas, ultimateProfiles, ultimates, wayProfiles } from "./data.js";
+import { weaponProfileFor } from "./weapon-profiles.js";
 
 const MODULE_ID = "ethernum-v-redhand";
 const packIndexCache = new Map();
@@ -75,44 +76,16 @@ function damageTypeLabel(type) {
   })[type] ?? String(type ?? "").replaceAll("-", " ");
 }
 
-function normalProfile(form) {
-  const text = `${form.meta ?? ""} ${form.effect ?? ""}`;
-  const match = text.match(/(\d+)\s*d\s*(4|6|8|10|12)/i);
-  const damageType = /força/i.test(text) ? "force"
-    : /espírito/i.test(text) ? "spirit"
-      : /elétric/i.test(text) ? "electricity"
-        : /fogo/i.test(text) ? "fire"
-          : /frio/i.test(text) ? "cold"
-            : /cortante/i.test(text) ? "slashing"
-              : /contundente/i.test(text) ? "bludgeoning" : "piercing";
-  const rangeMatch = text.match(/(\d+(?:[.,]\d+)?)\s*m(?:\s|$)/i);
-  const pair = /Par\s*[·-]/i.test(form.meta ?? "");
-  const twoHanded = pair || /Pesada|Escopeta|Lancer/i.test(form.meta ?? "") || /\bH\s*[·/]/i.test(form.meta ?? "") || /2\s*m[ãa]os/i.test(text);
-  const family = form.mode === "G" ? (/Escopeta/i.test(text) ? "Escopeta" : /Lancer/i.test(text) ? "Lancer" : /Pesada/i.test(text) ? "Pesada" : pair ? "Par" : "Pistola") : "Espada";
-  const traits = [];
-  if (/\bagile\b/i.test(text)) traits.push("agile");
-  if (/\bfinesse\b/i.test(text)) traits.push("finesse");
-  if (/fatal\s*d12/i.test(text)) traits.push("fatal-d12");
-  else if (/fatal\s*d10/i.test(text)) traits.push("fatal-d10");
-  if (/concussive/i.test(text)) traits.push("concussive");
-  return {
-    mode: form.mode,
-    family,
-    hands: twoHanded ? 2 : 1,
-    dice: Number(match?.[1] ?? (/Lancer/i.test(text) ? 1 : 1)),
-    die: `d${match?.[2] ?? (/Lancer/i.test(text) ? "10" : "6")}`,
-    damageType,
-    range: form.mode === "G" ? Number(rangeMatch?.[1]?.replace(",", ".") ?? 18) : null,
-    traits,
-    text,
-  };
-}
-
 function profileFor(form) {
   const ultimate = form?.isUltimate ? ultimateProfiles[form.name] : null;
-  const profile = ultimate ?? normalProfile(form ?? {});
+  const explicit = weaponProfileFor(form ?? {});
+  const profile = ultimate ?? explicit;
+  if (!profile) throw new Error(`Não existe perfil explícito de arma para ${form?.name ?? "forma atual"}.`);
   return {
     ...profile,
+    damageType: form?.damageChoice && profile.damageOptions?.some(option => option.type === form.damageChoice)
+      ? form.damageChoice
+      : profile.damageType ?? profile.damage?.type,
     traits: [...new Set([...(profile.traits ?? []), ...(profile.fatal ? [profile.fatal] : [])])],
   };
 }
@@ -137,17 +110,30 @@ function managedSource(source, role, key) {
 
 async function weaponSource(actor, form, { role = "manifested-weapon", key = "manifested", runes = true, extra = null } = {}) {
   const profile = extra ?? profileFor(form);
-  const ranged = profile.mode === "G" || Boolean(profile.range);
+  const ranged = profile.mode === "G";
   const blueprint = await itemPrototype("weapon", ranged ? "ranged" : "melee");
   if (!blueprint) throw new Error("O compêndio de Equipamentos PF2e não está disponível para criar a arma de V.");
   const source = stripDocumentFields(blueprint);
-  const mk = Number(stateFor(actor).gloveMk ?? 1);
+  const state = stateFor(actor);
+  const mk = Number(state.gloveMk ?? 1);
   const potency = runes ? [1, 2, 2, 3, 3][Math.max(0, Math.min(4, mk - 1))] : 0;
   const striking = runes ? [1, 1, 2, 2, 3][Math.max(0, Math.min(4, mk - 1))] : 0;
   const baseDice = Math.max(1, Number(profile.dice) || 1);
   const die = /^d(?:4|6|8|10|12)$/.test(String(profile.die)) ? profile.die : "d6";
   const damageType = String(profile.damageType ?? "piercing");
-  const handsHeld = profile.hands === 2 ? 2 : 1;
+  const ammoFormName = String(form.name ?? "").replace(/ · (?:Esquerda|Direita)$/i, "");
+  const ammoState = role === "croma-weapon"
+    ? { kind: "magazine", rounds: Number(state.encounter?.cromaAmmo ?? 0), max: Number(profile.capacity ?? 3) }
+    : state.encounter?.ammo?.[ammoFormName];
+  const pairedHand = String(key).endsWith("direita") ? "right" : String(key).endsWith("esquerda") ? "left" : null;
+  const loaded = ammoState?.kind === "pair"
+    ? Number(ammoState[pairedHand] ?? 0)
+    : Number(ammoState?.rounds ?? profile.capacity ?? 0);
+  const awaitingPrepaidStrike = Boolean(state.encounter?.pendingUltimateBonus?.status === "awaiting-strike"
+    && state.encounter.pendingUltimateBonus.ammoPrepaid
+    && state.encounter.current?.name === ammoFormName);
+  const hasAmmunition = !ranged || loaded > 0 || awaitingPrepaidStrike;
+  const handsHeld = hasAmmunition ? (profile.hands === 2 ? 2 : 1) : 0;
   const damageLabel = `${baseDice}${die} ${damageTypeLabel(damageType)}`;
   source.name = form.name;
   source.type = "weapon";
@@ -155,7 +141,7 @@ async function weaponSource(actor, form, { role = "manifested-weapon", key = "ma
   source.system.slug = slugify(form.name);
   source.system.description = {
     ...(source.system.description ?? {}),
-    value: `<p><strong>ARSENAL.EXE · V RedHand</strong></p><p>${form.source ? `${form.source} · ` : ""}${form.meta ?? ""}</p><p><strong>Dano do Strike:</strong> ${damageLabel}. ${striking ? `Luva: runa de striking Mk ${mk};` : ""} Potência +${potency}.</p><p>${form.effect ?? profile.signature ?? ""}</p>${form.wayName ? `<p><strong>${form.wayName}</strong></p>` : ""}<p>Forma manifestada e empunhada automaticamente. O PF2e calcula dano, runas e modificadores no Strike.</p>`,
+    value: `<p><strong>ARSENAL.EXE · V RedHand</strong></p><p>${form.source ? `${form.source} · ` : ""}${form.meta ?? ""}</p><p><strong>Dano do Strike:</strong> ${damageLabel}. ${striking ? `Luva: runa de striking Mk ${mk};` : ""} Potência +${potency}.</p>${ranged ? `<p><strong>Munição integrada:</strong> ${Math.max(0, loaded)}/${Number(profile.capacity ?? 0)}${awaitingPrepaidStrike ? " · disparo de Ultimate reservado" : ""}</p>` : ""}<p>${form.effect ?? profile.signature ?? ""}</p>${form.wayName ? `<p><strong>${form.wayName}</strong></p>` : ""}<p>${hasAmmunition ? "Forma manifestada e empunhada automaticamente." : "Forma sem munição: recarregue no painel antes de fazer outro Strike."} O PF2e calcula dano, runas e modificadores no Strike.</p>`,
   };
   source.system.category = source.system.category === "unarmed" ? "martial" : (source.system.category ?? "martial");
   source.system.damage = {
@@ -168,14 +154,16 @@ async function weaponSource(actor, form, { role = "manifested-weapon", key = "ma
     damageType,
     persistent: null,
   };
-  source.system.usage = { ...(source.system.usage ?? {}), value: handsHeld === 2 ? "held-in-two-hands" : "held-in-one-hand" };
+  source.system.usage = { ...(source.system.usage ?? {}), value: profile.hands === 2 ? "held-in-two-hands" : "held-in-one-hand" };
   // carryType is intentionally explicit: without "held", PF2e puts a newly
   // created weapon in the inventory as stowed and hides its Strike actions.
-  source.system.equipped = { ...(source.system.equipped ?? {}), carryType: "held", handsHeld };
+  source.system.equipped = { ...(source.system.equipped ?? {}), carryType: hasAmmunition ? "held" : "stowed", handsHeld };
   source.system.range = ranged ? metersToFeet(profile.range ?? 18) : null;
-  source.system.group = ranged ? "firearm" : (source.system.group ?? "sword");
+  source.system.group = profile.group ?? (ranged ? "firearm" : "sword");
   source.system.traits ??= { value: [], otherTags: [] };
-  source.system.traits.value = allowedTraits([...(source.system.traits.value ?? []), ...(profile.traits ?? [])]);
+  // The compendium prototype supplies schema shape only. Traits are fully
+  // declared by the V profile to avoid leaking agile/fatal/etc. from templates.
+  source.system.traits.value = allowedTraits(profile.traits ?? []);
   source.system.traits.otherTags = [...new Set([...(source.system.traits.otherTags ?? []), "v-redhand"] )];
   source.system.runes = {
     ...(source.system.runes ?? {}),
@@ -184,12 +172,12 @@ async function weaponSource(actor, form, { role = "manifested-weapon", key = "ma
     property: source.system.runes?.property ?? [],
   };
   if (ranged) {
-    source.system.reload = { ...(source.system.reload ?? {}), value: "1" };
+    source.system.reload = { ...(source.system.reload ?? {}), value: String(profile.reload?.actions ?? 1) };
     source.system.ammo = {
       ...(source.system.ammo ?? {}),
       builtIn: true,
-      baseType: source.system.ammo?.baseType ?? null,
-      capacity: Number(profile.capacity ?? (profile.family === "Par" ? 6 : profile.family === "Escopeta" ? 2 : profile.family === "Lancer" ? 5 : profile.family === "Pistola" ? 6 : 3)),
+      baseType: null,
+      capacity: Number(profile.capacity ?? 1),
     };
     source.system.expend = 1;
   } else {
@@ -288,6 +276,33 @@ function waySources(wayId) {
   ].map(source => managedSource(source, "way-action", `${wayId}:${source.system.slug}`));
 }
 
+function specialActionSources(form) {
+  const profile = form?.isUltimate ? ultimateProfiles[form.name] : weaponProfileFor(form);
+  const baseName = String(form?.name ?? "").replace(/ · (?:Esquerda|Direita)$/i, "");
+  const normalEntry = [...weaponsG, ...weaponsS].find(entry => entry[0] === baseName);
+  const specialActions = form?.isUltimate
+    ? [{
+      name: profile?.label ?? `${form.name} · Assinatura Glitch`,
+      actions: ultimates.find(entry => entry[1] === form.name)?.[3] ?? 2,
+      description: `${profile?.signature ?? form.effect} ${profile?.kind === "strike" ? "Faça o Strike com a arma manifestada; a rolagem PF2e libera o bônus somente após acerto." : `Resolução manual transparente: ${profile?.area ?? "área/alvos conforme carta"}; ${profile?.defense ?? "salvamentos conforme carta"}.`}`,
+      kind: profile?.kind === "strike" ? "strike" : "manual-effect",
+    }]
+    : [
+      ...(profile?.specialActions ?? []),
+      ...((normalEntry?.[3] ?? form?.effect) ? [{
+        name: "Propriedades e técnicas",
+        type: "passive",
+        description: normalEntry?.[3] ?? form.effect,
+        kind: "manual-effect",
+      }] : []),
+    ];
+  return specialActions.map(action => actionSource(
+    `${form.name} · ${action.name}`,
+    `${action.description}${action.type === "passive" ? " Esta propriedade acompanha a forma manifestada." : action.kind === "strike" || action.kind === "strike-effect" ? " Faça o Strike com a arma manifestada e resolva o efeito pelo resultado mostrado no chat." : " Resolva o efeito descrito com o GM."}`,
+    { type: action.type ?? "action", actions: action.actions ?? 1, category: "offensive" },
+  )).map(source => managedSource(source, "weapon-action", `${slugify(form.name)}:${source.system.slug}`));
+}
+
 async function cromaWeaponSource(index) {
   const croma = cromas[index];
   if (index === 4) {
@@ -309,7 +324,7 @@ async function desiredItems(actor, state) {
   const form = state.encounter?.current;
   if (form && !form.ultimateSelect) {
     if (form.mode === "G" && /^Par\s*[·-]/i.test(form.meta ?? "")) {
-      const pairProfile = normalProfile(form);
+      const pairProfile = profileFor(form);
       for (const hand of ["Esquerda", "Direita"]) {
         desired.push(await weaponSource(actor, { ...form, name: `${form.name} · ${hand}` }, {
           role: "manifested-weapon",
@@ -321,6 +336,7 @@ async function desiredItems(actor, state) {
       desired.push(await weaponSource(actor, form));
     }
     desired.push(...waySources(form.wayId));
+    desired.push(...specialActionSources(form));
   }
   for (const index of state.daily?.cromas ?? []) {
     const defective = (state.daily?.cromaDefects ?? []).includes(index);
@@ -355,9 +371,11 @@ export async function syncVItems(actor, state) {
     }
   }
   creates.push(...byKey.values());
-  if (stale.length) await actor.deleteEmbeddedDocuments("Item", stale);
+  // Add/update the replacement loadout before deleting stale managed items. If
+  // either write fails, the existing weapon remains on the Actor for recovery.
   if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
   if (creates.length) await actor.createEmbeddedDocuments("Item", creates);
+  if (stale.length) await actor.deleteEmbeddedDocuments("Item", stale);
 }
 
 export async function rollManifestedStrike(actor, event, role = "manifested-weapon", key = null) {

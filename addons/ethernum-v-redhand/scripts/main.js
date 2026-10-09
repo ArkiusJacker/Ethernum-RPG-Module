@@ -13,7 +13,10 @@ import {
   weaponsS,
 } from "./data.js";
 import { managedWeapon, rollManifestedStrike, syncVItems } from "./foundry-items.js";
+import { weaponProfileFor, validateUltimateProfileCatalog, validateWeaponProfileCatalog } from "./weapon-profiles.js";
+import { claimEncounterGlitch, classifyStrikeOutcome, consumeTrackedAmmo, createKeyedMutex, isSafeSfxPath, migrateVState } from "./rules.js";
 import { soundCategories, soundEffects, soundPath } from "./soundbank.js";
+import { createVSoundManager } from "./sound-manager.js";
 
 const MODULE_ID = "ethernum-v-redhand";
 const BASE_ID = "ethernum-rpg-module";
@@ -23,6 +26,14 @@ const HIDDEN_NATIVE_CLASS = "vred-native-hidden";
 const STATE_PATH = `flags.${MODULE_ID}.state`;
 const pendingRenderObservers = new WeakMap();
 const pendingItemSyncs = new WeakMap();
+const serializeActorAction = createKeyedMutex();
+const soundManager = createVSoundManager(options => {
+  const helper = globalThis.AudioHelper ?? foundry.audio?.AudioHelper;
+  if (!helper?.play) throw new Error("AudioHelper do Foundry não está disponível.");
+  return helper.play(options, false);
+});
+const pendingCurrencyEvents = new WeakMap();
+const playedRecallKnowledgeMessages = new Set();
 const vSheetApps = new WeakMap();
 const boundCoreRoots = new WeakSet();
 const twinPromptClaims = new Set();
@@ -36,13 +47,13 @@ const DISCOVERIES = [
 const WEAPON_ID = name => `weapon:${name}`;
 
 const DEFAULT_STATE = {
-  schemaVersion: 2,
+  schemaVersion: 4,
   active: true,
   gloveMk: 1,
   corruptedRune: false,
   settings: { forcedRerollEnabled: false, allowT2Accessories: false, cromaStartChoice: "undecided" },
   catalog: { rewrites: [], customSfx: [] },
-  encounter: { spins: 0, cartridge: false, cartridgeSpent: false, mode: "G", current: null, ammo: {}, cromaUses: {}, cromaAmmo: null, cromaSandevistanState: null, pendingUltimateBonus: null, log: [] },
+  encounter: { spins: 0, cartridge: false, cartridgeSpent: false, mode: "G", current: null, ammo: {}, processedStrikeMessages: [], cromaUses: {}, cromaAmmo: null, cromaSandevistanState: null, pendingUltimateBonus: null, log: [] },
   daily: {
     tier: 1,
     tax: null,
@@ -75,23 +86,10 @@ function stateFor(actor) {
     encounter: { ...DEFAULT_STATE.encounter, ...(saved.encounter ?? {}) },
     daily: { ...DEFAULT_STATE.daily, ...(saved.daily ?? {}) },
   };
-  if (Number(saved.schemaVersion ?? 1) < 2) {
-    const oldCurrent = state.encounter.current;
-    if (oldCurrent?.ultimateSelect || oldCurrent?.isUltimate) {
-      oldCurrent.result = 1;
-    } else if (oldCurrent && Number(oldCurrent.result) >= 1 && Number(oldCurrent.result) <= 19) {
-      const migratedResult = Number(oldCurrent.result) + 1;
-      state.encounter.current = { ...weaponFor(oldCurrent.mode, migratedResult, state), mode: oldCurrent.mode, result: migratedResult };
-    }
-    state.encounter.log = (state.encounter.log ?? []).map(entry => {
-      const wasUltimate = entry.result === 20 && (entry.name === "Glitch / Ultimate Select" || ultimates.some(item => item[1] === entry.name));
-      return wasUltimate ? { ...entry, result: 1 } : Number(entry.result) >= 1 && Number(entry.result) <= 19
-        ? { ...entry, result: Number(entry.result) + 1 }
-        : entry;
-    });
-    state.schemaVersion = 2;
-  }
-  return state;
+  return migrateVState(state, saved, {
+    weaponFor,
+    isUltimateName: name => ultimates.some(item => item[1] === name),
+  });
 }
 
 function escapeHtml(value) {
@@ -287,9 +285,15 @@ function openVRedHandCharacterSheet(actor) {
   const originalClose = sheet.close.bind(sheet);
   sheet.close = async options => {
     vSheetApps.delete(actor);
+    stopVSound(actor, "gui-loop", "v", { playbackId: `v-sheet:${actor.id}:gui-loop` });
     return originalClose(options);
   };
   sheet.render(true);
+  const state = stateFor(actor);
+  const openSound = findSfx(state, "gui-open");
+  const loopSound = findSfx(state, "gui-loop");
+  if (openSound) void playVSound(actor, openSound, "v").catch(error => console.warn(`[${MODULE_ID}] GUI open SFX blocked`, error));
+  if (loopSound) void playVSound(actor, loopSound, "v", { playbackId: `v-sheet:${actor.id}:gui-loop` }).catch(error => console.warn(`[${MODULE_ID}] GUI loop SFX blocked`, error));
   focusVMechanicTab(sheet);
   return sheet;
 }
@@ -355,6 +359,14 @@ function renderCurrentProfile(mount, actor, state) {
   const currentMount = mountForActor(actor, mount);
   if (currentMount?.isConnected) {
     renderProfile(currentMount, actor, state, { includeOpenLink: currentMount.dataset.vRedhandStandalone !== "true" });
+  }
+}
+
+function refreshActorPanels(actor) {
+  const state = stateFor(actor);
+  for (const mount of document.querySelectorAll(".vred-addon-host")) {
+    if (mount.dataset.vActorId !== (actor.id ?? "")) continue;
+    renderProfile(mount, actor, state, { includeOpenLink: mount.dataset.vRedhandStandalone !== "true" });
   }
 }
 
@@ -539,16 +551,10 @@ function updateActor(actor, nextState, currency = null) {
 }
 
 function capacityFor(form) {
-  const meta = form?.meta ?? "";
   const ultimate = form?.isUltimate ? ultimateProfiles[form.name] : null;
-  if (ultimate?.capacity && ultimate?.ammoKind) {
-    return { kind: ultimate.ammoKind, rounds: Number(ultimate.capacity), reload: ultimate.reload ?? "1 ação por munição" };
-  }
-  if (meta.includes("Par ·")) return { kind: "pair", left: 6, right: 6, reload: "1 ação por pistola" };
-  if (meta.includes("Escopeta")) return { kind: "shell", rounds: 2, reload: "1 ação por cartucho" };
-  if (meta.includes("Pesada")) return { kind: "bullet", rounds: 3, reload: "1 ação por bala" };
-  if (meta.includes("Lancer")) return { kind: "magazine", rounds: 5, reload: "2 ações por pente" };
-  if (meta.includes("Pistola")) return { kind: "magazine", rounds: 6, reload: "1 ação, pente completo" };
+  const profile = ultimate ?? weaponProfileFor(form);
+  if (profile?.ammoKind === "pair") return { kind: "pair", left: Number(profile.capacity), right: Number(profile.capacity), reload: profile.reload?.label ?? "1 ação por pistola" };
+  if (profile?.capacity && profile?.ammoKind) return { kind: profile.ammoKind, rounds: Number(profile.capacity), reload: profile.reload?.label ?? "1 ação por munição" };
   return null;
 }
 
@@ -567,7 +573,7 @@ function weaponFor(mode, result, state) {
   const [name, source, meta, effect] = rewrite
     ? DISCOVERIES[rewrite.discovery] ?? table[slot - 1]
     : table[slot - 1];
-  const wayId = wayFor(mode, `${meta ?? ""} ${effect ?? ""}`);
+  const wayId = weaponProfileFor({ name, mode })?.wayId ?? wayFor(mode, `${meta ?? ""} ${effect ?? ""}`);
   return { name, source, meta, effect, catalogSlot: slot, wayId, wayName: wayProfiles[wayId]?.name ?? "" };
 }
 
@@ -603,29 +609,86 @@ function getSfxVolume() {
   }
 }
 
+function getSfxMasterCap() {
+  try {
+    const value = Number(game.settings.get(MODULE_ID, "sfx-master-cap"));
+    return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0.7;
+  } catch {
+    return 0.7;
+  }
+}
+
 function findSfx(state, id) {
   return [...soundEffects, ...(state.catalog.customSfx ?? [])].find(sound => sound.id === id) ?? null;
 }
 
-async function playVSound(actor, sound, audience) {
-  const helper = globalThis.AudioHelper ?? foundry.audio?.AudioHelper;
-  if (!helper?.play) throw new Error("AudioHelper do Foundry não está disponível.");
+async function playVSound(actor, sound, audience, { playbackId = null } = {}) {
+  if (sound.loop && soundManager.isSoundPlaying(sound.id)) return;
   const source = soundPath(sound);
-  let socketOptions = false;
-  if (audience === "all") socketOptions = true;
-  if (audience === "v") {
+  const instanceId = playbackId ?? `${game.user?.id ?? "user"}:${foundry.utils.randomID()}`;
+  const channel = sound.category === "09_THEMES" ? "music" : "interface";
+  const defaultVolume = Number(sound.defaultVolume ?? 1);
+  if (audience === "self") {
+    return soundManager.play({ id: instanceId, soundId: sound.id, src: source, loop: Boolean(sound.loop), audience: "self", channel, defaultVolume });
+  }
+  let recipients = [];
+  if (audience === "all") {
+    recipients = [...game.users].map(user => user.id);
+  } else if (audience === "v") {
     const ownerLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
-    const recipients = [...game.users]
+    recipients = [...game.users]
       .filter(user => !user.isGM && actor.testUserPermission?.(user, ownerLevel))
       .map(user => user.id);
     if (!recipients.length) {
       notify("warn", "Não há jogador com permissão de proprietário para receber o áudio de V.");
       return;
     }
-    socketOptions = { recipients };
   }
-  const channel = sound.category === "09_THEMES" ? "music" : "interface";
-  await helper.play({ src: source, volume: getSfxVolume(), loop: false, autoplay: true, channel }, socketOptions);
+  if (!recipients.length || !game.socket?.emit) throw new Error("Não foi possível distribuir o som para a audiência selecionada.");
+  const event = {
+    action: "play",
+    playbackId: instanceId,
+    soundId: sound.id,
+    src: source,
+    loop: Boolean(sound.loop),
+    channel,
+    defaultVolume,
+    audience,
+    recipients,
+    senderId: game.user?.id,
+    sentAt: Date.now(),
+  };
+  game.socket.emit(`module.${MODULE_ID}`, event);
+  if (recipients.includes(game.user?.id)) {
+    await soundManager.play({ id: instanceId, soundId: sound.id, src: source, loop: Boolean(sound.loop), audience, channel, defaultVolume });
+  }
+}
+
+function stopVSound(actor, soundId, audience = "self", { playbackId } = {}) {
+  const id = playbackId ?? soundId;
+  if (audience === "self") return soundManager.stop(id);
+  const recipients = audience === "all"
+    ? [...game.users].map(user => user.id)
+    : [...game.users]
+      .filter(user => !user.isGM && actor.testUserPermission?.(user, CONST.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3))
+      .map(user => user.id);
+  if (!recipients.length || !game.socket?.emit) return false;
+  game.socket.emit(`module.${MODULE_ID}`, { action: "stop", playbackId: id, recipients, sentAt: Date.now() });
+  if (recipients.includes(game.user?.id)) void soundManager.stop(id);
+  return true;
+}
+
+function soundById(id) {
+  return soundEffects.find(sound => sound.id === id) ?? null;
+}
+
+function announceVSound(soundId, actor, audience = "all") {
+  const sound = soundById(soundId);
+  if (!sound) return;
+  void playVSound(actor, sound, audience).catch(error => {
+    console.error(`[${MODULE_ID}] event sound failed`, error);
+    notify("warn", `Não foi possível tocar o áudio do evento “${sound.name}”.`);
+  });
 }
 
 function card(title, body, tone = "") {
@@ -647,7 +710,7 @@ function renderStatus(state, actor) {
     ${card("Último registro", recent ? `<span class="vred-badge">${recent.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${recent.result}</span><p><strong>${escapeHtml(recent.name)}</strong></p>` : `<p>O histórico de encontro aparece aqui.</p>`, "gold")}
   </div>
   <div class="vred-callout"><strong>Escopo da automação:</strong> o add-on acompanha escolhas, munição, compras e recibos. Ataques, ações, testes e efeitos PF2e continuam sendo resolvidos pela ficha e pelo GM.</div>
-  <div class="vred-control-row">${isGM() ? `<button class="vred-button" data-v-action="new-encounter">Novo encontro</button><button class="vred-button" data-v-action="new-day">Novo dia</button><button class="vred-button danger" data-v-action="deactivate">Desativar V neste personagem</button>` : ""}</div>`;
+  <div class="vred-control-row">${isGM() ? `<button class="vred-button" data-v-action="new-encounter">Novo encontro</button><button class="vred-button" data-v-action="new-day">Novo dia</button><button class="vred-button danger" data-v-action="reset-v-data">Reiniciar dados de V</button><button class="vred-button danger" data-v-action="deactivate">Desativar V neste personagem</button>` : ""}</div>`;
 }
 
 function renderBoot(state) {
@@ -662,21 +725,33 @@ function renderBoot(state) {
     const loaded = !ammo || (ammo.kind === "pair" ? ammo.left > 0 || ammo.right > 0 : ammo.rounds > 0);
     current = `<span class="vred-badge gold vred-glitch-badge">GLITCH · ${escapeHtml(form.source)} · d20 1</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.meta)}</p><p><strong>${escapeHtml(profile?.label ?? "Assinatura Suprema")} · ${profile?.kind === "strike" ? "Strike" : "salvamento/área"} · ${ultimates.find(item => item[1] === form.name)?.[3] ?? 2} ações · 1 Cartucho</strong></p><p>${escapeHtml(profile?.signature ?? form.effect)}</p>${ammo?.kind ? `<div class="vred-ammo"><span>Munição da forma: <strong>${ammo.kind === "pair" ? `${ammo.left}/${ammo.right}` : `${ammo.rounds}/${ammo.max}`}</strong></span></div>` : ""}<div class="vred-control-row"><button class="vred-button primary" data-v-action="use-ultimate" ${!state.encounter.cartridge || state.encounter.cartridgeSpent || !loaded ? "disabled" : ""}>${state.encounter.cartridgeSpent ? "Cartucho gasto neste encontro" : !loaded ? "Recarregue a forma antes de usar" : "Usar assinatura Glitch"}</button><span class="vred-badge">${escapeHtml(form.wayName ?? "Way indisponível")}</span></div>`;
   } else if (form) {
+    const profile = weaponProfileFor(form);
     const ammo = form.mode === "G" ? state.encounter.ammo[form.name] : null;
     const ammoView = ammo?.kind === "pair"
-      ? `<div class="vred-ammo"><span>Carregador esquerdo: <strong>${ammo.left}/6</strong></span><button class="vred-button small" data-v-action="fire" data-hand="left" ${ammo.left <= 0 ? "disabled" : ""}>Consumir tiro esquerdo</button><button class="vred-button small" data-v-action="reload" data-hand="left">Recarregar esquerdo · 1 ação</button><span>Carregador direito: <strong>${ammo.right}/6</strong></span><button class="vred-button small" data-v-action="fire" data-hand="right" ${ammo.right <= 0 ? "disabled" : ""}>Consumir tiro direito</button><button class="vred-button small" data-v-action="reload" data-hand="right">Recarregar direito · 1 ação</button></div>`
-      : ammo?.kind ? `<div class="vred-ammo"><span>Munição: <strong>${ammo.rounds}/${ammo.max}</strong></span><button class="vred-button small" data-v-action="fire" ${ammo.rounds <= 0 ? "disabled" : ""}>Consumir 1 tiro</button><button class="vred-button small" data-v-action="reload">Recarregar · ${escapeHtml(ammo.reload)}</button></div>`
+      ? `<div class="vred-ammo"><span>Carregador esquerdo: <strong>${ammo.left}/6</strong></span><button class="vred-button small" data-v-action="reload" data-hand="left">Recarregar esquerdo · 1 ação</button><span>Carregador direito: <strong>${ammo.right}/6</strong></span><button class="vred-button small" data-v-action="reload" data-hand="right">Recarregar direito · 1 ação</button><p>O painel e os itens PF2e consomem uma munição no Strike correspondente.</p></div>`
+      : ammo?.kind ? `<div class="vred-ammo"><span>Munição: <strong>${ammo.rounds}/${ammo.max}</strong></span><button class="vred-button small" data-v-action="reload">Recarregar · ${escapeHtml(ammo.reload)}</button><p>Cada Strike PF2e atualiza esta reserva e o item na ficha.</p></div>`
       : "";
-    current = `<span class="vred-badge">${form.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${form.result}</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.source)} · ${escapeHtml(form.meta)}</p><p>${escapeHtml(form.effect)}</p><p class="vred-way-line"><strong>${escapeHtml(form.wayName ?? "Way correspondente")}</strong> · ${escapeHtml(wayProfiles[form.wayId]?.initial ?? "Way/perks ativos na ficha PF2e")}</p>${ammoView}`;
+    const damageChoice = profile?.damageOptions?.length > 1
+      ? `<div class="vred-control-row"><span>Tipo de dano</span>${profile.damageOptions.map(option => `<button class="vred-button small ${profile.damageType === option.type ? "primary" : ""}" data-v-action="select-damage" data-damage-type="${escapeHtml(option.type)}">${escapeHtml(option.label)}</button>`).join("")}</div>`
+      : "";
+    const specialActions = profile?.specialActions?.length
+      ? `<div class="vred-callout"><strong>Ações especiais registradas na ficha PF2e</strong>${profile.specialActions.map(action => `<p>${escapeHtml(action.name)} · ${action.actions} ação(ões): ${escapeHtml(action.description)}</p>`).join("")}</div>`
+      : "";
+    current = `<span class="vred-badge">${form.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${form.result}</span><h4>${escapeHtml(form.name)}</h4><p class="vred-muted">${escapeHtml(form.source)} · ${escapeHtml(form.meta)}</p><p>${escapeHtml(form.effect)}</p><p class="vred-way-line"><strong>${escapeHtml(form.wayName ?? "Way correspondente")}</strong> · ${escapeHtml(wayProfiles[form.wayId]?.initial ?? "Way/perks ativos na ficha PF2e")}</p>${damageChoice}${specialActions}${ammoView}`;
   }
   const canReroll = state.gloveMk >= 3 && state.settings.forcedRerollEnabled && !state.daily.rerollUsed && state.encounter.log.length > 0;
   return `<div class="vred-controls"><div class="vred-segment"><button type="button" data-v-action="mode" data-mode="G" class="${mode === "G" ? "selected" : ""}">Gunslinger</button><button type="button" data-v-action="mode" data-mode="S" class="${mode === "S" ? "selected" : ""}">Swordmaster</button></div><button type="button" class="vred-button primary" data-v-action="spin" ${state.encounter.spins >= 3 ? "disabled" : ""}>Girar d20 · ${state.encounter.spins}/3</button>${isGM() ? `<button type="button" class="vred-button" data-v-action="new-encounter">Novo encontro</button>` : ""}</div>
   <div class="vred-roll-layout"><div class="vred-die" data-die>${form?.result ?? "—"}</div><div class="vred-current">${current}</div></div>
-  ${state.encounter.pendingUltimateBonus ? `<div class="vred-callout vred-pending-bonus"><strong>Dano de assinatura pendente · ${escapeHtml(state.encounter.pendingUltimateBonus.name)}</strong><p>Rode depois de confirmar o acerto do Strike; aplique a parcela conforme acerto/crítico da carta.</p><button class="vred-button primary small" data-v-action="roll-ultimate-bonus">Rolar +${escapeHtml(state.encounter.pendingUltimateBonus.formula)} ${escapeHtml(state.encounter.pendingUltimateBonus.damageType)}</button></div>` : ""}
+  ${state.encounter.pendingUltimateBonus ? (() => {
+    const pending = state.encounter.pendingUltimateBonus;
+    if (pending.status === "ready") return `<div class="vred-callout vred-pending-bonus"><strong>Strike confirmado · ${pending.degree === "critical" ? "crítico" : "acerto"}</strong><p>${escapeHtml(pending.name)} · ${pending.degree === "critical" ? "dano adicional dobrado no crítico" : "dano adicional normal"} · mensagem ${escapeHtml(pending.messageId ?? "PF2e")}</p><button class="vred-button primary small" data-v-action="roll-ultimate-bonus">Rolar +${escapeHtml(pending.formula)} ${escapeHtml(pending.damageType)}${pending.degree === "critical" ? " ×2" : ""}</button></div>`;
+    if (pending.status === "needs-confirmation") return `<div class="vred-callout vred-pending-bonus"><strong>Confirme o resultado do Strike</strong><p>Não consegui ler o grau de sucesso da mensagem PF2e. Só libere o dano adicional se a rolagem vinculada foi um acerto.</p><button class="vred-button primary small" data-v-action="confirm-ultimate-hit">Registrar acerto</button><button class="vred-button danger small" data-v-action="cancel-ultimate-bonus">Registrar falha / cancelar</button></div>`;
+    return `<div class="vred-callout vred-pending-bonus"><strong>Strike da assinatura aguardando</strong><p>${escapeHtml(pending.name)} · o dano adicional só será liberado após confirmar esta rolagem.</p><button class="vred-button danger small" data-v-action="cancel-ultimate-bonus">Cancelar bônus</button></div>`;
+  })() : ""}
   <div class="vred-grid two" style="margin-top:14px">${card("Re-giro Forçado · proposta / decisão 09", `<p>Mk III+. Uma vez por dia, depois de ver o resultado; aceite o novo d20, inclusive 1 ou 20. O GM aplica um Sintoma.</p><p>Estado: ${state.settings.forcedRerollEnabled ? "experimento habilitado" : "desligado até decisão do GM"} · ${state.daily.rerollUsed ? "usado hoje" : "disponível"}</p><button class="vred-button" data-v-action="forced-reroll" ${!canReroll ? "disabled" : ""}>Forçar re-giro</button>${isGM() ? `<button class="vred-button small" data-v-action="toggle-reroll">${state.settings.forcedRerollEnabled ? "Desabilitar proposta" : "Habilitar proposta"}</button>` : ""}`, "gold")}
   ${card("Glitch / Ultimate", `<p>Um 1 natural abre a revelação Glitch e permite escolher uma das ${ultimates.length} Supremas. O primeiro 1 do encontro concede 1 Cartucho; outros 1 podem trocar a forma, sem restaurá-lo.</p><p>Cartucho: <strong>${!state.encounter.cartridge ? "não obtido" : state.encounter.cartridgeSpent ? "gasto" : "disponível"}</strong></p><p>A arma e as ações da Way ativa aparecem na ficha PF2e; a assinatura Ultimate é acionada neste painel. Escolher outro Glitch atualiza arma e Way.</p>`)}
   ${card("Regras de encontro", `<p>Até 3 giros; cada um depois do primeiro custa 1 ação. Trocar e voltar não recarrega a forma. Boot inclui sacar o vínculo; Pares e formas de duas mãos ocupam ambas as mãos.</p><p>Munição inicial por forma é a proposta do v0.5 e pode ser revisada após a decisão 05.</p>`)}</div>
-  <div class="vred-section-title"><span class="vred-kicker">HISTÓRICO DO ENCONTRO</span></div><div class="vred-log">${state.encounter.log.length ? state.encounter.log.slice().reverse().map(entry => `<div><span>${entry.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${entry.result}</span><strong>${escapeHtml(entry.name)}</strong>${entry.note ? `<small>${escapeHtml(entry.note)}</small>` : ""}</div>`).join("") : `<p class="vred-muted">Nenhum giro registrado.</p>`}</div>`;
+  <div class="vred-section-title"><span class="vred-kicker">HISTÓRICO DO ENCONTRO</span></div><div class="vred-log">${state.encounter.log.length ? state.encounter.log.slice().reverse().map(entry => `<div><span>${entry.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${entry.result}</span><strong>${escapeHtml(entry.name)}</strong>${entry.selectedUltimate ? `<small>Glitch revelada · Ultimate escolhida: ${escapeHtml(entry.selectedUltimate)}</small>` : ""}${entry.note ? `<small>${escapeHtml(entry.note)}</small>` : ""}</div>`).join("") : `<p class="vred-muted">Nenhum giro registrado.</p>`}</div>`;
 }
 
 function renderGlove(state) {
@@ -821,10 +896,11 @@ function renderCampaign(state) {
 function renderSfx(state) {
   const custom = state.catalog.customSfx ?? [];
   const available = [...soundEffects, ...custom];
-  return `<div class="vred-sfx-intro"><div><span class="vred-kicker">V SOUNDBANK · ${available.length} ÁUDIOS</span><p>Escolha quem escuta cada som. “Só V” envia apenas aos jogadores que possuem este Actor; “Todos” transmite para a mesa. Os arquivos ficam em <code>modules/ethernum-v-redhand/audio/</code>.</p></div><label class="vred-sfx-volume">Volume <input type="range" min="0" max="1" step="0.05" value="${getSfxVolume()}" data-v-sfx-volume></label></div>
+  return `<div class="vred-sfx-intro"><div><span class="vred-kicker">V SOUNDBANK · ${available.length} ÁUDIOS</span><p>Escolha quem escuta cada som. “Só V” envia apenas aos jogadores que possuem este Actor; “Todos” transmite para a mesa. O slider local muda o volume em reprodução. Os arquivos ficam em <code>modules/ethernum-v-redhand/audio/</code>.</p></div><label class="vred-sfx-volume">Meu volume <input type="range" min="0" max="1" step="0.05" value="${getSfxVolume()}" data-v-sfx-volume></label></div>
+  <div class="vred-control-row"><button class="vred-button" data-v-action="stop-my-sounds">Parar todos os meus sons</button>${isGM() ? `<label class="vred-sfx-volume">Limite compartilhado <input type="range" min="0" max="1" step="0.05" value="${getSfxMasterCap()}" data-v-action="set-sfx-master-cap"></label><button class="vred-button danger" data-v-action="stop-shared-audio">Parar áudio para a mesa</button><button class="vred-button primary" data-v-action="play-event-sfx" data-sfx-id="mission-complete">Missão concluída</button><button class="vred-button primary" data-v-action="play-event-sfx" data-sfx-id="level-up">Level up</button>` : ""}</div>
   ${soundCategories.map(([id, label, description]) => {
     const entries = available.filter(sound => sound.category === id);
-    return entries.length ? `<section class="vred-sfx-category"><header><div><span class="vred-kicker">${escapeHtml(id)}</span><h4>${escapeHtml(label)}</h4><p>${escapeHtml(description)}</p></div><span class="vred-badge">${entries.length}</span></header><div class="vred-sfx-list">${entries.map(sound => `<article class="vred-sfx-row"><div><strong>${escapeHtml(sound.name)}</strong><small>${sound.path ? escapeHtml(sound.path) : `${escapeHtml(sound.category)}/${escapeHtml(sound.file)}`} · destino sugerido: ${sound.audience === "v" ? "Só V" : sound.audience === "self" ? "Só este cliente" : "Toda a mesa"}</small></div><div class="vred-sfx-actions"><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="self">Só eu</button><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="v">Só V</button><button class="vred-button small primary" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="all">Todos</button>${isGM() && sound.custom ? `<button class="vred-button small danger" data-v-action="remove-sfx" data-sfx-id="${escapeHtml(sound.id)}">Remover</button>` : ""}</div></article>`).join("")}</div></section>` : "";
+    return entries.length ? `<section class="vred-sfx-category"><header><div><span class="vred-kicker">${escapeHtml(id)}</span><h4>${escapeHtml(label)}</h4><p>${escapeHtml(description)}</p></div><span class="vred-badge">${entries.length}</span></header><div class="vred-sfx-list">${entries.map(sound => `<article class="vred-sfx-row"><div><strong>${escapeHtml(sound.name)}</strong><small>${sound.path ? escapeHtml(sound.path) : `${escapeHtml(sound.category)}/${escapeHtml(sound.file)}`} · gatilho: ${escapeHtml(sound.trigger ?? "manual")} · ${sound.loop ? "loop" : "som pontual"} · ${soundManager.isSoundPlaying(sound.id) ? "tocando neste cliente" : "parado neste cliente"}</small></div><div class="vred-sfx-actions"><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="self">Só eu</button><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="v">Só V</button><button class="vred-button small primary" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="all">Todos</button><button class="vred-button small" data-v-action="stop-sfx" data-sfx-id="${escapeHtml(sound.id)}">Parar aqui</button>${isGM() && sound.custom ? `<button class="vred-button small danger" data-v-action="remove-sfx" data-sfx-id="${escapeHtml(sound.id)}">Remover</button>` : ""}</div></article>`).join("")}</div></section>` : "";
   }).join("")}
   ${isGM() ? `<section class="vred-card vred-sfx-register"><h4>Adicionar áudio ao banco</h4><p>Copie o arquivo para uma categoria dentro de <code>audio/</code> e registre o caminho abaixo. Os demais clientes precisam ter acesso ao arquivo servido pelo Foundry.</p><div class="vred-sfx-register__fields"><label>Nome<input type="text" data-v-sfx-name placeholder="Nome do efeito"></label><label>Categoria<select data-v-sfx-category>${soundCategories.map(([id,label]) => `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`).join("")}</select></label><label class="wide">Caminho<input type="text" data-v-sfx-path placeholder="modules/ethernum-v-redhand/audio/00_CORE/meu-som.mp3"></label><button class="vred-button primary" data-v-action="add-sfx">Registrar áudio</button></div></section>` : ""}`;
 }
@@ -841,10 +917,10 @@ function renderProfile(mount, actor, state, { includeOpenLink = false } = {}) {
     glove: () => renderGlove(state), store: () => renderStore(state, actor),
     experiments: () => renderExperiments(state, actor), cromas: () => renderCromas(state), sfx: () => renderSfx(state), campaign: () => renderCampaign(state),
   };
-  mount.innerHTML = `<section class="vred-panel" data-v-profile="v-redhand"><header class="vred-header"><div><span class="vred-kicker">MECÂNICA ÚNICA · CONCÓRDIA</span><h3>V <em>REDHAND</em></h3><p>ARSENAL.EXE · Drifter nível 10 · v0.5 Reboot</p></div><div class="vred-header-state"><span class="vred-badge red">MK ${state.gloveMk}</span><span class="vred-badge">GIROS ${state.encounter.spins}/3</span><span class="vred-badge gold">${state.encounter.cartridge ? "CARTUCHO" : "SEM CARTUCHO"}</span>${includeOpenLink ? `<button type="button" class="vred-button primary small" data-v-action="open-sheet">Abrir ficha individual</button>` : ""}</div></header>
+  mount.innerHTML = `<section class="vred-panel" data-v-profile="v-redhand"><header class="vred-header"><div><span class="vred-kicker">MECÂNICA ÚNICA · CONCÓRDIA</span><h3>V <em>REDHAND</em></h3><p>ARSENAL.EXE · regras v0.5 Reboot · extensão v${escapeHtml(game.modules.get(MODULE_ID)?.version ?? "0.3.2")}</p></div><div class="vred-header-state"><span class="vred-badge red">MK ${state.gloveMk}</span><span class="vred-badge">GIROS ${state.encounter.spins}/3</span><span class="vred-badge gold">${state.encounter.cartridge ? "CARTUCHO" : "SEM CARTUCHO"}</span>${includeOpenLink ? `<button type="button" class="vred-button primary small" data-v-action="open-sheet">Abrir ficha individual</button>` : ""}</div></header>
   <nav class="vred-nav" aria-label="Painel de V">${tabs.map(([id, label]) => tabButton(id, label, id === tab)).join("")}</nav>
   <div class="vred-body">${renderers[tab]?.() ?? renderers.status()}</div>
-  <footer class="vred-footer"><span>Playtest · estado salvo no Actor · add-on ${MODULE_ID}</span><span>${isOwner(actor) ? "Você pode controlar este painel." : "Somente leitura: peça ao GM para ajustar o personagem."}</span>${isGM() ? `<button class="vred-button small danger" data-v-action="deactivate">Desativar perfil V</button>` : ""}</footer>
+  <footer class="vred-footer"><span>Regras v0.5 Reboot · extensão v${escapeHtml(game.modules.get(MODULE_ID)?.version ?? "0.3.2")} · playtest</span><span>${isOwner(actor) ? "Você pode controlar este painel." : "Somente leitura: peça ao GM para ajustar o personagem."}</span>${isGM() ? `<button class="vred-button small danger" data-v-action="deactivate">Desativar perfil V</button>` : ""}</footer>
   </section>`;
   const die = mount.querySelector("[data-die]");
   if (die?.textContent.trim() === "1") die.classList.add("natural-one");
@@ -863,7 +939,10 @@ function renderProfile(mount, actor, state, { includeOpenLink = false } = {}) {
   const volume = mount.querySelector("[data-v-sfx-volume]");
   volume?.addEventListener("input", () => {
     try { localStorage.setItem(`${MODULE_ID}:sfx-volume`, String(volume.value)); } catch { /* local audio preference only */ }
+    void soundManager.setLocalVolume(volume.value);
   });
+  const masterCap = mount.querySelector('[data-v-action="set-sfx-master-cap"]');
+  masterCap?.addEventListener("input", () => void soundManager.setMasterCap(masterCap.value));
 }
 
 function renderSheetLauncher(mount, actor) {
@@ -907,23 +986,28 @@ async function chatReceipt(actor, title, lines) {
   await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }), flavor: title, content, flags: { [MODULE_ID]: { chatType } } });
 }
 
-async function rollDamageChat(actor, formula, damageType, flavor) {
-  const roll = await new Roll(formula).evaluate();
+async function rollDamageChat(actor, formula, damageType, flavor, multiplier = 1) {
+  const totalFormula = multiplier > 1 ? `${multiplier} * (${formula})` : formula;
+  const roll = await new Roll(totalFormula).evaluate();
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
-    flavor: `V · ${flavor} · ${formula} ${damageType}`,
-    flags: { [MODULE_ID]: { chatType: "ultimate-damage", damageType, formula } },
+    flavor: `V · ${flavor} · ${totalFormula} ${damageType}`,
+    flags: { [MODULE_ID]: { chatType: "ultimate-damage", damageType, formula, multiplier } },
   });
   return roll.total;
 }
 
-async function announceGlitch(actor, state, result) {
+async function announceGlitch(actor, state, result, eventId) {
   if (result !== 1) return;
-  const earlierGlitches = state.encounter.log.filter(entry => entry.result === 1).length;
+  const entry = state.encounter.log.find(item => item.eventId === eventId);
+  if (!entry || entry.announcedAt) return;
+  entry.announcedAt = Date.now();
+  await updateActor(actor, state);
+  const glitchCount = state.encounter.log.filter(item => item.glitch || item.result === 1).length;
   await chatReceipt(actor, "BLACKWALL / GLITCH REVELADA", [
     "1 natural. Por um instante, a roleta parece ter falhado.",
     "A tela fica vermelha, o ruído some e uma arma impossível atravessa o Blackwall.",
-    earlierGlitches === 1 ? "A mesa recebe a revelação: uma Ultimate à escolha e 1 Cartucho para este encontro." : "A Glitch pode trocar a forma Suprema, mas não restaura um Cartucho já gasto.",
+    entry.cartridgeGranted ? "A mesa recebe a revelação: uma Ultimate à escolha e 1 Cartucho para este encontro." : "A Glitch pode trocar a forma Suprema, mas não restaura um Cartucho já gasto.",
     "Escolha a forma em Boot & giros. A arma e sua Way aparecem na ficha PF2e.",
   ]);
 }
@@ -941,13 +1025,11 @@ function currentAmmo(state) {
   return form?.mode === "G" ? state.encounter.ammo[form.name] : null;
 }
 
-function replaceCurrentWithResult(state, mode, result, note = "") {
+function replaceCurrentWithResult(state, mode, result, note = "", eventId = `roll-${Date.now()}`) {
   if (result === 1) {
-    state.encounter.current = { mode, result, ultimateSelect: true, glitch: true, name: "Glitch / Ultimate Select", source: "BLACKWALL", meta: `1 natural · escolha uma das ${ultimates.length} armas Ultimate`, effect: "O erro da roleta revela uma forma impossível." };
-    if (!state.encounter.cartridge) {
-      state.encounter.cartridge = true;
-      state.encounter.cartridgeSpent = false;
-    }
+    const glitch = claimEncounterGlitch(state.encounter, eventId);
+    state.encounter.current = { mode, result, eventId, ultimateSelect: true, glitch: true, name: "Glitch / Ultimate Select", source: "BLACKWALL", meta: `1 natural · escolha uma das ${ultimates.length} armas Ultimate`, effect: "O erro da roleta revela uma forma impossível." };
+    state.encounter.current.cartridgeGranted = glitch.cartridgeGranted;
     return state.encounter.current;
   }
   const weapon = weaponFor(mode, result, state);
@@ -1056,6 +1138,18 @@ function buildPayUpdate(actor, state, totalCopper) {
 }
 
 async function handleAction(event, app, mount, actor) {
+  const control = event.target.closest?.("[data-v-action]");
+  if (!control || !mount.contains(control)) return;
+  const wasDisabled = control.disabled;
+  control.disabled = true;
+  try {
+    return await serializeActorAction(actor, () => handleActionUnlocked(event, app, mount, actor));
+  } finally {
+    if (control.isConnected && !wasDisabled) control.disabled = false;
+  }
+}
+
+async function handleActionUnlocked(event, app, mount, actor) {
   const control = event.target.closest("[data-v-action]");
   if (!control || !mount.contains(control)) return;
   if (event.type === "click" && control.matches("select[data-v-action]")) return;
@@ -1069,11 +1163,34 @@ async function handleAction(event, app, mount, actor) {
     const sound = findSfx(stateFor(actor), control.dataset.sfxId);
     if (!sound) return;
     try {
-      await playVSound(actor, sound, control.dataset.audience ?? "self");
+      const audience = control.dataset.audience ?? "self";
+      const playbackId = sound.loop ? `loop:${game.user?.id}:${actor.id}:${sound.id}:${audience}` : null;
+      await playVSound(actor, sound, audience, { playbackId });
     } catch (error) {
       console.error(`[${MODULE_ID}] sound playback failed`, error);
       notify("error", `Não foi possível tocar “${sound.name}”. Confira se o arquivo existe no banco de SFX.`);
     }
+    return;
+  }
+  if (action === "stop-sfx") {
+    if (!isOwner(actor)) return;
+    await soundManager.stopBySoundId(control.dataset.sfxId);
+    refreshActorPanels(actor);
+    return;
+  }
+  if (action === "stop-my-sounds") {
+    await soundManager.stopAll();
+    refreshActorPanels(actor);
+    return;
+  }
+  if (action === "play-event-sfx") {
+    if (!isGM() || !["mission-complete", "level-up"].includes(control.dataset.sfxId)) return;
+    announceVSound(control.dataset.sfxId, actor, "all");
+    return;
+  }
+  if (action === "stop-shared-audio") {
+    if (!isGM()) return;
+    await game.settings.set(MODULE_ID, "shared-audio-command", { id: foundry.utils.randomID(), action: "stop-shared" });
     return;
   }
   if (action === "tab") {
@@ -1100,7 +1217,10 @@ async function handleAction(event, app, mount, actor) {
     switch (action) {
       case "activate": {
         if (!isGM()) return;
-        state = clone(DEFAULT_STATE);
+        // Activating the profile is not a data reset. Keep encounter/day progress,
+        // Luva, rewrites, sounds, Cromas and user settings across reactivation.
+        state.active = true;
+        state.schemaVersion = DEFAULT_STATE.schemaVersion;
         await actor.update({ [`flags.${MODULE_ID}.active`]: true, [STATE_PATH]: state });
         await syncVItems(actor, state);
         saveSectionTab(mount, actor, "status");
@@ -1113,23 +1233,44 @@ async function handleAction(event, app, mount, actor) {
         state.active = false;
         await actor.update({ [`flags.${MODULE_ID}.active`]: false, [STATE_PATH]: state });
         await syncVItems(actor, state);
+        stopVSound(actor, "gui-loop", "v", { playbackId: `v-sheet:${actor.id}:gui-loop` });
         const root = getUniqueRoot(unwrapElement(undefined, app)) ?? mount.closest(".ethernum-unique-tab");
         if (root) showNativeProfile(root, actor);
         else mount.remove();
+        return;
+      }
+      case "reset-v-data": {
+        if (!isGM()) return;
+        const confirmReset = globalThis.Dialog?.confirm
+          ? await Dialog.confirm({
+            title: "Reiniciar dados de V?",
+            content: "<p>Isso apaga Luva Mk, histórico e estado de encontro/dia, catálogo personalizado, SFX adicionados, Cromas, compras, sintomas e preferências de V.</p><p>Essa ação não pode ser desfeita.</p>",
+          })
+          : globalThis.confirm?.("Reiniciar todos os dados de V? Isso apaga progresso, histórico, catálogo, SFX, Cromas e compras.") ?? false;
+        if (!confirmReset) return;
+        state = clone(DEFAULT_STATE);
+        state.active = true;
+        await actor.update({ [`flags.${MODULE_ID}.active`]: true, [STATE_PATH]: state });
+        await syncVItems(actor, state);
+        renderCurrentProfile(mount, actor, state);
+        notify("info", "Os dados de V foram reiniciados.");
         return;
       }
       case "spin": {
         if (state.encounter.spins >= 3) return;
         control.disabled = true;
         const mode = state.encounter.mode;
+        const eventId = foundry.utils.randomID();
         const result = await rollDice(actor, 20, `${mode === "G" ? "Gunslinger" : "Swordmaster"} · Boot / giro`);
         await animateDie(mount, result);
         state = stateFor(actor);
+        if (state.encounter.log.some(entry => entry.eventId === eventId) || state.encounter.spins >= 3) return;
         state.encounter.spins = Math.min(3, state.encounter.spins + 1);
-        const form = replaceCurrentWithResult(state, mode, result);
-        state.encounter.log.push({ mode, result, name: form.name, at: Date.now() });
+        const form = replaceCurrentWithResult(state, mode, result, "", eventId);
+        state.encounter.log.push({ eventId, mode, result, name: result === 1 ? "Glitch revelada · Blackwall" : form.name, selectedUltimate: null, glitch: result === 1, cartridgeGranted: result === 1 && Boolean(form.cartridgeGranted), at: Date.now() });
         await persistAndRender(actor, mount, state);
-        await announceGlitch(actor, state, result);
+        await announceGlitch(actor, state, result, eventId);
+        if (result === 1) announceVSound("blackwall-recalculate", actor, "all");
         return;
       }
       case "select-ultimate": {
@@ -1137,9 +1278,11 @@ async function handleAction(event, app, mount, actor) {
         if (!state.encounter.current?.ultimateSelect || !ultimates.some(item => item[1] === name)) return;
         const profile = ultimateProfiles[name];
         if (!profile) throw new Error(`Não encontrei o perfil mecânico de ${name}.`);
+        const glitchEventId = state.encounter.current.eventId;
         const meta = `${profile.family} · ${profile.dice}${profile.die} ${profile.damageType}${profile.range ? ` · ${profile.range} m` : ""}`;
-        const wayId = wayFor(profile.mode, meta);
+        const wayId = profile.wayId ?? wayFor(profile.mode, meta);
         state.encounter.current = {
+          eventId: glitchEventId,
           mode: profile.mode,
           result: 1,
           isUltimate: true,
@@ -1153,9 +1296,10 @@ async function handleAction(event, app, mount, actor) {
         };
         state.encounter.mode = profile.mode;
         mergeAmmo(state, state.encounter.current);
-        if (state.encounter.log.length) {
-          state.encounter.log[state.encounter.log.length - 1].name = name;
-          state.encounter.log[state.encounter.log.length - 1].mode = profile.mode;
+        const glitchRecord = state.encounter.log.find(entry => entry.eventId === state.encounter.current.eventId);
+        if (glitchRecord) {
+          glitchRecord.selectedUltimate = name;
+          glitchRecord.selectedAt = Date.now();
         }
         await persistAndRender(actor, mount, state);
         await chatReceipt(actor, `ULTIMATE / ${name}`, [profile.signature, `Arma manifestada e vinculada à ${wayProfiles[wayId]?.name ?? "Way"}. O Cartucho permanece ${state.encounter.cartridgeSpent ? "gasto" : "disponível"}.`]);
@@ -1165,6 +1309,7 @@ async function handleAction(event, app, mount, actor) {
         const form = state.encounter.current;
         const profile = form?.isUltimate ? ultimateProfiles[form.name] : null;
         if (!profile || !state.encounter.cartridge || state.encounter.cartridgeSpent) return;
+        const beforeUse = clone(state);
         const ammo = currentAmmo(state);
         if (ammo?.kind === "pair") {
           const hand = ammo.left > 0 ? "left" : ammo.right > 0 ? "right" : null;
@@ -1177,33 +1322,112 @@ async function handleAction(event, app, mount, actor) {
         state.encounter.cartridgeSpent = true;
         if (profile.kind === "strike") {
           state.encounter.pendingUltimateBonus = {
+            id: foundry.utils.randomID(),
+            status: "awaiting-strike",
             name: form.name,
             formula: profile.bonus,
             damageType: profile.bonusType,
+            ammoPrepaid: true,
             createdAt: Date.now(),
+            expiresAt: Date.now() + 120_000,
+            combatId: game.combat?.id ?? null,
+            round: game.combat?.round ?? null,
+            turn: game.combat?.turn ?? null,
           };
         }
         await updateActor(actor, state);
-        try { await syncVItems(actor, state); } catch (error) { console.error(`[${MODULE_ID}] ultimate weapon sync failed`, error); }
+        try {
+          await syncVItems(actor, state);
+        } catch (error) {
+          await updateActor(actor, beforeUse).catch(() => {});
+          throw error;
+        }
         const actions = ultimates.find(item => item[1] === form.name)?.[3] ?? 2;
         if (profile.kind === "strike") {
-          await chatReceipt(actor, `ULTIMATE / ${profile.label ?? form.name}`, [`${actions} ações · 1 Cartucho. ${profile.signature}`, "Faça o Strike pela arma V na ficha PF2e. Se acertar, use o botão de dano pendente no painel para rolar a parcela adicional."]);
+          const pending = state.encounter.pendingUltimateBonus;
+          const weapon = actor.items.find(item => item.getFlag?.(MODULE_ID, "managedRole") === "manifested-weapon");
+          if (!weapon) {
+            await updateActor(actor, beforeUse);
+            await syncVItems(actor, beforeUse).catch(() => {});
+            throw new Error("A arma da Ultimate não apareceu no inventário; o Cartucho e a munição foram devolvidos.");
+          }
+          pending.itemId = weapon.id;
+          await updateActor(actor, state);
+          await chatReceipt(actor, `ULTIMATE / ${profile.label ?? form.name}`, [`${actions} ações · 1 Cartucho. ${profile.signature}`, "A rolagem abaixo fica vinculada ao bônus. O dano adicional só será liberado se o Strike acertar."]);
           const struck = await rollManifestedStrike(actor, event);
-          if (!struck) notify("warn", "Faça o Strike pela arma manifestada na ficha PF2e; o painel mantém o botão para rolar o dano adicional após um acerto.");
+          if (!struck) {
+            await updateActor(actor, beforeUse);
+            await syncVItems(actor, beforeUse).catch(() => {});
+            notify("warn", "O PF2e não forneceu o Strike da arma. Cartucho e munição foram devolvidos; tente novamente pela ficha.");
+            renderCurrentProfile(mount, actor, beforeUse);
+            return;
+          }
+          announceVSound("relic-malfunction", actor, "v");
           if (form.name === "Master Sword" && actor.hasCondition?.("frightened")) await actor.decreaseCondition("frightened");
           if (form.name === "Devil Sword Dante") await chatReceipt(actor, "DEVIL SWORD DANTE · DEFESA", ["Após o Strike, acertando ou não, aplique +1 circunstancial à CA até o início do próximo turno."]);
         } else {
           await chatReceipt(actor, `ULTIMATE / ${form.name}`, [`${actions} ações · 1 Cartucho. ${profile.signature}`, `Área/alvos: ${profile.area}. Salvamento: ${profile.defense}. Afeta aliados conforme a carta.`]);
           await rollDamageChat(actor, profile.formula, profile.formulaType, `${form.name} · ${profile.area}`);
+          announceVSound("relic-malfunction", actor, "v");
         }
         renderCurrentProfile(mount, actor, state);
         return;
       }
       case "roll-ultimate-bonus": {
         const pending = state.encounter.pendingUltimateBonus;
-        if (!pending?.formula || !/^(?:\d+)d(?:4|6|8|10|12)$/.test(pending.formula)) return;
-        await rollDamageChat(actor, pending.formula, pending.damageType, `${pending.name} · dano adicional`);
+        if (pending?.status !== "ready" || !pending.formula || !/^(?:\d+)d(?:4|6|8|10|12)$/.test(pending.formula)) return;
+        if (Date.now() > Number(pending.expiresAt ?? 0)) {
+          state.encounter.pendingUltimateBonus = null;
+          await persistAndRender(actor, mount, state);
+          notify("warn", "O dano adicional expirou; a rolagem vinculada é antiga.");
+          return;
+        }
+        if (pending.combatId && (pending.combatId !== game.combat?.id || pending.round !== game.combat?.round || pending.turn !== game.combat?.turn)) {
+          state.encounter.pendingUltimateBonus = null;
+          await persistAndRender(actor, mount, state);
+          notify("warn", "O turno mudou; o dano adicional pendente expirou.");
+          return;
+        }
+        pending.status = "rolling";
+        await updateActor(actor, state);
+        try {
+          const multiplier = pending.degree === "critical" ? 2 : 1;
+          await rollDamageChat(actor, pending.formula, pending.damageType, `${pending.name} · dano adicional${multiplier === 2 ? " · crítico ×2" : ""}`, multiplier);
+          state = stateFor(actor);
+          state.encounter.pendingUltimateBonus = null;
+          await persistAndRender(actor, mount, state);
+        } catch (error) {
+          state = stateFor(actor);
+          if (state.encounter.pendingUltimateBonus?.id === pending.id) {
+            state.encounter.pendingUltimateBonus.status = "ready";
+            await updateActor(actor, state);
+          }
+          throw error;
+        }
+        return;
+      }
+      case "confirm-ultimate-hit": {
+        const pending = state.encounter.pendingUltimateBonus;
+        if (pending?.status !== "needs-confirmation") return;
+        pending.status = "ready";
+        pending.degree = "success";
+        pending.confirmedBy = game.user?.id;
+        pending.confirmedAt = Date.now();
+        await persistAndRender(actor, mount, state);
+        return;
+      }
+      case "cancel-ultimate-bonus": {
+        if (!state.encounter.pendingUltimateBonus) return;
         state.encounter.pendingUltimateBonus = null;
+        await persistAndRender(actor, mount, state);
+        return;
+      }
+      case "select-damage": {
+        const form = state.encounter.current;
+        const profile = form && weaponProfileFor(form);
+        const damageType = control.dataset.damageType;
+        if (!form || !profile?.damageOptions?.some(option => option.type === damageType)) return;
+        form.damageChoice = damageType;
         await persistAndRender(actor, mount, state);
         return;
       }
@@ -1225,14 +1449,17 @@ async function handleAction(event, app, mount, actor) {
         if (state.gloveMk < 3 || !state.settings.forcedRerollEnabled || state.daily.rerollUsed || !state.encounter.log.length) return;
         const previous = state.encounter.log.at(-1);
         const mode = previous.mode;
+        const eventId = foundry.utils.randomID();
         const result = await rollDice(actor, 20, "Re-giro Forçado · aceite o novo resultado");
         await animateDie(mount, result);
         state = stateFor(actor);
         state.daily.rerollUsed = true;
-        const form = replaceCurrentWithResult(state, mode, result, "Re-giro Forçado; aplicar Sintoma do Blackwall.");
-        state.encounter.log.push({ mode, result, name: form.name, note: `Re-giro após d20 ${previous.result}; GM aplica Sintoma.`, at: Date.now() });
+        if (state.encounter.log.some(entry => entry.eventId === eventId)) return;
+        const form = replaceCurrentWithResult(state, mode, result, "Re-giro Forçado; aplicar Sintoma do Blackwall.", eventId);
+        state.encounter.log.push({ eventId, mode, result, name: result === 1 ? "Glitch revelada · Blackwall" : form.name, selectedUltimate: null, glitch: result === 1, cartridgeGranted: result === 1 && Boolean(form.cartridgeGranted), note: `Re-giro após d20 ${previous.result}; GM aplica Sintoma.`, at: Date.now() });
         await persistAndRender(actor, mount, state);
-        await announceGlitch(actor, state, result);
+        await announceGlitch(actor, state, result, eventId);
+        if (result === 1) announceVSound("blackwall-recalculate", actor, "all");
         notify("warn", "Re-giro registrado. O GM aplica um Sintoma do Blackwall.");
         return;
       }
@@ -1440,13 +1667,14 @@ async function handleAction(event, app, mount, actor) {
           const charged = control.dataset.charge === "true";
           const rounds = Number(state.encounter.cromaAmmo ?? 3);
           if (rounds <= 0) throw new Error("O Braço-Canhão está vazio; recarregue antes de disparar.");
-          state.encounter.cromaAmmo = rounds - 1;
-          await persistAndRender(actor, mount, state);
           const struck = await rollManifestedStrike(actor, event, "croma-weapon", "5");
-          if (!struck) notify("warn", "Use o Strike do Braço-Canhão C-06 na ficha PF2e.");
+          if (!struck) {
+            notify("warn", "Não encontrei o Strike do Braço-Canhão C-06. Munição preservada.");
+            return;
+          }
           await chatReceipt(actor, "CROMA / BRAÇO-CANHÃO", [
             charged ? "Disparo carregado: custa +1 ação; no acerto, empurre o alvo 3 m." : "Disparo Buster/Arm: Strike da arma C-06; alcance 18 m.",
-            `Munição restante: ${state.encounter.cromaAmmo}/3. A recarga completa custa 1 ação.`,
+            "O Strike da arma C-06 consome a munição quando o card PF2e é criado; a recarga completa custa 1 ação.",
           ]);
           return;
         }
@@ -1554,9 +1782,8 @@ async function handleAction(event, app, mount, actor) {
         const name = mount.querySelector("[data-v-sfx-name]")?.value?.trim();
         const category = mount.querySelector("[data-v-sfx-category]")?.value;
         const path = mount.querySelector("[data-v-sfx-path]")?.value?.trim().replaceAll("\\", "/");
-        const prefix = "modules/ethernum-v-redhand/audio/";
         if (!name || !soundCategories.some(([id]) => id === category)) throw new Error("Informe um nome e uma categoria para o áudio.");
-        if (!path?.startsWith(prefix) || !/\.(mp3|ogg|wav|webm|flac)$/i.test(path)) {
+        if (!isSafeSfxPath(path)) {
           throw new Error("O caminho precisa apontar para um áudio dentro da pasta audio/ da extensão.");
         }
         state.catalog.customSfx ??= [];
@@ -1564,23 +1791,17 @@ async function handleAction(event, app, mount, actor) {
         await persistAndRender(actor, mount, state);
         return;
       }
+      case "set-sfx-master-cap": {
+        if (!isGM()) return;
+        const cap = Math.max(0, Math.min(1, Number(control.value) || 0));
+        await game.settings.set(MODULE_ID, "sfx-master-cap", cap);
+        await soundManager.setMasterCap(cap);
+        renderCurrentProfile(mount, actor, state);
+        return;
+      }
       case "remove-sfx": {
         if (!isGM()) return;
         state.catalog.customSfx = (state.catalog.customSfx ?? []).filter(sound => sound.id !== control.dataset.sfxId);
-        await persistAndRender(actor, mount, state);
-        return;
-      }
-      case "fire": {
-        const ammo = currentAmmo(state);
-        if (!ammo) return;
-        if (ammo.kind === "pair") {
-          const hand = control.dataset.hand;
-          if (!ammo[hand] || ammo[hand] <= 0) return;
-          ammo[hand] -= 1;
-        } else {
-          if (ammo.rounds <= 0) return;
-          ammo.rounds -= 1;
-        }
         await persistAndRender(actor, mount, state);
         return;
       }
@@ -1608,6 +1829,108 @@ function baseVersionSupported() {
   const [major, minor, patch] = String(version).split(".").map(value => Number.parseInt(value, 10) || 0);
   return major > 3 || (major === 3 && (minor > 8 || (minor === 8 && patch >= 11)));
 }
+
+function registerVSoundSettings() {
+  game.settings.register(MODULE_ID, "sfx-master-cap", {
+    name: "ARSENAL.EXE · Limite global de volume SFX",
+    hint: "Limite máximo enviado para áudio compartilhado; cada ouvinte ainda controla seu próprio volume local.",
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0.7,
+  });
+  game.settings.register(MODULE_ID, "shared-audio-command", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: { id: "", action: "" },
+  });
+}
+
+function initializeVSoundRuntime() {
+  void soundManager.setLocalVolume(getSfxVolume());
+  void soundManager.setMasterCap(getSfxMasterCap());
+  game.socket?.on?.(`module.${MODULE_ID}`, message => {
+    if (!message || !Array.isArray(message.recipients) || !message.recipients.includes(game.user?.id)) return;
+    if (Date.now() - Number(message.sentAt ?? Date.now()) > 30_000) return;
+    if (message.action === "stop") {
+      void soundManager.stop(String(message.playbackId ?? ""));
+      return;
+    }
+    if (message.action !== "play" || !/^[a-z0-9:_-]{1,160}$/i.test(String(message.playbackId ?? ""))) return;
+    if (!isSafeSfxPath(message.src)) return;
+    if (!["all", "v"].includes(message.audience) || !["interface", "music"].includes(message.channel)) return;
+    void soundManager.play({
+      id: message.playbackId,
+      soundId: String(message.soundId ?? "shared-sfx"),
+      src: message.src,
+      loop: Boolean(message.loop),
+      audience: message.audience,
+      channel: message.channel,
+      defaultVolume: Math.max(0, Math.min(1, Number(message.defaultVolume ?? 0.7))),
+    }).catch(error => console.error(`[${MODULE_ID}] shared SFX playback failed`, error));
+  });
+  Hooks.on("updateSetting", (setting, _changes, _options, userId) => {
+    if (setting?.key === `${MODULE_ID}.sfx-master-cap`) {
+      void soundManager.setMasterCap(getSfxMasterCap());
+      return;
+    }
+    if (setting?.key !== `${MODULE_ID}.shared-audio-command`) return;
+    const command = setting.value;
+    if (command?.action !== "stop-shared" || !command.id || !game.users.get(userId)?.isGM) return;
+    void soundManager.stopAll({ sharedOnly: true });
+  });
+}
+
+function isRecallKnowledgeMessage(message) {
+  const context = asObject(message.flags?.pf2e?.context);
+  const sources = [context.action, context.actionSlug, context.slug, context.options, context.rollOptions, context.check?.options];
+  return sources.some(source => {
+    const values = source instanceof Set ? [...source] : Array.isArray(source) ? source : [source];
+    return values.some(value => /(?:^|[:/])recall[-_ ]knowledge(?:$|[:/])/i.test(String(value ?? "")));
+  });
+}
+
+function currencyUpdateFromChanges(changes) {
+  const values = {};
+  let touched = false;
+  for (const denomination of ["cp", "sp", "gp", "pp"]) {
+    const flat = changes?.[`system.currency.${denomination}`];
+    const nested = foundry.utils.getProperty(changes, `system.currency.${denomination}`);
+    const value = flat ?? nested;
+    if (value === undefined) continue;
+    touched = true;
+    values[denomination] = Number(value);
+  }
+  return touched ? values : null;
+}
+
+Hooks.on("preUpdateActor", (actor, changes, _options, userId) => {
+  if (userId !== game.user?.id || actor.type !== "character" || !isVProfileActive(actor)) return;
+  const next = currencyUpdateFromChanges(changes);
+  if (!next) return;
+  const before = { ...actor.system.currency };
+  if (Object.entries(next).every(([key, value]) => Number(before[key] ?? 0) === value)) return;
+  pendingCurrencyEvents.set(actor, { before, next, userId });
+});
+
+Hooks.on("updateActor", (actor, _changes, _options, userId) => {
+  if (userId !== game.user?.id) return;
+  const pending = pendingCurrencyEvents.get(actor);
+  if (!pending || pending.userId !== userId) return;
+  pendingCurrencyEvents.delete(actor);
+  const applied = Object.entries(pending.next).every(([key, value]) => Number(actor.system.currency?.[key] ?? 0) === value);
+  const changed = Object.entries(pending.next).some(([key, value]) => Number(pending.before[key] ?? 0) !== value);
+  if (applied && changed) announceVSound("eurodollar-transfer", actor, "v");
+});
+
+Hooks.on("updateActor", (actor, _changes, _options, userId) => {
+  if (userId === game.user?.id && actor.type === "character" && !isVProfileActive(actor)) {
+    void soundManager.stop(`v-sheet:${actor.id}:gui-loop`);
+  }
+});
+
+Hooks.once("init", registerVSoundSettings);
 
 function onRenderActorSheet(app, html) {
   const actor = app.actor ?? app.document;
@@ -1687,6 +2010,54 @@ function itemFromChatMessage(message, root, actor) {
     if (pairWeapon) return pairWeapon;
   }
   return null;
+}
+
+function isPf2eStrikeRoll(message, root) {
+  const context = asObject(message.flags?.pf2e?.context);
+  const type = String(context.type ?? context.check?.type ?? "").toLowerCase();
+  if (type === "attack-roll") return true;
+  return Boolean(message.isRoll && (root.matches?.(".attack-roll, .attack-roll-card")
+    || root.querySelector?.(".attack-roll, .attack-roll-card, [data-roll-type='attack-roll']")));
+}
+
+async function consumeVStrikeAmmo(message, actor, item) {
+  if (!isOwner(actor) || String(message.user?.id ?? message.user ?? "") !== String(game.user?.id ?? "")) return;
+  const role = item.getFlag?.(MODULE_ID, "managedRole") ?? item.flags?.[MODULE_ID]?.managedRole;
+  const key = String(item.getFlag?.(MODULE_ID, "managedKey") ?? item.flags?.[MODULE_ID]?.managedKey ?? "");
+  if (!((role === "manifested-weapon" && stateFor(actor).encounter.current?.mode === "G") || (role === "croma-weapon" && key === "5"))) return;
+  const state = stateFor(actor);
+  state.encounter.processedStrikeMessages ??= [];
+  if (state.encounter.processedStrikeMessages.includes(message.id)) return;
+  if (state.encounter.processedStrikeMessages.length > 100) state.encounter.processedStrikeMessages.splice(0, state.encounter.processedStrikeMessages.length - 100);
+
+  const pending = state.encounter.pendingUltimateBonus;
+  if (pending?.status === "awaiting-strike" && pending.ammoPrepaid && pending.itemId === item.id) {
+    state.encounter.processedStrikeMessages.push(message.id);
+    await updateActor(actor, state);
+    return;
+  }
+
+  let consumed;
+  if (role === "croma-weapon") {
+    const remaining = Number(state.encounter.cromaAmmo ?? 0);
+    state.encounter.processedStrikeMessages.push(message.id);
+    if (remaining <= 0) consumed = { consumed: false, reason: "empty" };
+    else {
+      state.encounter.cromaAmmo = remaining - 1;
+      consumed = { consumed: true, remaining: state.encounter.cromaAmmo };
+    }
+  } else {
+    const weaponName = item.name.replace(/ · (?:Esquerda|Direita)$/i, "");
+    const hand = /esquerda$/i.test(key) ? "left" : /direita$/i.test(key) ? "right" : null;
+    consumed = consumeTrackedAmmo(state.encounter, { eventId: message.id, weaponName, hand });
+  }
+  if (consumed.duplicate || consumed.reason === "untracked") return;
+  if (!consumed.consumed && consumed.reason === "empty") {
+    notify("warn", `${item.name} está sem munição. O Strike já rolou; recarregue antes de outro disparo.`);
+  }
+  await updateActor(actor, state);
+  await syncVItems(actor, state);
+  refreshActorPanels(actor);
 }
 
 function rollsFromMessage(message) {
@@ -1772,21 +2143,50 @@ function twinRoundKey(message) {
 
 function attackOutcome(message, root) {
   const context = asObject(message.flags?.pf2e?.context);
-  const candidates = [context.outcome, context.degreeOfSuccess, context.roll?.degreeOfSuccess, context.check?.degreeOfSuccess];
-  for (const candidate of candidates) {
-    if (typeof candidate === "number") {
-      if (candidate >= 2) return candidate >= 3 ? "critical" : "success";
-      if (candidate >= 0) return null;
-    }
-    const value = String(candidate ?? "").toLowerCase().replace(/[\s_-]/g, "");
-    if (["criticalsuccess", "criticalhit", "critsuccess", "crithit"].includes(value)) return "critical";
-    if (["success", "hit"].includes(value)) return "success";
-    if (["criticalfailure", "failure", "miss", "failurecritical"].includes(value)) return null;
+  const flavor = `${message.flavor ?? ""} ${textFrom(root, [".flavor-text", ".card-header h3", ".damage-card-flavor"])}`;
+  return classifyStrikeOutcome(context, flavor);
+}
+
+async function resolvePendingUltimateStrike(message, actor, item, outcome) {
+  if (!isOwner(actor) || String(message.user?.id ?? message.user ?? "") !== String(game.user?.id ?? "")) return;
+  const state = stateFor(actor);
+  const pending = state.encounter.pendingUltimateBonus;
+  if (pending?.status !== "awaiting-strike" || !item) return;
+  const itemRole = item.getFlag?.(MODULE_ID, "managedRole") ?? item.flags?.[MODULE_ID]?.managedRole;
+  if (itemRole !== "manifested-weapon" || item.id !== pending.itemId) return;
+  if (Date.now() > Number(pending.expiresAt ?? 0)) {
+    state.encounter.pendingUltimateBonus = null;
+    await updateActor(actor, state);
+    await syncVItems(actor, state);
+    refreshActorPanels(actor);
+    return;
   }
-  const flavor = `${message.flavor ?? ""} ${textFrom(root, [".flavor-text", ".card-header h3", ".damage-card-flavor"])}`.toLowerCase();
-  if (/critical\s*(?:hit|success)|critical-hit|acerto crítico|sucesso crítico/.test(flavor)) return "critical";
-  if (/(?:\(|\b)(?:hit|success|acerto|sucesso)(?:\)|\b)/.test(flavor) && !/miss|failure|falha/.test(flavor)) return "success";
-  return null;
+  if (pending.combatId && (pending.combatId !== game.combat?.id || pending.round !== game.combat?.round || pending.turn !== game.combat?.turn)) {
+    state.encounter.pendingUltimateBonus = null;
+    await updateActor(actor, state);
+    await syncVItems(actor, state);
+    refreshActorPanels(actor);
+    return;
+  }
+  pending.messageId = message.id;
+  pending.outcome = outcome;
+  pending.resolvedAt = Date.now();
+  if (outcome === "success" || outcome === "critical") {
+    pending.status = "ready";
+    pending.degree = outcome;
+  } else if (outcome === "failure") {
+    state.encounter.pendingUltimateBonus = null;
+    await updateActor(actor, state);
+    await syncVItems(actor, state);
+    refreshActorPanels(actor);
+    notify("info", `O Strike de ${pending.name} falhou; o dano adicional foi cancelado.`);
+    return;
+  } else {
+    pending.status = "needs-confirmation";
+  }
+  await updateActor(actor, state);
+  await syncVItems(actor, state);
+  refreshActorPanels(actor);
 }
 
 function mapIncreases(message) {
@@ -1801,7 +2201,7 @@ function mapIncreases(message) {
 }
 
 function appendTwinColtsPrompt(root, message, actor, item, outcome) {
-  if (!item || !/twin colts/i.test(item.name ?? "") || !outcome || root.querySelector(".vred-twin-colts-prompt")) return;
+  if (!item || !/twin colts/i.test(item.name ?? "") || !["success", "critical"].includes(outcome) || root.querySelector(".vred-twin-colts-prompt")) return;
   if (String(message.user?.id ?? message.user ?? "") !== String(game.user?.id ?? "")) return;
   const itemKey = String(item.getFlag?.(MODULE_ID, "managedKey") ?? item.flags?.[MODULE_ID]?.managedKey ?? "");
   const otherHand = itemKey.endsWith("esquerda") || /esquerda/i.test(item.name) ? "direita" : "esquerda";
@@ -1868,23 +2268,29 @@ function appendTwinColtsPrompt(root, message, actor, item, outcome) {
 async function performTwinColtsFollowUp(button, event) {
   const actor = game.actors?.get(button.dataset.actorId);
   if (!actor || !isOwner(actor)) return;
-  const state = stateFor(actor);
-  const pending = state.encounter?.twinColtsFollowUp;
-  if (!pending || pending.roundKey !== button.dataset.roundKey || pending.status !== "pending") return;
-  if (state.encounter.current?.name !== "Twin Colts") return;
-  const key = `manifested:${button.dataset.otherHand}`;
-  const weapon = actor.items.find(entry => entry.getFlag?.(MODULE_ID, "managedRole") === "manifested-weapon"
-    && entry.getFlag?.(MODULE_ID, "managedKey") === key);
-  const strike = actor.system.actions?.find(action => action.item?.id === weapon?.id || action.itemId === weapon?.id);
-  const map = Number(button.dataset.map);
-  const variant = strike?.variants?.[map];
-  if (!variant?.roll) {
-    notify("warn", "Não encontrei o Strike da outra pistola para fazer o disparo adicional.");
-    return;
-  }
-  pending.status = "used";
-  await actor.update({ [STATE_PATH]: state });
-  await variant.roll({ event });
+  return serializeActorAction(actor, async () => {
+    const state = stateFor(actor);
+    const pending = state.encounter?.twinColtsFollowUp;
+    if (!pending || pending.roundKey !== button.dataset.roundKey || pending.status !== "pending") return;
+    if (state.encounter.current?.name !== "Twin Colts") return;
+    const key = `manifested:${button.dataset.otherHand}`;
+    const weapon = actor.items.find(entry => entry.getFlag?.(MODULE_ID, "managedRole") === "manifested-weapon"
+      && entry.getFlag?.(MODULE_ID, "managedKey") === key);
+    const strike = actor.system.actions?.find(action => action.item?.id === weapon?.id || action.itemId === weapon?.id);
+    const map = Number(button.dataset.map);
+    const variant = strike?.variants?.[map];
+    if (!variant?.roll) {
+      notify("warn", "Não encontrei o Strike da outra pistola para fazer o disparo adicional.");
+      return;
+    }
+    if (Number(state.encounter.ammo?.["Twin Colts"]?.[button.dataset.otherHand === "direita" ? "right" : "left"] ?? 0) <= 0) {
+      notify("warn", "A outra pistola está sem munição; recarregue antes do disparo adicional.");
+      return;
+    }
+    pending.status = "used";
+    await actor.update({ [STATE_PATH]: state });
+    await variant.roll({ event });
+  });
 }
 
 function decorateVChatMessage(message, html) {
@@ -1892,6 +2298,12 @@ function decorateVChatMessage(message, html) {
   if (!root) return;
   const actor = actorForChatMessage(message, root);
   if (!actor || !isVProfileActive(actor)) return;
+  const messageUserId = String(message.user?.id ?? message.user ?? "");
+  if (messageUserId === String(game.user?.id ?? "") && isRecallKnowledgeMessage(message) && !playedRecallKnowledgeMessages.has(message.id)) {
+    playedRecallKnowledgeMessages.add(message.id);
+    if (playedRecallKnowledgeMessages.size > 500) playedRecallKnowledgeMessages.clear();
+    announceVSound("scanner-open", actor, "self");
+  }
   const chatType = message.getFlag?.(MODULE_ID, "chatType") ?? message.flags?.[MODULE_ID]?.chatType;
   const rolls = rollsFromMessage(message);
   const dice = rolls.flatMap(diceTerms);
@@ -1904,9 +2316,17 @@ function decorateVChatMessage(message, html) {
   }
   if (dice.some(entry => entry.faces === 20 && entry.value === 20)) root.classList.add("vred-chat-natural-20");
   const item = itemFromChatMessage(message, root, actor);
+  const strikeMessage = item && isPf2eStrikeRoll(message, root);
+  const outcome = strikeMessage ? attackOutcome(message, root) : "unknown";
   if (item || (!rolls.length && root.querySelector(".content-link[data-uuid*='.Item.']"))) root.classList.add("vred-chat-item");
   addChatDetails(root, message, actor, item, rolls, dice);
-  appendTwinColtsPrompt(root, message, actor, item, attackOutcome(message, root));
+  if (strikeMessage) {
+    void serializeActorAction(actor, async () => {
+      await consumeVStrikeAmmo(message, actor, item);
+      await resolvePendingUltimateStrike(message, actor, item, outcome);
+      appendTwinColtsPrompt(root, message, actor, item, outcome);
+    }).catch(error => console.error(`[${MODULE_ID}] Strike follow-up processing failed`, error));
+  }
 }
 
 const foundryMajorVersion = Number.parseInt(String(game.version ?? "14").split(".")[0], 10) || 14;
@@ -1928,6 +2348,15 @@ Hooks.on("deleteCombat", combat => {
 
 Hooks.once("ready", () => {
   registerVRedHandCharacterSheet();
+  initializeVSoundRuntime();
+  const profileErrors = [
+    ...validateWeaponProfileCatalog({ weaponsG, weaponsS, wayProfiles }),
+    ...validateUltimateProfileCatalog({ ultimates, profiles: ultimateProfiles, wayProfiles }),
+  ];
+  if (profileErrors.length) {
+    console.error(`[${MODULE_ID}] invalid weapon profile catalog`, profileErrors);
+    notify("error", `ARSENAL.EXE encontrou ${profileErrors.length} perfil(is) de arma inválido(s). Confira o console.`);
+  }
   const base = game.modules.get(BASE_ID);
   if (!base?.active) notify("error", "V RedHand requer Ethernum RPG Module ativo.");
   else if (!baseVersionSupported()) notify("error", "V RedHand requer Ethernum RPG Module v3.8.11 ou posterior.");
