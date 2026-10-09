@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 0.3.1 — integração, Glitches e soundbank
+
+- Corrige a aba de mecânica única nas fichas PF2e e Concórdia, inclusive o estado vazio sem seletor do módulo-base; mantém o atalho e abre a janela individual no shell Concórdia sem alterar a preferência do Actor.
+- Mantém as runas da ficha individual no Ateliê Rúnico Concórdia do módulo-base.
+- Remove a duplicação dos cards de chat, melhora o contraste e acrescenta um resumo dos resultados individuais dos dados.
+- Twin Colts cria um prompt de segundo Strike após acerto ou crítico; quando a rolagem não informa a MAP atual, oferece MAP 1 e MAP 2.
+- Adiciona Sussurro, Fishbones, Espada do Rei Destruído e Gume do Infinito; o catálogo passa a 22 Ultimates.
+- Cria a aba SFX com reprodução local, direcionada aos proprietários de V ou transmitida para a mesa e cadastro de novas trilhas.
+
 ## 0.3.0 — ficha Cyberpunk individual e rolagens detalhadas
 
 - Registra uma ficha separada para V, baseada na classe e nos dados da ficha Concórdia. A ficha comum mostra somente um atalho para abrir a janela individual.

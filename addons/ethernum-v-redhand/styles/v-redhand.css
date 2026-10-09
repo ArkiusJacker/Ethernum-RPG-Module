@@ -91,3 +91,45 @@
 @media(max-width:1000px){.vred-sheet-window.vred-standalone-sheet{min-width:0}}
 @media(max-width:700px){.ethernum-character-sheet.vred-sheet .ecs-tab-panel{padding:14px 12px 20px}.vred-chat-details__summary{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.ethernum-character-sheet.vred-sheet .ecs-header::after,.vred-sheet-window .vred-addon-host::before,.chat-message.vred-chat-message::before,.vred-chat-details::after{animation:none!important}.ethernum-character-sheet.vred-sheet :is(button,[role="button"]){transition:none!important}}
+
+/* SFX library, local audience controls and add-on growth path. */
+.vred-sfx-intro{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px;padding:12px;border:1px solid #63232e;border-radius:10px;background:#140b0f}
+.vred-sfx-intro p{max-width:76ch;margin:5px 0 0;color:#e0cbd0;font-size:12px;line-height:1.55}
+.vred-sfx-intro code,.vred-sfx-register code{color:#8df7ff}
+.vred-sfx-volume{display:flex;align-items:center;gap:8px;color:#fff;font-size:12px;white-space:nowrap}
+.vred-sfx-volume input{width:120px;accent-color:#fcee0a}
+.vred-sfx-category{margin:10px 0;padding:12px;border:1px solid #47202a;border-radius:10px;background:linear-gradient(120deg,#180c11,#111216 70%)}
+.vred-sfx-category>header{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+.vred-sfx-category h4{margin:2px 0;color:#fff;font-size:15px}
+.vred-sfx-category p{margin:2px 0;color:#d2c2c7;font-size:11px}
+.vred-sfx-list{display:grid;gap:6px}
+.vred-sfx-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px;border:1px solid #34232a;border-radius:8px;background:#100c10}
+.vred-sfx-row>div:first-child{min-width:0}
+.vred-sfx-row strong,.vred-sfx-row small{display:block}
+.vred-sfx-row strong{color:#fff;font-size:12px}
+.vred-sfx-row small{max-width:50ch;margin-top:3px;color:#d1bfc4;font:10px/1.4 ui-monospace,monospace;overflow-wrap:anywhere}
+.vred-sfx-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+.vred-sfx-register{margin-top:12px}
+.vred-sfx-register__fields{display:grid;grid-template-columns:minmax(120px,1fr) minmax(150px,1fr) minmax(220px,2fr) auto;align-items:end;gap:8px}
+.vred-sfx-register__fields label{display:grid;gap:4px;color:#f5edf0;font-size:11px}
+.vred-sfx-register__fields input,.vred-sfx-register__fields select{min-width:0;padding:8px;border:1px solid #71414b;border-radius:6px;background:#111216;color:#fff}
+.vred-sfx-register__fields .wide{grid-column:auto}
+
+/* Keep PF2e's native card and add only the dice detail it does not show. */
+.vred-chat-details.compact{margin:0 0 6px;padding:5px 8px;border-left-width:2px;background:#180d12}
+.vred-chat-details.compact .vred-chat-details__summary{color:#f0e5e8;font-size:10px}
+.chat-message.vred-chat-message .message-content{color:#f4ecef!important}
+.chat-message.vred-chat-message .message-content :is(p,li,dd,dt,label,.description,.action-content,.damage-roll,.tags){color:#f0e6e9!important}
+.chat-message.vred-chat-message .message-content :is(h1,h2,h3,h4,strong,b){color:#fff!important}
+.chat-message.vred-chat-message .message-content :is(.tag,.tags span,.trait,.trait-tag){border-color:#87404e!important;background:#32141c!important;color:#fff1f4!important}
+.chat-message.vred-chat-message .message-content :is(button,[role="button"]){border:1px solid #b44254!important;background:linear-gradient(180deg,#561924,#301017)!important;color:#fff!important;opacity:1!important;text-shadow:0 1px 2px #000;box-shadow:0 1px 4px #0008}
+.chat-message.vred-chat-message .message-content :is(button,[role="button"]):hover{border-color:#fcee0a!important;filter:brightness(1.18)}
+.chat-message.vred-chat-message .message-content :is(button.success,.success,.critical-success,.critical-hit){border-color:#65dca0!important;background:#153826!important;color:#caffdf!important}
+.chat-message.vred-chat-message .message-content :is(button.failure,.failure,.critical-failure,.critical-miss){border-color:#ed6572!important;background:#44141c!important;color:#ffe6e9!important}
+.chat-message.vred-chat-message .message-content :is(button.damage,button.critical,button[data-action*="damage"]){min-height:28px;font-weight:750}
+.vred-twin-colts-prompt{margin-top:8px;padding:9px 10px;border:1px solid #a63246;border-left:3px solid #fcee0a;border-radius:7px;background:linear-gradient(120deg,#281018,#111216);color:#fff}
+.vred-twin-colts-prompt strong{color:#fff282}
+.vred-twin-colts-prompt p{margin:4px 0 7px;color:#f3e6e9!important;font-size:11px;line-height:1.45}
+.vred-twin-colts-prompt__actions{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:700px){.vred-sfx-intro,.vred-sfx-row{align-items:flex-start;flex-direction:column}.vred-sfx-actions{justify-content:flex-start}.vred-sfx-register__fields{grid-template-columns:1fr 1fr}.vred-sfx-register__fields .wide{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.chat-message.vred-chat-message::before,.vred-chat-details::after{animation:none!important}}

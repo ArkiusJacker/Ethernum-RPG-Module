@@ -13,6 +13,7 @@ import {
   weaponsS,
 } from "./data.js";
 import { managedWeapon, rollManifestedStrike, syncVItems } from "./foundry-items.js";
+import { soundCategories, soundEffects, soundPath } from "./soundbank.js";
 
 const MODULE_ID = "ethernum-v-redhand";
 const BASE_ID = "ethernum-rpg-module";
@@ -24,6 +25,7 @@ const pendingRenderObservers = new WeakMap();
 const pendingItemSyncs = new WeakMap();
 const vSheetApps = new WeakMap();
 const boundCoreRoots = new WeakSet();
+const twinPromptClaims = new Set();
 let VRedHandCharacterSheet = null;
 let vSheetRegistered = false;
 const DISCOVERIES = [
@@ -39,7 +41,7 @@ const DEFAULT_STATE = {
   gloveMk: 1,
   corruptedRune: false,
   settings: { forcedRerollEnabled: false, allowT2Accessories: false, cromaStartChoice: "undecided" },
-  catalog: { rewrites: [] },
+  catalog: { rewrites: [], customSfx: [] },
   encounter: { spins: 0, cartridge: false, cartridgeSpent: false, mode: "G", current: null, ammo: {}, cromaUses: {}, cromaAmmo: null, cromaSandevistanState: null, pendingUltimateBonus: null, log: [] },
   daily: {
     tier: 1,
@@ -69,7 +71,7 @@ function stateFor(actor) {
     ...clone(DEFAULT_STATE),
     ...saved,
     settings: { ...DEFAULT_STATE.settings, ...(saved.settings ?? {}) },
-    catalog: { ...DEFAULT_STATE.catalog, ...(saved.catalog ?? {}) },
+    catalog: { ...DEFAULT_STATE.catalog, ...(saved.catalog ?? {}), customSfx: [...(saved.catalog?.customSfx ?? [])] },
     encounter: { ...DEFAULT_STATE.encounter, ...(saved.encounter ?? {}) },
     daily: { ...DEFAULT_STATE.daily, ...(saved.daily ?? {}) },
   };
@@ -122,7 +124,9 @@ function unwrapElement(html, app) {
 
 function getUniqueRoot(container) {
   if (container?.matches?.(".ethernum-unique-tab")) return container;
-  return container?.querySelector?.(".ethernum-unique-tab") ?? null;
+  return container?.querySelector?.(".ethernum-unique-tab")
+    ?? container?.querySelector?.('.ecs-tab-panel[data-tab="unique"]')
+    ?? null;
 }
 
 function ensureProfileOption(select) {
@@ -187,6 +191,8 @@ function registerVRedHandCharacterSheet() {
   if (vSheetRegistered) return true;
   const BaseSheet = getEthernumCharacterSheetClass();
   if (!BaseSheet) return false;
+  const actorSheetBase = Object.getPrototypeOf(BaseSheet.prototype);
+  const baseRender = actorSheetBase?.render;
   const actorCollection = foundry.documents?.collections?.Actors;
   if (typeof actorCollection?.registerSheet !== "function") return false;
   VRedHandCharacterSheet = class extends BaseSheet {
@@ -202,6 +208,51 @@ function registerVRedHandCharacterSheet() {
         width: 1380,
         height: 940,
       }, { inplace: false });
+    }
+
+    render(force = false, options = {}) {
+      // The base sheet redirects to the PF2e sheet when the actor explicitly
+      // prefers it. V's separate window must still render its Concórdia shell.
+      return typeof baseRender === "function"
+        ? baseRender.call(this, force, options)
+        : super.render(force, options);
+    }
+
+    async getData(options) {
+      const data = await super.getData(options);
+      if (!canShowForConcórdia(this.actor)) return data;
+      data.shell = {
+        ...(data.shell ?? {}),
+        id: "concordia",
+        themeClass: "concordia-character-sheet",
+        title: game.i18n?.localize("ETHERNUM.CharacterSheet.Concordia.Title") ?? "Concórdia",
+      };
+      data.sheetId = "concordia";
+      data.configuredMode = "concordia";
+      const keys = [
+        ["overview", "ETHERNUM.CharacterSheet.Tabs.Character", "fas fa-user"],
+        ["combat", "ETHERNUM.CharacterSheet.Tabs.Combat", "fas fa-swords"],
+        ["inventory", "ETHERNUM.CharacterSheet.Tabs.Arsenal", "fas fa-shield-halved"],
+        ...(data.ui?.tabs?.some(tab => tab.id === "spellcasting")
+          ? [["spellcasting", "ETHERNUM.CharacterSheet.Tabs.Magic", "fas fa-wand-sparkles"]]
+          : []),
+        ["feats", "ETHERNUM.CharacterSheet.Tabs.Feats", "fas fa-award"],
+        ["runes", "ETHERNUM.CharacterSheet.Tabs.Runes", "fas fa-gem"],
+        ["unique", "ETHERNUM.CharacterSheet.Tabs.Unique", "fas fa-fingerprint"],
+        ["effects", "ETHERNUM.CharacterSheet.Tabs.Effects", "fas fa-burst"],
+      ];
+      const requestedTab = data.ui?.activeTab;
+      data.ui = {
+        ...(data.ui ?? {}),
+        activeTab: keys.some(([id]) => id === requestedTab) ? requestedTab : "overview",
+        tabs: keys.map(([id, key, icon]) => ({
+          id,
+          icon,
+          active: id === (keys.some(([tabId]) => tabId === requestedTab) ? requestedTab : "overview"),
+          label: game.i18n?.localize(key) ?? key,
+        })),
+      };
+      return data;
     }
   };
   Object.defineProperty(VRedHandCharacterSheet, "name", { value: "VRedHandCharacterSheet" });
@@ -226,6 +277,7 @@ function openVRedHandCharacterSheet(actor) {
   const existing = vSheetApps.get(actor);
   if (existing) {
     existing.render(true);
+    focusVMechanicTab(existing);
     return existing;
   }
   const sheet = new VRedHandCharacterSheet(actor, {
@@ -238,7 +290,22 @@ function openVRedHandCharacterSheet(actor) {
     return originalClose(options);
   };
   sheet.render(true);
+  focusVMechanicTab(sheet);
   return sheet;
+}
+
+function focusVMechanicTab(app) {
+  let attempts = 0;
+  const focus = () => {
+    const container = unwrapElement(undefined, app);
+    const tab = container?.querySelector?.('[data-sheet-tab="unique"], .sheet-navigation [data-tab="ethernum-unique"]');
+    if (tab) {
+      tab.click();
+      return;
+    }
+    if (++attempts < 12) setTimeout(focus, 80);
+  };
+  setTimeout(focus, 0);
 }
 
 function showNativeProfile(root, actor, selectedProfile = null) {
@@ -261,10 +328,14 @@ function hideNativeProfile(root, mount) {
 
 function ensureMount(root, app, actor) {
   let mount = root.querySelector(`[data-v-redhand-host='${MODULE_ID}']`);
-  if (mount) return mount;
+  if (mount) {
+    mount.dataset.vRedhandStandalone = app.vRedhandStandalone === true ? "true" : "false";
+    return mount;
+  }
   mount = document.createElement("div");
   mount.dataset.vRedhandHost = MODULE_ID;
   mount.dataset.vActorId = actor.id ?? "";
+  mount.dataset.vRedhandStandalone = app.vRedhandStandalone === true ? "true" : "false";
   mount.className = "vred-addon-host";
   const topbar = root.querySelector(".ethernum-unique-topbar");
   if (topbar) topbar.after(mount);
@@ -282,7 +353,9 @@ function mountForActor(actor, fallback) {
 
 function renderCurrentProfile(mount, actor, state) {
   const currentMount = mountForActor(actor, mount);
-  if (currentMount?.isConnected) renderProfile(currentMount, actor, state);
+  if (currentMount?.isConnected) {
+    renderProfile(currentMount, actor, state, { includeOpenLink: currentMount.dataset.vRedhandStandalone !== "true" });
+  }
 }
 
 async function handleProfileSelection(event, root, app, actor, select) {
@@ -344,7 +417,10 @@ async function handleProfileSelection(event, root, app, actor, select) {
 
 function bindUniqueProfile(root, app, actor) {
   const select = root.querySelector("select.ethernum-unique-profile");
-  if (!select) return false;
+  // Newer Concórdia sheets render an empty-state panel without the legacy
+  // profile selector when the base module does not know an external profile.
+  // The add-on still needs a mount point there so V can be activated directly.
+  if (!select) return canShowForConcórdia(actor) || (app.vRedhandStandalone === true && isVProfileActive(actor));
   ensureProfileOption(select);
   if (select.dataset.vRedhandBound !== "true") {
     select.addEventListener("change", event => {
@@ -370,18 +446,23 @@ function bindUniqueProfile(root, app, actor) {
 }
 
 function integrateUniqueProfile(root, app, actor) {
-  if (!canShowForConcórdia(actor) || !bindUniqueProfile(root, app, actor)) return false;
+  const standaloneV = Boolean(actor && app.vRedhandStandalone === true && isVProfileActive(actor));
+  if ((!canShowForConcórdia(actor) && !standaloneV) || !bindUniqueProfile(root, app, actor)) return false;
   const select = root.querySelector("select.ethernum-unique-profile");
   if (isVProfileActive(actor)) {
-    select.value = PROFILE_ID;
+    if (select) select.value = PROFILE_ID;
     const mount = ensureMount(root, app, actor);
     hideNativeProfile(root, mount);
     if (app.vRedhandStandalone === true) {
       applyVSheetTheme(app, root, actor);
       renderProfile(mount, actor, stateFor(actor));
     } else {
-      renderSheetLauncher(mount, actor);
+      renderSheetLauncher(mount, actor, app);
     }
+  } else if (!select && !standaloneV) {
+    const mount = ensureMount(root, app, actor);
+    hideNativeProfile(root, mount);
+    renderActivation(mount, actor);
   } else {
     applyVSheetTheme(app, root, actor);
     showNativeProfile(root, actor);
@@ -459,6 +540,10 @@ function updateActor(actor, nextState, currency = null) {
 
 function capacityFor(form) {
   const meta = form?.meta ?? "";
+  const ultimate = form?.isUltimate ? ultimateProfiles[form.name] : null;
+  if (ultimate?.capacity && ultimate?.ammoKind) {
+    return { kind: ultimate.ammoKind, rounds: Number(ultimate.capacity), reload: ultimate.reload ?? "1 ação por munição" };
+  }
   if (meta.includes("Par ·")) return { kind: "pair", left: 6, right: 6, reload: "1 ação por pistola" };
   if (meta.includes("Escopeta")) return { kind: "shell", rounds: 2, reload: "1 ação por cartucho" };
   if (meta.includes("Pesada")) return { kind: "bullet", rounds: 3, reload: "1 ação por bala" };
@@ -491,7 +576,7 @@ function tabStorageKey(actor) {
 }
 
 function getSectionTab(mount, actor) {
-  const allowed = new Set(["status", "boot", "arsenal", "glove", "store", "experiments", "cromas", "campaign"]);
+  const allowed = new Set(["status", "boot", "arsenal", "glove", "store", "experiments", "cromas", "sfx", "campaign"]);
   let stored = mount.dataset.vTab;
   try { stored ??= localStorage.getItem(tabStorageKey(actor)); } catch { /* Storage can be disabled in a private browsing context. */ }
   stored ??= "status";
@@ -505,6 +590,42 @@ function saveSectionTab(mount, actor, tab) {
 
 function tabButton(id, label, active) {
   return `<button type="button" class="vred-tab ${active ? "active" : ""}" data-v-action="tab" data-tab="${id}">${label}</button>`;
+}
+
+function getSfxVolume() {
+  try {
+    const stored = localStorage.getItem(`${MODULE_ID}:sfx-volume`);
+    if (stored === null) return 0.7;
+    const value = Number(stored);
+    return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0.7;
+  } catch {
+    return 0.7;
+  }
+}
+
+function findSfx(state, id) {
+  return [...soundEffects, ...(state.catalog.customSfx ?? [])].find(sound => sound.id === id) ?? null;
+}
+
+async function playVSound(actor, sound, audience) {
+  const helper = globalThis.AudioHelper ?? foundry.audio?.AudioHelper;
+  if (!helper?.play) throw new Error("AudioHelper do Foundry não está disponível.");
+  const source = soundPath(sound);
+  let socketOptions = false;
+  if (audience === "all") socketOptions = true;
+  if (audience === "v") {
+    const ownerLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+    const recipients = [...game.users]
+      .filter(user => !user.isGM && actor.testUserPermission?.(user, ownerLevel))
+      .map(user => user.id);
+    if (!recipients.length) {
+      notify("warn", "Não há jogador com permissão de proprietário para receber o áudio de V.");
+      return;
+    }
+    socketOptions = { recipients };
+  }
+  const channel = sound.category === "09_THEMES" ? "music" : "interface";
+  await helper.play({ src: source, volume: getSfxVolume(), loop: false, autoplay: true, channel }, socketOptions);
 }
 
 function card(title, body, tone = "") {
@@ -534,7 +655,7 @@ function renderBoot(state) {
   const form = state.encounter.current;
   let current = `<p class="vred-muted">Nenhum resultado ainda. O primeiro giro ocorre com Into the Fray e iniciativa, sem ação adicional.</p>`;
   if (form?.ultimateSelect) {
-    current = `<span class="vred-badge gold vred-glitch-badge">1 NATURAL · BRECHA GLITCH</span><h4>A roleta falhou. O Blackwall respondeu.</h4><p>${state.encounter.cartridge ? "O Cartucho já foi obtido. Escolha uma Ultimate para substituir a forma atual; isso não restaura o Cartucho gasto." : "Uma Ultimate/Glitch foi revelada. Escolha uma das 18 armas e receba 1 Cartucho neste encontro."}</p><div class="vred-ultimate-grid">${ultimates.map(item => `<button type="button" class="vred-pick" data-v-action="select-ultimate" data-name="${escapeHtml(item[1])}"><strong>${escapeHtml(item[1])}</strong><small>${item[3]} ações · ${escapeHtml(item[2])}</small></button>`).join("")}</div>`;
+    current = `<span class="vred-badge gold vred-glitch-badge">1 NATURAL · BRECHA GLITCH</span><h4>A roleta falhou. O Blackwall respondeu.</h4><p>${state.encounter.cartridge ? "O Cartucho já foi obtido. Escolha uma Ultimate para substituir a forma atual; isso não restaura o Cartucho gasto." : `Uma Ultimate/Glitch foi revelada. Escolha uma das ${ultimates.length} armas e receba 1 Cartucho neste encontro.`}</p><div class="vred-ultimate-grid">${ultimates.map(item => `<button type="button" class="vred-pick" data-v-action="select-ultimate" data-name="${escapeHtml(item[1])}"><strong>${escapeHtml(item[1])}</strong><small>${item[3]} ações · ${escapeHtml(item[2])}</small></button>`).join("")}</div>`;
   } else if (form?.isUltimate) {
     const profile = ultimateProfiles[form.name];
     const ammo = form.mode === "G" ? state.encounter.ammo[form.name] : null;
@@ -553,7 +674,7 @@ function renderBoot(state) {
   <div class="vred-roll-layout"><div class="vred-die" data-die>${form?.result ?? "—"}</div><div class="vred-current">${current}</div></div>
   ${state.encounter.pendingUltimateBonus ? `<div class="vred-callout vred-pending-bonus"><strong>Dano de assinatura pendente · ${escapeHtml(state.encounter.pendingUltimateBonus.name)}</strong><p>Rode depois de confirmar o acerto do Strike; aplique a parcela conforme acerto/crítico da carta.</p><button class="vred-button primary small" data-v-action="roll-ultimate-bonus">Rolar +${escapeHtml(state.encounter.pendingUltimateBonus.formula)} ${escapeHtml(state.encounter.pendingUltimateBonus.damageType)}</button></div>` : ""}
   <div class="vred-grid two" style="margin-top:14px">${card("Re-giro Forçado · proposta / decisão 09", `<p>Mk III+. Uma vez por dia, depois de ver o resultado; aceite o novo d20, inclusive 1 ou 20. O GM aplica um Sintoma.</p><p>Estado: ${state.settings.forcedRerollEnabled ? "experimento habilitado" : "desligado até decisão do GM"} · ${state.daily.rerollUsed ? "usado hoje" : "disponível"}</p><button class="vred-button" data-v-action="forced-reroll" ${!canReroll ? "disabled" : ""}>Forçar re-giro</button>${isGM() ? `<button class="vred-button small" data-v-action="toggle-reroll">${state.settings.forcedRerollEnabled ? "Desabilitar proposta" : "Habilitar proposta"}</button>` : ""}`, "gold")}
-  ${card("Glitch / Ultimate", `<p>Um 1 natural abre a revelação Glitch e permite escolher uma das 18 Supremas. O primeiro 1 do encontro concede 1 Cartucho; outros 1 podem trocar a forma, sem restaurá-lo.</p><p>Cartucho: <strong>${!state.encounter.cartridge ? "não obtido" : state.encounter.cartridgeSpent ? "gasto" : "disponível"}</strong></p><p>A arma e as ações da Way ativa aparecem na ficha PF2e; a assinatura Ultimate é acionada neste painel. Escolher outro Glitch atualiza arma e Way.</p>`)}
+  ${card("Glitch / Ultimate", `<p>Um 1 natural abre a revelação Glitch e permite escolher uma das ${ultimates.length} Supremas. O primeiro 1 do encontro concede 1 Cartucho; outros 1 podem trocar a forma, sem restaurá-lo.</p><p>Cartucho: <strong>${!state.encounter.cartridge ? "não obtido" : state.encounter.cartridgeSpent ? "gasto" : "disponível"}</strong></p><p>A arma e as ações da Way ativa aparecem na ficha PF2e; a assinatura Ultimate é acionada neste painel. Escolher outro Glitch atualiza arma e Way.</p>`)}
   ${card("Regras de encontro", `<p>Até 3 giros; cada um depois do primeiro custa 1 ação. Trocar e voltar não recarrega a forma. Boot inclui sacar o vínculo; Pares e formas de duas mãos ocupam ambas as mãos.</p><p>Munição inicial por forma é a proposta do v0.5 e pode ser revisada após a decisão 05.</p>`)}</div>
   <div class="vred-section-title"><span class="vred-kicker">HISTÓRICO DO ENCONTRO</span></div><div class="vred-log">${state.encounter.log.length ? state.encounter.log.slice().reverse().map(entry => `<div><span>${entry.mode === "G" ? "Gunslinger" : "Swordmaster"} · d20 ${entry.result}</span><strong>${escapeHtml(entry.name)}</strong>${entry.note ? `<small>${escapeHtml(entry.note)}</small>` : ""}</div>`).join("") : `<p class="vred-muted">Nenhum giro registrado.</p>`}</div>`;
 }
@@ -697,19 +818,30 @@ function renderCampaign(state) {
   <div class="vred-callout">O add-on mantém essas decisões sem resposta. As propostas têm controles explícitos e começam desligadas quando podem alterar a regra.</div>`;
 }
 
-function renderProfile(mount, actor, state) {
+function renderSfx(state) {
+  const custom = state.catalog.customSfx ?? [];
+  const available = [...soundEffects, ...custom];
+  return `<div class="vred-sfx-intro"><div><span class="vred-kicker">V SOUNDBANK · ${available.length} ÁUDIOS</span><p>Escolha quem escuta cada som. “Só V” envia apenas aos jogadores que possuem este Actor; “Todos” transmite para a mesa. Os arquivos ficam em <code>modules/ethernum-v-redhand/audio/</code>.</p></div><label class="vred-sfx-volume">Volume <input type="range" min="0" max="1" step="0.05" value="${getSfxVolume()}" data-v-sfx-volume></label></div>
+  ${soundCategories.map(([id, label, description]) => {
+    const entries = available.filter(sound => sound.category === id);
+    return entries.length ? `<section class="vred-sfx-category"><header><div><span class="vred-kicker">${escapeHtml(id)}</span><h4>${escapeHtml(label)}</h4><p>${escapeHtml(description)}</p></div><span class="vred-badge">${entries.length}</span></header><div class="vred-sfx-list">${entries.map(sound => `<article class="vred-sfx-row"><div><strong>${escapeHtml(sound.name)}</strong><small>${sound.path ? escapeHtml(sound.path) : `${escapeHtml(sound.category)}/${escapeHtml(sound.file)}`} · destino sugerido: ${sound.audience === "v" ? "Só V" : sound.audience === "self" ? "Só este cliente" : "Toda a mesa"}</small></div><div class="vred-sfx-actions"><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="self">Só eu</button><button class="vred-button small" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="v">Só V</button><button class="vred-button small primary" data-v-action="play-sfx" data-sfx-id="${escapeHtml(sound.id)}" data-audience="all">Todos</button>${isGM() && sound.custom ? `<button class="vred-button small danger" data-v-action="remove-sfx" data-sfx-id="${escapeHtml(sound.id)}">Remover</button>` : ""}</div></article>`).join("")}</div></section>` : "";
+  }).join("")}
+  ${isGM() ? `<section class="vred-card vred-sfx-register"><h4>Adicionar áudio ao banco</h4><p>Copie o arquivo para uma categoria dentro de <code>audio/</code> e registre o caminho abaixo. Os demais clientes precisam ter acesso ao arquivo servido pelo Foundry.</p><div class="vred-sfx-register__fields"><label>Nome<input type="text" data-v-sfx-name placeholder="Nome do efeito"></label><label>Categoria<select data-v-sfx-category>${soundCategories.map(([id,label]) => `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`).join("")}</select></label><label class="wide">Caminho<input type="text" data-v-sfx-path placeholder="modules/ethernum-v-redhand/audio/00_CORE/meu-som.mp3"></label><button class="vred-button primary" data-v-action="add-sfx">Registrar áudio</button></div></section>` : ""}`;
+}
+
+function renderProfile(mount, actor, state, { includeOpenLink = false } = {}) {
   const tab = getSectionTab(mount, actor);
   const tabs = [
     ["status", "Resumo"], ["boot", "Boot & giros"], ["arsenal", "Catálogo"],
     ["glove", "Luva"], ["store", "Pocket.Mart"], ["experiments", "Experimentos"],
-    ["cromas", "Cromas"], ["campaign", "Campanha"],
+    ["cromas", "Cromas"], ["sfx", "SFX"], ["campaign", "Campanha"],
   ];
   const renderers = {
     status: () => renderStatus(state, actor), boot: () => renderBoot(state), arsenal: () => renderArsenal(state),
     glove: () => renderGlove(state), store: () => renderStore(state, actor),
-    experiments: () => renderExperiments(state, actor), cromas: () => renderCromas(state), campaign: () => renderCampaign(state),
+    experiments: () => renderExperiments(state, actor), cromas: () => renderCromas(state), sfx: () => renderSfx(state), campaign: () => renderCampaign(state),
   };
-  mount.innerHTML = `<section class="vred-panel" data-v-profile="v-redhand"><header class="vred-header"><div><span class="vred-kicker">MECÂNICA ÚNICA · CONCÓRDIA</span><h3>V <em>REDHAND</em></h3><p>ARSENAL.EXE · Drifter nível 10 · v0.5 Reboot</p></div><div class="vred-header-state"><span class="vred-badge red">MK ${state.gloveMk}</span><span class="vred-badge">GIROS ${state.encounter.spins}/3</span><span class="vred-badge gold">${state.encounter.cartridge ? "CARTUCHO" : "SEM CARTUCHO"}</span></div></header>
+  mount.innerHTML = `<section class="vred-panel" data-v-profile="v-redhand"><header class="vred-header"><div><span class="vred-kicker">MECÂNICA ÚNICA · CONCÓRDIA</span><h3>V <em>REDHAND</em></h3><p>ARSENAL.EXE · Drifter nível 10 · v0.5 Reboot</p></div><div class="vred-header-state"><span class="vred-badge red">MK ${state.gloveMk}</span><span class="vred-badge">GIROS ${state.encounter.spins}/3</span><span class="vred-badge gold">${state.encounter.cartridge ? "CARTUCHO" : "SEM CARTUCHO"}</span>${includeOpenLink ? `<button type="button" class="vred-button primary small" data-v-action="open-sheet">Abrir ficha individual</button>` : ""}</div></header>
   <nav class="vred-nav" aria-label="Painel de V">${tabs.map(([id, label]) => tabButton(id, label, id === tab)).join("")}</nav>
   <div class="vred-body">${renderers[tab]?.() ?? renderers.status()}</div>
   <footer class="vred-footer"><span>Playtest · estado salvo no Actor · add-on ${MODULE_ID}</span><span>${isOwner(actor) ? "Você pode controlar este painel." : "Somente leitura: peça ao GM para ajustar o personagem."}</span>${isGM() ? `<button class="vred-button small danger" data-v-action="deactivate">Desativar perfil V</button>` : ""}</footer>
@@ -728,10 +860,14 @@ function renderProfile(mount, actor, state) {
       item.hidden = query.length > 0 && !item.dataset.vSearchable.includes(query);
     });
   });
+  const volume = mount.querySelector("[data-v-sfx-volume]");
+  volume?.addEventListener("input", () => {
+    try { localStorage.setItem(`${MODULE_ID}:sfx-volume`, String(volume.value)); } catch { /* local audio preference only */ }
+  });
 }
 
 function renderSheetLauncher(mount, actor) {
-  mount.innerHTML = `<section class="vred-launcher"><div class="vred-launcher__signal">ARSENAL.EXE · V REDHAND · BLACKWALL LINK</div><h3>Ficha individual de V</h3><p>A mecânica de V tem uma ficha própria baseada na estrutura Concórdia. Ela mantém as abas, rolagens, inventário e recursos do Ethernum sem ocupar o espaço dos outros personagens.</p><button type="button" class="vred-button primary" data-v-action="open-sheet" ${isOwner(actor) ? "" : "disabled"}>Abrir ficha Cyberpunk</button></section>`;
+  renderProfile(mount, actor, stateFor(actor), { includeOpenLink: true });
 }
 
 async function rollDice(actor, faces, flavor) {
@@ -807,7 +943,7 @@ function currentAmmo(state) {
 
 function replaceCurrentWithResult(state, mode, result, note = "") {
   if (result === 1) {
-    state.encounter.current = { mode, result, ultimateSelect: true, glitch: true, name: "Glitch / Ultimate Select", source: "BLACKWALL", meta: "1 natural · escolha uma das 18 armas Ultimate", effect: "O erro da roleta revela uma forma impossível." };
+    state.encounter.current = { mode, result, ultimateSelect: true, glitch: true, name: "Glitch / Ultimate Select", source: "BLACKWALL", meta: `1 natural · escolha uma das ${ultimates.length} armas Ultimate`, effect: "O erro da roleta revela uma forma impossível." };
     if (!state.encounter.cartridge) {
       state.encounter.cartridge = true;
       state.encounter.cartridgeSpent = false;
@@ -926,6 +1062,18 @@ async function handleAction(event, app, mount, actor) {
   const action = control.dataset.vAction;
   if (action === "open-sheet") {
     openVRedHandCharacterSheet(actor);
+    return;
+  }
+  if (action === "play-sfx") {
+    if (!isOwner(actor)) return;
+    const sound = findSfx(stateFor(actor), control.dataset.sfxId);
+    if (!sound) return;
+    try {
+      await playVSound(actor, sound, control.dataset.audience ?? "self");
+    } catch (error) {
+      console.error(`[${MODULE_ID}] sound playback failed`, error);
+      notify("error", `Não foi possível tocar “${sound.name}”. Confira se o arquivo existe no banco de SFX.`);
+    }
     return;
   }
   if (action === "tab") {
@@ -1401,6 +1549,27 @@ async function handleAction(event, app, mount, actor) {
         await persistAndRender(actor, mount, state);
         return;
       }
+      case "add-sfx": {
+        if (!isGM()) return;
+        const name = mount.querySelector("[data-v-sfx-name]")?.value?.trim();
+        const category = mount.querySelector("[data-v-sfx-category]")?.value;
+        const path = mount.querySelector("[data-v-sfx-path]")?.value?.trim().replaceAll("\\", "/");
+        const prefix = "modules/ethernum-v-redhand/audio/";
+        if (!name || !soundCategories.some(([id]) => id === category)) throw new Error("Informe um nome e uma categoria para o áudio.");
+        if (!path?.startsWith(prefix) || !/\.(mp3|ogg|wav|webm|flac)$/i.test(path)) {
+          throw new Error("O caminho precisa apontar para um áudio dentro da pasta audio/ da extensão.");
+        }
+        state.catalog.customSfx ??= [];
+        state.catalog.customSfx.push({ id: `custom-${foundry.utils.randomID()}`, name, category, path, audience: "all", custom: true });
+        await persistAndRender(actor, mount, state);
+        return;
+      }
+      case "remove-sfx": {
+        if (!isGM()) return;
+        state.catalog.customSfx = (state.catalog.customSfx ?? []).filter(sound => sound.id !== control.dataset.sfxId);
+        await persistAndRender(actor, mount, state);
+        return;
+      }
       case "fire": {
         const ammo = currentAmmo(state);
         if (!ammo) return;
@@ -1442,7 +1611,8 @@ function baseVersionSupported() {
 
 function onRenderActorSheet(app, html) {
   const actor = app.actor ?? app.document;
-  if (!actor || actor.type !== "character" || !canShowForConcórdia(actor) || !baseVersionSupported()) return;
+  const standaloneV = app.vRedhandStandalone === true && isVProfileActive(actor);
+  if (!actor || actor.type !== "character" || (!canShowForConcórdia(actor) && !standaloneV) || !baseVersionSupported()) return;
   const container = unwrapElement(html, app);
   if (!container) return;
   if (app.vRedhandStandalone === true) applyVSheetTheme(app, container, actor);
@@ -1494,13 +1664,27 @@ function itemFromChatMessage(message, root, actor) {
   const pf2e = asObject(flags.pf2e);
   const context = asObject(pf2e.context);
   const origin = asObject(context.origin ?? pf2e.origin);
-  const origins = [origin.uuid, origin.itemUuid, origin.item, root?.querySelector?.('.content-link[data-uuid*=".Item."]')?.dataset.uuid];
+  const originItem = asObject(origin.item);
+  const origins = [origin.uuid, origin.itemUuid, originItem.uuid, originItem.id, origin.item, root?.querySelector?.('.content-link[data-uuid*=".Item."]')?.dataset.uuid];
   for (const uuid of origins) {
     const parsed = actorFromUuid(uuid);
     if (parsed?.actor && parsed.actor.id === actor?.id && parsed.itemId) {
       const item = actor.items?.get(parsed.itemId);
       if (item) return item;
     }
+  }
+  const originName = String(originItem.name ?? "");
+  if (originName) {
+    const byName = actor.items.find(candidate => candidate.name === originName);
+    if (byName) return byName;
+  }
+  const flavor = String(message.flavor ?? "");
+  if (/twin colts/i.test(flavor)) {
+    const hand = /direita/i.test(flavor) ? "direita" : /esquerda/i.test(flavor) ? "esquerda" : null;
+    const key = hand ? `manifested:${hand}` : null;
+    const pairWeapon = actor.items.find(candidate => candidate.getFlag?.(MODULE_ID, "managedRole") === "manifested-weapon"
+      && (!key || candidate.getFlag?.(MODULE_ID, "managedKey") === key));
+    if (pairWeapon) return pairWeapon;
   }
   return null;
 }
@@ -1543,43 +1727,164 @@ function textFrom(root, selectors) {
 function addChatDetails(root, message, actor, item, rolls, dice) {
   if (root.querySelector(".vred-chat-details")) return;
   const vFlags = asObject(message.flags?.[MODULE_ID]);
+  const pf2eFlags = asObject(message.flags?.pf2e);
+  const pf2eCard = Boolean(Object.keys(pf2eFlags).length);
   const bootRoll = Number(vFlags.faces) === 20 && /boot|giro/i.test(String(message.flavor ?? ""));
   const naturalOne = dice.some(entry => entry.faces === 20 && entry.value === 1);
   const naturalTwenty = dice.some(entry => entry.faces === 20 && entry.value === 20);
   const detail = document.createElement("aside");
-  detail.className = "vred-chat-details";
+  detail.className = `vred-chat-details${pf2eCard ? " compact" : ""}`;
   detail.setAttribute("aria-label", "Detalhes da mensagem de V RedHand");
 
   const header = document.createElement("div");
   header.className = "vred-chat-details__header";
-  header.textContent = `ARSENAL.EXE · ${naturalOne && bootRoll ? "GLITCH NA BLACKWALL" : naturalOne ? "D20 NATURAL 1" : naturalTwenty ? "PICO DE SINCRONIA" : rolls.length ? "REGISTRO DE ROLAGEM" : item ? "ITEM DO ENGRAMA" : "SINAL DE V"}`;
-  const title = document.createElement("div");
-  title.className = "vred-chat-details__title";
-  title.textContent = item?.name
-    || textFrom(root, [".flavor-text", ".card-header h3", ".item-name", "h3"])
-    || String(message.flavor ?? "")
-    || actor.name
-    || "V RedHand";
+  header.textContent = `ARSENAL.EXE · ${naturalOne && bootRoll ? "GLITCH NA BLACKWALL" : naturalOne ? "D20 NATURAL 1" : naturalTwenty ? "PICO DE SINCRONIA" : pf2eCard ? "LEITURA DE DADOS" : rolls.length ? "REGISTRO DE ROLAGEM" : item ? "ITEM DO ENGRAMA" : "SINAL DE V"}`;
   const summary = document.createElement("div");
   summary.className = "vred-chat-details__summary";
   if (rolls.length) {
     const descriptions = rolls.map(roll => {
       const rollDice = diceTerms(roll);
-      const diceText = rollDice.length ? ` · Dados: ${rollDice.map(entry => `d${entry.faces}=${entry.value}`).join(", ")}` : "";
+      const diceText = rollDice.length ? rollDice.map(entry => `d${entry.faces}=${entry.value}`).join(" + ") : "";
+      if (pf2eCard) return diceText;
       const formula = String(roll.formula ?? "rolagem");
       const total = Number.isFinite(Number(roll.total)) ? ` · Total ${roll.total}` : "";
-      return `${formula}${diceText}${total}`;
-    });
+      return `${formula}${diceText ? ` · Dados: ${diceText}` : ""}${total}`;
+    }).filter(Boolean);
+    if (pf2eCard && !descriptions.length) return;
     summary.textContent = descriptions.join(" | ");
   } else if (item) {
+    if (pf2eCard) return;
     const itemText = item.system?.description?.value?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     summary.textContent = itemText ? itemText.slice(0, 220) : "Item vinculado ao engrama de V.";
   } else {
+    if (pf2eCard) return;
     summary.textContent = actor.name ?? "Mensagem de V RedHand";
   }
-  detail.append(header, title, summary);
+  detail.append(header, summary);
   const content = root.querySelector(".message-content") ?? root;
   content.prepend(detail);
+}
+
+function twinRoundKey(message) {
+  if (game.combat) return `combat:${game.combat.id}:${game.combat.round}`;
+  return `message:${message.id}`;
+}
+
+function attackOutcome(message, root) {
+  const context = asObject(message.flags?.pf2e?.context);
+  const candidates = [context.outcome, context.degreeOfSuccess, context.roll?.degreeOfSuccess, context.check?.degreeOfSuccess];
+  for (const candidate of candidates) {
+    if (typeof candidate === "number") {
+      if (candidate >= 2) return candidate >= 3 ? "critical" : "success";
+      if (candidate >= 0) return null;
+    }
+    const value = String(candidate ?? "").toLowerCase().replace(/[\s_-]/g, "");
+    if (["criticalsuccess", "criticalhit", "critsuccess", "crithit"].includes(value)) return "critical";
+    if (["success", "hit"].includes(value)) return "success";
+    if (["criticalfailure", "failure", "miss", "failurecritical"].includes(value)) return null;
+  }
+  const flavor = `${message.flavor ?? ""} ${textFrom(root, [".flavor-text", ".card-header h3", ".damage-card-flavor"])}`.toLowerCase();
+  if (/critical\s*(?:hit|success)|critical-hit|acerto crítico|sucesso crítico/.test(flavor)) return "critical";
+  if (/(?:\(|\b)(?:hit|success|acerto|sucesso)(?:\)|\b)/.test(flavor) && !/miss|failure|falha/.test(flavor)) return "success";
+  return null;
+}
+
+function mapIncreases(message) {
+  const context = asObject(message.flags?.pf2e?.context);
+  const raw = context.options ?? context.rollOptions ?? context.check?.options ?? [];
+  const options = raw instanceof Set ? [...raw] : Array.isArray(raw) ? raw : Object.keys(asObject(raw));
+  for (const option of options) {
+    const match = String(option).match(/map:increases:(\d)/i);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+function appendTwinColtsPrompt(root, message, actor, item, outcome) {
+  if (!item || !/twin colts/i.test(item.name ?? "") || !outcome || root.querySelector(".vred-twin-colts-prompt")) return;
+  if (String(message.user?.id ?? message.user ?? "") !== String(game.user?.id ?? "")) return;
+  const itemKey = String(item.getFlag?.(MODULE_ID, "managedKey") ?? item.flags?.[MODULE_ID]?.managedKey ?? "");
+  const otherHand = itemKey.endsWith("esquerda") || /esquerda/i.test(item.name) ? "direita" : "esquerda";
+  const state = stateFor(actor);
+  state.encounter ??= clone(DEFAULT_STATE.encounter);
+  const roundKey = twinRoundKey(message);
+  const pending = state.encounter.twinColtsFollowUp;
+  if (pending?.roundKey === roundKey) {
+    if (pending.messageId !== message.id || pending.status !== "pending") return;
+  } else {
+    const claimKey = `${actor.uuid ?? actor.id}:${roundKey}`;
+    if (twinPromptClaims.has(claimKey)) return;
+    twinPromptClaims.add(claimKey);
+    const currentMap = mapIncreases(message);
+    const maps = currentMap === null ? [1, 2] : currentMap < 2 ? [currentMap + 1] : [];
+    if (!maps.length) return;
+    state.encounter.twinColtsFollowUp = {
+      roundKey,
+      messageId: message.id,
+      sourceItemId: item.id,
+      otherHand,
+      maps,
+      status: "pending",
+    };
+    void actor.update({ [STATE_PATH]: state }).catch(error => console.error(`[${MODULE_ID}] Twin Colts prompt state could not be saved`, error));
+  }
+
+  const current = state.encounter.twinColtsFollowUp;
+  const prompt = document.createElement("aside");
+  prompt.className = "vred-twin-colts-prompt";
+  const label = document.createElement("strong");
+  label.textContent = `Twin Colts · ${outcome === "critical" ? "acerto crítico" : "acerto"}`;
+  const text = document.createElement("p");
+  text.textContent = `Você pode fazer um Strike imediato com a pistola ${otherHand}, usando a MAP normal da próxima Strike. Limite atual: 1 disparo extra por rodada.`;
+  prompt.append(label, text);
+  const actionRow = document.createElement("div");
+  actionRow.className = "vred-twin-colts-prompt__actions";
+  for (const map of current.maps) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "vred-button small primary";
+    button.dataset.vTwinColts = "true";
+    button.dataset.actorId = actor.id;
+    button.dataset.otherHand = otherHand;
+    button.dataset.map = String(map);
+    button.dataset.roundKey = roundKey;
+    button.textContent = current.maps.length > 1 ? `Disparar · MAP ${map}` : "Fazer segundo disparo";
+    actionRow.append(button);
+  }
+  prompt.append(actionRow);
+  (root.querySelector(".message-content") ?? root).append(prompt);
+  if (root.dataset.vredTwinBound !== "true") {
+    root.addEventListener("click", event => {
+      const button = event.target.closest?.("[data-v-twin-colts]");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void performTwinColtsFollowUp(button, event);
+    });
+    root.dataset.vredTwinBound = "true";
+  }
+}
+
+async function performTwinColtsFollowUp(button, event) {
+  const actor = game.actors?.get(button.dataset.actorId);
+  if (!actor || !isOwner(actor)) return;
+  const state = stateFor(actor);
+  const pending = state.encounter?.twinColtsFollowUp;
+  if (!pending || pending.roundKey !== button.dataset.roundKey || pending.status !== "pending") return;
+  if (state.encounter.current?.name !== "Twin Colts") return;
+  const key = `manifested:${button.dataset.otherHand}`;
+  const weapon = actor.items.find(entry => entry.getFlag?.(MODULE_ID, "managedRole") === "manifested-weapon"
+    && entry.getFlag?.(MODULE_ID, "managedKey") === key);
+  const strike = actor.system.actions?.find(action => action.item?.id === weapon?.id || action.itemId === weapon?.id);
+  const map = Number(button.dataset.map);
+  const variant = strike?.variants?.[map];
+  if (!variant?.roll) {
+    notify("warn", "Não encontrei o Strike da outra pistola para fazer o disparo adicional.");
+    return;
+  }
+  pending.status = "used";
+  await actor.update({ [STATE_PATH]: state });
+  await variant.roll({ event });
 }
 
 function decorateVChatMessage(message, html) {
@@ -1601,10 +1906,11 @@ function decorateVChatMessage(message, html) {
   const item = itemFromChatMessage(message, root, actor);
   if (item || (!rolls.length && root.querySelector(".content-link[data-uuid*='.Item.']"))) root.classList.add("vred-chat-item");
   addChatDetails(root, message, actor, item, rolls, dice);
+  appendTwinColtsPrompt(root, message, actor, item, attackOutcome(message, root));
 }
 
-Hooks.on("renderChatMessage", decorateVChatMessage);
-Hooks.on("renderChatMessageHTML", decorateVChatMessage);
+const foundryMajorVersion = Number.parseInt(String(game.version ?? "14").split(".")[0], 10) || 14;
+Hooks.on(foundryMajorVersion >= 14 ? "renderChatMessageHTML" : "renderChatMessage", decorateVChatMessage);
 Hooks.on("deleteCombat", combat => {
   if (!isGM()) return;
   for (const actor of game.actors) {
